@@ -86,7 +86,26 @@ Others tab:
 7. **Post-processing scripts** — (text area)
 8. **Notes** — (text area)
 
-**⚠ Also awaiting:** Filament tab screenshots for the filament settings panel structure.
+**Bambu Studio Filament Tab Structure (verified from screenshots 2026-04-02):**
+
+Filament sub-tab:
+1. **Basic information** — Type, Vendor, Default color, Diameter, Flow ratio, Density, Shrinkage, Velocity Adaptation Factor, Price, Softening temperature, Filament prime volume, Filament ramming length, Travel time after ramming, Precooling target temperature, Recommended nozzle temperature (Min/Max)
+2. **Print temperature** — Per-plate bed temps (Cool Plate SuperTack, Cool Plate, Engineering Plate, Smooth PEI/High Temp Plate, Textured PEI Plate) each with Initial layer + Other layers, Nozzle temp with Initial layer + Other layers
+3. **Volumetric speed limitation** — Adaptive volumetric speed, Max volumetric speed, Ramming volumetric speed
+4. **Filament scarf seam settings** — Scarf seam type, Scarf start height, Scarf slope gap, Scarf length
+
+Cooling sub-tab:
+1. **Cooling for specific layer** — Special cooling settings (first N layers + fan speed)
+2. **Part cooling fan** — Min/Max fan speed threshold (fan speed + layer time), Keep fan always on, Slow printing down for better layer cooling, Don't slow down outer walls, Min print speed, Force cooling for overhangs and bridges, Cooling overhang threshold, Overhang threshold for participating cooling, Fan speed for overhangs, Pre start fan time
+3. **Auxiliary part cooling fan** — Fan speed
+
+Setting Overrides sub-tab:
+1. **Retraction** — Length, Z hop when retract, Z Hop Type, Retraction Speed, Deretraction Speed, Extra length on restart, Travel distance threshold, Retract when change layer, Wipe while retracting, Wipe Distance, Retract amount before wipe, Long retraction when cut, Retraction distance when cut
+2. **Speed** — Override overhang speed
+
+Advanced sub-tab:
+1. **Filament start G-code** — (text area)
+2. **Filament end G-code** — (text area)
 
 **Changes needed (parameters we currently generate):**
 
