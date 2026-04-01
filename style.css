@@ -732,9 +732,12 @@ body, header, .top-nav, .filters, .panel, .chip,
   padding-bottom: 40px;
 }
 .feedback-embed iframe {
+  display: block;
   border: none;
+  border-radius: var(--r);
   width: 100%;
   min-height: 400px;
+  background: #ffffff;
 }
 
 /* ── AMS Purge Calculator ── */
