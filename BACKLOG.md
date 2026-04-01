@@ -723,6 +723,44 @@ Output options page:
 
 Notes page: (text area)
 
+**PrusaSlicer Filament Settings Structure (verified from screenshots 2026-04-02):**
+
+Note: PrusaSlicer uses sidebar pages. Key terminology differences: "Extrusion multiplier" = Flow ratio, "Wipe tower" = Prime tower.
+
+Filament page:
+1. **Filament** — Color, Diameter, Extrusion multiplier, Density, Cost, Spool weight
+2. **Temperature** — Idle temperature, Nozzle (First layer / Other layers), Bed (First layer / Other layers), Chamber (Nominal / Minimal)
+
+Cooling page:
+1. **Enable** — Keep fan always on, Enable auto cooling, Cooling slowdown logic, Perimeter transition distance
+2. **Fan settings** — Fan speed (Min/Max), Bridges fan speed, Disable fan for first N layers, Full fan speed at layer
+3. **Dynamic fan speeds** — Enable, speed for 0%/25%/50%/75% overlap
+4. **Cooling thresholds** — Enable fan if layer print time below, Slow down if layer print time below, Min print speed
+
+Advanced page:
+1. **Filament properties** — Filament type, Soluble material, Abrasive material
+2. **Print speed override** — Max volumetric speed, Max non-crossing infill speed, Max crossing infill speed
+3. **Shrinkage compensation** — XY, Z
+4. **Wipe tower parameters** — Minimal purge on wipe tower
+5. **Toolchange parameters with single extruder MM printers** — Loading/Unloading speeds, Filament load/unload time, Delay after unloading, Cooling moves, Stamping settings, Purge volume multiplier, Ramming parameters
+6. **Toolchange parameters with multi extruder MM printers** — Enable ramming for multitool, Multitool ramming volume/flow
+
+Filament Overrides page:
+1. **Travel lift** — Lift height, Use ramping lift, Maximum ramping lift, Ramping slope angle, Steeper ramp before obstacles, Only lift Z above/below
+2. **Retraction** — Retraction length, Retraction Speed, Deretraction Speed, Deretraction extra length, Minimum travel after retraction, Retract on layer change, Wipe while retracting, Retract amount before wipe
+3. **Retraction when tool is disabled** — Length, Extra length on restart
+4. **Seams** — Seam gap distance
+
+Custom G-code page:
+1. **Start G-code** — (text area)
+2. **End G-code** — (text area)
+3. **Custom parameters** — (text area)
+
+Notes page: (text area)
+
+Dependencies page:
+1. **Profile dependencies** — Compatible printers, Compatible printers condition, Compatible print profiles, Compatible print profiles condition
+
 **Implementation Plan:**
 - [ ] Document PrusaSlicer tab structure from screenshots (sections, param names, groupings)
 - [ ] Document OrcaSlicer tab structure from screenshots
