@@ -663,7 +663,65 @@ When a user selects a printer, the results panel should display section names, p
 3. PrusaSlicer — covers Prusa users
 4. Creality Print — if needed (many Creality users use OrcaSlicer anyway)
 
-**⚠ Prerequisite:** Need screenshots of each slicer's Process/Print Settings tabs to document the exact structure, same as was done for Bambu Studio in #002. PrusaSlicer screenshots are next.
+**PrusaSlicer Print Settings Structure (verified from screenshots 2026-04-02):**
+
+Note: PrusaSlicer uses sidebar pages instead of tabs. Key terminology differences: "Perimeters" = Walls, "External perimeters" = Outer wall, "Fill density" = Sparse infill density, "Fill pattern" = Sparse infill pattern, "Wipe tower" = Prime tower.
+
+Layers and perimeters page:
+1. **Layer height** — Layer height, First layer height
+2. *(Perimeters)* — Perimeters (count)
+3. **Horizontal shells** — Solid layers (Top/Bottom), Minimum shell thickness (Top/Bottom)
+4. **Quality (slower slicing)** — Extra perimeters if needed, Extra perimeters on overhangs, Ensure vertical shell thickness, Avoid crossing curled overhangs, Avoid crossing perimeters, Max detour length, Detect thin walls, Thick bridges, Detect bridging perimeters
+5. **Advanced** — Seam position, Seam gap distance, Staggered inner seams, Scarf joint settings, External perimeters first, Fill gaps, Perimeter generator
+6. **Fuzzy skin (experimental)** — Fuzzy Skin, thickness, point distance
+7. **Only one perimeter** — Single perimeter on top surfaces, Only one perimeter on first layer
+
+Infill page:
+1. **Infill** — Fill density, Fill pattern, Infill anchor lengths, Top fill pattern, Bottom fill pattern
+2. **Ironing** — Enable ironing, Ironing Type, Flow rate, Spacing between passes
+3. **Reducing printing time** — Automatic infill combination, Max layer height, Combine infill every
+4. **Advanced** — Solid infill every, Fill angle, Solid infill threshold area, Bridging angle, Only retract when crossing perimeters, Infill before perimeters
+
+Skirt and brim page:
+1. **Skirt** — Loops, Distance from brim/object, Skirt height, Draft shield, Minimal filament extrusion length
+2. **Brim** — Brim type, Brim width, Brim separation gap
+
+Support material page:
+1. **Support material** — Generate support material, Auto generated supports, Overhang threshold, Enforce support for first N layers, First layer density, First layer expansion
+2. **Raft** — Raft layers, Raft contact Z distance, Raft expansion
+3. **Options for support material and raft** — Style, Top/Bottom contact Z distance, Pattern, Sheath, Pattern spacing, Pattern angle, Closing radius, Top/Bottom interface layers, Interface pattern, Interface pattern spacing, Interface loops, Build plate only, XY separation, Don't support bridges, Synchronize with object layers
+4. **Organic supports** — Max/Preferred Branch Angle, Branch Diameter, Diameter Angle, Double walls, Tip Diameter, Branch Distance, Branch Density
+
+Speed page:
+1. **Speed for print moves** — Perimeters, Small perimeters, External perimeters, Infill, Solid infill, Top solid infill, Support material, Support material interface, Bridges, Over bridges, Gap fill, Ironing
+2. **Dynamic overhang speed** — Enable, speed for 0%/25%/50%/75% overlap
+3. **Speed for non-print moves** — Travel, Z travel
+4. **Modifiers** — First layer speed, First layer solid infill speed, Speed over raft interface
+5. **Acceleration control (advanced)** — External perimeters, Perimeters, Top solid infill, Solid infill, Infill, Bridge, First layer, First object over raft, Wipe tower, Travel, Travel short distance, Default
+6. **Autospeed (advanced)** — Max print speed, Max volumetric speed
+7. **Pressure equalizer (experimental)** — Max volumetric slope positive/negative
+
+Multiple Extruders page:
+1. **Extruders** — Perimeter/Infill/Solid infill/Support/Interface/Wipe tower extruder assignments, Bed temp by extruder
+2. **Ooze prevention** — Enable, Temperature variation
+3. **Wipe tower** — Enable, Width, Brim width, Max bridging distance, Stabilization cone, Purge lines spacing, Extra flow, No sparse layers, Prime all extruders
+4. **Advanced** — Interface shells, Segmented region settings, Beam interlocking settings
+
+Advanced page:
+1. **Extrusion width** — Default, First layer, Perimeters, External perimeters, Infill, Solid infill, Top solid infill, Support material, Automatic calculation
+2. **Overlap** — Infill/perimeters overlap
+3. **Flow** — Bridge flow ratio
+4. **Slicing** — Slice gap closing radius, Slicing Mode, Slice/G-code resolution, Arc fitting, XY Size Compensation, Elephant foot compensation
+5. **Arachne perimeter generator** — Transitioning threshold/filter/length, Distribution count, Min perimeter width, Min feature size
+6. **Custom parameters**
+
+Output options page:
+1. **Sequential printing** — Complete individual objects
+2. **Output file** — Verbose G-code, Label objects, Output filename format
+3. **Other** — G-code substitutions
+4. **Post-processing scripts**
+
+Notes page: (text area)
 
 **Implementation Plan:**
 - [ ] Document PrusaSlicer tab structure from screenshots (sections, param names, groupings)
