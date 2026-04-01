@@ -325,9 +325,11 @@ body, header, .top-nav, .filters, .panel, .chip,
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text2);
-  padding: 10px 18px 4px;
+  color: var(--text3);
+  background: var(--surface2);
+  padding: 8px 18px 8px 15px;
   border-top: 1px solid var(--border);
+  border-left: 3px solid var(--purple-border);
 }
 .setting-section-label:first-child { border-top: none; }
 
@@ -404,29 +406,6 @@ body, header, .top-nav, .filters, .panel, .chip,
   color: var(--text2);
 }
 
-/* Advanced section divider inside tabs */
-.adv-divider {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 18px 4px;
-  margin-top: 4px;
-}
-.adv-divider::before,
-.adv-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border2);
-}
-.adv-divider span {
-  font-family: 'DM Mono', monospace;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--purple);
-  flex-shrink: 0;
-}
 
 /* Advanced label in filament panel */
 .adv-label { color: var(--purple) !important; }
@@ -989,7 +968,6 @@ body, header, .top-nav, .filters, .panel, .chip,
   .filament-notes       { padding: 8px 10px 12px; }
   .checklist-header     { padding: 10px 14px; }
   .checklist-item       { padding: 10px 12px; }
-  .adv-divider          { padding: 8px 14px 4px; }
   .no-settings          { padding: 12px 14px; }
 }
 

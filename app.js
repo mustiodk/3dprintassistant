@@ -733,16 +733,13 @@ function renderProfilePanel(profile) {
       for (const section of tab.sections) {
         const eligible = section.params.filter(p => profile[p]);
         if (eligible.length === 0) continue;
-        const simple   = eligible.filter(p => profile[p].mode === 'simple');
-        const advanced = eligible.filter(p => profile[p].mode === 'advanced');
-        if (simple.length === 0 && (currentMode === 'simple' || advanced.length === 0)) continue;
+        const visible = currentMode === 'advanced'
+          ? eligible
+          : eligible.filter(p => profile[p].mode === 'simple');
+        if (visible.length === 0) continue;
         hasAny = true;
         body += `<div class="setting-section-label">${section.label}</div>`;
-        body += simple.map(renderParam).join('');
-        if (currentMode === 'advanced' && advanced.length > 0) {
-          body += `<div class="adv-divider"><span>${T('advDivider')}</span></div>`;
-          body += advanced.map(renderParam).join('');
-        }
+        body += visible.map(renderParam).join('');
       }
       if (!hasAny) {
         body = `<div class="no-settings">${T('noSettings')}</div>`;
