@@ -302,12 +302,31 @@ body, header, .top-nav, .filters, .panel, .chip,
 /* Picker body */
 .printer-picker-body { flex: 1; }
 
-/* Auto-collapsed picker — only summary bar visible */
+/* Auto-collapse animation for picker */
+.printer-search-wrap,
+.printer-brands {
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s ease,
+              margin-bottom 0.3s ease;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+/* Collapsed state — smooth slide up */
 .picker-collapsed .printer-search-wrap,
-.picker-collapsed .printer-search-results,
-.picker-collapsed .printer-brands,
+.picker-collapsed .printer-brands {
+  max-height: 0; opacity: 0; margin-bottom: 0;
+  pointer-events: none;
+}
+.picker-collapsed .printer-search-results {
+  max-height: 0 !important; opacity: 0; overflow: hidden;
+}
 .picker-collapsed .printer-model-panel {
-  display: none !important;
+  max-height: 0 !important; opacity: 0; overflow: hidden;
+  margin: 0 !important;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s ease,
+              margin 0.3s ease;
 }
 .picker-collapsed .printer-summary {
   cursor: pointer;
@@ -316,6 +335,7 @@ body, header, .top-nav, .filters, .panel, .chip,
 .picker-collapsed .printer-summary:hover {
   filter: brightness(1.15);
 }
+
 
 /* Search */
 .printer-search-wrap { position: relative; margin-bottom: 10px; }
