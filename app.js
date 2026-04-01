@@ -241,6 +241,11 @@ function setView(view) {
   document.getElementById('navPurge').classList.toggle('active',         view === 'purge');
   document.getElementById('navFeedback').classList.toggle('active',      view === 'feedback');
   if (view === 'purge') renderPurgeCalculator();
+  if (view === 'feedback') {
+    // Always reset the iframe so the form is fresh (not stuck on thank-you page)
+    const iframe = document.querySelector('#viewFeedback iframe');
+    if (iframe) { const s = iframe.src || iframe.dataset.tallySrc; iframe.src = ''; iframe.src = s; }
+  }
 }
 
 // ── Build troubleshooter symptom grid ─────────────────────────────────────────
