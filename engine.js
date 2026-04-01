@@ -182,8 +182,14 @@ const Engine = (() => {
       ptResult:         'Estimated print time',
       ptDisclaimer:     'Rough estimate only — excludes supports, prime tower, and complex geometry.',
       // Feedback
-      feedbackTitle:    'Share Feedback',
-      feedbackSub:      'Found a bug or have a feature idea? Let us know — every submission helps improve the tool.',
+      feedbackTitle:       'Share Feedback',
+      feedbackSub:         'Found a bug or have a feature idea? Let us know — every submission helps improve the tool.',
+      feedbackBugTitle:    'Bug Report',
+      feedbackBugDesc:     'Something isn\'t working as expected',
+      feedbackFeatTitle:   'Feature Request',
+      feedbackFeatDesc:    'Have an idea to improve the tool?',
+      feedbackOtherTitle:  'Other',
+      feedbackOtherDesc:   'General thoughts or questions',
       // Footer + modal
       footer:           '3D Print Assistant — your 3D printing companion',
       aboutLink:        'About',
@@ -355,8 +361,14 @@ const Engine = (() => {
       ptResult:         'Estimeret printtid',
       ptDisclaimer:     'Kun groft estimat — ekskluderer understøtninger, prime tower og kompleks geometri.',
       // Feedback
-      feedbackTitle:    'Del Feedback',
-      feedbackSub:      'Fundet en fejl eller har en idé? Fortæl os det — hvert svar hjælper med at forbedre værktøjet.',
+      feedbackTitle:       'Del Feedback',
+      feedbackSub:         'Fundet en fejl eller har en idé? Fortæl os det — hvert svar hjælper med at forbedre værktøjet.',
+      feedbackBugTitle:    'Fejlrapport',
+      feedbackBugDesc:     'Noget fungerer ikke som forventet',
+      feedbackFeatTitle:   'Funktionsønske',
+      feedbackFeatDesc:    'Har du en idé til at forbedre værktøjet?',
+      feedbackOtherTitle:  'Andet',
+      feedbackOtherDesc:   'Generelle tanker eller spørgsmål',
       // Footer + modal
       footer:           '3D Print Assistant — din 3D-print ledsager',
       aboutLink:        'Om',

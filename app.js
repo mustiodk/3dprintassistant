@@ -126,8 +126,14 @@ function applyLang() {
   document.getElementById('troubleHeroSub').textContent     = T('troubleSub');
   document.getElementById('purgeHeroTitle').textContent     = T('purgeTitle');
   document.getElementById('purgeHeroSub').textContent       = T('purgeSub');
-  document.getElementById('feedbackHeroTitle').textContent  = T('feedbackTitle');
-  document.getElementById('feedbackHeroSub').textContent    = T('feedbackSub');
+  document.getElementById('feedbackHeroTitle').textContent      = T('feedbackTitle');
+  document.getElementById('feedbackHeroSub').textContent        = T('feedbackSub');
+  document.getElementById('feedbackCardBugTitle').textContent   = T('feedbackBugTitle');
+  document.getElementById('feedbackCardBugDesc').textContent    = T('feedbackBugDesc');
+  document.getElementById('feedbackCardFeatureTitle').textContent = T('feedbackFeatTitle');
+  document.getElementById('feedbackCardFeatureDesc').textContent  = T('feedbackFeatDesc');
+  document.getElementById('feedbackCardOtherTitle').textContent = T('feedbackOtherTitle');
+  document.getElementById('feedbackCardOtherDesc').textContent  = T('feedbackOtherDesc');
 
   // Panel headers
   document.getElementById('panelFilTitle').textContent  = T('panelFilTitle');
@@ -241,11 +247,6 @@ function setView(view) {
   document.getElementById('navPurge').classList.toggle('active',         view === 'purge');
   document.getElementById('navFeedback').classList.toggle('active',      view === 'feedback');
   if (view === 'purge') renderPurgeCalculator();
-  if (view === 'feedback') {
-    // Always reset the iframe so the form is fresh (not stuck on thank-you page)
-    const iframe = document.querySelector('#viewFeedback iframe');
-    if (iframe) { const s = iframe.src || iframe.dataset.tallySrc; iframe.src = ''; iframe.src = s; }
-  }
 }
 
 // ── Build troubleshooter symptom grid ─────────────────────────────────────────

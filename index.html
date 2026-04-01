@@ -126,19 +126,24 @@
       <div class="trouble-hero-title" id="feedbackHeroTitle">Share Feedback</div>
       <div class="trouble-hero-sub" id="feedbackHeroSub">Found a bug or have a feature idea? Let us know — every submission helps improve the tool.</div>
     </div>
-    <div class="feedback-embed">
-      <iframe
-        data-tally-src="https://tally.so/embed/obdMK1?alignLeft=1&hideTitle=1&dynamicHeight=1"
-        loading="lazy"
-        width="100%"
-        height="400"
-        frameborder="0"
-        marginheight="0"
-        marginwidth="0"
-        title="3D Print Assistant — Feedback"
-      ></iframe>
-      <script>var d=document,w="https://tally.so/widgets/embed.js",v=function(){"undefined"!=typeof Tally?Tally.loadEmbeds():d.querySelectorAll("iframe[data-tally-src]:not([src])").forEach((function(e){e.src=e.dataset.tallySrc}))};if("undefined"!=typeof Tally)v();else if(d.querySelector('script[src="'+w+'"]')==null){var s=d.createElement("script");s.src=w,s.onload=v,s.onerror=v,d.body.appendChild(s);}</script>
+    <div class="feedback-cards">
+      <button class="feedback-card" id="feedbackCardBug" data-tally-open="obdMK1" data-tally-layout="modal" data-tally-auto-close="3000">
+        <div class="feedback-card-icon">⚠</div>
+        <div class="feedback-card-title" id="feedbackCardBugTitle">Bug Report</div>
+        <div class="feedback-card-desc" id="feedbackCardBugDesc">Something isn't working as expected</div>
+      </button>
+      <button class="feedback-card" id="feedbackCardFeature" data-tally-open="obdMK1" data-tally-layout="modal" data-tally-auto-close="3000">
+        <div class="feedback-card-icon">◈</div>
+        <div class="feedback-card-title" id="feedbackCardFeatureTitle">Feature Request</div>
+        <div class="feedback-card-desc" id="feedbackCardFeatureDesc">Have an idea to improve the tool?</div>
+      </button>
+      <button class="feedback-card" id="feedbackCardOther" data-tally-open="obdMK1" data-tally-layout="modal" data-tally-auto-close="3000">
+        <div class="feedback-card-icon">◇</div>
+        <div class="feedback-card-title" id="feedbackCardOtherTitle">Other</div>
+        <div class="feedback-card-desc" id="feedbackCardOtherDesc">General thoughts or questions</div>
+      </button>
     </div>
+    <script>var d=document,w="https://tally.so/widgets/embed.js";if(d.querySelector('script[src="'+w+'"]')==null){var s=d.createElement("script");s.src=w;d.body.appendChild(s);}</script>
   </div>
 
   <footer id="footerText"></footer>

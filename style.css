@@ -726,26 +726,49 @@ body, header, .top-nav, .filters, .panel, .chip,
 }
 
 /* ── Feedback view ── */
-.feedback-embed {
-  max-width: 680px;
-  margin: 0 auto;
-  padding-bottom: 40px;
+.feedback-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  max-width: 740px;
+  margin: 0 auto 40px;
+}
+.feedback-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 24px 22px;
   background: var(--surface);
   border: 1px solid var(--border2);
   border-radius: var(--r);
-  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  font-family: 'Syne', system-ui, sans-serif;
+  transition: border-color 0.15s, background 0.15s;
 }
-.feedback-embed iframe {
-  display: block;
-  border: none;
-  width: 100%;
-  min-height: 400px;
-  background: #ffffff;
-  transition: filter 0.2s;
+.feedback-card:hover {
+  border-color: var(--green-border);
+  background: var(--surface2);
 }
-html[data-theme="dark"] .feedback-embed iframe {
-  filter: invert(1) hue-rotate(180deg);
-  background: transparent;
+.feedback-card-icon {
+  font-size: 22px;
+  color: var(--green);
+  line-height: 1;
+}
+.feedback-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.feedback-card-desc {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+@media (max-width: 768px) {
+  .feedback-cards { grid-template-columns: 1fr; }
 }
 
 /* ── AMS Purge Calculator ── */
