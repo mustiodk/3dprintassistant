@@ -65,7 +65,7 @@ header {
   z-index: 200;
   height: 58px;
 }
-.logo { display: flex; align-items: center; gap: 11px; }
+.logo { display: flex; align-items: center; gap: 11px; text-decoration: none; color: inherit; }
 .logo-mark {
   width: 32px; height: 32px;
   background: var(--green);
@@ -609,8 +609,9 @@ body, header, .top-nav, .filters, .panel, .chip,
   margin-bottom: -1px;
   transition: color 0.15s, border-color 0.15s;
 }
-.nav-btn:hover   { color: var(--text); }
-.nav-btn.active  { color: var(--green); border-bottom-color: var(--green); }
+.nav-btn:hover         { color: var(--text); }
+.nav-btn.active        { color: var(--green); border-bottom-color: var(--green); }
+.nav-home              { text-decoration: none; margin-right: 8px; padding-right: 16px; border-right: 1px solid var(--border2); }
 
 /* ── Troubleshooter view ── */
 .trouble-hero {
