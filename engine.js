@@ -27,6 +27,7 @@ const Engine = (() => {
       navConfigure:     'Configure',
       navTroubleshoot:  'Troubleshoot',
       navPurge:         'AMS Purge',
+      navFeedback:      'Feedback',
       // Filter hints
       hintRequired:     'required',
       hintOptional:     'optional',
@@ -180,6 +181,9 @@ const Engine = (() => {
       ptOuterSpeed:     'outer wall',
       ptResult:         'Estimated print time',
       ptDisclaimer:     'Rough estimate only — excludes supports, prime tower, and complex geometry.',
+      // Feedback
+      feedbackTitle:    'Share Feedback',
+      feedbackSub:      'Found a bug or have a feature idea? Let us know — every submission helps improve the tool.',
       // Footer + modal
       footer:           '3D Print Assistant — your 3D printing companion',
       aboutLink:        'About',
@@ -196,6 +200,7 @@ const Engine = (() => {
       navConfigure:     'Konfigurer',
       navTroubleshoot:  'Fejlfinding',
       navPurge:         'AMS Skylning',
+      navFeedback:      'Feedback',
       // Filter hints
       hintRequired:     'påkrævet',
       hintOptional:     'valgfri',
@@ -349,6 +354,9 @@ const Engine = (() => {
       ptOuterSpeed:     'ydervæg',
       ptResult:         'Estimeret printtid',
       ptDisclaimer:     'Kun groft estimat — ekskluderer understøtninger, prime tower og kompleks geometri.',
+      // Feedback
+      feedbackTitle:    'Del Feedback',
+      feedbackSub:      'Fundet en fejl eller har en idé? Fortæl os det — hvert svar hjælper med at forbedre værktøjet.',
       // Footer + modal
       footer:           '3D Print Assistant — din 3D-print ledsager',
       aboutLink:        'Om',

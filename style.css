@@ -725,6 +725,18 @@ body, header, .top-nav, .filters, .panel, .chip,
   line-height: 1.5;
 }
 
+/* ── Feedback view ── */
+.feedback-embed {
+  max-width: 680px;
+  margin: 0 auto;
+  padding-bottom: 40px;
+}
+.feedback-embed iframe {
+  border: none;
+  width: 100%;
+  min-height: 400px;
+}
+
 /* ── AMS Purge Calculator ── */
 .purge-controls {
   display: flex;

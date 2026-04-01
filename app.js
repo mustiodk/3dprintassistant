@@ -13,7 +13,7 @@ const state = {
 let currentMode       = 'simple';        // 'simple' | 'advanced'
 let currentTheme      = 'dark';          // 'dark' | 'light'
 let activeTabId       = 'quality';       // persisted across re-renders
-let currentView       = 'configure';     // 'configure' | 'troubleshoot' | 'purge'
+let currentView       = 'configure';     // 'configure' | 'troubleshoot' | 'purge' | 'feedback'
 let activeSymptom     = null;            // troubleshooter selected symptom id
 let comparisonProfile = null;            // { profile, label } when Profile A is locked
 
@@ -111,6 +111,7 @@ function applyLang() {
   document.getElementById('navConfigure').textContent      = T('navConfigure');
   document.getElementById('navTroubleshoot').textContent   = T('navTroubleshoot');
   document.getElementById('navPurge').textContent          = T('navPurge');
+  document.getElementById('navFeedback').textContent       = T('navFeedback');
 
   // Lang toggle active state
   document.getElementById('langEN').classList.toggle('active', lang === 'en');
@@ -121,10 +122,12 @@ function applyLang() {
   document.getElementById('emptySub').textContent   = T('emptySub');
 
   // Heroes
-  document.getElementById('troubleHeroTitle').textContent = T('troubleTitle');
-  document.getElementById('troubleHeroSub').textContent   = T('troubleSub');
-  document.getElementById('purgeHeroTitle').textContent   = T('purgeTitle');
-  document.getElementById('purgeHeroSub').textContent     = T('purgeSub');
+  document.getElementById('troubleHeroTitle').textContent   = T('troubleTitle');
+  document.getElementById('troubleHeroSub').textContent     = T('troubleSub');
+  document.getElementById('purgeHeroTitle').textContent     = T('purgeTitle');
+  document.getElementById('purgeHeroSub').textContent       = T('purgeSub');
+  document.getElementById('feedbackHeroTitle').textContent  = T('feedbackTitle');
+  document.getElementById('feedbackHeroSub').textContent    = T('feedbackSub');
 
   // Panel headers
   document.getElementById('panelFilTitle').textContent  = T('panelFilTitle');
@@ -232,9 +235,11 @@ function setView(view) {
   document.getElementById('viewConfigure').style.display    = view === 'configure'    ? '' : 'none';
   document.getElementById('viewTroubleshoot').style.display  = view === 'troubleshoot'  ? '' : 'none';
   document.getElementById('viewPurge').style.display         = view === 'purge'         ? '' : 'none';
+  document.getElementById('viewFeedback').style.display      = view === 'feedback'      ? '' : 'none';
   document.getElementById('navConfigure').classList.toggle('active',    view === 'configure');
   document.getElementById('navTroubleshoot').classList.toggle('active',  view === 'troubleshoot');
   document.getElementById('navPurge').classList.toggle('active',         view === 'purge');
+  document.getElementById('navFeedback').classList.toggle('active',      view === 'feedback');
   if (view === 'purge') renderPurgeCalculator();
 }
 
@@ -415,6 +420,7 @@ function bindControls() {
   document.getElementById('navConfigure').addEventListener('click',    () => setView('configure'));
   document.getElementById('navTroubleshoot').addEventListener('click',  () => setView('troubleshoot'));
   document.getElementById('navPurge').addEventListener('click',         () => setView('purge'));
+  document.getElementById('navFeedback').addEventListener('click',      () => setView('feedback'));
 
   document.getElementById('exportBtn').addEventListener('click', () => {
     const data = Engine.exportProfile(state);
