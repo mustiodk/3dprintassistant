@@ -487,45 +487,43 @@ const Engine = (() => {
   }
 
   // ── Profile Tabs ─────────────────────────────────────────────────────────────
+  // Sections mirror the Bambu Studio Process tab structure and parameter order.
   const PROFILE_TABS = [
     {
       id: 'quality', label: 'Quality',
-      params: [
-        'layer_height', 'wall_generator', 'seam_position',
-        'order_of_walls', 'xy_hole_compensation', 'elephant_foot_compensation',
-        'initial_layer_height',
-        'outer_wall_line_width', 'inner_wall_line_width', 'top_surface_line_width',
-        'arc_fitting', 'avoid_crossing_walls', 'only_one_wall_top', 'bridge_flow',
+      sections: [
+        { label: 'Layer height',  params: ['layer_height', 'initial_layer_height'] },
+        { label: 'Line width',    params: ['outer_wall_line_width', 'inner_wall_line_width', 'top_surface_line_width'] },
+        { label: 'Seam',          params: ['seam_position'] },
+        { label: 'Precision',     params: ['wall_generator', 'order_of_walls', 'xy_hole_compensation', 'elephant_foot_compensation'] },
+        { label: 'Others',        params: ['arc_fitting', 'avoid_crossing_walls', 'only_one_wall_top', 'bridge_flow'] },
       ],
     },
     {
       id: 'strength', label: 'Strength',
-      params: [
-        'wall_loops', 'top_shell_layers', 'sparse_infill_pattern', 'sparse_infill_density',
-        'bottom_shell_layers', 'top_surface_pattern', 'bottom_surface_pattern',
-        'internal_solid_infill_pattern', 'infill_combination',
+      sections: [
+        { label: 'Walls',         params: ['wall_loops'] },
+        { label: 'Infill',        params: ['sparse_infill_pattern', 'sparse_infill_density', 'infill_combination'] },
+        { label: 'Top / bottom',  params: ['top_shell_layers', 'bottom_shell_layers', 'top_surface_pattern', 'bottom_surface_pattern', 'internal_solid_infill_pattern'] },
       ],
     },
     {
       id: 'speed', label: 'Speed',
-      params: [
-        'outer_wall_speed', 'inner_wall_speed',
-        'initial_layer_speed', 'top_surface_speed', 'gap_fill_speed',
-        'outer_wall_acceleration', 'inner_wall_acceleration', 'initial_layer_acceleration',
+      sections: [
+        { label: 'Speed',         params: ['outer_wall_speed', 'inner_wall_speed', 'initial_layer_speed', 'top_surface_speed', 'gap_fill_speed'] },
+        { label: 'Acceleration',  params: ['outer_wall_acceleration', 'inner_wall_acceleration', 'initial_layer_acceleration'] },
       ],
     },
     {
       id: 'support', label: 'Support',
-      params: [
-        'support_type', 'support_style', 'support_threshold_angle', 'support_z_distance',
-        'support_interface_layers', 'support_interface_pattern',
+      sections: [
+        { label: 'Support',       params: ['support_type', 'support_style', 'support_threshold_angle', 'support_z_distance', 'support_interface_layers', 'support_interface_pattern'] },
       ],
     },
     {
       id: 'others', label: 'Others',
-      params: [
-        'prime_tower', 'flush_into_infill', 'ironing', 'slow_down_tall',
-        'brim_width',
+      sections: [
+        { label: 'Special',       params: ['prime_tower', 'flush_into_infill', 'ironing', 'slow_down_tall', 'brim_width'] },
       ],
     },
   ];
@@ -1381,7 +1379,11 @@ const Engine = (() => {
     get FILTERS()      { return getFilters(); },
     get PROFILE_TABS() {
       const cap = s => s[0].toUpperCase() + s.slice(1);
-      return PROFILE_TABS.map(tab => ({ ...tab, label: t('tab' + cap(tab.id)) }));
+      return PROFILE_TABS.map(tab => ({
+        ...tab,
+        label: t('tab' + cap(tab.id)),
+        params: tab.sections.flatMap(s => s.params),
+      }));
     },
     get PARAM_LABELS() { return PARAM_LABELS; },
     resolveProfile,

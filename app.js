@@ -678,11 +678,7 @@ function renderProfilePanel(profile) {
   ).join('');
 
   contents.innerHTML = Engine.PROFILE_TABS.map(tab => {
-    // In compare mode: show all params present in either A or B
     const aProfile = comparisonProfile?.profile || {};
-    const eligible = tab.params.filter(p => profile[p] || aProfile[p]);
-    const simple   = eligible.filter(p => (profile[p] || aProfile[p])?.mode === 'simple');
-    const advanced = eligible.filter(p => (profile[p] || aProfile[p])?.mode === 'advanced');
 
     const renderParam = p => {
       const item = profile[p];
@@ -692,7 +688,6 @@ function renderProfilePanel(profile) {
         const aVal  = aItem?.value ?? '—';
         const bVal  = item?.value  ?? '—';
         const same  = aVal === bVal;
-        // Don't strikethrough "—" (param simply didn't exist in that profile)
         const aCls  = (same || aVal === '—') ? 'same' : '';
         const bCls  = (same || bVal === '—') ? 'same' : '';
         return `
@@ -715,7 +710,7 @@ function renderProfilePanel(profile) {
     let body = '';
 
     if (comparisonProfile) {
-      // In compare mode: show all eligible params, no simple/advanced split
+      const eligible = tab.params.filter(p => profile[p] || aProfile[p]);
       if (eligible.length === 0) {
         body = `<div class="no-settings">${T('noSettingsComp')}</div>`;
       } else {
@@ -725,17 +720,32 @@ function renderProfilePanel(profile) {
             <span class="ch-a">${T('compareHdrA')}</span>
             <span class="ch-b">${T('compareHdrB')}</span>
           </div>`;
-        body = colHeader + eligible.map(renderParam).join('');
+        body = colHeader;
+        for (const section of tab.sections) {
+          const secEligible = section.params.filter(p => profile[p] || aProfile[p]);
+          if (secEligible.length === 0) continue;
+          body += `<div class="setting-section-label">${section.label}</div>`;
+          body += secEligible.map(renderParam).join('');
+        }
       }
     } else {
-      if (simple.length === 0 && (currentMode === 'simple' || advanced.length === 0)) {
-        body = `<div class="no-settings">${T('noSettings')}</div>`;
-      } else {
+      let hasAny = false;
+      for (const section of tab.sections) {
+        const eligible = section.params.filter(p => profile[p]);
+        if (eligible.length === 0) continue;
+        const simple   = eligible.filter(p => profile[p].mode === 'simple');
+        const advanced = eligible.filter(p => profile[p].mode === 'advanced');
+        if (simple.length === 0 && (currentMode === 'simple' || advanced.length === 0)) continue;
+        hasAny = true;
+        body += `<div class="setting-section-label">${section.label}</div>`;
         body += simple.map(renderParam).join('');
         if (currentMode === 'advanced' && advanced.length > 0) {
           body += `<div class="adv-divider"><span>${T('advDivider')}</span></div>`;
           body += advanced.map(renderParam).join('');
         }
+      }
+      if (!hasAny) {
+        body = `<div class="no-settings">${T('noSettings')}</div>`;
       }
     }
 
