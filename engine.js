@@ -105,6 +105,16 @@ const Engine = (() => {
       secSpeedLimit:    'Volumetric speed limitation',
       secSetup:         'Setup',
       secAdvExtrusion:  'Setting overrides',
+      // PrusaSlicer filament section overrides
+      secTemps_prusaslicer:        'Temperature',
+      secNozzleTemp_prusaslicer:   'Nozzle temperature',
+      secBedTemp_prusaslicer:      'Bed temperature',
+      secCooling_prusaslicer:      'Fan settings',
+      secSpeedLimit_prusaslicer:   'Print speed override',
+      secAdvExtrusion_prusaslicer: 'Filament Overrides',
+      // Panel sub-titles per slicer
+      panelProfSub_prusaslicer:    'Print Settings in PrusaSlicer',
+      panelFilSub_prusaslicer:     'Filament Settings in PrusaSlicer',
       // Filament panel rows
       rowNozzleTemp:    'Nozzle temp',
       rowBedTemp:       'Bed temp',
@@ -285,6 +295,14 @@ const Engine = (() => {
       secSpeedLimit:    'Volumetrisk hastighedsgrænse',
       secSetup:         'Opsætning',
       secAdvExtrusion:  'Indstillingsændringer',
+      // PrusaSlicer filament section overrides
+      secTemps_prusaslicer:        'Temperatur',
+      secCooling_prusaslicer:      'Blæserindstillinger',
+      secSpeedLimit_prusaslicer:   'Print hastighed',
+      secAdvExtrusion_prusaslicer: 'Filament ændringer',
+      // Panel sub-titles per slicer
+      panelProfSub_prusaslicer:    'Print Settings i PrusaSlicer',
+      panelFilSub_prusaslicer:     'Filament Settings i PrusaSlicer',
       // Filament panel rows
       rowNozzleTemp:    'Dysetemperatur',
       rowBedTemp:       'Bordtemperatur',
@@ -516,101 +534,206 @@ const Engine = (() => {
     ];
   }
 
-  // ── Profile Tabs ─────────────────────────────────────────────────────────────
-  // Sections mirror the Bambu Studio Process tab structure and parameter order.
-  const PROFILE_TABS = [
-    {
-      id: 'quality', label: 'Quality',
-      sections: [
-        { label: 'Layer height',    params: ['layer_height', 'initial_layer_height'] },
-        { label: 'Line width',      params: ['outer_wall_line_width', 'inner_wall_line_width', 'top_surface_line_width'] },
-        { label: 'Seam',            params: ['seam_position'] },
-        { label: 'Precision',       params: ['arc_fitting', 'xy_hole_compensation', 'elephant_foot_compensation'] },
-        { label: 'Ironing',         params: ['ironing'] },
-        { label: 'Wall generator',  params: ['wall_generator'] },
-        { label: 'Advanced',        params: ['order_of_walls', 'bridge_flow', 'only_one_wall_top', 'avoid_crossing_walls'] },
-      ],
-    },
-    {
-      id: 'strength', label: 'Strength',
-      sections: [
-        { label: 'Walls',             params: ['wall_loops'] },
-        { label: 'Top/bottom shells',  params: ['top_shell_layers', 'bottom_shell_layers', 'top_surface_pattern', 'bottom_surface_pattern', 'internal_solid_infill_pattern'] },
-        { label: 'Sparse infill',     params: ['sparse_infill_density', 'sparse_infill_pattern'] },
-        { label: 'Advanced',          params: ['infill_combination'] },
-      ],
-    },
-    {
-      id: 'speed', label: 'Speed',
-      sections: [
-        { label: 'Initial layer speed', params: ['initial_layer_speed'] },
-        { label: 'Other layers speed',  params: ['outer_wall_speed', 'inner_wall_speed', 'top_surface_speed', 'gap_fill_speed'] },
-        { label: 'Acceleration',        params: ['outer_wall_acceleration', 'inner_wall_acceleration', 'initial_layer_acceleration'] },
-      ],
-    },
-    {
-      id: 'support', label: 'Support',
-      sections: [
-        { label: 'Support',   params: ['support_type', 'support_style', 'support_threshold_angle'] },
-        { label: 'Advanced',  params: ['support_z_distance', 'support_interface_layers', 'support_interface_pattern'] },
-      ],
-    },
-    {
-      id: 'others', label: 'Others',
-      sections: [
-        { label: 'Bed adhesion',  params: ['brim_width'] },
-        { label: 'Prime tower',   params: ['prime_tower'] },
-        { label: 'Purge options', params: ['flush_into_infill'] },
-        { label: 'Special mode',  params: ['slow_down_tall'] },
-      ],
-    },
-  ];
+  // ── Profile Tabs — per-slicer section structure ──────────────────────────────
+  // Each slicer has its own tab layout with section names matching the slicer UI.
+  // The parameter keys are identical across slicers — only presentation changes.
+  let _activeSlicer = 'bambu_studio';
 
-  // ── Parameter Labels ─────────────────────────────────────────────────────────
-  const PARAM_LABELS = {
-    layer_height:                  'Layer height',
-    initial_layer_height:          'Initial layer height',
-    wall_generator:                'Wall generator',
-    seam_position:                 'Seam position',
-    order_of_walls:                'Order of walls',
-    xy_hole_compensation:          'X-Y hole compensation',
-    elephant_foot_compensation:    'Elephant foot compensation',
-    outer_wall_line_width:         'Outer wall line width',
-    inner_wall_line_width:         'Inner wall line width',
-    top_surface_line_width:        'Top surface line width',
-    arc_fitting:                   'Arc fitting',
-    avoid_crossing_walls:          'Avoid crossing walls',
-    only_one_wall_top:             'Only one wall on top surfaces',
-    bridge_flow:                   'Bridge flow',
-    wall_loops:                    'Wall loops',
-    top_shell_layers:              'Top shell layers',
-    bottom_shell_layers:           'Bottom shell layers',
-    sparse_infill_pattern:         'Sparse infill pattern',
-    sparse_infill_density:         'Sparse infill density',
-    top_surface_pattern:           'Top surface pattern',
-    bottom_surface_pattern:        'Bottom surface pattern',
-    internal_solid_infill_pattern: 'Internal solid infill pattern',
-    infill_combination:            'Infill combination',
-    outer_wall_speed:              'Outer wall speed',
-    inner_wall_speed:              'Inner wall speed',
-    initial_layer_speed:           'Initial layer speed',
-    top_surface_speed:             'Top surface speed',
-    gap_fill_speed:                'Gap fill speed',
-    outer_wall_acceleration:       'Outer wall acceleration',
-    inner_wall_acceleration:       'Inner wall acceleration',
-    initial_layer_acceleration:    'Initial layer acceleration',
-    support_type:                  'Support type',
-    support_style:                 'Support style',
-    support_threshold_angle:       'Threshold angle',
-    support_z_distance:            'Top Z distance',
-    support_interface_layers:      'Interface layers (top)',
-    support_interface_pattern:     'Interface pattern',
-    prime_tower:                   'Prime tower',
-    flush_into_infill:             'Flush into infill',
-    ironing:                       'Ironing',
-    slow_down_tall:                'Slow down for tall prints',
-    brim_width:                    'Brim width',
+  const SLICER_TABS = {
+    bambu_studio: [
+      {
+        id: 'quality', label: 'Quality',
+        sections: [
+          { label: 'Layer height',    params: ['layer_height', 'initial_layer_height'] },
+          { label: 'Line width',      params: ['outer_wall_line_width', 'inner_wall_line_width', 'top_surface_line_width'] },
+          { label: 'Seam',            params: ['seam_position'] },
+          { label: 'Precision',       params: ['arc_fitting', 'xy_hole_compensation', 'elephant_foot_compensation'] },
+          { label: 'Ironing',         params: ['ironing'] },
+          { label: 'Wall generator',  params: ['wall_generator'] },
+          { label: 'Advanced',        params: ['order_of_walls', 'bridge_flow', 'only_one_wall_top', 'avoid_crossing_walls'] },
+        ],
+      },
+      {
+        id: 'strength', label: 'Strength',
+        sections: [
+          { label: 'Walls',             params: ['wall_loops'] },
+          { label: 'Top/bottom shells',  params: ['top_shell_layers', 'bottom_shell_layers', 'top_surface_pattern', 'bottom_surface_pattern', 'internal_solid_infill_pattern'] },
+          { label: 'Sparse infill',     params: ['sparse_infill_density', 'sparse_infill_pattern'] },
+          { label: 'Advanced',          params: ['infill_combination'] },
+        ],
+      },
+      {
+        id: 'speed', label: 'Speed',
+        sections: [
+          { label: 'Initial layer speed', params: ['initial_layer_speed'] },
+          { label: 'Other layers speed',  params: ['outer_wall_speed', 'inner_wall_speed', 'top_surface_speed', 'gap_fill_speed'] },
+          { label: 'Acceleration',        params: ['outer_wall_acceleration', 'inner_wall_acceleration', 'initial_layer_acceleration'] },
+        ],
+      },
+      {
+        id: 'support', label: 'Support',
+        sections: [
+          { label: 'Support',   params: ['support_type', 'support_style', 'support_threshold_angle'] },
+          { label: 'Advanced',  params: ['support_z_distance', 'support_interface_layers', 'support_interface_pattern'] },
+        ],
+      },
+      {
+        id: 'others', label: 'Others',
+        sections: [
+          { label: 'Bed adhesion',  params: ['brim_width'] },
+          { label: 'Prime tower',   params: ['prime_tower'] },
+          { label: 'Purge options', params: ['flush_into_infill'] },
+          { label: 'Special mode',  params: ['slow_down_tall'] },
+        ],
+      },
+    ],
+    prusaslicer: [
+      {
+        id: 'quality', label: 'Quality',
+        sections: [
+          { label: 'Layer height',       params: ['layer_height', 'initial_layer_height'] },
+          { label: 'Horizontal shells',  params: ['top_shell_layers', 'bottom_shell_layers'] },
+          { label: 'Quality',            params: ['avoid_crossing_walls', 'bridge_flow'] },
+          { label: 'Advanced',           params: ['seam_position', 'order_of_walls', 'wall_generator'] },
+          { label: 'Only one perimeter', params: ['only_one_wall_top'] },
+        ],
+      },
+      {
+        id: 'strength', label: 'Strength',
+        sections: [
+          { label: 'Infill',                  params: ['sparse_infill_density', 'sparse_infill_pattern', 'top_surface_pattern', 'bottom_surface_pattern', 'internal_solid_infill_pattern'] },
+          { label: 'Ironing',                 params: ['ironing'] },
+          { label: 'Reducing printing time',  params: ['infill_combination'] },
+        ],
+      },
+      {
+        id: 'speed', label: 'Speed',
+        sections: [
+          { label: 'Speed for print moves',  params: ['outer_wall_speed', 'inner_wall_speed', 'top_surface_speed', 'gap_fill_speed'] },
+          { label: 'Modifiers',              params: ['initial_layer_speed'] },
+          { label: 'Acceleration control',   params: ['outer_wall_acceleration', 'inner_wall_acceleration', 'initial_layer_acceleration'] },
+        ],
+      },
+      {
+        id: 'support', label: 'Support',
+        sections: [
+          { label: 'Support material',              params: ['support_type', 'support_style', 'support_threshold_angle'] },
+          { label: 'Options for support material',  params: ['support_z_distance', 'support_interface_layers', 'support_interface_pattern'] },
+        ],
+      },
+      {
+        id: 'others', label: 'Others',
+        sections: [
+          { label: 'Skirt and brim',  params: ['brim_width'] },
+          { label: 'Wipe tower',      params: ['prime_tower'] },
+          { label: 'Advanced',        params: ['flush_into_infill', 'slow_down_tall'] },
+        ],
+      },
+    ],
   };
+
+  // ── Parameter Labels — per-slicer display names ─────────────────────────────
+  // Parameter keys are identical; only the human-readable labels change per slicer.
+  const SLICER_PARAM_LABELS = {
+    bambu_studio: {
+      layer_height:                  'Layer height',
+      initial_layer_height:          'Initial layer height',
+      wall_generator:                'Wall generator',
+      seam_position:                 'Seam position',
+      order_of_walls:                'Order of walls',
+      xy_hole_compensation:          'X-Y hole compensation',
+      elephant_foot_compensation:    'Elephant foot compensation',
+      outer_wall_line_width:         'Outer wall line width',
+      inner_wall_line_width:         'Inner wall line width',
+      top_surface_line_width:        'Top surface line width',
+      arc_fitting:                   'Arc fitting',
+      avoid_crossing_walls:          'Avoid crossing walls',
+      only_one_wall_top:             'Only one wall on top surfaces',
+      bridge_flow:                   'Bridge flow',
+      wall_loops:                    'Wall loops',
+      top_shell_layers:              'Top shell layers',
+      bottom_shell_layers:           'Bottom shell layers',
+      sparse_infill_pattern:         'Sparse infill pattern',
+      sparse_infill_density:         'Sparse infill density',
+      top_surface_pattern:           'Top surface pattern',
+      bottom_surface_pattern:        'Bottom surface pattern',
+      internal_solid_infill_pattern: 'Internal solid infill pattern',
+      infill_combination:            'Infill combination',
+      outer_wall_speed:              'Outer wall speed',
+      inner_wall_speed:              'Inner wall speed',
+      initial_layer_speed:           'Initial layer speed',
+      top_surface_speed:             'Top surface speed',
+      gap_fill_speed:                'Gap fill speed',
+      outer_wall_acceleration:       'Outer wall acceleration',
+      inner_wall_acceleration:       'Inner wall acceleration',
+      initial_layer_acceleration:    'Initial layer acceleration',
+      support_type:                  'Support type',
+      support_style:                 'Support style',
+      support_threshold_angle:       'Threshold angle',
+      support_z_distance:            'Top Z distance',
+      support_interface_layers:      'Interface layers (top)',
+      support_interface_pattern:     'Interface pattern',
+      prime_tower:                   'Prime tower',
+      flush_into_infill:             'Flush into infill',
+      ironing:                       'Ironing',
+      slow_down_tall:                'Slow down for tall prints',
+      brim_width:                    'Brim width',
+    },
+    prusaslicer: {
+      layer_height:                  'Layer height',
+      initial_layer_height:          'First layer height',
+      wall_generator:                'Perimeter generator',
+      seam_position:                 'Seam position',
+      order_of_walls:                'External perimeters first',
+      xy_hole_compensation:          'XY Size Compensation',
+      elephant_foot_compensation:    'Elephant foot compensation',
+      outer_wall_line_width:         'External perimeters width',
+      inner_wall_line_width:         'Perimeters width',
+      top_surface_line_width:        'Top solid infill width',
+      arc_fitting:                   'Arc fitting',
+      avoid_crossing_walls:          'Avoid crossing perimeters',
+      only_one_wall_top:             'Single perimeter on top surfaces',
+      bridge_flow:                   'Bridge flow ratio',
+      wall_loops:                    'Perimeters',
+      top_shell_layers:              'Top solid layers',
+      bottom_shell_layers:           'Bottom solid layers',
+      sparse_infill_pattern:         'Fill pattern',
+      sparse_infill_density:         'Fill density',
+      top_surface_pattern:           'Top fill pattern',
+      bottom_surface_pattern:        'Bottom fill pattern',
+      internal_solid_infill_pattern: 'Internal solid infill pattern',
+      infill_combination:            'Combine infill every',
+      outer_wall_speed:              'External perimeters',
+      inner_wall_speed:              'Perimeters',
+      initial_layer_speed:           'First layer speed',
+      top_surface_speed:             'Top solid infill',
+      gap_fill_speed:                'Gap fill',
+      outer_wall_acceleration:       'External perimeters accel',
+      inner_wall_acceleration:       'Perimeters accel',
+      initial_layer_acceleration:    'First layer accel',
+      support_type:                  'Generate support material',
+      support_style:                 'Style',
+      support_threshold_angle:       'Overhang threshold',
+      support_z_distance:            'Top contact Z distance',
+      support_interface_layers:      'Top interface layers',
+      support_interface_pattern:     'Interface pattern',
+      prime_tower:                   'Wipe tower',
+      flush_into_infill:             'Purge into infill',
+      ironing:                       'Enable ironing',
+      slow_down_tall:                'Slow down for tall prints',
+      brim_width:                    'Brim width',
+    },
+  };
+
+  // ── Slicer resolution ───────────────────────────────────────────────────────
+  function getSlicerForPrinter(printerId) {
+    const printer = getPrinter(printerId);
+    if (!printer) return 'bambu_studio';
+    const brand = _brands.find(b => b.id === printer.manufacturer);
+    return brand?.default_slicer || 'bambu_studio';
+  }
+  function setActiveSlicer(id) { _activeSlicer = SLICER_TABS[id] ? id : 'bambu_studio'; }
+  function getActiveSlicer()   { return _activeSlicer; }
 
   // ── Data accessors ───────────────────────────────────────────────────────────
   function getPrinter(id)   { return _printers.find(p => p.id === id);                       }
@@ -1474,14 +1597,15 @@ const Engine = (() => {
     init,
     get FILTERS()      { return getFilters(); },
     get PROFILE_TABS() {
+      const tabs = SLICER_TABS[_activeSlicer] || SLICER_TABS.bambu_studio;
       const cap = s => s[0].toUpperCase() + s.slice(1);
-      return PROFILE_TABS.map(tab => ({
+      return tabs.map(tab => ({
         ...tab,
         label: t('tab' + cap(tab.id)),
         params: tab.sections.flatMap(s => s.params),
       }));
     },
-    get PARAM_LABELS() { return PARAM_LABELS; },
+    get PARAM_LABELS() { return SLICER_PARAM_LABELS[_activeSlicer] || SLICER_PARAM_LABELS.bambu_studio; },
     resolveProfile,
     getWarnings,
     getAdvancedFilamentSettings,
@@ -1494,6 +1618,9 @@ const Engine = (() => {
     getBrands,
     getPrintersByBrand,
     searchPrinters,
+    getSlicerForPrinter,
+    setActiveSlicer,
+    getActiveSlicer,
     isNozzleCompatibleWithMaterial,
     getSymptoms,
     getTroubleshootingTips,

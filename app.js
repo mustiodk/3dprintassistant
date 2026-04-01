@@ -368,6 +368,9 @@ function selectModel(printerId) {
   const wasSelected = state.printer === printerId;
   state.printer = wasSelected ? null : printerId;
 
+  // Set active slicer based on printer brand
+  Engine.setActiveSlicer(state.printer ? Engine.getSlicerForPrinter(state.printer) : 'bambu_studio');
+
   // Update model chip visual states
   document.querySelectorAll('.model-chip').forEach(c => {
     const name = c.querySelector('span').textContent;
@@ -388,6 +391,7 @@ function clearPrinterSelection() {
   state.printer = null;
   pickerBrand = null;
   pickerCollapsed = false;
+  Engine.setActiveSlicer('bambu_studio');
   renderBrandChips();
   closeModelPanel();
   renderPrinterSummary();
@@ -467,6 +471,7 @@ function handlePrinterSearch(query) {
     item.addEventListener('click', () => {
       pickerBrand = m.brandId;
       state.printer = m.id;
+      Engine.setActiveSlicer(Engine.getSlicerForPrinter(m.id));
       const brand = Engine.getBrands().find(b => b.id === m.brandId);
       if (brand && !brand.primary) pickerShowMore = true;
       renderBrandChips();
@@ -679,6 +684,7 @@ function bindControls() {
     pickerBrand = null;
     pickerShowMore = false;
     pickerCollapsed = false;
+    Engine.setActiveSlicer('bambu_studio');
     renderBrandChips();
     closeModelPanel();
     renderPrinterSummary();
@@ -720,6 +726,11 @@ function handleChipClick(container, clicked, key, value, isMulti) {
 function render() {
   updateCollapseBadges();
   renderPrinterSummary();
+  // Update panel sub-titles based on active slicer
+  const T = Engine.t;
+  const slicerSub = (key) => { const sk = key + '_' + Engine.getActiveSlicer(); const v = T(sk); return v !== sk ? v : T(key); };
+  document.getElementById('panelProfSub').textContent = slicerSub('panelProfSub');
+  document.getElementById('panelFilSub').textContent  = slicerSub('panelFilSub');
   const hasMin = state.printer && state.nozzle && state.material;
   document.getElementById('emptyState').style.display    = hasMin ? 'none' : '';
   document.getElementById('resultsLayout').style.display = hasMin ? ''     : 'none';
@@ -867,6 +878,8 @@ function renderChecklist(items) {
 // ── Filament Panel ────────────────────────────────────────────────────────────
 function renderFilamentPanel(filament, nozzle) {
   const T     = Engine.t;
+  // Slicer-aware section labels: try slicer-specific key first, fall back to default
+  const FS = (key) => { const sk = key + '_' + Engine.getActiveSlicer(); const v = T(sk); return v !== sk ? v : T(key); };
   const temps = Engine.getAdjustedTemps(state.material, state.environment, state.nozzle);
   const mvs   = filament.max_mvs[nozzle.size] || '—';
   const adv   = currentMode === 'advanced' ? Engine.getAdvancedFilamentSettings(state) : null;
@@ -875,21 +888,21 @@ function renderFilamentPanel(filament, nozzle) {
 
   if (adv) {
     html += `
-      <div class="setting-section-label">${T('secNozzleTemp')}</div>
+      <div class="setting-section-label">${FS('secNozzleTemp')}</div>
       ${row(T('rowInitLayer'),   adv.initial_layer_temp,     'val-temp')}
       ${row(T('rowOtherLayers'), adv.other_layers_temp,      'val-temp')}
-      <div class="setting-section-label">${T('secBedTemp')}</div>
+      <div class="setting-section-label">${FS('secBedTemp')}</div>
       ${row(T('rowInitLayer'),   adv.initial_layer_bed_temp, 'val-temp')}
       ${row(T('rowOtherLayers'), adv.other_layers_bed_temp,  'val-temp')}`;
   } else {
     html += `
-      <div class="setting-section-label">${T('secTemps')}</div>
+      <div class="setting-section-label">${FS('secTemps')}</div>
       ${row(T('rowNozzleTemp'), temps.nozzle, 'val-temp')}
       ${row(T('rowBedTemp'),    temps.bed,    'val-temp')}`;
   }
 
   html += `
-    <div class="setting-section-label">${T('secCooling')}</div>
+    <div class="setting-section-label">${FS('secCooling')}</div>
     ${row(T('rowCoolingFan'), filament.cooling_fan)}`;
 
   if (adv) {
@@ -900,7 +913,7 @@ function renderFilamentPanel(filament, nozzle) {
   }
 
   html += `
-    <div class="setting-section-label">${T('secSpeedLimit')}</div>
+    <div class="setting-section-label">${FS('secSpeedLimit')}</div>
     ${row(T('rowMVS'), mvs, 'val-info')}
     <div class="setting-section-label">${T('secSetup')}</div>
     ${row(T('rowBuildPlate'), filament.build_plate)}
@@ -910,7 +923,7 @@ function renderFilamentPanel(filament, nozzle) {
 
   if (adv) {
     html += `
-      <div class="setting-section-label adv-label">${T('secAdvExtrusion')}</div>
+      <div class="setting-section-label adv-label">${FS('secAdvExtrusion')}</div>
       ${row(T('rowPA'),          adv.pressure_advance, 'val-info')}
       ${row(T('rowFlow'),        adv.flow_ratio,        'val-info')}
       ${row(T('rowRetractLen'),  adv.retraction_length)}

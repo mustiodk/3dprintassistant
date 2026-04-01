@@ -1,17 +1,17 @@
 {
   "brands": [
-    { "id": "bambu_lab",  "name": "Bambu Lab",    "sort_order": 1,  "primary": true },
-    { "id": "creality",   "name": "Creality",     "sort_order": 2,  "primary": true },
-    { "id": "prusa",      "name": "Prusa",        "sort_order": 3,  "primary": true },
-    { "id": "anycubic",   "name": "Anycubic",     "sort_order": 4,  "primary": true },
-    { "id": "qidi",       "name": "QIDI",         "sort_order": 5,  "primary": true },
-    { "id": "elegoo",     "name": "Elegoo",       "sort_order": 6,  "primary": false },
-    { "id": "sovol",      "name": "Sovol",        "sort_order": 7,  "primary": false },
-    { "id": "flashforge", "name": "FlashForge",   "sort_order": 8,  "primary": false },
-    { "id": "artillery",  "name": "Artillery",    "sort_order": 9,  "primary": false },
-    { "id": "anker",      "name": "AnkerMake",    "sort_order": 10, "primary": false },
-    { "id": "voron",      "name": "Voron",        "sort_order": 11, "primary": false },
-    { "id": "diy",        "name": "DIY / Other",  "sort_order": 12, "primary": false }
+    { "id": "bambu_lab",  "name": "Bambu Lab",    "sort_order": 1,  "primary": true,  "default_slicer": "bambu_studio" },
+    { "id": "creality",   "name": "Creality",     "sort_order": 2,  "primary": true,  "default_slicer": "bambu_studio" },
+    { "id": "prusa",      "name": "Prusa",        "sort_order": 3,  "primary": true,  "default_slicer": "prusaslicer" },
+    { "id": "anycubic",   "name": "Anycubic",     "sort_order": 4,  "primary": true,  "default_slicer": "bambu_studio" },
+    { "id": "qidi",       "name": "QIDI",         "sort_order": 5,  "primary": true,  "default_slicer": "bambu_studio" },
+    { "id": "elegoo",     "name": "Elegoo",       "sort_order": 6,  "primary": false, "default_slicer": "bambu_studio" },
+    { "id": "sovol",      "name": "Sovol",        "sort_order": 7,  "primary": false, "default_slicer": "bambu_studio" },
+    { "id": "flashforge", "name": "FlashForge",   "sort_order": 8,  "primary": false, "default_slicer": "bambu_studio" },
+    { "id": "artillery",  "name": "Artillery",    "sort_order": 9,  "primary": false, "default_slicer": "bambu_studio" },
+    { "id": "anker",      "name": "AnkerMake",    "sort_order": 10, "primary": false, "default_slicer": "bambu_studio" },
+    { "id": "voron",      "name": "Voron",        "sort_order": 11, "primary": false, "default_slicer": "bambu_studio" },
+    { "id": "diy",        "name": "DIY / Other",  "sort_order": 12, "primary": false, "default_slicer": "bambu_studio" }
   ],
   "printers": [
     {
