@@ -408,3 +408,51 @@ Generic material types (PLA, PETG, etc.) are a useful starting point but real-wo
 
 **Raw idea:**
 > Extend material data with specific brand profiles (e.g. Bambu Lab PLA Basic, Polymaker PolyTerra, Prusament PETG). Brand profile overrides base temps and speeds. User selects brand after material type.
+
+---
+
+### #021 — Export as HTML Print Sheet
+
+**Status:** Idea
+**Added:** 2026-04-01
+**Scope:** Small
+**Source:** User request
+
+**Description:**
+When a user finishes configuring a profile, they should be able to export a self-contained HTML file that acts as a permanent, offline-readable record of their print setup. The file shows all selections made (printer, nozzle, material, environment, surface quality, strength mode) and the full list of recommended settings across all tabs — filament settings and all process tabs — including advanced parameters. Designed for archiving: no external fonts, no CDN scripts, no dependencies — everything inlined so the file works completely offline and can be saved alongside the print file. Minimal, clean visual design matching the site aesthetic. This is a human-readable reference, not a Bambu Studio import file (that is covered by #017).
+
+**Implementation Plan:**
+- [ ] engine.js — add a `generateHTMLSheet(state, profile)` function that builds a full HTML string with inlined CSS; include a header block (printer, nozzle, material, date), a selections summary section, and a settings section grouped by tab (Filament, Quality, Strength, Speed, Support, Others); include all params regardless of simple/advanced mode so the sheet is complete
+- [ ] app.js — on export button click, call `generateHTMLSheet()` and trigger a download via a temporary `<a>` with `href="data:text/html;..."` and a filename like `3dpa_p1s_pla-matte_2026-04-01.html`
+- [ ] style.css — no changes needed; styles are inlined in the generated HTML
+
+**Raw idea:**
+> Export a self-contained HTML file showing all selections and recommended settings — a permanent offline reference for recalling what was used for a specific print.
+
+---
+
+### #022 — User Profiles & Community Layer
+
+**Status:** Idea
+**Added:** 2026-04-01
+**Scope:** Large
+**Source:** User request
+
+**Description:**
+Introduce optional user accounts to transform 3D Print Assistant from a stateless tool into a platform users return to. A profile gives users persistent storage for their saved presets (#012), print history, and personal notes — synced across devices. The community layer builds on top: users can publish a profile configuration as a "community profile" with a rating, let others upvote or save it, and browse profiles shared by others filtered by printer/material. This creates a feedback loop that drives return visits and organic growth. Authentication should use a social/passwordless provider (Google, GitHub) to minimise friction — no password management. Backend can start minimal (Cloudflare Workers + D1 or Supabase free tier) to stay within zero-cost hosting.
+
+**Implementation Plan:**
+- [ ] Auth — integrate a passwordless/social auth provider (e.g. Supabase Auth with Google/GitHub OAuth or Cloudflare Access); add login/logout button in header; store JWT in `localStorage`; keep the entire tool fully functional without login (auth is additive, never a gate)
+- [ ] Profile storage — on login, sync `localStorage` presets and print history to a user record in the backend (Supabase or D1); on subsequent visits, load from backend if logged in, fall back to `localStorage` if not
+- [ ] Print history — automatically save each generated profile snapshot (printer, material, selections, full resolved settings, timestamp) to the user's history; add a "History" view listing past prints with one-click restore
+- [ ] Community profiles — add a "Share this profile" button that publishes the current configuration as a public community entry with a title and optional note; add a "Community" browse view filterable by printer and material; show upvote count and a "Use this" button that loads the shared config
+- [ ] app.js / index.html — add auth UI (avatar + dropdown in header when logged in, "Sign in" button when not); add History and Community nav items; gate community write actions (share, upvote) behind login with a prompt
+- [ ] style.css — style auth controls, history list, community browse grid, and profile cards
+
+**Phases:**
+1. Auth + cloud preset sync (replaces localStorage-only #012)
+2. Print history
+3. Community profile sharing + browse
+
+**Raw idea:**
+> User accounts with saved presets, print history, and community-shared profiles. Drives return visits and loyalty. Passwordless/social auth, no gates on the core tool.

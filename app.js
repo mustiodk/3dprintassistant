@@ -314,24 +314,11 @@ function bindControls() {
   document.getElementById('navFeedback').addEventListener('click',      () => setView('feedback'));
 
   document.getElementById('exportBtn').addEventListener('click', () => {
-    const data = Engine.exportProfile(state);
-    if (!data) return;
-    const printer  = state.printer  || 'printer';
-    const material = state.material || 'material';
-    const ts       = new Date().toISOString().slice(0, 10);
-    const filename = `3DPrintAssistant_${printer}_${material}_${ts}.json`;
-    const blob     = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url      = URL.createObjectURL(blob);
-    const a        = document.createElement('a');
-    a.href = url; a.download = filename; a.click();
-    URL.revokeObjectURL(url);
-
-    // Brief flash confirmation
-    const btn = document.getElementById('exportBtn');
+    const btn  = document.getElementById('exportBtn');
     const orig = btn.textContent;
-    btn.textContent = Engine.t('exportSaved');
-    btn.style.color = 'var(--green)';
-    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1800);
+    btn.textContent = '🔥 Coming in hot';
+    btn.style.color = 'var(--orange)';
+    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 2000);
   });
 
   document.getElementById('compareLockBtn').addEventListener('click', () => {
