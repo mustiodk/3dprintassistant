@@ -730,14 +730,22 @@ body, header, .top-nav, .filters, .panel, .chip,
   max-width: 680px;
   margin: 0 auto;
   padding-bottom: 40px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--r);
+  overflow: hidden;
 }
 .feedback-embed iframe {
   display: block;
   border: none;
-  border-radius: var(--r);
   width: 100%;
   min-height: 400px;
   background: #ffffff;
+  transition: filter 0.2s;
+}
+html[data-theme="dark"] .feedback-embed iframe {
+  filter: invert(1) hue-rotate(180deg);
+  background: transparent;
 }
 
 /* ── AMS Purge Calculator ── */
