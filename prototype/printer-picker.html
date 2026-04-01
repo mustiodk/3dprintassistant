@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Printer Picker — Animated Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── Theme tokens (matching 3dpa) ──────────────────────────────── */
+    :root {
+      --bg:            #0a0a0b;
+      --surface:       rgba(255,255,255,0.04);
+      --surface2:      rgba(255,255,255,0.06);
+      --border:        rgba(255,255,255,0.07);
+      --border2:       rgba(255,255,255,0.12);
+      --text:          #eeeef3;
+      --text2:         #888898;
+      --text3:         #b8b8cc;
+      --green:         #00e5a0;
+      --green-dim:     rgba(0,229,160,0.09);
+      --green-border:  rgba(0,229,160,0.28);
+      --chip-hover:    rgba(255,255,255,0.22);
+    }
+    [data-theme="light"] {
+      --bg:            #f2f2f7;
+      --surface:       rgba(0,0,0,0.03);
+      --surface2:      rgba(0,0,0,0.05);
+      --border:        rgba(0,0,0,0.07);
+      --border2:       rgba(0,0,0,0.13);
+      --text:          #0f0f1a;
+      --text2:         #606075;
+      --text3:         #3e3e55;
+      --green:         #00875e;
+      --green-dim:     rgba(0,135,94,0.14);
+      --green-border:  rgba(0,135,94,0.45);
+      --chip-hover:    rgba(0,0,0,0.15);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', system-ui, sans-serif;
+      padding: 32px;
+      min-height: 100vh;
+      transition: background 0.3s;
+    }
+
+    .demo-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 28px;
+    }
+    .demo-header h1 { font-size: 18px; font-weight: 700; }
+    .theme-btn {
+      background: var(--surface2); border: 1px solid var(--border2);
+      color: var(--text2); padding: 6px 14px; border-radius: 6px;
+      font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer;
+    }
+    .theme-btn:hover { color: var(--text); }
+
+    /* ── Filter section (mirrors 3dpa) ──────────────────────────── */
+    .filter-section {
+      margin-bottom: 4px;
+    }
+    .filter-row {
+      display: flex; align-items: flex-start; gap: 16px;
+      padding: 10px 0;
+    }
+    .filter-label-col {
+      min-width: 140px; display: flex; justify-content: space-between;
+      align-items: center; padding-top: 6px;
+    }
+    .filter-section-label {
+      font-size: 13px; font-weight: 600; color: var(--text2);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .filter-hint {
+      font-family: 'DM Mono', monospace; font-size: 10px;
+      color: var(--text2); margin-left: 6px; opacity: 0.6;
+    }
+
+    /* ── Search bar ───────────────────────────────────────────────── */
+    .search-wrap {
+      position: relative; margin-bottom: 12px;
+    }
+    .search-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--text2); font-size: 14px; pointer-events: none;
+    }
+    .search-input {
+      width: 100%; padding: 10px 14px 10px 36px;
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 8px; color: var(--text); font-family: 'DM Mono', monospace;
+      font-size: 13px; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-input::placeholder { color: var(--text2); opacity: 0.5; }
+    .search-input:focus {
+      border-color: var(--green-border);
+      box-shadow: 0 0 0 3px var(--green-dim);
+    }
+
+    /* ── Chips container ─────────────────────────────────────────── */
+    .chips {
+      display: flex; flex-wrap: wrap; gap: 6px; flex: 1;
+    }
+
+    /* ── Brand chip ──────────────────────────────────────────────── */
+    .chip {
+      display: inline-flex; flex-direction: column; align-items: center;
+      padding: 6px 13px; border-radius: 6px;
+      border: 1px solid var(--border2); background: var(--surface2);
+      color: var(--text3); font-family: 'Syne', sans-serif;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, background 0.15s, transform 0.15s, opacity 0.2s;
+      user-select: none; white-space: nowrap; text-align: center; line-height: 1.3;
+    }
+    .chip:hover {
+      border-color: var(--chip-hover); color: var(--text);
+      transform: translateY(-1px);
+    }
+    .chip:active { transform: scale(0.97); }
+    .chip.selected {
+      background: var(--green-dim); border-color: var(--green-border); color: var(--green);
+    }
+    .chip-desc {
+      font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 400;
+      color: var(--text2); margin-top: 2px; letter-spacing: 0.02em;
+    }
+    .chip.selected .chip-desc { color: var(--green); opacity: 0.7; }
+
+    /* ── Overflow "More" chip ────────────────────────────────────── */
+    .chip.more-chip {
+      border-style: dashed; color: var(--text2);
+    }
+    .chip.more-chip:hover { color: var(--text); border-color: var(--chip-hover); }
+
+    /* ── Brand chip fading for non-selected when a brand IS selected */
+    .chips.has-selection .chip:not(.selected) {
+      opacity: 0.35;
+      transform: scale(0.96);
+    }
+    .chips.has-selection .chip:not(.selected):hover {
+      opacity: 0.7; transform: scale(1);
+    }
+
+    /* ── Selected summary bar ────────────────────────────────────── */
+    .selected-summary {
+      display: none; align-items: center; gap: 10px;
+      padding: 8px 14px; border-radius: 8px;
+      background: var(--green-dim); border: 1px solid var(--green-border);
+      font-size: 13px; font-weight: 600; color: var(--green);
+      margin-bottom: 10px;
+      animation: summarySlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .selected-summary.visible { display: flex; }
+    .selected-summary .crumb { opacity: 0.5; }
+    .clear-btn {
+      margin-left: auto; background: none; border: none; color: var(--green);
+      font-size: 16px; cursor: pointer; opacity: 0.6; padding: 0 4px;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .clear-btn:hover { opacity: 1; transform: scale(1.2); }
+
+    @keyframes summarySlideIn {
+      from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* ── Model panel (slides open below brand chips) ─────────────── */
+    .model-panel {
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.45s cubic-bezier(0.34, 1.1, 0.64, 1),
+                  opacity 0.3s ease,
+                  margin 0.3s ease;
+      margin-top: 0;
+    }
+    .model-panel.open {
+      max-height: 600px;
+      opacity: 1;
+      margin-top: 14px;
+    }
+
+    .model-panel-inner {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+
+    /* ── Series group within model panel ─────────────────────────── */
+    .series-group {
+      margin-bottom: 14px;
+      animation: seriesEnter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    .series-group:last-child { margin-bottom: 0; }
+
+    .series-label {
+      font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500;
+      color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 8px; padding-left: 2px;
+    }
+
+    @keyframes seriesEnter {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .series-group:nth-child(2) { animation-delay: 0.06s; }
+    .series-group:nth-child(3) { animation-delay: 0.12s; }
+    .series-group:nth-child(4) { animation-delay: 0.18s; }
+
+    /* ── Model chip (inside panel) ───────────────────────────────── */
+    .model-chip {
+      display: inline-flex; flex-direction: column; align-items: center;
+      padding: 8px 14px; border-radius: 6px;
+      border: 1px solid var(--border2); background: var(--surface2);
+      color: var(--text3); font-family: 'Syne', sans-serif;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      user-select: none; white-space: nowrap; text-align: center; line-height: 1.3;
+      animation: chipPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    .model-chip:hover {
+      border-color: var(--green-border); color: var(--text);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,229,160,0.08);
+    }
+    .model-chip:active { transform: scale(0.95); }
+    .model-chip.selected {
+      background: var(--green-dim); border-color: var(--green-border); color: var(--green);
+      transform: scale(1.04);
+      box-shadow: 0 0 16px rgba(0,229,160,0.12);
+    }
+    .model-chip .chip-desc {
+      font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 400;
+      color: var(--text2); margin-top: 2px;
+    }
+    .model-chip.selected .chip-desc { color: var(--green); opacity: 0.7; }
+
+    /* stagger model chip pop-in */
+    @keyframes chipPop {
+      from { opacity: 0; transform: scale(0.85) translateY(6px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* ── Search highlight ────────────────────────────────────────── */
+    .search-results {
+      overflow: hidden; max-height: 0; opacity: 0;
+      transition: max-height 0.4s cubic-bezier(0.34, 1.1, 0.64, 1), opacity 0.3s ease;
+    }
+    .search-results.open { max-height: 400px; opacity: 1; }
+
+    .search-results-inner {
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 10px; padding: 14px 18px; margin-top: 10px;
+    }
+    .search-result-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; border-radius: 6px; cursor: pointer;
+      transition: background 0.15s;
+      animation: chipPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    .search-result-item:hover { background: var(--surface2); }
+    .search-result-item .sr-brand {
+      font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text2);
+      min-width: 80px;
+    }
+    .search-result-item .sr-model {
+      font-size: 13px; font-weight: 600; color: var(--text);
+    }
+    .search-result-item .sr-meta {
+      font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text2);
+      margin-left: auto;
+    }
+    mark {
+      background: var(--green-dim); color: var(--green);
+      border-radius: 2px; padding: 0 2px;
+    }
+    .no-results {
+      font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text2);
+      padding: 8px 0;
+    }
+
+    /* ── Pulse on final selection ─────────────────────────────────── */
+    @keyframes selectPulse {
+      0%   { box-shadow: 0 0 0 0 rgba(0,229,160,0.4); }
+      70%  { box-shadow: 0 0 0 10px rgba(0,229,160,0); }
+      100% { box-shadow: 0 0 0 0 rgba(0,229,160,0); }
+    }
+    .model-chip.just-selected { animation: selectPulse 0.6s ease-out, chipPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+    /* ── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      body { padding: 16px; }
+      .filter-row { flex-direction: column; gap: 8px; }
+      .filter-label-col { min-width: unset; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="demo-header">
+  <h1>Printer Picker — Animated Prototype</h1>
+  <button class="theme-btn" onclick="toggleTheme()">Toggle theme</button>
+</div>
+
+<!-- Selected summary bar -->
+<div class="selected-summary" id="selectedSummary">
+  <span id="summaryText"></span>
+  <button class="clear-btn" onclick="clearSelection()" title="Clear selection">&times;</button>
+</div>
+
+<!-- Search -->
+<div class="search-wrap">
+  <span class="search-icon">&#x1F50D;</span>
+  <input class="search-input" id="searchInput" type="text"
+         placeholder="Search printers... (e.g. MK4, Kobra, X1C)"
+         autocomplete="off"/>
+</div>
+
+<!-- Search results dropdown -->
+<div class="search-results" id="searchResults">
+  <div class="search-results-inner" id="searchResultsInner"></div>
+</div>
+
+<!-- Brand chips -->
+<div class="filter-section">
+  <div class="filter-row">
+    <div class="filter-label-col">
+      <div>
+        <span class="filter-section-label">Printer</span>
+        <span class="filter-hint">required</span>
+      </div>
+    </div>
+    <div class="chips" id="brandChips"></div>
+  </div>
+</div>
+
+<!-- Model panel (expands below) -->
+<div class="model-panel" id="modelPanel">
+  <div class="model-panel-inner" id="modelPanelInner"></div>
+</div>
+
+<script>
+// ── Printer data ──────────────────────────────────────────────────────────────
+const BRANDS = [
+  {
+    id: 'bambu_lab', name: 'Bambu Lab', primary: true,
+    series: [
+      { label: 'CoreXY', models: [
+        { id: 'x1c', name: 'X1 Carbon', desc: 'CoreXY · Enclosed' },
+        { id: 'x1e', name: 'X1E', desc: 'Active heated' },
+        { id: 'p2s', name: 'P2S', desc: 'CoreXY · Enclosed' },
+        { id: 'p1s', name: 'P1S', desc: 'CoreXY · Enclosed' },
+        { id: 'p1p', name: 'P1P', desc: 'CoreXY · Open' },
+      ]},
+      { label: 'H2 Series', models: [
+        { id: 'h2c', name: 'H2C', desc: 'Vortek · 1000mm/s' },
+        { id: 'h2s', name: 'H2S', desc: 'Large · 1000mm/s' },
+        { id: 'h2d', name: 'H2D', desc: 'Multi-tool · 600mm/s' },
+      ]},
+      { label: 'Bedslinger', models: [
+        { id: 'a1', name: 'A1', desc: '256mm · Open' },
+        { id: 'a1mini', name: 'A1 Mini', desc: '180mm · Open' },
+      ]},
+    ]
+  },
+  {
+    id: 'creality', name: 'Creality', primary: true,
+    series: [
+      { label: 'K Series', models: [
+        { id: 'k2_plus', name: 'K2 Plus', desc: 'Active heated · CFS' },
+        { id: 'k2_pro', name: 'K2 Pro', desc: 'Active heated · CFS' },
+        { id: 'k2', name: 'K2', desc: 'CoreXY · CFS' },
+        { id: 'k1c', name: 'K1C', desc: 'CoreXY · Enclosed' },
+        { id: 'k1_max', name: 'K1 Max', desc: 'Large · Enclosed' },
+        { id: 'k1', name: 'K1', desc: 'CoreXY · Enclosed' },
+        { id: 'k1_se', name: 'K1 SE', desc: 'DIY · Enclosed' },
+      ]},
+      { label: 'Ender Series', models: [
+        { id: 'ender3_v3', name: 'Ender-3 V3', desc: 'CoreXZ · Open' },
+        { id: 'ender3_v3_plus', name: 'Ender-3 V3 Plus', desc: 'Large · Open' },
+        { id: 'ender3_v3_ke', name: 'Ender-3 V3 KE', desc: 'Klipper · Open' },
+        { id: 'ender3_v3_se', name: 'Ender-3 V3 SE', desc: 'Budget · Open' },
+      ]},
+    ]
+  },
+  {
+    id: 'prusa', name: 'Prusa', primary: true,
+    series: [
+      { label: 'CORE Series', models: [
+        { id: 'core_one', name: 'CORE One', desc: 'CoreXY · Enclosed' },
+        { id: 'core_one_l', name: 'CORE One L', desc: 'Large · Active heated' },
+      ]},
+      { label: 'MK Series', models: [
+        { id: 'mk4s', name: 'MK4S', desc: 'Bedslinger · Open' },
+        { id: 'mk4', name: 'MK4', desc: 'Bedslinger · Open' },
+        { id: 'mini_plus', name: 'Mini+', desc: 'Compact · Bowden' },
+      ]},
+      { label: 'XL', models: [
+        { id: 'xl', name: 'XL', desc: 'Toolchanger · 5 heads' },
+      ]},
+    ]
+  },
+  {
+    id: 'anycubic', name: 'Anycubic', primary: true,
+    series: [
+      { label: 'Kobra S Series', models: [
+        { id: 'kobra_s1', name: 'Kobra S1', desc: 'CoreXY · Enclosed' },
+        { id: 'kobra_s1_max', name: 'Kobra S1 Max', desc: 'Large · Active heated' },
+        { id: 'kobra_x', name: 'Kobra X', desc: '4-color native' },
+      ]},
+      { label: 'Kobra Series', models: [
+        { id: 'kobra_3', name: 'Kobra 3', desc: 'ACE · 8-color' },
+        { id: 'kobra_3_v2', name: 'Kobra 3 V2', desc: 'ACE V2 · drying' },
+        { id: 'kobra_2', name: 'Kobra 2', desc: 'Bedslinger · Open' },
+      ]},
+    ]
+  },
+  {
+    id: 'qidi', name: 'QIDI', primary: true,
+    series: [
+      { label: 'Current Gen', models: [
+        { id: 'plus4', name: 'Plus4', desc: '370°C · 65°C chamber' },
+        { id: 'max4', name: 'Max4', desc: 'Large · Heated chamber' },
+        { id: 'q2', name: 'Q2', desc: '65°C chamber' },
+        { id: 'q1_pro', name: 'Q1 Pro', desc: 'Compact · Heated' },
+      ]},
+      { label: 'X Series', models: [
+        { id: 'x_max_3', name: 'X-Max 3', desc: 'Large · Enclosed' },
+        { id: 'x_plus_3', name: 'X-Plus 3', desc: 'Mid-range · Enclosed' },
+        { id: 'x_smart_3', name: 'X-Smart 3', desc: 'Compact · Enclosed' },
+      ]},
+    ]
+  },
+  // "More" brands
+  {
+    id: 'elegoo', name: 'Elegoo', primary: false,
+    series: [
+      { label: 'Neptune 4 Series', models: [
+        { id: 'neptune_4_max', name: 'Neptune 4 Max', desc: '420mm · Klipper' },
+        { id: 'neptune_4_plus', name: 'Neptune 4 Plus', desc: '320mm · Klipper' },
+        { id: 'neptune_4_pro', name: 'Neptune 4 Pro', desc: 'Segmented bed' },
+        { id: 'neptune_4', name: 'Neptune 4', desc: 'Klipper · 500mm/s' },
+      ]},
+    ]
+  },
+  {
+    id: 'sovol', name: 'Sovol', primary: false,
+    series: [
+      { label: 'High Speed', models: [
+        { id: 'sv08', name: 'SV08', desc: 'Voron 2.4 · 700mm/s' },
+        { id: 'sv08_max', name: 'SV08 Max', desc: '500mm · 700mm/s' },
+        { id: 'sv07_plus', name: 'SV07 Plus', desc: '300mm · Klipper' },
+      ]},
+      { label: 'Classic', models: [
+        { id: 'sv06_plus', name: 'SV06 Plus', desc: '300mm · Open' },
+        { id: 'sv04', name: 'SV04 IDEX', desc: 'Dual extruder' },
+      ]},
+    ]
+  },
+  {
+    id: 'flashforge', name: 'FlashForge', primary: false,
+    series: [
+      { label: 'Adventurer', models: [
+        { id: 'adv_5m_pro', name: 'Adventurer 5M Pro', desc: 'Enclosed · HEPA' },
+        { id: 'adv_5m', name: 'Adventurer 5M', desc: 'Open · 600mm/s' },
+        { id: 'ad5x', name: 'AD5X', desc: '4-color · Enclosed' },
+      ]},
+      { label: 'Guider', models: [
+        { id: 'guider_3_ultra', name: 'Guider 3 Ultra', desc: 'IDEX · 600mm Z' },
+        { id: 'guider_3', name: 'Guider 3', desc: 'Workhorse · Enclosed' },
+      ]},
+    ]
+  },
+  {
+    id: 'artillery', name: 'Artillery', primary: false,
+    series: [
+      { label: 'Sidewinder', models: [
+        { id: 'x4_plus', name: 'X4 Plus', desc: '300mm · Klipper' },
+        { id: 'x4_pro', name: 'X4 Pro', desc: '240mm · Klipper' },
+      ]},
+    ]
+  },
+  {
+    id: 'voron', name: 'Voron', primary: false,
+    series: [
+      { label: 'Models', models: [
+        { id: 'voron_2_4', name: '2.4', desc: 'Flying gantry · 350mm' },
+        { id: 'voron_trident', name: 'Trident', desc: 'Fixed gantry · 350mm' },
+        { id: 'voron_0_2', name: '0.2', desc: 'Ultra-compact · 120mm' },
+      ]},
+    ]
+  },
+  {
+    id: 'diy', name: 'DIY / Other', primary: false,
+    series: [
+      { label: 'Community Builds', models: [
+        { id: 'ratrig_vcore4', name: 'RatRig V-Core 4', desc: 'CoreXY · Kit' },
+        { id: 'vzbot_330', name: 'VzBot 330', desc: '800mm/s · Speed' },
+        { id: 'vzbot_235', name: 'VzBot 235', desc: '800mm/s · Compact' },
+      ]},
+    ]
+  },
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let selectedBrand = null;
+let selectedModel = null;
+let showMore = false;
+
+// ── Build flat search index ───────────────────────────────────────────────────
+const searchIndex = [];
+BRANDS.forEach(b => b.series.forEach(s => s.models.forEach(m => {
+  searchIndex.push({ brand: b, series: s, model: m, search: `${b.name} ${m.name} ${m.desc}`.toLowerCase() });
+})));
+
+// ── Render brand chips ────────────────────────────────────────────────────────
+function renderBrands() {
+  const el = document.getElementById('brandChips');
+  el.innerHTML = '';
+
+  const visible = showMore ? BRANDS : BRANDS.filter(b => b.primary);
+  visible.forEach((b, i) => {
+    const chip = document.createElement('button');
+    chip.className = 'chip' + (selectedBrand === b.id ? ' selected' : '');
+    chip.textContent = b.name;
+    chip.style.animationDelay = `${i * 0.03}s`;
+    chip.addEventListener('click', () => selectBrand(b.id));
+    el.appendChild(chip);
+  });
+
+  if (!showMore) {
+    const more = document.createElement('button');
+    more.className = 'chip more-chip';
+    more.innerHTML = `More &nbsp;&#x25BE;`;
+    more.addEventListener('click', expandMore);
+    el.appendChild(more);
+  }
+
+  el.classList.toggle('has-selection', !!selectedBrand);
+}
+
+function expandMore() {
+  showMore = true;
+  renderBrands();
+  // animate new chips
+  document.querySelectorAll('#brandChips .chip').forEach((c, i) => {
+    if (i >= BRANDS.filter(b => b.primary).length) {
+      c.style.animation = 'chipPop 0.35s cubic-bezier(0.34,1.56,0.64,1) both';
+      c.style.animationDelay = `${(i - 5) * 0.04}s`;
+    }
+  });
+}
+
+// ── Select brand → show model panel ───────────────────────────────────────────
+function selectBrand(brandId) {
+  if (selectedBrand === brandId) {
+    // toggle off
+    selectedBrand = null; selectedModel = null;
+    renderBrands(); closeModelPanel(); updateSummary();
+    return;
+  }
+  selectedBrand = brandId; selectedModel = null;
+  renderBrands(); openModelPanel(brandId); updateSummary();
+}
+
+function openModelPanel(brandId) {
+  const brand = BRANDS.find(b => b.id === brandId);
+  const panel = document.getElementById('modelPanel');
+  const inner = document.getElementById('modelPanelInner');
+  inner.innerHTML = '';
+
+  brand.series.forEach((s, si) => {
+    const group = document.createElement('div');
+    group.className = 'series-group';
+    group.style.animationDelay = `${si * 0.06}s`;
+
+    const label = document.createElement('div');
+    label.className = 'series-label';
+    label.textContent = s.label;
+    group.appendChild(label);
+
+    const chips = document.createElement('div');
+    chips.className = 'chips';
+    chips.style.gap = '8px';
+
+    s.models.forEach((m, mi) => {
+      const chip = document.createElement('button');
+      chip.className = 'model-chip' + (selectedModel === m.id ? ' selected' : '');
+      chip.innerHTML = `<span>${m.name}</span><span class="chip-desc">${m.desc}</span>`;
+      chip.style.animationDelay = `${si * 0.06 + mi * 0.04}s`;
+      chip.addEventListener('click', () => selectModel(m.id, brand.name, m.name));
+      chips.appendChild(chip);
+    });
+
+    group.appendChild(chips);
+    inner.appendChild(group);
+  });
+
+  // Trigger open
+  requestAnimationFrame(() => panel.classList.add('open'));
+}
+
+function closeModelPanel() {
+  document.getElementById('modelPanel').classList.remove('open');
+}
+
+// ── Select model → final selection ────────────────────────────────────────────
+function selectModel(modelId, brandName, modelName) {
+  selectedModel = modelId;
+
+  // Update chip states
+  document.querySelectorAll('.model-chip').forEach(c => {
+    const isThis = c.querySelector('span').textContent === modelName;
+    c.classList.toggle('selected', isThis);
+    if (isThis) {
+      c.classList.add('just-selected');
+      setTimeout(() => c.classList.remove('just-selected'), 600);
+    }
+  });
+
+  updateSummary();
+}
+
+// ── Summary bar ───────────────────────────────────────────────────────────────
+function updateSummary() {
+  const el = document.getElementById('selectedSummary');
+  const txt = document.getElementById('summaryText');
+
+  if (!selectedBrand) {
+    el.classList.remove('visible');
+    return;
+  }
+
+  const brand = BRANDS.find(b => b.id === selectedBrand);
+  if (selectedModel) {
+    let modelName = '';
+    brand.series.forEach(s => s.models.forEach(m => { if (m.id === selectedModel) modelName = m.name; }));
+    txt.innerHTML = `${brand.name} <span class="crumb">›</span> ${modelName}`;
+  } else {
+    txt.textContent = brand.name;
+  }
+  el.classList.add('visible');
+}
+
+// ── Clear ─────────────────────────────────────────────────────────────────────
+function clearSelection() {
+  selectedBrand = null; selectedModel = null;
+  renderBrands(); closeModelPanel(); updateSummary();
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchResults').classList.remove('open');
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+document.getElementById('searchInput').addEventListener('input', function() {
+  const q = this.value.trim().toLowerCase();
+  const resultsWrap = document.getElementById('searchResults');
+  const resultsInner = document.getElementById('searchResultsInner');
+
+  if (q.length < 2) {
+    resultsWrap.classList.remove('open');
+    return;
+  }
+
+  const matches = searchIndex.filter(e => e.search.includes(q)).slice(0, 8);
+  resultsInner.innerHTML = '';
+
+  if (matches.length === 0) {
+    resultsInner.innerHTML = '<div class="no-results">No printers found</div>';
+    resultsWrap.classList.add('open');
+    return;
+  }
+
+  matches.forEach((m, i) => {
+    const item = document.createElement('div');
+    item.className = 'search-result-item';
+    item.style.animationDelay = `${i * 0.04}s`;
+
+    // highlight match
+    const highlighted = m.model.name.replace(
+      new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
+      '<mark>$1</mark>'
+    );
+
+    item.innerHTML = `
+      <span class="sr-brand">${m.brand.name}</span>
+      <span class="sr-model">${highlighted}</span>
+      <span class="sr-meta">${m.model.desc}</span>`;
+    item.addEventListener('click', () => {
+      selectedBrand = m.brand.id;
+      selectedModel = m.model.id;
+      if (!showMore && !m.brand.primary) showMore = true;
+      renderBrands();
+      openModelPanel(m.brand.id);
+      updateSummary();
+      // highlight the selected model chip
+      setTimeout(() => {
+        document.querySelectorAll('.model-chip').forEach(c => {
+          if (c.querySelector('span').textContent === m.model.name) {
+            c.classList.add('selected', 'just-selected');
+            setTimeout(() => c.classList.remove('just-selected'), 600);
+          }
+        });
+      }, 100);
+      resultsWrap.classList.remove('open');
+      document.getElementById('searchInput').value = '';
+    });
+    resultsInner.appendChild(item);
+  });
+
+  resultsWrap.classList.add('open');
+});
+
+// Close search on outside click
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-wrap') && !e.target.closest('.search-results')) {
+    document.getElementById('searchResults').classList.remove('open');
+  }
+});
+
+// ── Theme toggle ──────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderBrands();
+</script>
+
+</body>
+</html>

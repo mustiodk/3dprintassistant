@@ -6,6 +6,7 @@
 const Engine = (() => {
   // ── Private data store (populated by init()) ────────────────────────────────
   let _printers      = [];
+  let _brands        = [];
   let _materials     = [];
   let _nozzles       = [];
   let _envRules      = [];
@@ -419,6 +420,7 @@ const Engine = (() => {
     );
 
     _printers       = pd.printers;
+    _brands         = pd.brands || [];
     _materials      = md.materials;
     _nozzles        = nd.nozzles;
     _envRules       = ed.environment_options;
@@ -610,6 +612,64 @@ const Engine = (() => {
   function getSurface(id)   { return (_objectives.surface_quality || []).find(s => s.id === id); }
   function getStrength(id)  { return (_objectives.strength_levels || []).find(s => s.id === id); }
   function getSpeedMode(id) { return (_objectives.speed_priority  || []).find(s => s.id === id); }
+
+  // ── Brand / printer picker helpers ────────────────────────────────────────────
+  function buildModelDesc(p) {
+    const parts = [];
+    if (p.active_chamber_heating) parts.push('Active heated');
+    else if (p.enclosure === 'passive') parts.push('Enclosed');
+    else if (p.enclosure === 'none') parts.push('Open');
+    if (p.max_speed >= 700) parts.push(p.max_speed + ' mm/s');
+    return parts.join(' · ') || p.series;
+  }
+
+  function getBrands() {
+    return _brands
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map(b => ({
+        id:      b.id,
+        name:    b.name,
+        primary: b.primary,
+        count:   _printers.filter(p => p.manufacturer === b.id).length,
+      }));
+  }
+
+  function getPrintersByBrand(brandId) {
+    const brandPrinters = _printers.filter(p => p.manufacturer === brandId);
+    const groups = [];
+    const seen = new Set();
+    brandPrinters.forEach(p => {
+      const g = p.series_group || 'Other';
+      if (!seen.has(g)) { seen.add(g); groups.push({ label: g, models: [] }); }
+      groups.find(gr => gr.label === g).models.push({
+        id: p.id, name: p.name, desc: buildModelDesc(p),
+      });
+    });
+    return groups;
+  }
+
+  function searchPrinters(query) {
+    if (!query || query.length < 2) return [];
+    const q = query.toLowerCase();
+    return _printers
+      .filter(p => {
+        const brand = _brands.find(b => b.id === p.manufacturer);
+        const haystack = `${brand ? brand.name : ''} ${p.name} ${p.series_group || ''}`.toLowerCase();
+        return haystack.includes(q);
+      })
+      .slice(0, 8)
+      .map(p => {
+        const brand = _brands.find(b => b.id === p.manufacturer);
+        return {
+          id:        p.id,
+          name:      p.name,
+          brandId:   p.manufacturer,
+          brandName: brand ? brand.name : p.manufacturer,
+          desc:      buildModelDesc(p),
+        };
+      });
+  }
 
   // ── Enclosure display helper ──────────────────────────────────────────────────
   function getEnclosureDisplay(mat) {
@@ -1423,6 +1483,9 @@ const Engine = (() => {
     getNozzle,
     getMaterial,
     getPrinter,
+    getBrands,
+    getPrintersByBrand,
+    searchPrinters,
     isNozzleCompatibleWithMaterial,
     getSymptoms,
     getTroubleshootingTips,

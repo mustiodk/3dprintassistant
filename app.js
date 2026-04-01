@@ -16,6 +16,8 @@ let activeTabId       = 'quality';       // persisted across re-renders
 let currentView       = 'configure';     // 'configure' | 'troubleshoot' | 'feedback'
 let activeSymptom     = null;            // troubleshooter selected symptom id
 let comparisonProfile = null;            // { profile, label } when Profile A is locked
+let pickerBrand       = null;            // currently expanded brand in printer picker
+let pickerShowMore    = false;           // whether secondary brands are visible
 
 // Print time estimator state
 const ptState = { height: 50, width: 50, depth: 50, walls: 3, infill: 15 };
@@ -196,6 +198,271 @@ function applyLang() {
   renderTroubleshooter();
 }
 
+// ── Printer Picker (brand → model) ──────────────────────────────────────────
+function buildPrinterPicker(container, filter) {
+  const T = Engine.t;
+  const section = document.createElement('div');
+  section.className = 'filter-section';
+  section.id = 'printerPickerSection';
+  section.innerHTML = `
+    <div class="filter-row">
+      <div class="filter-label-col">
+        <div>
+          <span class="filter-section-label" data-count="">${filter.label}</span>
+          <span class="filter-hint">${T('hintRequired')}</span>
+        </div>
+        <span class="filter-toggle">▼</span>
+      </div>
+      <div class="printer-picker-body">
+        <div class="printer-summary" id="printerSummary">
+          <span id="printerSummaryText"></span>
+          <button class="printer-clear-btn" title="Clear selection">&times;</button>
+        </div>
+        <div class="printer-search-wrap">
+          <span class="printer-search-icon">&#x1F50D;</span>
+          <input class="printer-search-input" id="printerSearchInput" type="text"
+                 placeholder="Search printers..." autocomplete="off"/>
+        </div>
+        <div class="printer-search-results" id="printerSearchResults">
+          <div class="printer-search-results-inner" id="printerSearchResultsInner"></div>
+        </div>
+        <div class="chips printer-brands" id="chips_printer"></div>
+        <div class="printer-model-panel" id="printerModelPanel">
+          <div class="printer-model-panel-inner" id="printerModelPanelInner"></div>
+        </div>
+      </div>
+    </div>`;
+  container.appendChild(section);
+
+  // Wire collapse toggle
+  section.querySelector('.filter-label-col').addEventListener('click', () => {
+    section.classList.toggle('collapsed');
+  });
+
+  // Wire clear button
+  section.querySelector('.printer-clear-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    clearPrinterSelection();
+  });
+
+  // Wire search
+  const searchInput = document.getElementById('printerSearchInput');
+  searchInput.addEventListener('input', () => handlePrinterSearch(searchInput.value));
+
+  // Close search on outside click
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.printer-search-wrap') && !e.target.closest('.printer-search-results')) {
+      document.getElementById('printerSearchResults').classList.remove('open');
+    }
+  });
+
+  renderBrandChips();
+
+  // Restore state: if printer was already selected, expand that brand
+  if (state.printer) {
+    const p = Engine.getPrinter(state.printer);
+    if (p) {
+      pickerBrand = p.manufacturer;
+      const brand = Engine.getBrands().find(b => b.id === pickerBrand);
+      if (brand && !brand.primary) pickerShowMore = true;
+      renderBrandChips();
+      openModelPanel(pickerBrand);
+    }
+  }
+}
+
+function renderBrandChips() {
+  const el = document.getElementById('chips_printer');
+  if (!el) return;
+  el.innerHTML = '';
+
+  const brands = Engine.getBrands();
+  const visible = pickerShowMore ? brands : brands.filter(b => b.primary);
+
+  visible.forEach((b, i) => {
+    const chip = document.createElement('button');
+    chip.className = 'chip' + (pickerBrand === b.id ? ' selected' : '');
+    chip.innerHTML = `<span>${b.name}</span><span class="chip-desc">${b.count} models</span>`;
+    chip.style.animationDelay = `${i * 0.03}s`;
+    chip.style.animation = 'chipPop 0.35s cubic-bezier(0.34,1.56,0.64,1) both';
+    chip.addEventListener('click', () => selectBrand(b.id));
+    el.appendChild(chip);
+  });
+
+  if (!pickerShowMore) {
+    const more = document.createElement('button');
+    more.className = 'chip more-chip';
+    more.innerHTML = 'More \u25BE';
+    more.addEventListener('click', () => {
+      pickerShowMore = true;
+      renderBrandChips();
+    });
+    el.appendChild(more);
+  }
+
+  el.classList.toggle('has-selection', !!pickerBrand);
+}
+
+function selectBrand(brandId) {
+  if (pickerBrand === brandId) {
+    pickerBrand = null;
+    renderBrandChips();
+    closeModelPanel();
+    return;
+  }
+  pickerBrand = brandId;
+  renderBrandChips();
+  openModelPanel(brandId);
+}
+
+function openModelPanel(brandId) {
+  const panel = document.getElementById('printerModelPanel');
+  const inner = document.getElementById('printerModelPanelInner');
+  inner.innerHTML = '';
+
+  const groups = Engine.getPrintersByBrand(brandId);
+  groups.forEach((s, si) => {
+    const group = document.createElement('div');
+    group.className = 'series-group';
+    group.style.animationDelay = `${si * 0.06}s`;
+
+    const label = document.createElement('div');
+    label.className = 'series-label';
+    label.textContent = s.label;
+    group.appendChild(label);
+
+    const chips = document.createElement('div');
+    chips.className = 'chips';
+    chips.style.gap = '8px';
+
+    s.models.forEach((m, mi) => {
+      const chip = document.createElement('button');
+      chip.className = 'model-chip' + (state.printer === m.id ? ' selected' : '');
+      chip.innerHTML = `<span>${m.name}</span><span class="chip-desc">${m.desc}</span>`;
+      chip.style.animationDelay = `${si * 0.06 + mi * 0.04}s`;
+      chip.addEventListener('click', () => selectModel(m.id));
+      chips.appendChild(chip);
+    });
+
+    group.appendChild(chips);
+    inner.appendChild(group);
+  });
+
+  requestAnimationFrame(() => panel.classList.add('open'));
+}
+
+function closeModelPanel() {
+  document.getElementById('printerModelPanel')?.classList.remove('open');
+}
+
+function selectModel(printerId) {
+  const wasSelected = state.printer === printerId;
+  state.printer = wasSelected ? null : printerId;
+
+  // Update model chip visual states
+  document.querySelectorAll('.model-chip').forEach(c => {
+    const name = c.querySelector('span').textContent;
+    const p = Engine.getPrinter(printerId);
+    const isThis = p && name === p.name && !wasSelected;
+    c.classList.toggle('selected', isThis);
+    if (isThis) {
+      c.classList.add('just-selected');
+      setTimeout(() => c.classList.remove('just-selected'), 600);
+    }
+  });
+
+  renderPrinterSummary();
+  render();
+}
+
+function clearPrinterSelection() {
+  state.printer = null;
+  pickerBrand = null;
+  renderBrandChips();
+  closeModelPanel();
+  renderPrinterSummary();
+  render();
+}
+
+function renderPrinterSummary() {
+  const el = document.getElementById('printerSummary');
+  const txt = document.getElementById('printerSummaryText');
+  if (!el) return;
+
+  if (!state.printer) {
+    el.classList.remove('visible');
+    return;
+  }
+
+  const p = Engine.getPrinter(state.printer);
+  if (!p) { el.classList.remove('visible'); return; }
+
+  const brand = Engine.getBrands().find(b => b.id === p.manufacturer);
+  txt.innerHTML = `${brand ? brand.name : p.manufacturer} <span class="crumb">\u203A</span> ${p.name}`;
+  el.classList.add('visible');
+}
+
+function handlePrinterSearch(query) {
+  const resultsWrap = document.getElementById('printerSearchResults');
+  const resultsInner = document.getElementById('printerSearchResultsInner');
+
+  if (!query || query.trim().length < 2) {
+    resultsWrap.classList.remove('open');
+    return;
+  }
+
+  const matches = Engine.searchPrinters(query.trim());
+  resultsInner.innerHTML = '';
+
+  if (matches.length === 0) {
+    resultsInner.innerHTML = '<div class="printer-no-results">No printers found</div>';
+    resultsWrap.classList.add('open');
+    return;
+  }
+
+  const q = query.trim().toLowerCase();
+  matches.forEach((m, i) => {
+    const item = document.createElement('div');
+    item.className = 'search-result-item';
+    item.style.animationDelay = `${i * 0.04}s`;
+
+    const highlighted = m.name.replace(
+      new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
+      '<mark>$1</mark>'
+    );
+
+    item.innerHTML = `
+      <span class="sr-brand">${m.brandName}</span>
+      <span class="sr-model">${highlighted}</span>
+      <span class="sr-meta">${m.desc}</span>`;
+    item.addEventListener('click', () => {
+      pickerBrand = m.brandId;
+      state.printer = m.id;
+      const brand = Engine.getBrands().find(b => b.id === m.brandId);
+      if (brand && !brand.primary) pickerShowMore = true;
+      renderBrandChips();
+      openModelPanel(m.brandId);
+      renderPrinterSummary();
+      resultsWrap.classList.remove('open');
+      document.getElementById('printerSearchInput').value = '';
+
+      // Highlight selected model after panel opens
+      setTimeout(() => {
+        document.querySelectorAll('.model-chip').forEach(c => {
+          if (c.querySelector('span').textContent === m.name) {
+            c.classList.add('selected', 'just-selected');
+            setTimeout(() => c.classList.remove('just-selected'), 600);
+          }
+        });
+      }, 100);
+      render();
+    });
+    resultsInner.appendChild(item);
+  });
+
+  resultsWrap.classList.add('open');
+}
+
 // ── Build filter sections from Engine.FILTERS ─────────────────────────────────
 function buildFilters() {
   const filtersContainer = document.getElementById('filtersContainer');
@@ -203,6 +470,12 @@ function buildFilters() {
   const isMobile = window.innerWidth <= 768;
 
   Engine.FILTERS.forEach(filter => {
+    // ── Printer filter gets a custom picker UI ──────────────────────────────
+    if (filter.key === 'printer') {
+      buildPrinterPicker(filtersContainer, filter);
+      return;
+    }
+
     const section = document.createElement('div');
     section.className = 'filter-section';
     const T    = Engine.t;
@@ -373,6 +646,15 @@ function bindControls() {
     Object.keys(state).forEach(k => { state[k] = Array.isArray(state[k]) ? [] : null; });
     document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
     comparisonProfile = null;
+    // Reset printer picker state
+    pickerBrand = null;
+    pickerShowMore = false;
+    renderBrandChips();
+    closeModelPanel();
+    renderPrinterSummary();
+    const searchInput = document.getElementById('printerSearchInput');
+    if (searchInput) searchInput.value = '';
+    document.getElementById('printerSearchResults')?.classList.remove('open');
     updateCollapseBadges();
     render();
   });
@@ -404,6 +686,7 @@ function handleChipClick(container, clicked, key, value, isMulti) {
 // ── Main render ───────────────────────────────────────────────────────────────
 function render() {
   updateCollapseBadges();
+  renderPrinterSummary();
   const hasMin = state.printer && state.nozzle && state.material;
   document.getElementById('emptyState').style.display    = hasMin ? 'none' : '';
   document.getElementById('resultsLayout').style.display = hasMin ? ''     : 'none';
