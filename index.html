@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>3D Print Assistant — Print Profile Configurator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true">
+          <rect x="10" y="3" width="12" height="7" rx="2" fill="currentColor"/>
+          <path d="M10 10h12l-3.5 8h-5L10 10z" fill="currentColor"/>
+          <circle cx="16" cy="20" r="1.5" fill="currentColor"/>
+          <rect x="5" y="23.5" width="22" height="2.5" rx="1.25" fill="currentColor" opacity="0.85"/>
+          <rect x="5" y="27" width="14" height="2" rx="1" fill="currentColor" opacity="0.55"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-text" id="logoText">3D Print Assistant</div>
+        <div class="logo-sub" id="logoSub">Print Profile Configurator</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="modeSimple">Simple</button>
+        <button class="mode-btn" id="modeAdvanced">Advanced</button>
+      </div>
+      <div class="lang-toggle">
+        <button class="lang-btn active" id="langEN">EN</button>
+        <button class="lang-btn" id="langDA">DA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" title="Switch theme">☀</button>
+      <button class="reset-btn" id="resetBtn">Reset</button>
+    </div>
+  </header>
+
+  <nav class="top-nav">
+    <button class="nav-btn active" id="navConfigure">Configure</button>
+    <button class="nav-btn" id="navTroubleshoot">Troubleshoot</button>
+    <button class="nav-btn" id="navPurge">AMS Purge</button>
+  </nav>
+
+
+  <div class="container" id="viewConfigure">
+    <div class="filters" id="filtersContainer"></div>
+
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">◆</div>
+      <div class="empty-title" id="emptyTitle">Select your setup above</div>
+      <div class="empty-sub" id="emptySub">Choose a printer, nozzle, and material to generate your optimized profile.</div>
+    </div>
+
+    <div class="results-layout" id="resultsLayout" style="display:none">
+      <div id="warningsBar"></div>
+      <div id="checklistPanel"></div>
+      <div id="printTimePanel"></div>
+      <div class="results-grid">
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-icon filament-icon">F</div>
+            <div>
+              <div class="panel-title" id="panelFilTitle">Filament Settings</div>
+              <div class="panel-sub" id="panelFilSub">Filament tab in Bambu Studio</div>
+            </div>
+          </div>
+          <div id="filamentSettings"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-icon profile-icon">P</div>
+            <div>
+              <div class="panel-title" id="panelProfTitle">Print Profile Settings</div>
+              <div class="panel-sub" id="panelProfSub">Process tab in Bambu Studio</div>
+            </div>
+            <div class="panel-header-actions">
+              <button class="compare-btn" id="compareLockBtn" title="Lock current profile as A to compare against a second configuration">⇌ Compare</button>
+              <button class="export-btn" id="exportBtn" title="Download all recommended settings as JSON">↓ Export</button>
+            </div>
+          </div>
+          <div id="compareBanner"></div>
+          <div class="tab-nav" id="profileTabNav"></div>
+          <div id="profileTabContents"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── AMS Purge Calculator view ────────────────────────────────────── -->
+  <div class="container" id="viewPurge" style="display:none">
+    <div class="trouble-hero">
+      <div class="trouble-hero-title" id="purgeHeroTitle">AMS Purge Volume Calculator</div>
+      <div class="trouble-hero-sub" id="purgeHeroSub">Calculate optimal filament flush volumes to prevent color contamination between AMS transitions.</div>
+    </div>
+    <div class="purge-calculator" id="purgeCalculator"></div>
+  </div>
+
+  <!-- ── Troubleshoot view ──────────────────────────────────────────────── -->
+  <div class="container" id="viewTroubleshoot" style="display:none">
+    <div class="trouble-hero">
+      <div class="trouble-hero-title" id="troubleHeroTitle">What's going wrong?</div>
+      <div class="trouble-hero-sub" id="troubleHeroSub">Pick a symptom — get a ranked list of likely causes and exact setting fixes.</div>
+    </div>
+    <div class="trouble-symptom-grid" id="symptomGrid"></div>
+    <div id="troubleResults"></div>
+  </div>
+
+  <footer id="footerText">3D Print Assistant &mdash; your 3D printing companion</footer>
+
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

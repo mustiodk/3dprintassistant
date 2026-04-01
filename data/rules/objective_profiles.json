@@ -1,0 +1,142 @@
+{
+  "surface_quality": [
+    {
+      "id": "draft",
+      "name": "Draft",
+      "desc": "0.30 mm",
+      "layer_height": 0.30,
+      "ironing": false,
+      "wall_generator": "Classic",
+      "seam_aligned": false
+    },
+    {
+      "id": "standard",
+      "name": "Standard",
+      "desc": "0.20 mm",
+      "layer_height": 0.20,
+      "ironing": false,
+      "wall_generator": "Classic",
+      "seam_aligned": false
+    },
+    {
+      "id": "fine",
+      "name": "Fine",
+      "desc": "0.15 mm",
+      "layer_height": 0.15,
+      "ironing": false,
+      "wall_generator": "Arachne",
+      "seam_aligned": true
+    },
+    {
+      "id": "maximum",
+      "name": "Maximum",
+      "desc": "0.12 mm + ironing",
+      "layer_height": 0.12,
+      "ironing": true,
+      "wall_generator": "Arachne",
+      "seam_aligned": true
+    }
+  ],
+  "strength_levels": [
+    {
+      "id": "minimal",
+      "name": "Minimal",
+      "desc": "2 walls · 8%",
+      "wall_loops": 2,
+      "infill_density": 8,
+      "infill_pattern": "Cross Hatch",
+      "top_shell_layers_base": 4,
+      "bottom_shell_layers_base": 3,
+      "speed_multiplier": 1.0
+    },
+    {
+      "id": "standard",
+      "name": "Standard",
+      "desc": "3 walls · 15%",
+      "wall_loops": 3,
+      "infill_density": 15,
+      "infill_pattern": "Grid",
+      "top_shell_layers_base": 5,
+      "bottom_shell_layers_base": 4,
+      "speed_multiplier": 1.0
+    },
+    {
+      "id": "strong",
+      "name": "Strong",
+      "desc": "4 walls · 35%",
+      "wall_loops": 4,
+      "infill_density": 35,
+      "infill_pattern": "Gyroid",
+      "top_shell_layers_base": 5,
+      "bottom_shell_layers_base": 5,
+      "speed_multiplier": 0.9
+    },
+    {
+      "id": "maximum",
+      "name": "Maximum",
+      "desc": "6 walls · 60%",
+      "wall_loops": 6,
+      "infill_density": 60,
+      "infill_pattern": "Gyroid",
+      "top_shell_layers_base": 7,
+      "bottom_shell_layers_base": 6,
+      "speed_multiplier": 0.8
+    }
+  ],
+  "speed_priority": [
+    {
+      "id": "fast",
+      "name": "Fast",
+      "outer_corexy": 150,
+      "outer_bedslinger": 100,
+      "inner_corexy": 300,
+      "inner_bedslinger": 200,
+      "top_surface_corexy": 80,
+      "top_surface_bedslinger": 60,
+      "initial_layer": 35,
+      "gap_fill_corexy": 120,
+      "gap_fill_bedslinger": 80,
+      "outer_accel_corexy": 6000,
+      "outer_accel_bedslinger": 3000,
+      "inner_accel_corexy": 10000,
+      "inner_accel_bedslinger": 4000,
+      "initial_accel": 500
+    },
+    {
+      "id": "balanced",
+      "name": "Balanced",
+      "outer_corexy": 100,
+      "outer_bedslinger": 80,
+      "inner_corexy": 200,
+      "inner_bedslinger": 160,
+      "top_surface_corexy": 60,
+      "top_surface_bedslinger": 50,
+      "initial_layer": 30,
+      "gap_fill_corexy": 100,
+      "gap_fill_bedslinger": 70,
+      "outer_accel_corexy": 5000,
+      "outer_accel_bedslinger": 2500,
+      "inner_accel_corexy": 8000,
+      "inner_accel_bedslinger": 3000,
+      "initial_accel": 500
+    },
+    {
+      "id": "quality",
+      "name": "Quality above all",
+      "outer_corexy": 50,
+      "outer_bedslinger": 40,
+      "inner_corexy": 150,
+      "inner_bedslinger": 120,
+      "top_surface_corexy": 40,
+      "top_surface_bedslinger": 35,
+      "initial_layer": 25,
+      "gap_fill_corexy": 80,
+      "gap_fill_bedslinger": 60,
+      "outer_accel_corexy": 3000,
+      "outer_accel_bedslinger": 2000,
+      "inner_accel_corexy": 5000,
+      "inner_accel_bedslinger": 2500,
+      "initial_accel": 300
+    }
+  ]
+}

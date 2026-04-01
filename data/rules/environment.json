@@ -1,0 +1,74 @@
+{
+  "environment_options": [
+    {
+      "id": "normal",
+      "name": "Normal room",
+      "desc": null,
+      "ambient_temp_range": [15, 30],
+      "nozzle_adj": 0,
+      "bed_adj": 0,
+      "bed_first_layer_adj": 0,
+      "fan_multiplier": 1.0,
+      "first_layer_speed_multiplier": 1.0,
+      "preheat_minutes": 0,
+      "force_draft_shield": false,
+      "humidity_warning": false,
+      "warnings": []
+    },
+    {
+      "id": "cold",
+      "name": "Cold garage (5–15°C)",
+      "desc": null,
+      "ambient_temp_range": [5, 15],
+      "nozzle_adj": 5,
+      "bed_adj": 0,
+      "bed_first_layer_adj": 7,
+      "fan_multiplier": 0.9,
+      "first_layer_speed_multiplier": 0.8,
+      "preheat_minutes": 15,
+      "force_draft_shield": true,
+      "humidity_warning": false,
+      "warnings": [
+        "Cold environment compensation applied — nozzle +5°C, first layer bed +7°C, first layer speed reduced 20%.",
+        "Preheat the enclosure for 15 minutes before starting. Keep door closed throughout print."
+      ]
+    },
+    {
+      "id": "vcold",
+      "name": "Very cold (<5°C)",
+      "desc": null,
+      "ambient_temp_range": [-20, 5],
+      "nozzle_adj": 10,
+      "bed_adj": 5,
+      "bed_first_layer_adj": 10,
+      "fan_multiplier": 0.8,
+      "first_layer_speed_multiplier": 0.7,
+      "preheat_minutes": 20,
+      "force_draft_shield": true,
+      "humidity_warning": false,
+      "warnings": [
+        "Very cold environment — nozzle +10°C, bed +5°C, first layer speed reduced 30%.",
+        "Extended preheat (20 min) strongly recommended. Monitor first layer adhesion closely.",
+        "Cold environments often have high humidity — check and dry filament before printing."
+      ]
+    },
+    {
+      "id": "humid",
+      "name": "High humidity",
+      "desc": null,
+      "ambient_temp_range": [15, 35],
+      "nozzle_adj": 0,
+      "bed_adj": 0,
+      "bed_first_layer_adj": 0,
+      "fan_multiplier": 1.0,
+      "first_layer_speed_multiplier": 1.0,
+      "preheat_minutes": 0,
+      "force_draft_shield": false,
+      "humidity_warning": true,
+      "warnings": [
+        "High humidity — dry all filaments before printing. Moisture causes bubbling, stringing, and weak layer bonding.",
+        "Store opened filament in sealed bags or dry boxes with desiccant between prints."
+      ]
+    }
+  ]
+}

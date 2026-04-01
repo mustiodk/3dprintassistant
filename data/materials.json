@@ -1,0 +1,869 @@
+{
+  "materials": [
+    {
+      "id": "pla_basic",
+      "name": "PLA Basic",
+      "group": "PLA",
+      "difficulty": "beginner",
+      "base_settings": {
+        "nozzle_temp_base": 220,
+        "nozzle_temp_min": 190,
+        "nozzle_temp_max": 230,
+        "bed_temp_base": 55,
+        "bed_temp_min": 35,
+        "bed_temp_max": 65,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 0,
+        "cooling_fan": "100%",
+        "cooling_fan_min": "70%",
+        "cooling_fan_overhang": "100%",
+        "slow_layer_time": "10 s",
+        "max_mvs": { "0.2": "12 mm³/s", "0.4": "21 mm³/s", "0.6": "23 mm³/s" },
+        "max_speed": 300,
+        "pressure_advance": 0.02,
+        "flow_ratio": 0.98,
+        "retraction_length": 0.8,
+        "retraction_speed": 45
+      },
+      "enclosure_required": false,
+      "enclosure_behavior": {
+        "open_door_threshold_bed_temp": 45,
+        "reason": "PLA softens at 57°C — passive enclosure heats up with bed, causing heat creep and clogs"
+      },
+      "compatible_plates": [
+        { "plate_id": "cool_plate",      "bed_temp_range": [35, 55], "glue": "optional" },
+        { "plate_id": "textured_pei",    "bed_temp_range": [55, 65], "glue": "optional" },
+        { "plate_id": "high_temp_plate", "bed_temp_range": [55, 65], "glue": "optional" }
+      ],
+      "build_plate_display": "Textured PEI or Smooth PEI",
+      "nozzle_requirements": { "min_diameter": 0.2, "material": "any" },
+      "ams_compatible": true,
+      "ams_lite_compatible": true,
+      "drying": {
+        "required": false,
+        "recommended": true,
+        "display": "Recommended — 55 °C / 6h",
+        "oven_temp": 55,
+        "oven_duration_hours": 6,
+        "heatbed_temp": 70,
+        "heatbed_duration_hours": 12,
+        "storage_max_humidity_pct": 20
+      },
+      "properties": {
+        "heat_resistance_celsius": 57,
+        "uv_resistant": false,
+        "moisture_resistant": false,
+        "outdoor_suitable": false,
+        "food_safe_possible": true,
+        "flexible": false
+      },
+      "shrinkage_factor": 0.003,
+      "ventilation_required": false,
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "pla_matte",
+      "name": "PLA Matte",
+      "group": "PLA",
+      "difficulty": "beginner",
+      "base_settings": {
+        "nozzle_temp_base": 220,
+        "nozzle_temp_min": 190,
+        "nozzle_temp_max": 230,
+        "bed_temp_base": 55,
+        "bed_temp_min": 35,
+        "bed_temp_max": 65,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 0,
+        "cooling_fan": "100%",
+        "cooling_fan_min": "70%",
+        "cooling_fan_overhang": "100%",
+        "slow_layer_time": "10 s",
+        "max_mvs": { "0.2": "12 mm³/s", "0.4": "21 mm³/s", "0.6": "23 mm³/s" },
+        "max_speed": 300,
+        "pressure_advance": 0.02,
+        "flow_ratio": 0.98,
+        "retraction_length": 0.8,
+        "retraction_speed": 45
+      },
+      "enclosure_required": false,
+      "enclosure_behavior": {
+        "open_door_threshold_bed_temp": 45,
+        "reason": "Same as PLA Basic — passive enclosure overheats with bed >45°C"
+      },
+      "compatible_plates": [
+        { "plate_id": "textured_pei", "bed_temp_range": [55, 65], "glue": "optional" },
+        { "plate_id": "cool_plate",   "bed_temp_range": [35, 55], "glue": "optional" }
+      ],
+      "build_plate_display": "Textured PEI",
+      "nozzle_requirements": { "min_diameter": 0.2, "material": "any" },
+      "ams_compatible": true,
+      "ams_lite_compatible": true,
+      "drying": {
+        "required": false,
+        "recommended": true,
+        "display": "Recommended — 55 °C / 6h",
+        "oven_temp": 55,
+        "oven_duration_hours": 6,
+        "heatbed_temp": 70,
+        "heatbed_duration_hours": 12,
+        "storage_max_humidity_pct": 20
+      },
+      "properties": {
+        "heat_resistance_celsius": 57,
+        "uv_resistant": false,
+        "moisture_resistant": false,
+        "outdoor_suitable": false,
+        "food_safe_possible": true,
+        "flexible": false
+      },
+      "shrinkage_factor": 0.003,
+      "ventilation_required": false,
+      "warnings": [],
+      "notes": [
+        "Matte texture naturally hides layer lines — fine layers (0.15 mm) make little visual difference vs standard.",
+        "Use wall loops 3+ — under-extrusion gaps are more visible on matte surfaces."
+      ]
+    },
+    {
+      "id": "pla_silk",
+      "name": "PLA Silk",
+      "group": "PLA",
+      "difficulty": "beginner",
+      "base_settings": {
+        "nozzle_temp_base": 225,
+        "nozzle_temp_min": 210,
+        "nozzle_temp_max": 235,
+        "bed_temp_base": 55,
+        "bed_temp_min": 35,
+        "bed_temp_max": 65,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 0,
+        "cooling_fan": "40%",
+        "cooling_fan_min": "30%",
+        "cooling_fan_overhang": "70%",
+        "slow_layer_time": "12 s",
+        "max_mvs": { "0.2": "10 mm³/s", "0.4": "18 mm³/s", "0.6": "20 mm³/s" },
+        "max_speed": 200,
+        "pressure_advance": 0.03,
+        "flow_ratio": 0.98,
+        "retraction_length": 0.8,
+        "retraction_speed": 45
+      },
+      "enclosure_required": false,
+      "enclosure_behavior": {
+        "open_door_threshold_bed_temp": 45,
+        "reason": "Same as PLA — keep door open to prevent heat creep"
+      },
+      "compatible_plates": [
+        { "plate_id": "cool_plate",   "bed_temp_range": [35, 55], "glue": "optional" },
+        { "plate_id": "textured_pei", "bed_temp_range": [55, 65], "glue": "optional" }
+      ],
+      "build_plate_display": "Cool Plate or Textured PEI",
+      "nozzle_requirements": { "min_diameter": 0.2, "material": "any" },
+      "ams_compatible": true,
+      "ams_lite_compatible": true,
+      "drying": {
+        "required": false,
+        "recommended": true,
+        "display": "Recommended — 55 °C / 6h",
+        "oven_temp": 55,
+        "oven_duration_hours": 6,
+        "heatbed_temp": 70,
+        "heatbed_duration_hours": 12,
+        "storage_max_humidity_pct": 20
+      },
+      "properties": {
+        "heat_resistance_celsius": 57,
+        "uv_resistant": false,
+        "moisture_resistant": false,
+        "outdoor_suitable": false,
+        "food_safe_possible": false,
+        "flexible": false
+      },
+      "shrinkage_factor": 0.003,
+      "ventilation_required": false,
+      "warnings": [],
+      "notes": [
+        "Lower fan speed than standard PLA — more heat retained gives the characteristic sheen.",
+        "Needs +5-10°C nozzle vs standard PLA for proper flow — higher viscosity from metallic pigments.",
+        "Slow outer wall speed (40–60 mm/s) for best surface gloss."
+      ]
+    },
+    {
+      "id": "pla_cf",
+      "name": "PLA-CF",
+      "group": "PLA",
+      "difficulty": "intermediate",
+      "base_settings": {
+        "nozzle_temp_base": 230,
+        "nozzle_temp_min": 210,
+        "nozzle_temp_max": 240,
+        "bed_temp_base": 55,
+        "bed_temp_min": 35,
+        "bed_temp_max": 65,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 0,
+        "cooling_fan": "80%",
+        "cooling_fan_min": "60%",
+        "cooling_fan_overhang": "100%",
+        "slow_layer_time": "12 s",
+        "max_mvs": { "0.2": null, "0.4": "12 mm³/s", "0.6": "16 mm³/s" },
+        "max_speed": 150,
+        "pressure_advance": 0.03,
+        "flow_ratio": 0.97,
+        "retraction_length": 0.6,
+        "retraction_speed": 35
+      },
+      "enclosure_required": false,
+      "enclosure_behavior": {
+        "open_door_threshold_bed_temp": 45,
+        "reason": "PLA-CF is still PLA-based — same enclosure rules apply"
+      },
+      "compatible_plates": [
+        { "plate_id": "cool_plate",   "bed_temp_range": [35, 55], "glue": "optional" },
+        { "plate_id": "textured_pei", "bed_temp_range": [55, 65], "glue": "optional" }
+      ],
+      "build_plate_display": "Cool Plate or Textured PEI",
+      "nozzle_requirements": { "min_diameter": 0.4, "material": "hardened" },
+      "ams_compatible": true,
+      "ams_lite_compatible": false,
+      "drying": {
+        "required": false,
+        "recommended": true,
+        "display": "Recommended — 55 °C / 6h",
+        "oven_temp": 55,
+        "oven_duration_hours": 6,
+        "heatbed_temp": 70,
+        "heatbed_duration_hours": 12,
+        "storage_max_humidity_pct": 20
+      },
+      "properties": {
+        "heat_resistance_celsius": 57,
+        "uv_resistant": false,
+        "moisture_resistant": false,
+        "outdoor_suitable": false,
+        "food_safe_possible": false,
+        "flexible": false
+      },
+      "shrinkage_factor": 0.003,
+      "ventilation_required": false,
+      "warnings": [
+        "Hardened steel nozzle required — carbon fibers will destroy brass/stainless nozzles within hours.",
+        "Do NOT use 0.2mm nozzle — carbon fibers cause immediate clogging. 0.4mm minimum, 0.6mm recommended."
+      ],
+      "notes": [
+        "Produces stiff, dimensionally stable parts with a matte carbon-fiber texture.",
+        "Abrasive fibers will gradually wear AMS PTFE tubes — inspect periodically."
+      ]
+    },
+    {
+      "id": "petg_basic",
+      "name": "PETG Basic",
+      "group": "PETG",
+      "difficulty": "intermediate",
+      "base_settings": {
+        "nozzle_temp_base": 260,
+        "nozzle_temp_min": 230,
+        "nozzle_temp_max": 270,
+        "bed_temp_base": 75,
+        "bed_temp_min": 60,
+        "bed_temp_max": 85,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 5,
+        "cooling_fan": "40–50%",
+        "cooling_fan_min": "30%",
+        "cooling_fan_overhang": "80%",
+        "slow_layer_time": "15 s",
+        "max_mvs": { "0.2": "8 mm³/s", "0.4": "14 mm³/s", "0.6": "18 mm³/s" },
+        "max_speed": 200,
+        "pressure_advance": 0.04,
+        "flow_ratio": 0.95,
+        "retraction_length": 1.0,
+        "retraction_speed": 45
+      },
+      "enclosure_required": false,
+      "enclosure_behavior": {
+        "enclosed_preferred": true,
+        "safe_chamber_temp_max": 50,
+        "reason": "Low ambient temp reduces interlayer bonding strength for PETG"
+      },
+      "compatible_plates": [
+        { "plate_id": "textured_pei",     "bed_temp_range": [60, 80], "glue": "recommended" },
+        { "plate_id": "engineering_plate", "bed_temp_range": [60, 80], "glue": "recommended" },
+        { "plate_id": "high_temp_plate",   "bed_temp_range": [60, 80], "glue": "recommended" }
+      ],
+      "build_plate_display": "Textured PEI (add glue stick or release agent)",
+      "nozzle_requirements": { "min_diameter": 0.2, "material": "any" },
+      "ams_compatible": true,
+      "ams_lite_compatible": true,
+      "drying": {
+        "required": false,
+        "recommended": true,
+        "display": "Strongly recommended — 65 °C / 8h",
+        "oven_temp": 65,
+        "oven_duration_hours": 8,
+        "heatbed_temp": 80,
+        "heatbed_duration_hours": 12,
+        "storage_max_humidity_pct": 20
+      },
+      "properties": {
+        "heat_resistance_celsius": 69,
+        "uv_resistant": false,
+        "moisture_resistant": true,
+        "outdoor_suitable": true,
+        "food_safe_possible": true,
+        "flexible": false
+      },
+      "shrinkage_factor": 0.004,
+      "ventilation_required": false,
+      "warnings": [],
+      "notes": [
+        "PETG bonds aggressively to smooth PEI — always use textured PEI or apply a glue stick layer.",
+        "Too little cooling → stringing. Too much → poor layer adhesion. Start at 40% and adjust."
+      ]
+    },
+    {
+      "id": "petg_hf",
+      "name": "PETG HF",
+      "group": "PETG",
+      "difficulty": "intermediate",
+      "base_settings": {
+        "nozzle_temp_base": 245,
+        "nozzle_temp_min": 230,
+        "nozzle_temp_max": 260,
+        "bed_temp_base": 70,
+        "bed_temp_min": 65,
+        "bed_temp_max": 75,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 5,
+        "cooling_fan": "40–60%",
+        "cooling_fan_min": "30%",
+        "cooling_fan_overhang": "80%",
+        "slow_layer_time": "15 s",
+        "max_mvs": { "0.2": "10 mm³/s", "0.4": "16 mm³/s", "0.6": "20 mm³/s" },
+        "max_speed": 200,
+        "pressure_advance": 0.04,
+        "flow_ratio": 0.96,
+        "retraction_length": 1.0,
+        "retraction_speed": 45
+      },
+      "enclosure_required": false,
+      "enclosure_behavior": {
+        "enclosed_preferred": true,
+        "safe_chamber_temp_max": 50,
+        "reason": "PETG HF performs best with stable temperatures"
+      },
+      "compatible_plates": [
+        { "plate_id": "textured_pei", "bed_temp_range": [65, 75], "glue": "recommended" }
+      ],
+      "build_plate_display": "Textured PEI",
+      "nozzle_requirements": { "min_diameter": 0.2, "material": "any" },
+      "ams_compatible": true,
+      "ams_lite_compatible": true,
+      "drying": {
+        "required": true,
+        "recommended": true,
+        "display": "Critical — 65 °C / 8h (wet PETG HF = stringing + clogs)",
+        "oven_temp": 65,
+        "oven_duration_hours": 8,
+        "heatbed_temp": 80,
+        "heatbed_duration_hours": 12,
+        "storage_max_humidity_pct": 20
+      },
+      "properties": {
+        "heat_resistance_celsius": 69,
+        "uv_resistant": false,
+        "moisture_resistant": true,
+        "outdoor_suitable": true,
+        "food_safe_possible": true,
+        "flexible": false
+      },
+      "shrinkage_factor": 0.004,
+      "ventilation_required": false,
+      "warnings": [
+        "Set Max Volumetric Speed to the value shown — Bambu Studio's default is too high for this material and causes stringing."
+      ],
+      "notes": [
+        "Max Volumetric Speed for 0.4 mm nozzle: 16 mm³/s — Bambu Studio's default (24) is incorrect for this material."
+      ]
+    },
+    {
+      "id": "abs",
+      "name": "ABS",
+      "group": "ABS",
+      "difficulty": "advanced",
+      "base_settings": {
+        "nozzle_temp_base": 260,
+        "nozzle_temp_min": 240,
+        "nozzle_temp_max": 270,
+        "bed_temp_base": 100,
+        "bed_temp_min": 90,
+        "bed_temp_max": 110,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 5,
+        "cooling_fan": "0–20%",
+        "cooling_fan_min": "0%",
+        "cooling_fan_overhang": "30%",
+        "slow_layer_time": "15 s",
+        "max_mvs": { "0.2": "8 mm³/s", "0.4": "14 mm³/s", "0.6": "18 mm³/s" },
+        "max_speed": 250,
+        "pressure_advance": 0.03,
+        "flow_ratio": 0.98,
+        "retraction_length": 0.8,
+        "retraction_speed": 35
+      },
+      "enclosure_required": true,
+      "enclosure_behavior": {
+        "enclosure_required": true,
+        "reason": "ABS warps severely without enclosure heat. Enclosed chamber holds 45–55°C for reliable layer adhesion."
+      },
+      "compatible_plates": [
+        { "plate_id": "engineering_plate", "bed_temp_range": [90, 110], "glue": "required" },
+        { "plate_id": "high_temp_plate",   "bed_temp_range": [90, 110], "glue": "required" }
+      ],
+      "build_plate_display": "Engineering Plate (glue required)",
+      "nozzle_requirements": { "min_diameter": 0.4, "material": "any" },
+      "ams_compatible": true,
+      "ams_lite_compatible": false,
+      "drying": {
+        "required": false,
+        "recommended": true,
+        "display": "Recommended — 80 °C / 4–6h",
+        "oven_temp": 80,
+        "oven_duration_hours": 5,
+        "heatbed_temp": 90,
+        "heatbed_duration_hours": 8,
+        "storage_max_humidity_pct": 20
+      },
+      "properties": {
+        "heat_resistance_celsius": 98,
+        "uv_resistant": false,
+        "moisture_resistant": false,
+        "outdoor_suitable": false,
+        "food_safe_possible": false,
+        "flexible": false
+      },
+      "shrinkage_factor": 0.008,
+      "ventilation_required": true,
+      "warnings": [
+        "ABS emits styrene VOCs during printing. Use enclosed printer with carbon filter. Ensure good room ventilation — do not print in unventilated spaces."
+      ],
+      "notes": [
+        "Requires fully enclosed printer — open-frame printers will produce warped, failed prints.",
+        "Apply glue stick evenly to engineering plate before every print for reliable adhesion.",
+        "Print slowly (outer wall ≤ 60 mm/s) for best layer bonding and warp resistance."
+      ]
+    },
+    {
+      "id": "asa",
+      "name": "ASA",
+      "group": "ASA",
+      "difficulty": "advanced",
+      "base_settings": {
+        "nozzle_temp_base": 260,
+        "nozzle_temp_min": 240,
+        "nozzle_temp_max": 270,
+        "bed_temp_base": 100,
+        "bed_temp_min": 90,
+        "bed_temp_max": 110,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 5,
+        "cooling_fan": "0–20%",
+        "cooling_fan_min": "0%",
+        "cooling_fan_overhang": "30%",
+        "slow_layer_time": "15 s",
+        "max_mvs": { "0.2": "8 mm³/s", "0.4": "14 mm³/s", "0.6": "18 mm³/s" },
+        "max_speed": 250,
+        "pressure_advance": 0.03,
+        "flow_ratio": 0.98,
+        "retraction_length": 0.8,
+        "retraction_speed": 35
+      },
+      "enclosure_required": true,
+      "enclosure_behavior": {
+        "enclosure_required": true,
+        "reason": "Like ABS, ASA warps severely without enclosure. Enclosed chamber ensures consistent temperatures."
+      },
+      "compatible_plates": [
+        { "plate_id": "engineering_plate", "bed_temp_range": [90, 110], "glue": "required" },
+        { "plate_id": "high_temp_plate",   "bed_temp_range": [90, 110], "glue": "required" }
+      ],
+      "build_plate_display": "Engineering Plate (glue required)",
+      "nozzle_requirements": { "min_diameter": 0.4, "material": "any" },
+      "ams_compatible": true,
+      "ams_lite_compatible": false,
+      "drying": {
+        "required": false,
+        "recommended": true,
+        "display": "Recommended — 80 °C / 4–6h",
+        "oven_temp": 80,
+        "oven_duration_hours": 5,
+        "heatbed_temp": 90,
+        "heatbed_duration_hours": 8,
+        "storage_max_humidity_pct": 20
+      },
+      "properties": {
+        "heat_resistance_celsius": 100,
+        "uv_resistant": true,
+        "moisture_resistant": true,
+        "outdoor_suitable": true,
+        "food_safe_possible": false,
+        "flexible": false
+      },
+      "shrinkage_factor": 0.008,
+      "ventilation_required": true,
+      "warnings": [
+        "ASA emits styrene VOCs — same as ABS. Enclosed printer with carbon filter required. Ensure good room ventilation."
+      ],
+      "notes": [
+        "ASA is the outdoor-rated alternative to ABS — superior UV and weather resistance.",
+        "Apply glue stick to engineering plate before every print.",
+        "Functionally identical to ABS in terms of printing requirements."
+      ]
+    },
+    {
+      "id": "tpu_95a",
+      "name": "TPU 95A",
+      "group": "TPU",
+      "difficulty": "intermediate",
+      "base_settings": {
+        "nozzle_temp_base": 230,
+        "nozzle_temp_min": 220,
+        "nozzle_temp_max": 250,
+        "bed_temp_base": 45,
+        "bed_temp_min": 35,
+        "bed_temp_max": 60,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 0,
+        "cooling_fan": "80%",
+        "cooling_fan_min": "50%",
+        "cooling_fan_overhang": "100%",
+        "slow_layer_time": "15 s",
+        "max_mvs": { "0.2": "3 mm³/s", "0.4": "5 mm³/s", "0.6": "7 mm³/s" },
+        "max_speed": 60,
+        "pressure_advance": 0.0,
+        "flow_ratio": 0.98,
+        "retraction_length": 0.3,
+        "retraction_speed": 25
+      },
+      "enclosure_required": false,
+      "enclosure_behavior": {
+        "open_preferred": true,
+        "reason": "TPU benefits from good cooling. Open frame preferred to prevent heat buildup."
+      },
+      "compatible_plates": [
+        { "plate_id": "cool_plate",   "bed_temp_range": [35, 55], "glue": "none" },
+        { "plate_id": "textured_pei", "bed_temp_range": [35, 55], "glue": "none" }
+      ],
+      "build_plate_display": "Cool Plate or Textured PEI",
+      "nozzle_requirements": { "min_diameter": 0.4, "material": "any" },
+      "ams_compatible": false,
+      "ams_lite_compatible": false,
+      "drying": {
+        "required": true,
+        "recommended": true,
+        "display": "Required — 55 °C / 4–8h (wet TPU = bubbles + poor elasticity)",
+        "oven_temp": 55,
+        "oven_duration_hours": 6,
+        "heatbed_temp": 65,
+        "heatbed_duration_hours": 10,
+        "storage_max_humidity_pct": 20
+      },
+      "properties": {
+        "heat_resistance_celsius": 60,
+        "uv_resistant": false,
+        "moisture_resistant": true,
+        "outdoor_suitable": false,
+        "food_safe_possible": false,
+        "flexible": true
+      },
+      "shrinkage_factor": 0.008,
+      "ventilation_required": false,
+      "warnings": [
+        "TPU feeds poorly through AMS — use rear spool holder directly into extruder for best results.",
+        "Print slowly (max 60 mm/s) — TPU stretches during fast retraction causing under-extrusion and jams."
+      ],
+      "notes": [
+        "Minimal retraction required (0.3 mm) — flexible filament stretches instead of retracting properly.",
+        "95A Shore hardness = semi-flexible. Stiffer than rubber bands, softer than rigid plastics.",
+        "Disable combing mode for best results — TPU oozes during travel moves."
+      ]
+    },
+    {
+      "id": "pva",
+      "name": "PVA (Support)",
+      "group": "PVA",
+      "difficulty": "advanced",
+      "base_settings": {
+        "nozzle_temp_base": 200,
+        "nozzle_temp_min": 190,
+        "nozzle_temp_max": 210,
+        "bed_temp_base": 45,
+        "bed_temp_min": 35,
+        "bed_temp_max": 55,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 0,
+        "cooling_fan": "80%",
+        "cooling_fan_min": "60%",
+        "cooling_fan_overhang": "100%",
+        "slow_layer_time": "15 s",
+        "max_mvs": { "0.2": "5 mm³/s", "0.4": "8 mm³/s", "0.6": "10 mm³/s" },
+        "max_speed": 150,
+        "pressure_advance": 0.05,
+        "flow_ratio": 1.0,
+        "retraction_length": 1.0,
+        "retraction_speed": 35
+      },
+      "enclosure_required": false,
+      "enclosure_behavior": {
+        "open_door_threshold_bed_temp": 45,
+        "reason": "PVA is PLA-compatible — same enclosure rules; low bed temp means little risk"
+      },
+      "compatible_plates": [
+        { "plate_id": "cool_plate", "bed_temp_range": [35, 55], "glue": "optional" }
+      ],
+      "build_plate_display": "Cool Plate",
+      "nozzle_requirements": { "min_diameter": 0.4, "material": "any" },
+      "ams_compatible": true,
+      "ams_lite_compatible": true,
+      "drying": {
+        "required": true,
+        "recommended": true,
+        "display": "Required — 45 °C / 4–6h (PVA degrades rapidly with moisture)",
+        "oven_temp": 45,
+        "oven_duration_hours": 5,
+        "heatbed_temp": 55,
+        "heatbed_duration_hours": 8,
+        "storage_max_humidity_pct": 15
+      },
+      "properties": {
+        "heat_resistance_celsius": 50,
+        "uv_resistant": false,
+        "moisture_resistant": false,
+        "outdoor_suitable": false,
+        "food_safe_possible": false,
+        "flexible": false
+      },
+      "shrinkage_factor": 0.003,
+      "ventilation_required": false,
+      "warnings": [
+        "PVA is a support-only material — pair with PLA as the primary material using AMS multi-material setup.",
+        "PVA dissolves in water (12–24h soak). Do not store in humid environments — degrades rapidly without sealed dry box."
+      ],
+      "notes": [
+        "Water-soluble support material — produces perfectly clean support interfaces on complex geometries.",
+        "Only compatible with PLA as the primary model material (same bed temp range).",
+        "After printing: submerge in warm water (30–40°C) for 12–24h until supports dissolve completely."
+      ]
+    },
+    {
+      "id": "petg_cf",
+      "name": "PETG-CF",
+      "group": "PETG",
+      "difficulty": "intermediate",
+      "base_settings": {
+        "nozzle_temp_base": 250,
+        "nozzle_temp_min": 240,
+        "nozzle_temp_max": 270,
+        "bed_temp_base": 70,
+        "bed_temp_min": 60,
+        "bed_temp_max": 85,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 5,
+        "cooling_fan": "30–50%",
+        "cooling_fan_min": "20%",
+        "cooling_fan_overhang": "70%",
+        "slow_layer_time": "15 s",
+        "max_mvs": { "0.4": "14 mm³/s", "0.6": "18 mm³/s" },
+        "max_speed": 200,
+        "pressure_advance": 0.04,
+        "flow_ratio": 0.96,
+        "retraction_length": 1.0,
+        "retraction_speed": 40
+      },
+      "enclosure_required": false,
+      "enclosure_behavior": {
+        "enclosed_preferred": true,
+        "safe_chamber_temp_max": 50,
+        "reason": "PETG-CF benefits from stable ambient temperature to reduce warping on larger parts"
+      },
+      "compatible_plates": [
+        { "plate_id": "engineering_plate", "bed_temp_range": [65, 85], "glue": "optional" },
+        { "plate_id": "textured_pei",      "bed_temp_range": [65, 85], "glue": "recommended" }
+      ],
+      "build_plate_display": "Engineering Plate or Textured PEI",
+      "nozzle_requirements": { "min_diameter": 0.4, "material": "hardened" },
+      "ams_compatible": true,
+      "ams_lite_compatible": false,
+      "drying": {
+        "required": false,
+        "recommended": true,
+        "display": "Recommended — 65 °C / 6h",
+        "oven_temp": 65,
+        "oven_duration_hours": 6,
+        "heatbed_temp": 80,
+        "heatbed_duration_hours": 10,
+        "storage_max_humidity_pct": 20
+      },
+      "properties": {
+        "heat_resistance_celsius": 85,
+        "uv_resistant": false,
+        "moisture_resistant": true,
+        "outdoor_suitable": false,
+        "food_safe_possible": false,
+        "flexible": false
+      },
+      "shrinkage_factor": 0.004,
+      "ventilation_required": false,
+      "warnings": [
+        "Hardened steel nozzle required — carbon fibers will destroy brass/stainless nozzles within hours.",
+        "Do NOT use 0.2mm nozzle — carbon fibers cause immediate clogging. 0.4mm minimum."
+      ],
+      "notes": [
+        "Carbon fiber fill adds stiffness and dimensional stability compared to standard PETG.",
+        "Parts are matte and slightly rough — excellent for functional enclosures and structural brackets.",
+        "PETG-CF bonds aggressively to smooth PEI — always use engineering plate or textured PEI."
+      ]
+    },
+    {
+      "id": "pa",
+      "name": "PA (Nylon)",
+      "group": "PA",
+      "difficulty": "advanced",
+      "base_settings": {
+        "nozzle_temp_base": 250,
+        "nozzle_temp_min": 240,
+        "nozzle_temp_max": 270,
+        "bed_temp_base": 80,
+        "bed_temp_min": 70,
+        "bed_temp_max": 90,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 5,
+        "cooling_fan": "20–40%",
+        "cooling_fan_min": "10%",
+        "cooling_fan_overhang": "50%",
+        "slow_layer_time": "15 s",
+        "max_mvs": { "0.4": "12 mm³/s", "0.6": "15 mm³/s" },
+        "max_speed": 200,
+        "pressure_advance": 0.03,
+        "flow_ratio": 0.98,
+        "retraction_length": 0.8,
+        "retraction_speed": 35
+      },
+      "enclosure_required": false,
+      "enclosure_behavior": {
+        "enclosed_preferred": true,
+        "enclosure_strongly_recommended": true,
+        "reason": "PA warps significantly without stable ambient temperature — enclosure strongly recommended for anything larger than 50mm"
+      },
+      "compatible_plates": [
+        { "plate_id": "engineering_plate", "bed_temp_range": [75, 90], "glue": "required" },
+        { "plate_id": "high_temp_plate",   "bed_temp_range": [75, 90], "glue": "required" }
+      ],
+      "build_plate_display": "Engineering Plate (glue required)",
+      "nozzle_requirements": { "min_diameter": 0.4, "material": "any" },
+      "ams_compatible": true,
+      "ams_lite_compatible": false,
+      "drying": {
+        "required": true,
+        "recommended": true,
+        "display": "Critical — 70 °C / 8h before every print",
+        "oven_temp": 70,
+        "oven_duration_hours": 8,
+        "heatbed_temp": 85,
+        "heatbed_duration_hours": 16,
+        "storage_max_humidity_pct": 10
+      },
+      "properties": {
+        "heat_resistance_celsius": 110,
+        "uv_resistant": false,
+        "moisture_resistant": false,
+        "outdoor_suitable": false,
+        "food_safe_possible": false,
+        "flexible": false
+      },
+      "shrinkage_factor": 0.015,
+      "ventilation_required": false,
+      "warnings": [
+        "PA (Nylon) is extremely hygroscopic — absorbs moisture from air within hours of opening. Dry before EVERY print and store in a sealed dry box with desiccant.",
+        "High shrinkage (1.5%) — use generous brim (8–12mm) and enclosure to prevent warping and layer separation."
+      ],
+      "notes": [
+        "Outstanding toughness and fatigue resistance — ideal for functional hinges, gears, snap-fits.",
+        "Slight flexibility when thin — better impact resistance than rigid plastics like ABS or PLA.",
+        "Prints best with dry box feeding directly into printer — even 30 min of air exposure degrades quality."
+      ]
+    },
+    {
+      "id": "pc",
+      "name": "PC (Polycarbonate)",
+      "group": "PC",
+      "difficulty": "advanced",
+      "base_settings": {
+        "nozzle_temp_base": 280,
+        "nozzle_temp_min": 270,
+        "nozzle_temp_max": 300,
+        "bed_temp_base": 110,
+        "bed_temp_min": 100,
+        "bed_temp_max": 120,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 5,
+        "cooling_fan": "0–20%",
+        "cooling_fan_min": "0%",
+        "cooling_fan_overhang": "20%",
+        "slow_layer_time": "15 s",
+        "max_mvs": { "0.4": "10 mm³/s", "0.6": "13 mm³/s" },
+        "max_speed": 150,
+        "pressure_advance": 0.03,
+        "flow_ratio": 0.98,
+        "retraction_length": 0.8,
+        "retraction_speed": 30
+      },
+      "enclosure_required": true,
+      "enclosure_behavior": {
+        "enclosure_required": true,
+        "target_chamber_temp": 45,
+        "reason": "PC shrinks severely without a warm enclosed chamber — warping and delamination guaranteed on open printers"
+      },
+      "compatible_plates": [
+        { "plate_id": "engineering_plate", "bed_temp_range": [100, 120], "glue": "required" },
+        { "plate_id": "high_temp_plate",   "bed_temp_range": [100, 120], "glue": "required" }
+      ],
+      "build_plate_display": "Engineering Plate (glue required)",
+      "nozzle_requirements": { "min_diameter": 0.4, "material": "any" },
+      "ams_compatible": true,
+      "ams_lite_compatible": false,
+      "drying": {
+        "required": true,
+        "recommended": true,
+        "display": "Critical — 80 °C / 4–6h",
+        "oven_temp": 80,
+        "oven_duration_hours": 5,
+        "heatbed_temp": 95,
+        "heatbed_duration_hours": 10,
+        "storage_max_humidity_pct": 10
+      },
+      "properties": {
+        "heat_resistance_celsius": 130,
+        "uv_resistant": true,
+        "moisture_resistant": false,
+        "outdoor_suitable": false,
+        "food_safe_possible": false,
+        "flexible": false
+      },
+      "shrinkage_factor": 0.007,
+      "ventilation_required": true,
+      "warnings": [
+        "PC requires a fully enclosed printer — open-frame printers will produce warped, delaminated failures.",
+        "Bed temperature 110°C+: ensure your printer's bed can reach and sustain this temperature."
+      ],
+      "notes": [
+        "Highest impact and heat resistance of all common FFF materials — used in bulletproof glass.",
+        "Optically transparent when printed with high infill — unique property among FFF materials.",
+        "Requires very slow outer wall speed (≤40 mm/s) for good layer adhesion at these temperatures."
+      ]
+    }
+  ]
+}

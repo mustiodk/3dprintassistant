@@ -1,0 +1,332 @@
+{
+  "symptoms": [
+    {
+      "id": "stringing",
+      "name": "Stringing / Oozing",
+      "icon": "🕸",
+      "desc": "Fine hairs or threads between parts",
+      "causes": [
+        {
+          "rank": 1,
+          "title": "Retraction distance too short",
+          "detail": "Filament oozes through the nozzle during travel moves. Retraction pulls it back — increase until stringing stops.",
+          "setting": "Retraction length",
+          "fix": "Direct drive: try 0.8–1.2mm. Increase in 0.2mm steps. Too much causes jams in flexibles.",
+          "materials": null
+        },
+        {
+          "rank": 2,
+          "title": "Nozzle temperature too high",
+          "detail": "Hotter filament is more fluid and drips more during travel. Drop temp until stringing reduces without losing layer adhesion.",
+          "setting": "Nozzle temperature",
+          "fix": "Reduce by 5°C increments. Stay above minimum rated temp for the material.",
+          "materials": null
+        },
+        {
+          "rank": 3,
+          "title": "Travel speed too slow",
+          "detail": "Slow travel gives the nozzle more time to ooze between positions. Faster = less drip.",
+          "setting": "Travel speed",
+          "fix": "Set travel speed to 200–250mm/s. Bambu printers handle this comfortably.",
+          "materials": null
+        },
+        {
+          "rank": 4,
+          "title": "Cooling fan too low (PETG)",
+          "detail": "PETG needs moderate cooling — too little allows extruded strings to stay soft and stretch further.",
+          "setting": "Part cooling fan",
+          "fix": "PETG: set fan to 40–60%. Too high causes poor layer bonding; too low causes stringing.",
+          "materials": ["PETG"]
+        }
+      ]
+    },
+    {
+      "id": "warping",
+      "name": "Warping / Bed Adhesion",
+      "icon": "📐",
+      "desc": "Corners or edges lifting off the bed",
+      "causes": [
+        {
+          "rank": 1,
+          "title": "Build plate not cleaned with IPA",
+          "detail": "Fingerprints and skin oils are the #1 cause of adhesion failures. A clean plate is non-negotiable.",
+          "setting": "Pre-print prep",
+          "fix": "Wipe with 90%+ isopropyl alcohol and a clean cloth before every print. Avoid touching the surface.",
+          "materials": null
+        },
+        {
+          "rank": 2,
+          "title": "No brim on high-shrinkage material",
+          "detail": "ABS, ASA, PA and PC shrink as they cool. Without a brim anchoring the corners, they lift.",
+          "setting": "Brim width",
+          "fix": "Add 6–10mm brim. PA/PC: use 10–12mm. Enable in Bambu Studio → Process → Others → Brim.",
+          "materials": ["ABS", "ASA", "PA", "PC"]
+        },
+        {
+          "rank": 3,
+          "title": "No enclosure — temperature instability",
+          "detail": "Drafts and cold ambient air cause rapid uneven cooling. Shrinkage stress builds up and lifts corners.",
+          "setting": "Printer enclosure",
+          "fix": "Use an enclosed printer or build an enclosure. Eliminate air flow around the printer.",
+          "materials": ["ABS", "ASA", "PA", "PC"]
+        },
+        {
+          "rank": 4,
+          "title": "Bed temperature too low",
+          "detail": "The bed needs to keep the first layers slightly warm and adhered throughout the print.",
+          "setting": "Bed temperature",
+          "fix": "Increase bed temp by 5°C increments up to material maximum. See material profile for range.",
+          "materials": null
+        },
+        {
+          "rank": 5,
+          "title": "First layer speed too fast",
+          "detail": "Printing the first layer fast doesn't give the filament time to bond to the build surface.",
+          "setting": "Initial layer speed",
+          "fix": "Set initial layer speed to 25–35mm/s. Bambu default is 20mm/s — keep it there.",
+          "materials": null
+        }
+      ]
+    },
+    {
+      "id": "layer_separation",
+      "name": "Layer Separation",
+      "icon": "🪨",
+      "desc": "Layers splitting apart or not bonding",
+      "causes": [
+        {
+          "rank": 1,
+          "title": "Nozzle temperature too low",
+          "detail": "Layers must be hot enough to fuse together. Too cold = brittle inter-layer bonds that snap under stress.",
+          "setting": "Nozzle temperature",
+          "fix": "Increase by 5°C increments. Don't exceed material max rated temp.",
+          "materials": null
+        },
+        {
+          "rank": 2,
+          "title": "Print speed too high",
+          "detail": "High speed reduces dwell time between layers — not enough time to fuse properly.",
+          "setting": "Outer wall speed",
+          "fix": "Reduce outer wall speed by 20%. Try 40–50mm/s as a baseline for problem materials.",
+          "materials": null
+        },
+        {
+          "rank": 3,
+          "title": "Cooling fan too aggressive",
+          "detail": "Rapid cooling solidifies each layer before the next can bond to it, especially for high-temp materials.",
+          "setting": "Part cooling fan",
+          "fix": "ABS/ASA: set to 0–10%. PETG: max 60%. PA/PC: 0–20%. Reduce in 10% steps.",
+          "materials": ["ABS", "ASA", "PETG", "PA", "PC"]
+        },
+        {
+          "rank": 4,
+          "title": "Wet filament (moisture-sensitive materials)",
+          "detail": "Moisture turns to steam at print temps, creating micro-bubbles that weaken every layer bond.",
+          "setting": "Pre-print prep",
+          "fix": "Dry filament per the material spec before printing. PA: 70°C/8h. PC: 80°C/5h.",
+          "materials": ["PA", "PC", "TPU", "PVA", "PETG"]
+        },
+        {
+          "rank": 5,
+          "title": "Layer height too tall for nozzle",
+          "detail": "Layers exceeding ~75% of nozzle diameter lack enough pressure to bond to the layer below.",
+          "setting": "Layer height",
+          "fix": "Keep layer height at 25–75% of nozzle diameter. 0.4mm nozzle → max 0.30mm layers.",
+          "materials": null
+        }
+      ]
+    },
+    {
+      "id": "under_extrusion",
+      "name": "Under-extrusion / Gaps",
+      "icon": "🕳",
+      "desc": "Gaps in walls, weak infill, or missing material",
+      "causes": [
+        {
+          "rank": 1,
+          "title": "Max volumetric speed too high",
+          "detail": "The hotend can only melt filament so fast. Exceeding the material's MVS causes grinding and gaps.",
+          "setting": "Max volumetric speed",
+          "fix": "Check this configurator's filament panel for the correct MVS for your material + nozzle. Set it in Bambu Studio filament settings.",
+          "materials": null
+        },
+        {
+          "rank": 2,
+          "title": "Nozzle partially clogged",
+          "detail": "Buildup inside the nozzle restricts flow. Common after abrasive filaments or heat-creep events.",
+          "setting": "Maintenance",
+          "fix": "Do a cold pull: heat to 230°C, push filament through, cool to 90°C, pull out fast. Repeat 2–3×.",
+          "materials": null
+        },
+        {
+          "rank": 3,
+          "title": "Flow ratio too low",
+          "detail": "The flow multiplier scales how much filament is pushed. Below 0.95 and walls will be visibly thin.",
+          "setting": "Flow ratio",
+          "fix": "Run flow calibration in Bambu Studio. Typical range: 0.95–1.05. Adjust in 0.02 steps.",
+          "materials": null
+        },
+        {
+          "rank": 4,
+          "title": "Temperature too low for current speed",
+          "detail": "Printing fast requires more heat to melt filament in time. Speed and temp must scale together.",
+          "setting": "Nozzle temperature",
+          "fix": "Increase nozzle temp by 5°C or reduce print speed by 20%.",
+          "materials": null
+        },
+        {
+          "rank": 5,
+          "title": "Wet filament",
+          "detail": "Steam from moisture creates bubbles in the filament stream, interrupting consistent extrusion.",
+          "setting": "Pre-print prep",
+          "fix": "Dry filament at the recommended temperature. Even a few hours in air degrades PA/PC significantly.",
+          "materials": ["PA", "PC", "TPU", "PVA", "PETG"]
+        }
+      ]
+    },
+    {
+      "id": "over_extrusion",
+      "name": "Over-extrusion / Blobs",
+      "icon": "🫧",
+      "desc": "Too much material, blobs, or thick rough walls",
+      "causes": [
+        {
+          "rank": 1,
+          "title": "Flow ratio too high",
+          "detail": "Too much filament pushed out — walls are over-wide and blobs form at direction changes.",
+          "setting": "Flow ratio",
+          "fix": "Run flow calibration. Reduce in 0.02 steps (e.g. 1.00 → 0.98 → 0.96) until walls are clean.",
+          "materials": null
+        },
+        {
+          "rank": 2,
+          "title": "Nozzle temperature too high",
+          "detail": "Excess heat makes filament too runny — it spreads more than the slicer intends.",
+          "setting": "Nozzle temperature",
+          "fix": "Reduce by 5°C increments. Stay above the material minimum or layer adhesion suffers.",
+          "materials": null
+        },
+        {
+          "rank": 3,
+          "title": "Pressure advance not calibrated",
+          "detail": "Without pressure advance, filament continues to ooze when the nozzle slows at corners — creating blobs.",
+          "setting": "Pressure advance (K factor)",
+          "fix": "Run Bambu Studio pressure advance calibration. Typical PLA: 0.02–0.05. PETG: 0.04–0.08.",
+          "materials": null
+        }
+      ]
+    },
+    {
+      "id": "elephant_foot",
+      "name": "Elephant Foot",
+      "icon": "🐘",
+      "desc": "First layer flares out wider than the rest",
+      "causes": [
+        {
+          "rank": 1,
+          "title": "Z offset too low (nozzle too close)",
+          "detail": "Nozzle squishing too hard spreads the first layer outward beyond the intended footprint.",
+          "setting": "Z offset / Bed leveling",
+          "fix": "Increase Z offset by 0.02–0.05mm increments until first layer is correctly sized.",
+          "materials": null
+        },
+        {
+          "rank": 2,
+          "title": "Elephant foot compensation not set",
+          "detail": "Bambu Studio has a built-in compensation parameter designed specifically for this issue.",
+          "setting": "Elephant foot compensation",
+          "fix": "Set Elephant Foot Compensation to 0.10–0.20mm in Bambu Studio → Process → Quality.",
+          "materials": null
+        },
+        {
+          "rank": 3,
+          "title": "Bed temperature too high",
+          "detail": "An overly hot bed keeps the first layer too soft and pliable — it spreads under the nozzle's pressure.",
+          "setting": "Bed temperature",
+          "fix": "Reduce bed temp by 5°C. First layer adhesion is usually fine down to the material minimum.",
+          "materials": null
+        }
+      ]
+    },
+    {
+      "id": "ringing",
+      "name": "Ringing / Ghosting",
+      "icon": "〰️",
+      "desc": "Ripple or wave pattern near sharp features",
+      "causes": [
+        {
+          "rank": 1,
+          "title": "Outer wall speed too high",
+          "detail": "Vibrations from rapid direction changes show up as ripple patterns on vertical surfaces.",
+          "setting": "Outer wall speed",
+          "fix": "Reduce outer wall speed to 50–80mm/s. A1/A1 Mini: keep below 100mm/s.",
+          "materials": null
+        },
+        {
+          "rank": 2,
+          "title": "Acceleration too high",
+          "detail": "Aggressive acceleration causes the motion system to ring out at each direction change.",
+          "setting": "Outer wall acceleration",
+          "fix": "Reduce outer wall acceleration. A1/A1 Mini: try 3000–5000mm/s². CoreXY (X1C/P1S): 6000–10000.",
+          "materials": null
+        },
+        {
+          "rank": 3,
+          "title": "Loose belts",
+          "detail": "Slack in the motion belts amplifies vibration artifacts significantly.",
+          "setting": "Printer maintenance",
+          "fix": "Check belt tension. Bambu printers: run the belt tension check in the touchscreen maintenance menu.",
+          "materials": null
+        }
+      ]
+    },
+    {
+      "id": "first_layer",
+      "name": "Poor First Layer",
+      "icon": "📏",
+      "desc": "First layer not sticking, uneven, or has gaps",
+      "causes": [
+        {
+          "rank": 1,
+          "title": "Build plate not cleaned",
+          "detail": "Fingerprints, grease, or dust prevent proper adhesion. This is the cause in ~60% of first-layer failures.",
+          "setting": "Pre-print prep",
+          "fix": "Wipe with 90%+ isopropyl alcohol and a lint-free cloth. Don't touch the plate afterward.",
+          "materials": null
+        },
+        {
+          "rank": 2,
+          "title": "Z offset too high — nozzle too far",
+          "detail": "If the nozzle is too far from the bed, filament doesn't squish in and bond to the surface.",
+          "setting": "Z offset / Bed leveling",
+          "fix": "Run Auto Bed Leveling from the touchscreen. Fine-tune Z offset down by 0.02mm steps.",
+          "materials": null
+        },
+        {
+          "rank": 3,
+          "title": "Glue not applied (required materials)",
+          "detail": "ABS, ASA, PA, PC need glue for reliable adhesion — especially on engineering plate.",
+          "setting": "Pre-print prep",
+          "fix": "Apply a thin even glue stick layer. Re-apply every 3–5 prints or when adhesion degrades.",
+          "materials": ["ABS", "ASA", "PA", "PC"]
+        },
+        {
+          "rank": 4,
+          "title": "First layer speed too fast",
+          "detail": "Fast first layers don't give filament time to properly bond with the build surface.",
+          "setting": "Initial layer speed",
+          "fix": "Keep initial layer speed at 20–35mm/s maximum.",
+          "materials": null
+        },
+        {
+          "rank": 5,
+          "title": "Bed temperature too low",
+          "detail": "Material-specific minimum bed temps are required for adhesion. Cold bed = poor bond.",
+          "setting": "Bed temperature",
+          "fix": "Check material's recommended bed temp range in the filament settings panel. Let the bed fully reach temp before printing.",
+          "materials": null
+        }
+      ]
+    }
+  ]
+}
