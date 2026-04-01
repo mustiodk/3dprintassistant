@@ -31,6 +31,46 @@ const purgeState = {
   ],
 };
 
+// ── Modal content (About + Disclaimer) ───────────────────────────────────────
+const MODAL_CONTENT = {
+  about: {
+    en: {
+      title: 'About 3D Print Assistant',
+      body: `<p>3D Print Assistant was built by an amateur 3D printing enthusiast who couldn't find a simple, structured tool for getting started with print settings — so decided to build one. It translates your printer, nozzle, material, and print goals into optimized starting settings for your slicer.</p>
+             <p>The tool is currently optimized for <strong>Bambu Studio</strong>, matching the structure of its Filament and Process tabs so you can apply settings directly without hunting for where things live. Support for more slicers is planned.</p>
+             <p>Settings are built from a hybrid of community knowledge, hands-on experience, and manufacturer defaults — a database that is still learning and being refined. This is a <strong>beta project</strong>. All recommendations are a starting point for your own experimentation, not a guarantee.</p>`,
+    },
+    da: {
+      title: 'Om 3D Print Assistant',
+      body: `<p>3D Print Assistant er bygget af en amatør 3D-print-entusiast, der ikke kunne finde et simpelt, struktureret værktøj til at komme i gang med printindstillinger — og derfor besluttede at bygge et. Det oversætter din printer, dyse, materiale og printmål til optimerede startindstillinger til din slicer.</p>
+             <p>Værktøjet er i øjeblikket optimeret til <strong>Bambu Studio</strong> og matcher strukturen i dets Filament- og Process-faner, så du kan anvende indstillinger direkte uden at lede efter, hvor tingene befinder sig. Support til flere slicers er planlagt.</p>
+             <p>Indstillingerne er bygget på en kombination af community-viden, praktisk erfaring og fabrikanternes standarder — en database der stadig lærer og justeres. Dette er et <strong>betaprojekt</strong>. Alle anbefalinger er et udgangspunkt for din egen eksperimentering, ikke en garanti.</p>`,
+    },
+  },
+  disclaimer: {
+    en: {
+      title: 'Disclaimer',
+      body: `<p>All settings recommended by 3D Print Assistant are suggestions based on community experience and general best practices for the selected printer, nozzle, and material combination.</p>
+             <p>They are not guaranteed to work for your specific setup. Factors like printer calibration, ambient conditions, filament brand variation, and hardware wear can all affect results.</p>
+             <p>Always test with a small print before committing to a long job. We accept no responsibility for failed prints, wasted filament, or any damage to equipment resulting from use of these suggestions.</p>`,
+    },
+    da: {
+      title: 'Ansvarsfraskrivelse',
+      body: `<p>Alle indstillinger anbefalet af 3D Print Assistant er forslag baseret på community-erfaring og generelle bedste praksisser for den valgte kombination af printer, dyse og materiale.</p>
+             <p>De er ikke garanteret til at fungere for dit specifikke setup. Faktorer som printerkalibrering, omgivelsesforhold, filamentmærkevariation og hardwareforringelse kan alle påvirke resultaterne.</p>
+             <p>Test altid med et lille print, inden du starter et langt job. Vi accepterer intet ansvar for mislykkede prints, spildt filament eller skader på udstyr som følge af brug af disse forslag.</p>`,
+    },
+  },
+};
+
+function openModal(key) {
+  const lang    = Engine.getLang();
+  const content = MODAL_CONTENT[key][lang] || MODAL_CONTENT[key].en;
+  document.getElementById('modalTitle').textContent  = content.title;
+  document.getElementById('modalBody').innerHTML     = content.body;
+  document.getElementById('infoModal').showModal();
+}
+
 // ── Boot — wait for engine to load all JSON data before building UI ───────────
 Engine.init()
   .then(() => {
@@ -98,7 +138,10 @@ function applyLang() {
   if (lockBtn) lockBtn.textContent = comparisonProfile ? T('compareClear') : T('compareBtn');
 
   // Footer
-  document.getElementById('footerText').textContent = T('footer');
+  const footerEl = document.getElementById('footerText');
+  footerEl.innerHTML = `${T('footer')} &middot; <button class="about-link" id="aboutBtn">${T('aboutLink')}</button> &middot; <button class="about-link" id="disclaimerFooterBtn">${T('disclaimerLink')}</button>`;
+  document.getElementById('aboutBtn').addEventListener('click', () => openModal('about'));
+  document.getElementById('disclaimerFooterBtn').addEventListener('click', () => openModal('disclaimer'));
 
   // Rebuild filters with translated labels + re-sync selections
   buildFilters();
@@ -358,6 +401,10 @@ function updateSlotBrightness(i, brightness) {
 
 // ── Bind mode toggle + reset ──────────────────────────────────────────────────
 function bindControls() {
+  const modal = document.getElementById('infoModal');
+  document.getElementById('modalClose').addEventListener('click', () => modal.close());
+  modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
+
   document.getElementById('modeSimple').addEventListener('click',   () => setMode('simple'));
   document.getElementById('modeAdvanced').addEventListener('click', () => setMode('advanced'));
   document.getElementById('langEN').addEventListener('click', () => { Engine.setLang('en'); applyLang(); });

@@ -180,8 +180,11 @@ const Engine = (() => {
       ptOuterSpeed:     'outer wall',
       ptResult:         'Estimated print time',
       ptDisclaimer:     'Rough estimate only — excludes supports, prime tower, and complex geometry.',
-      // Footer
+      // Footer + modal
       footer:           '3D Print Assistant — your 3D printing companion',
+      aboutLink:        'About',
+      disclaimerNote:   'These are suggestions only, not guarantees.',
+      disclaimerLink:   'Read disclaimer',
     },
     da: {
       // Header / nav
@@ -346,8 +349,11 @@ const Engine = (() => {
       ptOuterSpeed:     'ydervæg',
       ptResult:         'Estimeret printtid',
       ptDisclaimer:     'Kun groft estimat — ekskluderer understøtninger, prime tower og kompleks geometri.',
-      // Footer
+      // Footer + modal
       footer:           '3D Print Assistant — din 3D-print ledsager',
+      aboutLink:        'Om',
+      disclaimerNote:   'Disse er forslag, ikke garantier.',
+      disclaimerLink:   'Læs ansvarsfraskrivelse',
     },
   };
 

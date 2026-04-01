@@ -25,6 +25,7 @@
       <div>
         <div class="logo-text" id="logoText">3D Print Assistant</div>
         <div class="logo-sub" id="logoSub">Print Profile Configurator</div>
+        <span class="beta-badge">BETA</span>
       </div>
     </div>
     <div class="header-right">
@@ -114,7 +115,17 @@
     <div id="troubleResults"></div>
   </div>
 
-  <footer id="footerText">3D Print Assistant &mdash; your 3D printing companion</footer>
+  <footer id="footerText"></footer>
+
+  <dialog id="infoModal" class="info-modal">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <span class="modal-title" id="modalTitle"></span>
+        <button class="modal-close" id="modalClose" aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </dialog>
 
   <script src="engine.js"></script>
   <script src="app.js"></script>
