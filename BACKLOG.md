@@ -630,3 +630,49 @@ Switching Simple → Advanced carries selections over and reveals hidden filters
 
 **Raw idea:**
 > Use the Simple/Advanced toggle to also control which filters and options are shown in the configurator, not just the output parameters. Simple = fewer filters, common options, sensible defaults. Advanced = full control. Double-check engine logic before implementing.
+
+---
+
+### #027 — Slicer-Aware Tab Structure Based on Printer Brand
+
+**Status:** Planned
+**Added:** 2026-04-02
+**Scope:** Medium–Large
+**Source:** User idea (extends #002 and #009)
+
+**Description:**
+When a user selects a printer, the results panel should display section names, parameter groupings, and parameter labels that match the slicer software associated with that printer brand. Currently all printers use Bambu Studio's structure (#002). This feature maps each printer brand to its default slicer and swaps the presentation layer accordingly — the recommended values and engine logic stay identical, only the UI labels and section grouping change.
+
+**Brand → Slicer mapping:**
+- Bambu Lab → Bambu Studio (done, current default)
+- Prusa → PrusaSlicer
+- Creality → Creality Print (or OrcaSlicer — TBD)
+- Voron, Anycubic, QIDI, Elegoo, Sovol, FlashForge, Artillery, AnkerMake → OrcaSlicer
+- DIY/Other → OrcaSlicer
+
+**Architecture changes:**
+- `PROFILE_TABS` constant → `getProfileTabs(slicerId)` function that returns the correct tab/section structure per slicer
+- `PARAM_LABELS` constant → `getParamLabels(slicerId)` function (e.g. "Sparse infill density" in BS vs "Fill density" in PrusaSlicer)
+- New `default_slicer` field on each brand in `printers.json` (e.g. `"default_slicer": "bambu_studio"`)
+- Filament panel section names also need per-slicer variants
+- app.js reads the active slicer from the selected printer's brand and passes it through
+
+**Recommended rollout order:**
+1. Bambu Studio — done ✅
+2. OrcaSlicer — covers ~50% of non-Bambu users (Voron, Anycubic, QIDI, Elegoo, etc.)
+3. PrusaSlicer — covers Prusa users
+4. Creality Print — if needed (many Creality users use OrcaSlicer anyway)
+
+**⚠ Prerequisite:** Need screenshots of each slicer's Process/Print Settings tabs to document the exact structure, same as was done for Bambu Studio in #002. PrusaSlicer screenshots are next.
+
+**Implementation Plan:**
+- [ ] Document PrusaSlicer tab structure from screenshots (sections, param names, groupings)
+- [ ] Document OrcaSlicer tab structure from screenshots
+- [ ] data/printers.json — add `default_slicer` field to each brand entry
+- [ ] engine.js — refactor `PROFILE_TABS` into `SLICER_TABS` map keyed by slicer ID; add `getProfileTabs(slicerId)` and `getParamLabels(slicerId)` functions
+- [ ] engine.js — refactor filament section label strings to be per-slicer
+- [ ] app.js — resolve slicer ID from selected printer's brand; pass to tab rendering
+- [ ] Test with Bambu, Prusa, and generic printer selections to verify correct structure per slicer
+
+**Raw idea:**
+> If they choose a Bambu printer, suggestions should use Bambu Studio structure. If they choose Prusa, it should be PrusaSlicer structure and naming. Slicer-aware presentation based on chosen printer brand.
