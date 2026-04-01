@@ -516,3 +516,32 @@ A "Roadmap" link in the footer opens a modal listing features requested by the c
 
 **Raw idea:**
 > A small window to show a list of features requested from the community.
+
+---
+
+### #026 — Smart Simple/Advanced Configurator Mode
+
+**Status:** Planned
+**Added:** 2026-04-01
+**Scope:** Medium
+**Source:** User idea
+
+**Description:**
+The Simple/Advanced toggle currently only controls which output parameters are shown in the results panel. This feature extends the toggle to also control the configurator input — in Simple mode, fewer filters are shown with only the most common options and sensible defaults pre-applied; in Advanced mode, all filters and all options are available as today. This makes the tool much less overwhelming for beginners while preserving full power for experienced users.
+
+**Simple mode** shows: Printer (all), Nozzle (std 0.4 + hrd 0.4), Material (common only: PLA Basic, PLA Matte, PETG HF, ABS, ASA, TPU), Surface Quality (Draft/Standard/Fine), Strength (Standard/Strong), Support (None/Easy Removal). Hidden filters auto-default: Speed → balanced, Environment → normal, Use Case → none, Colors → single, User Level → intermediate, Special → none.
+
+**Advanced mode** shows: all 12 filters, all options, no defaults — unchanged from today.
+
+Switching Simple → Advanced carries selections over and reveals hidden filters with defaults. Switching Advanced → Simple resets hidden filters to defaults and downgrades advanced-only options (e.g. Maximum surface → Fine).
+
+**⚠ Pre-implementation note:** Before building, double-check the full engine logic (`resolveProfile`) to verify that the proposed default values and hidden filter assumptions don't produce unexpected profile output. The printer selection currently only impacts speed/acceleration (CoreXY vs bedslinger) and warnings (enclosure type) — confirm this is still true at implementation time. Validate that the "simple" subset of materials, nozzles, and options covers real user needs.
+
+**Implementation Plan:**
+- [ ] **Audit first** — re-read `resolveProfile()` and all filter interactions end-to-end to confirm assumptions still hold
+- [ ] engine.js — add `simpleVisible` flag and `simpleOptions` array to each filter definition in `getFilters()`; add `SIMPLE_DEFAULTS` constant with default values for hidden filters
+- [ ] app.js — update `buildFilters()` to read `currentMode` and skip hidden filters / filter out advanced-only options; update `setMode()` to apply `SIMPLE_DEFAULTS` for hidden filters when entering simple mode, and to reset advanced-only option selections to closest simple equivalent
+- [ ] style.css — optional transition for filters appearing/disappearing on mode switch
+
+**Raw idea:**
+> Use the Simple/Advanced toggle to also control which filters and options are shown in the configurator, not just the output parameters. Simple = fewer filters, common options, sensible defaults. Advanced = full control. Double-check engine logic before implementing.
