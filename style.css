@@ -302,6 +302,21 @@ body, header, .top-nav, .filters, .panel, .chip,
 /* Picker body */
 .printer-picker-body { flex: 1; }
 
+/* Auto-collapsed picker — only summary bar visible */
+.picker-collapsed .printer-search-wrap,
+.picker-collapsed .printer-search-results,
+.picker-collapsed .printer-brands,
+.picker-collapsed .printer-model-panel {
+  display: none !important;
+}
+.picker-collapsed .printer-summary {
+  cursor: pointer;
+  margin-bottom: 0;
+}
+.picker-collapsed .printer-summary:hover {
+  filter: brightness(1.15);
+}
+
 /* Search */
 .printer-search-wrap { position: relative; margin-bottom: 10px; }
 .printer-search-icon {

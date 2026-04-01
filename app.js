@@ -18,6 +18,7 @@ let activeSymptom     = null;            // troubleshooter selected symptom id
 let comparisonProfile = null;            // { profile, label } when Profile A is locked
 let pickerBrand       = null;            // currently expanded brand in printer picker
 let pickerShowMore    = false;           // whether secondary brands are visible
+let pickerCollapsed   = false;           // auto-collapse picker after printer selected + other filter clicked
 
 // Print time estimator state
 const ptState = { height: 50, width: 50, depth: 50, walls: 3, infill: 15 };
@@ -245,6 +246,14 @@ function buildPrinterPicker(container, filter) {
     clearPrinterSelection();
   });
 
+  // Wire summary bar click to re-expand picker (whole bar, not just text)
+  document.getElementById('printerSummary').addEventListener('click', (e) => {
+    // Don't re-expand if user clicked the × clear button
+    if (e.target.closest('.printer-clear-btn')) return;
+    e.stopPropagation();
+    expandPrinterPicker();
+  });
+
   // Wire search
   const searchInput = document.getElementById('printerSearchInput');
   searchInput.addEventListener('input', () => handlePrinterSearch(searchInput.value));
@@ -378,9 +387,11 @@ function selectModel(printerId) {
 function clearPrinterSelection() {
   state.printer = null;
   pickerBrand = null;
+  pickerCollapsed = false;
   renderBrandChips();
   closeModelPanel();
   renderPrinterSummary();
+  applyPickerCollapsed();
   render();
 }
 
@@ -400,6 +411,24 @@ function renderPrinterSummary() {
   const brand = Engine.getBrands().find(b => b.id === p.manufacturer);
   txt.innerHTML = `${brand ? brand.name : p.manufacturer} <span class="crumb">\u203A</span> ${p.name}`;
   el.classList.add('visible');
+}
+
+function applyPickerCollapsed() {
+  const section = document.getElementById('printerPickerSection');
+  if (!section) return;
+  section.classList.toggle('picker-collapsed', pickerCollapsed);
+}
+
+function collapsePrinterPicker() {
+  if (state.printer && !pickerCollapsed) {
+    pickerCollapsed = true;
+    applyPickerCollapsed();
+  }
+}
+
+function expandPrinterPicker() {
+  pickerCollapsed = false;
+  applyPickerCollapsed();
 }
 
 function handlePrinterSearch(query) {
@@ -649,9 +678,11 @@ function bindControls() {
     // Reset printer picker state
     pickerBrand = null;
     pickerShowMore = false;
+    pickerCollapsed = false;
     renderBrandChips();
     closeModelPanel();
     renderPrinterSummary();
+    applyPickerCollapsed();
     const searchInput = document.getElementById('printerSearchInput');
     if (searchInput) searchInput.value = '';
     document.getElementById('printerSearchResults')?.classList.remove('open');
@@ -680,6 +711,8 @@ function handleChipClick(container, clicked, key, value, isMulti) {
     clicked.classList.toggle('selected', !was);
     state[key] = was ? null : value;
   }
+  // Auto-collapse printer picker when interacting with any other filter
+  if (key !== 'printer') collapsePrinterPicker();
   render();
 }
 
