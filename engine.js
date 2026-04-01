@@ -195,6 +195,7 @@ const Engine = (() => {
       aboutLink:        'About',
       disclaimerNote:   'These are suggestions only, not guarantees.',
       disclaimerLink:   'Read disclaimer',
+      roadmapLink:      'Roadmap',
     },
     da: {
       // Header / nav
@@ -374,6 +375,7 @@ const Engine = (() => {
       aboutLink:        'Om',
       disclaimerNote:   'Disse er forslag, ikke garantier.',
       disclaimerLink:   'Læs ansvarsfraskrivelse',
+      roadmapLink:      'Roadmap',
     },
   };
 

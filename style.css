@@ -1119,6 +1119,39 @@ footer {
 }
 .about-link:hover { color: var(--text3); }
 
+/* ── Roadmap list ── */
+.roadmap-subtitle {
+  color: var(--text2);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.roadmap-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.roadmap-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.4;
+}
+.roadmap-icon {
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+  font-size: 15px;
+  color: var(--green);
+}
+
 /* ── Info modal ── */
 dialog.info-modal {
   border: 1px solid var(--border2);

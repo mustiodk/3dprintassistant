@@ -496,3 +496,23 @@ The site needs proper SEO foundations so search engines can discover and rank it
 
 **Raw idea:**
 > Optimize site for search engines after public launch — meta tags, Open Graph, structured data, sitemap, robots.txt, semantic HTML.
+
+---
+
+### #025 — Community Requested Features List
+
+**Status:** Done
+**Added:** 2026-04-01
+**Scope:** Small
+**Source:** User request
+
+**Description:**
+A "Roadmap" link in the footer opens a modal listing features requested by the community. Shows a curated list of planned features with icons, translated to EN/DA. Encourages users to vote via the feedback page. Keeps the community informed about what's coming and builds engagement.
+
+**Implementation Plan:**
+- [x] engine.js — add `roadmapLink` translation strings for EN and DA
+- [x] app.js — add `ROADMAP_FEATURES` data array and render as a styled list inside the existing modal system; add roadmap link to footer
+- [x] style.css — add `.roadmap-list`, `.roadmap-item`, `.roadmap-icon` styles
+
+**Raw idea:**
+> A small window to show a list of features requested from the community.

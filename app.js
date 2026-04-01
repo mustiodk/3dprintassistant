@@ -53,8 +53,39 @@ const MODAL_CONTENT = {
   },
 };
 
+// ── Roadmap data — community-requested features ─────────────────────────────
+const ROADMAP_FEATURES = [
+  { icon: '◈', en: 'Copy individual setting value to clipboard',         da: 'Kopiér individuel indstillingsværdi til udklipsholder' },
+  { icon: '◇', en: 'Copy all settings as formatted text',                da: 'Kopiér alle indstillinger som formateret tekst' },
+  { icon: '⇌', en: 'Shareable profile URL',                              da: 'Delbar profil-URL' },
+  { icon: 'ⓘ', en: 'Parameter info tooltips — what each setting does',   da: 'Parameter info-tooltips — hvad hver indstilling gør' },
+  { icon: '☀', en: 'Auto dark/light mode from OS preference',            da: 'Automatisk mørk/lys tilstand fra OS-præference' },
+  { icon: '⚠', en: 'Expandable warning explanations',                    da: 'Udvidelige advarselsforklaringer' },
+  { icon: '⧉', en: 'Orca Slicer layout support',                        da: 'Orca Slicer layout-understøttelse' },
+  { icon: '⊕', en: 'More printers (Prusa, Voron, Creality K1 Max)',     da: 'Flere printere (Prusa, Voron, Creality K1 Max)' },
+  { icon: '⊕', en: 'More materials (PLA+, PA12-CF, PPA-CF, ABS-GF)',    da: 'Flere materialer (PLA+, PA12-CF, PPA-CF, ABS-GF)' },
+  { icon: '★', en: 'Saved presets (local storage)',                       da: 'Gemte presets (lokal lagring)' },
+  { icon: '↓', en: 'Export as Bambu Studio .json import file',           da: 'Eksportér som Bambu Studio .json importfil' },
+  { icon: '🌐', en: 'More languages (DE, NL, SV)',                       da: 'Flere sprog (DE, NL, SV)' },
+];
+
 function openModal(key) {
   const lang    = Engine.getLang();
+
+  if (key === 'roadmap') {
+    document.getElementById('modalTitle').textContent = lang === 'da' ? 'Ønskede funktioner' : 'Community Requested Features';
+    const subtitle = lang === 'da'
+      ? 'Funktioner ønsket af community — stem via feedback-siden!'
+      : 'Features requested by the community — vote via the feedback page!';
+    const listHtml = ROADMAP_FEATURES.map(f =>
+      `<li class="roadmap-item"><span class="roadmap-icon">${f.icon}</span> ${f[lang] || f.en}</li>`
+    ).join('');
+    document.getElementById('modalBody').innerHTML =
+      `<p class="roadmap-subtitle">${subtitle}</p><ul class="roadmap-list">${listHtml}</ul>`;
+    document.getElementById('infoModal').showModal();
+    return;
+  }
+
   const content = MODAL_CONTENT[key][lang] || MODAL_CONTENT[key].en;
   document.getElementById('modalTitle').textContent  = content.title;
   document.getElementById('modalBody').innerHTML     = content.body;
@@ -135,7 +166,8 @@ function applyLang() {
 
   // Footer
   const footerEl = document.getElementById('footerText');
-  footerEl.innerHTML = `${T('footer')} &middot; <button class="about-link" id="aboutBtn">${T('aboutLink')}</button> &middot; <button class="about-link" id="disclaimerFooterBtn">${T('disclaimerLink')}</button>`;
+  footerEl.innerHTML = `${T('footer')} &middot; <button class="about-link" id="roadmapBtn">${T('roadmapLink')}</button> &middot; <button class="about-link" id="aboutBtn">${T('aboutLink')}</button> &middot; <button class="about-link" id="disclaimerFooterBtn">${T('disclaimerLink')}</button>`;
+  document.getElementById('roadmapBtn').addEventListener('click', () => openModal('roadmap'));
   document.getElementById('aboutBtn').addEventListener('click', () => openModal('about'));
   document.getElementById('disclaimerFooterBtn').addEventListener('click', () => openModal('disclaimer'));
 
