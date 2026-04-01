@@ -38,7 +38,7 @@ A dedicated calculator that shows recommended filament flush volumes (mm³) betw
 
 ### #002 — Match Bambu Studio Process Tab Structure
 
-**Status:** Planned
+**Status:** Done
 **Added:** 2026-04-01
 **Updated:** 2026-04-02 (full audit from Bambu Studio screenshots)
 **Scope:** Medium

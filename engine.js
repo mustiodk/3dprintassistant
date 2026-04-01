@@ -522,38 +522,46 @@ const Engine = (() => {
     {
       id: 'quality', label: 'Quality',
       sections: [
-        { label: 'Layer height',  params: ['layer_height', 'initial_layer_height'] },
-        { label: 'Line width',    params: ['outer_wall_line_width', 'inner_wall_line_width', 'top_surface_line_width'] },
-        { label: 'Seam',          params: ['seam_position'] },
-        { label: 'Precision',     params: ['wall_generator', 'order_of_walls', 'xy_hole_compensation', 'elephant_foot_compensation'] },
-        { label: 'Others',        params: ['arc_fitting', 'avoid_crossing_walls', 'only_one_wall_top', 'bridge_flow'] },
+        { label: 'Layer height',    params: ['layer_height', 'initial_layer_height'] },
+        { label: 'Line width',      params: ['outer_wall_line_width', 'inner_wall_line_width', 'top_surface_line_width'] },
+        { label: 'Seam',            params: ['seam_position'] },
+        { label: 'Precision',       params: ['arc_fitting', 'xy_hole_compensation', 'elephant_foot_compensation'] },
+        { label: 'Ironing',         params: ['ironing'] },
+        { label: 'Wall generator',  params: ['wall_generator'] },
+        { label: 'Advanced',        params: ['order_of_walls', 'bridge_flow', 'only_one_wall_top', 'avoid_crossing_walls'] },
       ],
     },
     {
       id: 'strength', label: 'Strength',
       sections: [
-        { label: 'Walls',         params: ['wall_loops'] },
-        { label: 'Infill',        params: ['sparse_infill_pattern', 'sparse_infill_density', 'infill_combination'] },
-        { label: 'Top / bottom',  params: ['top_shell_layers', 'bottom_shell_layers', 'top_surface_pattern', 'bottom_surface_pattern', 'internal_solid_infill_pattern'] },
+        { label: 'Walls',             params: ['wall_loops'] },
+        { label: 'Top/bottom shells',  params: ['top_shell_layers', 'bottom_shell_layers', 'top_surface_pattern', 'bottom_surface_pattern', 'internal_solid_infill_pattern'] },
+        { label: 'Sparse infill',     params: ['sparse_infill_density', 'sparse_infill_pattern'] },
+        { label: 'Advanced',          params: ['infill_combination'] },
       ],
     },
     {
       id: 'speed', label: 'Speed',
       sections: [
-        { label: 'Speed',         params: ['outer_wall_speed', 'inner_wall_speed', 'initial_layer_speed', 'top_surface_speed', 'gap_fill_speed'] },
-        { label: 'Acceleration',  params: ['outer_wall_acceleration', 'inner_wall_acceleration', 'initial_layer_acceleration'] },
+        { label: 'Initial layer speed', params: ['initial_layer_speed'] },
+        { label: 'Other layers speed',  params: ['outer_wall_speed', 'inner_wall_speed', 'top_surface_speed', 'gap_fill_speed'] },
+        { label: 'Acceleration',        params: ['outer_wall_acceleration', 'inner_wall_acceleration', 'initial_layer_acceleration'] },
       ],
     },
     {
       id: 'support', label: 'Support',
       sections: [
-        { label: 'Support',       params: ['support_type', 'support_style', 'support_threshold_angle', 'support_z_distance', 'support_interface_layers', 'support_interface_pattern'] },
+        { label: 'Support',   params: ['support_type', 'support_style', 'support_threshold_angle'] },
+        { label: 'Advanced',  params: ['support_z_distance', 'support_interface_layers', 'support_interface_pattern'] },
       ],
     },
     {
       id: 'others', label: 'Others',
       sections: [
-        { label: 'Special',       params: ['prime_tower', 'flush_into_infill', 'ironing', 'slow_down_tall', 'brim_width'] },
+        { label: 'Bed adhesion',  params: ['brim_width'] },
+        { label: 'Prime tower',   params: ['prime_tower'] },
+        { label: 'Purge options', params: ['flush_into_infill'] },
+        { label: 'Special mode',  params: ['slow_down_tall'] },
       ],
     },
   ];
