@@ -40,16 +40,82 @@ A dedicated calculator that shows recommended filament flush volumes (mm³) betw
 
 **Status:** Planned
 **Added:** 2026-04-01
+**Updated:** 2026-04-02 (full audit from Bambu Studio screenshots)
 **Scope:** Medium
-**Source:** Existing implementation plan
+**Source:** Existing implementation plan + Bambu Studio v1.10 screenshots
 
 **Description:**
-The results panel currently renders profile parameters in a flat list per tab. This item restructures `PROFILE_TABS` in engine.js to include a `sections` concept so that each tab (Quality, Strength, Speed, etc.) renders with labeled sub-sections that exactly mirror Bambu Studio's Process tab layout — for example the Quality tab gets sections like "Layer height", "Line width", "Seam", "Precision", and "Others". This makes it dramatically easier for users to locate a setting in Bambu Studio after reading the recommendation, eliminating the need to hunt through menus.
+Restructure `PROFILE_TABS` sections in engine.js to exactly match Bambu Studio's Process tab layout. The sections concept is already implemented in code — the issue is that our section names and parameter groupings don't match the actual Bambu Studio UI. This makes it harder for users to find settings in their slicer.
+
+**Bambu Studio Actual Structure (verified from screenshots 2026-04-02):**
+
+Quality tab:
+1. **Layer height** — Layer height, Initial layer height
+2. **Line width** — Default, Initial layer, Outer wall, Inner wall, Top surface, Sparse infill, Internal solid infill, Support
+3. **Seam** — Seam position, + scarf seam settings
+4. **Precision** — Slice gap closing radius, Resolution, Arc fitting, X-Y hole compensation, X-Y contour compensation, Auto circle contour-hole compensation, Elephant foot compensation, Precise Z height
+5. **Ironing** — Ironing Type (separate section, NOT in Others)
+6. **Wall generator** — Wall generator (separate section, NOT in Precision)
+7. **Advanced** — Order of walls, Print infill first, Bridge flow, Thick bridges, Only one wall on top surfaces, Only one wall on first layer, Smooth speed discontinuity area, Smooth coefficient, Avoid crossing wall, Smoothing wall speed along Z
+
+Strength tab:
+1. **Walls** — Wall loops, Embedding wall into infill, Detect thin wall
+2. **Top/bottom shells** — Top/bottom surface patterns, densities, shell layers, thicknesses, paint penetration layers, Internal solid infill pattern
+3. **Sparse infill** — Sparse infill density, Fill multiline, Sparse infill pattern, Anchor settings
+4. **Advanced** — Infill/Wall overlap, Infill direction, Bridge direction, Min sparse infill threshold, Infill combination, Detect narrow internal solid infill, Ensure vertical shell thickness, Detect floating vertical shells
+
+Speed tab:
+1. **Initial layer speed** — Initial layer, Initial layer infill
+2. **Other layers speed** — Outer wall, Inner wall, Small perimeters, Small perimeter threshold, Sparse infill, Internal solid infill, Vertical shell speed, Top surface, Slow down for overhangs, Overhang speed, Slow down by height, Bridge, Gap infill, Support, Support interface
+3. **Travel speed** — Travel
+4. **Acceleration** — Normal printing, Travel, Initial layer travel, Initial layer, Outer wall, Inner wall, Top surface, Sparse infill
+
+Support tab:
+1. **Support** — Enable support, Type, Style, Threshold angle, On build plate only, Remove small overhangs
+2. **Raft** — Raft layers
+3. **Filament for Supports** — Support/raft base, Support/raft interface
+4. **Advanced** — Initial layer density, Initial layer expansion, Support wall loops, Top Z distance, Bottom Z distance, Base pattern, Base pattern spacing, Pattern angle, Top/Bottom interface layers, Interface pattern, Top interface spacing, Normal support expansion, Support/object xy distance, Z overrides X/Y, Support/object first layer gap, Don't support bridges, Independent support layer height
+
+Others tab:
+1. **Bed adhesion** — Skirt loops, Skirt height, Brim type, Brim width, Brim-object gap
+2. **Prime tower** — Enable, Skip points, Internal ribs, Width, Max speed, Brim width, Infill gap, Rib wall, Extra rib length, Rib width, Fillet wall
+3. **Purge options** — Purge into objects' infill, Purge into objects' support
+4. **Special mode** — Slicing Mode, Print sequence, Spiral vase, Timelapse, Fuzzy Skin, Fuzzy skin point distance, Fuzzy skin thickness
+5. **Advanced** — Use beam interlocking, Interlocking depth
+6. **G-code output** — Reduce infill retraction
+7. **Post-processing scripts** — (text area)
+8. **Notes** — (text area)
+
+**⚠ Also awaiting:** Filament tab screenshots for the filament settings panel structure.
+
+**Changes needed (parameters we currently generate):**
+
+Quality tab:
+- Move `wall_generator` out of "Precision" → its own "Wall generator" section
+- Move `order_of_walls`, `bridge_flow`, `avoid_crossing_walls`, `only_one_wall_top` out of "Others" → "Advanced" section
+- Move `arc_fitting` from "Others" → "Precision"
+- Move `ironing` from Others tab → Quality tab "Ironing" section
+- Rename "Others" → "Advanced"
+
+Strength tab:
+- Rename "Infill" → "Sparse infill"
+- Rename "Top / bottom" → "Top/bottom shells"
+- Move `infill_combination` from "Sparse infill" → "Advanced" section (new)
+
+Speed tab:
+- Split "Speed" into "Initial layer speed" (initial_layer_speed) and "Other layers speed" (outer_wall_speed, inner_wall_speed, top_surface_speed, gap_fill_speed)
+
+Support tab:
+- Move `support_z_distance`, `support_interface_layers`, `support_interface_pattern` from "Support" → "Advanced" section (new)
+
+Others tab:
+- Split "Special" into: "Bed adhesion" (brim_width), "Prime tower" (prime_tower), "Purge options" (flush_into_infill), "Special mode" (slow_down_tall)
 
 **Implementation Plan:**
-- [ ] engine.js — restructure `PROFILE_TABS` (around line 490) so each tab entry contains a `sections` array of `{ label, params[] }` objects instead of a flat `params` array; update the `PROFILE_TABS` getter to flatten sections into a plain params list for any callers that rely on backward-compatible flat access
-- [ ] app.js — update `renderProfilePanel()` to iterate sections and render a `.section-header` `<h4>` element before each section's parameter rows
-- [ ] style.css — add `.section-header` styles (subtle divider line, small caps label, reduced top margin) to visually separate sub-sections without overwhelming the layout
+- [ ] engine.js — restructure `PROFILE_TABS` sections to match the Bambu Studio layout documented above; move parameters to correct sections
+- [ ] engine.js — in `resolveProfile()`, move `ironing` from Others tab output to Quality tab output
+- [ ] Verify app.js rendering still works (sections concept already implemented, just names/grouping changes)
+- [ ] Test all tabs render correctly with the new structure
 
 **Raw idea:**
 > Add sections concept to PROFILE_TABS so each tab renders with labeled sub-sections matching Bambu Studio's exact Process tab layout.
