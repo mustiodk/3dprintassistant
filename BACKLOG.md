@@ -456,3 +456,43 @@ Introduce optional user accounts to transform 3D Print Assistant from a stateles
 
 **Raw idea:**
 > User accounts with saved presets, print history, and community-shared profiles. Drives return visits and loyalty. Passwordless/social auth, no gates on the core tool.
+
+---
+
+### #023 — Analytics with Cloudflare Web Analytics
+
+**Status:** Done
+**Added:** 2026-04-01
+**Scope:** Small
+**Source:** Site launch
+
+**Description:**
+Now that the site is publicly launched, we need visitor analytics to understand traffic patterns, popular pages, and referral sources. Cloudflare Web Analytics is the ideal choice: it's free, privacy-friendly (no cookies, no personal data collection), GDPR-compliant out of the box, and integrates natively with our Cloudflare Pages hosting. Setup requires adding a single JS beacon script tag to index.html and enabling Web Analytics in the Cloudflare dashboard.
+
+**Implementation Plan:**
+- [ ] Enable Web Analytics in Cloudflare dashboard for 3dprintassistant.com and copy the JS beacon snippet
+- [ ] index.html — add the Cloudflare Web Analytics beacon script tag before `</body>`
+
+**Raw idea:**
+> Track site statistics after public launch. Cloudflare Web Analytics chosen for zero-cookie, privacy-first, free analytics on existing Cloudflare Pages hosting.
+
+---
+
+### #024 — SEO Optimization
+
+**Status:** Done
+**Added:** 2026-04-01
+**Scope:** Small
+**Source:** Site launch
+
+**Description:**
+The site needs proper SEO foundations so search engines can discover and rank it. This includes meta tags (title, description, Open Graph, Twitter Card), a canonical URL, structured data (JSON-LD), a sitemap.xml, a robots.txt, semantic HTML improvements, and proper heading hierarchy. These are one-time foundational additions that significantly improve discoverability for searches like "3D print settings calculator", "Bambu Studio profile generator", etc.
+
+**Implementation Plan:**
+- [ ] index.html — add `<meta name="description">`, Open Graph tags (`og:title`, `og:description`, `og:image`, `og:url`, `og:type`), Twitter Card tags, canonical URL, `<link rel="icon">`, and JSON-LD structured data (WebApplication schema)
+- [ ] sitemap.xml — create with the single page URL and lastmod date
+- [ ] robots.txt — create allowing all crawlers, pointing to sitemap
+- [ ] index.html — review heading hierarchy (single `<h1>`, logical `<h2>`/`<h3>` structure), add `lang="en"` to `<html>`, add meaningful `alt` attributes to any images
+
+**Raw idea:**
+> Optimize site for search engines after public launch — meta tags, Open Graph, structured data, sitemap, robots.txt, semantic HTML.
