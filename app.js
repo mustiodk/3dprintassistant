@@ -13,23 +13,13 @@ const state = {
 let currentMode       = 'simple';        // 'simple' | 'advanced'
 let currentTheme      = 'dark';          // 'dark' | 'light'
 let activeTabId       = 'quality';       // persisted across re-renders
-let currentView       = 'configure';     // 'configure' | 'troubleshoot' | 'purge' | 'feedback'
+let currentView       = 'configure';     // 'configure' | 'troubleshoot' | 'feedback'
 let activeSymptom     = null;            // troubleshooter selected symptom id
 let comparisonProfile = null;            // { profile, label } when Profile A is locked
 
 // Print time estimator state
 const ptState = { height: 50, width: 50, depth: 50, walls: 3, infill: 15 };
 
-// Purge calculator state
-const purgeState = {
-  slotCount: 4,
-  slots: [
-    { name: 'Color 1', brightness: 'dark'   },
-    { name: 'Color 2', brightness: 'light'  },
-    { name: 'Color 3', brightness: 'medium' },
-    { name: 'Color 4', brightness: 'light'  },
-  ],
-};
 
 // ── Modal content (About + Disclaimer) ───────────────────────────────────────
 const MODAL_CONTENT = {
@@ -110,7 +100,6 @@ function applyLang() {
   document.getElementById('resetBtn').textContent          = T('reset');
   document.getElementById('navConfigure').textContent      = T('navConfigure');
   document.getElementById('navTroubleshoot').textContent   = T('navTroubleshoot');
-  document.getElementById('navPurge').textContent          = T('navPurge');
   document.getElementById('navFeedback').textContent       = T('navFeedback');
 
   // Lang toggle active state
@@ -124,8 +113,6 @@ function applyLang() {
   // Heroes
   document.getElementById('troubleHeroTitle').textContent   = T('troubleTitle');
   document.getElementById('troubleHeroSub').textContent     = T('troubleSub');
-  document.getElementById('purgeHeroTitle').textContent     = T('purgeTitle');
-  document.getElementById('purgeHeroSub').textContent       = T('purgeSub');
   document.getElementById('feedbackHeroTitle').textContent      = T('feedbackTitle');
   document.getElementById('feedbackHeroSub').textContent        = T('feedbackSub');
   document.getElementById('feedbackCardBugTitle').textContent   = T('feedbackBugTitle');
@@ -175,7 +162,6 @@ function applyLang() {
   // Re-render everything with new language
   render();
   renderTroubleshooter();
-  if (currentView === 'purge') renderPurgeCalculator();
 }
 
 // ── Build filter sections from Engine.FILTERS ─────────────────────────────────
@@ -240,13 +226,10 @@ function setView(view) {
   currentView = view;
   document.getElementById('viewConfigure').style.display    = view === 'configure'    ? '' : 'none';
   document.getElementById('viewTroubleshoot').style.display  = view === 'troubleshoot'  ? '' : 'none';
-  document.getElementById('viewPurge').style.display         = view === 'purge'         ? '' : 'none';
   document.getElementById('viewFeedback').style.display      = view === 'feedback'      ? '' : 'none';
   document.getElementById('navConfigure').classList.toggle('active',    view === 'configure');
   document.getElementById('navTroubleshoot').classList.toggle('active',  view === 'troubleshoot');
-  document.getElementById('navPurge').classList.toggle('active',         view === 'purge');
   document.getElementById('navFeedback').classList.toggle('active',      view === 'feedback');
-  if (view === 'purge') renderPurgeCalculator();
 }
 
 // ── Build troubleshooter symptom grid ─────────────────────────────────────────
@@ -312,103 +295,6 @@ const escHtml = s => String(s)
   .replace(/</g, '&lt;')
   .replace(/>/g, '&gt;');
 
-// ── AMS Purge Calculator ──────────────────────────────────────────────────────
-function renderPurgeCalculator() {
-  const T   = Engine.t;
-  const el  = document.getElementById('purgeCalculator');
-  const mat = state.material ? Engine.getMaterial(state.material) : null;
-  const grp = mat?.group || 'PLA';
-
-  // Sync slot count
-  while (purgeState.slots.length < purgeState.slotCount)
-    purgeState.slots.push({ name: `Color ${purgeState.slots.length + 1}`, brightness: 'medium' });
-  purgeState.slots.length = purgeState.slotCount;
-
-  const { matrix, mult, tip } = Engine.calcPurgeVolumes(purgeState.slots, grp);
-
-  const cellClass = v => v === 0 ? 'cell-same' : v < 120 ? 'cell-low' : v < 220 ? 'cell-mid' : v < 320 ? 'cell-high' : 'cell-crit';
-
-  const matNote = mat
-    ? `<span class="purge-mat-note">${T('purgeUsing')} <strong>${mat.name}</strong> (${mult}× ${T('purgeMultLabel')})</span>`
-    : `<span class="purge-mat-note dimmed">${T('purgeMatNote')}</span>`;
-
-  el.innerHTML = `
-    <div class="purge-controls">
-      <div class="purge-control-group">
-        <span class="purge-label">${T('purgeSlots')}</span>
-        <div class="purge-slot-btns">
-          ${[2,4,8].map(n => `
-            <button class="purge-slot-btn ${purgeState.slotCount === n ? 'active' : ''}"
-              onclick="setPurgeSlotCount(${n})">${n}</button>`).join('')}
-        </div>
-      </div>
-      <div>${matNote}</div>
-    </div>
-
-    <div class="purge-slots">
-      ${purgeState.slots.map((s, i) => `
-        <div class="purge-slot-card">
-          <div class="purge-slot-num">${i + 1}</div>
-          <input class="purge-slot-name" type="text" value="${escHtml(s.name)}"
-            oninput="updateSlotName(${i}, this.value)" maxlength="14"/>
-          <div class="purge-brightness-btns">
-            ${['dark','medium','light'].map(b => `
-              <button class="purge-bright-btn ${s.brightness === b ? 'active' : ''}"
-                onclick="updateSlotBrightness(${i}, '${b}')">${b}</button>`).join('')}
-          </div>
-        </div>`).join('')}
-    </div>
-
-    ${tip ? `<div class="purge-tip">💡 ${tip}</div>` : ''}
-
-    <div class="purge-matrix-wrap">
-      <div class="purge-matrix-label">${T('purgeMatLabel')}</div>
-      <div class="purge-matrix-scroll">
-        <table class="purge-matrix">
-          <thead>
-            <tr>
-              <th class="purge-th-corner">${T('purgeFromTo')}</th>
-              ${purgeState.slots.map((s,i) => `<th class="purge-th">${escHtml(s.name || String(i+1))}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>
-            ${matrix.map((row, i) => `
-              <tr>
-                <th class="purge-row-label">${escHtml(purgeState.slots[i].name || String(i+1))}</th>
-                ${row.map((v, j) => `
-                  <td class="purge-cell ${cellClass(v)}">
-                    ${v === 0 ? '—' : v}
-                  </td>`).join('')}
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-      <div class="purge-legend">
-        <span class="legend-item cell-low">${T('purgeLow')}</span>
-        <span class="legend-item cell-mid">${T('purgeMid')}</span>
-        <span class="legend-item cell-high">${T('purgeHigh')}</span>
-        <span class="legend-item cell-crit">${T('purgeCrit')}</span>
-        <span class="legend-unit">${T('purgeUnit')}</span>
-      </div>
-    </div>`;
-}
-
-function setPurgeSlotCount(n) {
-  purgeState.slotCount = n;
-  renderPurgeCalculator();
-}
-function updateSlotName(i, val) {
-  purgeState.slots[i].name = val;
-  // Re-render only the matrix headers (avoid losing focus on input)
-  const ths = document.querySelectorAll('.purge-th');
-  ths.forEach((th, idx) => { th.textContent = purgeState.slots[idx]?.name || idx + 1; });
-  const rowLabels = document.querySelectorAll('.purge-row-label');
-  rowLabels.forEach((td, idx) => { td.textContent = purgeState.slots[idx]?.name || idx + 1; });
-}
-function updateSlotBrightness(i, brightness) {
-  purgeState.slots[i].brightness = brightness;
-  renderPurgeCalculator();
-}
 
 // ── Bind mode toggle + reset ──────────────────────────────────────────────────
 function bindControls() {
@@ -425,7 +311,6 @@ function bindControls() {
   });
   document.getElementById('navConfigure').addEventListener('click',    () => setView('configure'));
   document.getElementById('navTroubleshoot').addEventListener('click',  () => setView('troubleshoot'));
-  document.getElementById('navPurge').addEventListener('click',         () => setView('purge'));
   document.getElementById('navFeedback').addEventListener('click',      () => setView('feedback'));
 
   document.getElementById('exportBtn').addEventListener('click', () => {
