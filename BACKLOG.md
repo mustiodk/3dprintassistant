@@ -858,3 +858,64 @@ Notes sub-tab: (text area)
 
 **Raw idea:**
 > If they choose a Bambu printer, suggestions should use Bambu Studio structure. If they choose Prusa, it should be PrusaSlicer structure and naming. Slicer-aware presentation based on chosen printer brand.
+
+---
+
+### #028 — TPU 85A / 90A Detailed Print & Support Guidance
+
+**Status:** Idea
+**Added:** 2026-04-02
+**Scope:** Medium
+**Source:** User request
+
+**Description:**
+TPU filament comes in different hardness ratings (Shore A scale) that dramatically affect printability. TPU 95A is already supported but 85A and 90A are significantly softer, requiring much slower speeds, different retraction strategies, and specific support approaches. This feature adds dedicated logic for TPU 85A and TPU 90A as separate material entries with hardness-specific print settings, support recommendations, and guidance notes.
+
+**Key areas to cover:**
+- Speed caps per hardness (85A: ~20 mm/s outer, 90A: ~30 mm/s outer — much slower than 95A)
+- Retraction: minimal or disabled for 85A (direct drive only), reduced for 90A
+- Support: tree supports with large Z gap (0.3mm+), or no support where possible — TPU bonds to itself
+- Cooling: reduced fan for better layer adhesion on soft TPU
+- Enclosure: generally not needed but draft-free environment recommended
+- Pressure advance: likely disabled or very low values
+- Bed adhesion: specific plate/temp recommendations per hardness
+- Flow ratio adjustments (soft TPU compresses in extruder)
+
+**Implementation Plan:**
+- [ ] data/materials.json — add `tpu_85a` and `tpu_90a` entries with hardness-specific base settings, speed caps, retraction overrides, and notes
+- [ ] engine.js — add TPU hardness detection in `resolveProfile()` for finer speed/retraction/support tuning beyond the existing `isTPU` flag
+- [ ] engine.js — add hardness-specific warnings (e.g. "85A requires direct drive extruder", "disable retraction for ultra-soft TPU")
+- [ ] engine.js — add TPU-specific support guidance in checklist
+
+**Raw idea:**
+> Add detailed logic to handle TPU 85A and 90A support/guidance logic to the site, including best print settings and support settings.
+
+---
+
+### #029 — Source Attribution for Recommendations (Brand vs Community)
+
+**Status:** Idea
+**Added:** 2026-04-02
+**Scope:** Medium
+**Source:** User request
+
+**Description:**
+Currently all recommendations are presented equally without indicating where the data comes from. Users should know whether a suggested value is from the manufacturer's official guidelines (e.g. Bambu Lab's recommended nozzle temp for PLA Matte) or from community experience and testing. This transparency builds trust and helps users decide how strictly to follow a recommendation.
+
+**Proposed approach:**
+Each parameter recommendation gets a source tag:
+- **📋 Brand guideline** — value comes directly from manufacturer's published specs, filament datasheets, or official slicer profiles
+- **👥 Community tested** — value comes from community experience, testing, and collective knowledge (forums, Reddit, maker groups)
+- **🔧 Tool calculated** — value was derived by the engine from rules (e.g. speed caps based on MVS, beginner mode reductions)
+
+The tag could be a small badge or icon next to each parameter value, or a subtle label in the "why" explanation text.
+
+**Implementation Plan:**
+- [ ] engine.js — add `source` field to each parameter object returned by `resolveProfile()` alongside existing `value`, `why`, `mode` fields. Values: `'brand'`, `'community'`, `'calculated'`
+- [ ] data/materials.json — tag which base settings come from brand datasheets vs community tuning
+- [ ] app.js — render source badge/icon next to parameter values in the profile panel
+- [ ] style.css — style source badges (subtle, non-intrusive, different colors per source type)
+- [ ] Consider adding a legend/tooltip explaining what each source type means
+
+**Raw idea:**
+> Guidance and suggestions should clearly indicate what comes from brands' own guidelines and what comes as community input from experience and try-outs.
