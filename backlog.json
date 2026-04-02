@@ -1,6 +1,7 @@
 {
   "meta": {
     "lastUpdated": "2026-04-03",
+    "lastAudit": "2026-04-03",
     "project": "3D Print Assistant"
   },
   "categories": {
@@ -108,43 +109,13 @@
       ]
     },
     {
-      "id": 9,
-      "title": "Orca Slicer Layout Support",
-      "status": "idea",
-      "scope": "medium",
-      "value": "high",
-      "category": "ux",
-      "priority": 7,
-      "added": "2026-04-01",
-      "description": "Add a slicer selector that switches which tab structure and parameter names are shown. Orca Slicer users see output matching their exact UI. Underlying values unchanged.",
-      "implementation": [
-        "engine.js — add ORCA_PROFILE_TABS; add slicer field to appState",
-        "app.js — slicer toggle in filter bar; re-render on change"
-      ]
-    },
-    {
-      "id": 14,
-      "title": "Mobile Layout Improvements",
-      "status": "idea",
-      "scope": "medium",
-      "value": "high",
-      "category": "ux",
-      "priority": 8,
-      "added": "2026-04-01",
-      "description": "Users stand at their printer with a phone. Filter groups collapse by default, chip rows scroll horizontally, results use a single-column layout. No engine changes needed.",
-      "implementation": [
-        "style.css — @media (max-width: 600px): collapsible groups, overflow-x: auto chips, single-column results",
-        "app.js — toggle .collapsed on filter headers; default collapsed on mobile"
-      ]
-    },
-    {
       "id": 10,
       "title": "More Printer Support",
       "status": "idea",
       "scope": "medium",
       "value": "high",
       "category": "content",
-      "priority": 9,
+      "priority": 7,
       "added": "2026-04-01",
       "description": "Add Bambu Lab A1 Combo, Prusa MK4, Prusa XL, Voron 2.4, Creality K1 Max. Each requires printer-specific rule coverage for warnings and speed/temp limits.",
       "implementation": [
@@ -159,7 +130,7 @@
       "scope": "medium",
       "value": "high",
       "category": "content",
-      "priority": 10,
+      "priority": 8,
       "added": "2026-04-01",
       "description": "Add PLA+, PLA Sparkle, PETG Transparent, PA12-CF, PPA-CF, ABS-GF. Each requires warning rule coverage for enclosure, nozzle hardness, and drying requirements.",
       "implementation": [
@@ -174,7 +145,7 @@
       "scope": "medium",
       "value": "high",
       "category": "ux",
-      "priority": 11,
+      "priority": 9,
       "added": "2026-04-01",
       "description": "Clicking ⓘ next to a parameter opens a modal explaining what it controls, why this value was chosen, and what increasing/decreasing it does. Turns the tool into a learning resource.",
       "implementation": [
@@ -190,7 +161,7 @@
       "scope": "small",
       "value": "low",
       "category": "tooling",
-      "priority": 12,
+      "priority": 10,
       "added": "2026-04-03",
       "description": "Add @typedef annotations for State, Profile, Warning, PrinterDef, MaterialDef, NozzleDef, Param. Zero runtime cost — unlocks VS Code autocomplete and catches property misuse without TypeScript.",
       "implementation": [
@@ -205,7 +176,7 @@
       "scope": "medium",
       "value": "low",
       "category": "architecture",
-      "priority": 13,
+      "priority": 11,
       "added": "2026-04-03",
       "description": "Split engine.js into native ES modules (no bundler needed). Public Engine API re-exported from engine/index.js. Only pursue when engine is actively growing and the monolith slows development.",
       "implementation": [
@@ -221,7 +192,7 @@
       "scope": "small",
       "value": "medium",
       "category": "export",
-      "priority": 14,
+      "priority": 12,
       "added": "2026-04-01",
       "description": "\"Copy all\" button assembles the active tab's params as label: value plain text — paste-ready for notes, chat, or print logs.",
       "implementation": [
@@ -236,7 +207,7 @@
       "scope": "small",
       "value": "medium",
       "category": "ux",
-      "priority": 15,
+      "priority": 13,
       "added": "2026-04-01",
       "description": "Make each warning chip expandable — clicking reveals root cause and 1–2 concrete fix steps. Turns single-line warnings into actionable guidance.",
       "implementation": [
@@ -246,28 +217,13 @@
       ]
     },
     {
-      "id": 13,
-      "title": "Print Checklist / Pre-flight",
-      "status": "idea",
-      "scope": "small",
-      "value": "medium",
-      "category": "ux",
-      "priority": 16,
-      "added": "2026-04-01",
-      "description": "After profile generation, show a context-driven pre-flight checklist (bed leveling, filament dryness, enclosure status) based on active printer/material combination.",
-      "implementation": [
-        "engine.js — getChecklist(state) returning [{ id, text }] filtered by context",
-        "app.js — render below profile tabs with checkboxes (ephemeral, no persistence)"
-      ]
-    },
-    {
       "id": 12,
       "title": "Saved Presets (localStorage)",
       "status": "idea",
       "scope": "medium",
       "value": "medium",
       "category": "ux",
-      "priority": 17,
+      "priority": 14,
       "added": "2026-04-01",
       "description": "Name and save current filter state as a preset stored in localStorage; reload from a picker in one click. No backend required.",
       "implementation": [
@@ -282,7 +238,7 @@
       "scope": "small",
       "value": "medium",
       "category": "export",
-      "priority": 18,
+      "priority": 15,
       "added": "2026-04-01",
       "description": "Export a self-contained, fully offline HTML file showing all selections and recommended settings — a permanent print reference with no external dependencies.",
       "implementation": [
@@ -297,7 +253,7 @@
       "scope": "medium",
       "value": "medium",
       "category": "ux",
-      "priority": 19,
+      "priority": 16,
       "added": "2026-04-02",
       "description": "Badge each parameter value as 📋 Brand guideline, 👥 Community tested, or 🔧 Tool calculated. Builds trust and helps users decide how strictly to follow a recommendation.",
       "implementation": [
@@ -313,7 +269,7 @@
       "scope": "medium",
       "value": "medium",
       "category": "ux",
-      "priority": 20,
+      "priority": 17,
       "added": "2026-04-01",
       "description": "Add German (DE), Dutch (NL), Swedish (SV). With locale files now external (#030 shipped), each new language is a pure data task — no engine changes needed.",
       "implementation": [
@@ -328,7 +284,7 @@
       "scope": "large",
       "value": "medium",
       "category": "content",
-      "priority": 21,
+      "priority": 18,
       "added": "2026-04-01",
       "description": "Secondary Brand selector after material type (e.g. Bambu Lab PLA Basic, Polymaker PolyTerra) with temp/speed overrides from brand datasheets. Generic selection applies no override.",
       "implementation": [
@@ -344,7 +300,7 @@
       "scope": "large",
       "value": "medium",
       "category": "community",
-      "priority": 22,
+      "priority": 19,
       "added": "2026-04-01",
       "description": "Read-only community profiles submitted via GitHub PR, shown as a 'Community verified' panel alongside the generated profile. Static, reviewer-controlled — no backend needed.",
       "implementation": [
@@ -360,7 +316,7 @@
       "scope": "small",
       "value": "low",
       "category": "ux",
-      "priority": 23,
+      "priority": 20,
       "added": "2026-04-01",
       "description": "Detect prefers-color-scheme: dark on first visit and apply matching theme. Explicit user toggle stored in localStorage takes priority on subsequent visits.",
       "implementation": [
@@ -374,7 +330,7 @@
       "scope": "large",
       "value": "low",
       "category": "ux",
-      "priority": 24,
+      "priority": 21,
       "added": "2026-04-01",
       "description": "Add acceleration/deceleration modeling, support volume estimation, and a comparison table showing estimated time across Draft/Standard/Fine presets side by side.",
       "implementation": [
@@ -389,7 +345,7 @@
       "scope": "large",
       "value": "low",
       "category": "architecture",
-      "priority": 25,
+      "priority": 22,
       "added": "2026-04-03",
       "description": "Declarative per-view render functions and centralized event registration to reduce DOM coupling and listener duplication risk. Deferred — high risk, low near-term reward. Only pursue if app.js becomes a regression source.",
       "implementation": [
@@ -404,7 +360,7 @@
       "scope": "small",
       "value": "low",
       "category": "tooling",
-      "priority": 26,
+      "priority": 23,
       "added": "2026-04-03",
       "description": "ESLint + data validation + headless smoke test on push/PR via GitHub Actions. Deferred — low value solo, worth adding when a second contributor joins.",
       "implementation": [
@@ -419,7 +375,7 @@
       "scope": "large",
       "value": "low",
       "category": "community",
-      "priority": 27,
+      "priority": 24,
       "added": "2026-04-01",
       "description": "Optional user accounts (passwordless/social auth) for cross-device preset sync, print history, and community profile sharing. Core tool stays fully functional without login. Major backend complexity for a static tool.",
       "implementation": [
@@ -430,6 +386,27 @@
     }
   ],
   "archived": [
+    {
+      "id": 14,
+      "title": "Mobile Layout Improvements",
+      "category": "ux",
+      "shipped": "2026-04-03",
+      "description": "Single-column results grid, collapsible optional filter sections on mobile, larger touch targets (44px), horizontal-scroll tab nav, and single-column checklist. Confirmed fully implemented in style.css + app.js."
+    },
+    {
+      "id": 13,
+      "title": "Print Checklist / Pre-flight",
+      "category": "ux",
+      "shipped": "2026-04-03",
+      "description": "Context-driven pre-flight checklist rendered below the profile tabs. getChecklist() in engine.js returns items with text, detail, and critical flags; renderChecklist() in app.js displays them with ✓/⚠ icons and i18n support."
+    },
+    {
+      "id": 9,
+      "title": "Orca Slicer Layout Support",
+      "category": "ux",
+      "shipped": "2026-04-03",
+      "description": "OrcaSlicer tab structure implemented in engine.js (SLICER_TABS). Creality, Anycubic, QIDI, Voron, DIY, and other non-Bambu/Prusa brands automatically use OrcaSlicer layout via getSlicerForPrinter()."
+    },
     {
       "id": 2,
       "title": "Match Bambu Studio Process Tab Structure",

@@ -125,16 +125,6 @@ Make each warning chip expandable — click reveals root cause and 1–2 concret
 
 ---
 
-### #009 — Orca Slicer Layout Support
-**Scope:** Medium
-
-Slicer selector switches which tab structure and parameter names are shown. Underlying values unchanged.
-
-- [ ] engine.js — add `ORCA_PROFILE_TABS`; add `slicer` to appState
-- [ ] app.js — slicer toggle in filter bar; re-render on change
-
----
-
 ### #010 — More Printer Support
 **Scope:** Medium
 
@@ -162,26 +152,6 @@ Name and save current filter state as a preset; reload from a picker in one clic
 
 - [ ] app.js — "Save preset" button; store `{ name, state }` in localStorage; preset picker with delete; validate stale keys on load
 - [ ] style.css — picker and save button
-
----
-
-### #013 — Print Checklist / Pre-flight
-**Scope:** Small
-
-After profile generation, show a context-driven checklist (bed leveling, filament dryness, enclosure status) based on active printer/material.
-
-- [ ] engine.js — `getChecklist(state)` returning `[{ id, text }]`
-- [ ] app.js — render below profile tabs with checkboxes (ephemeral, no persistence)
-
----
-
-### #014 — Mobile Layout Improvements
-**Scope:** Medium
-
-Filter groups collapse by default on mobile, chip rows scroll horizontally, results use single-column layout.
-
-- [ ] style.css — `@media (max-width: 600px)`: collapsible groups, `overflow-x: auto`, single-column, larger tap targets
-- [ ] app.js — toggle `.collapsed` on filter headers; default collapsed on mobile
 
 ---
 
@@ -312,3 +282,6 @@ ESLint + data validation + headless smoke test on push/PR via GitHub Actions.
 | #028 | TPU 85A / 90A print & support guidance | 2026-04-02 |
 | #030 | i18n locale extraction to locales/*.json | 2026-04-03 |
 | #031 | JSON schema validation script | 2026-04-03 |
+| #009 | Orca Slicer layout support (auto via printer brand) | 2026-04-03 |
+| #013 | Print checklist / pre-flight panel | 2026-04-03 |
+| #014 | Mobile layout improvements | 2026-04-03 |
