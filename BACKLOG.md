@@ -964,3 +964,76 @@ A Node.js script (`scripts/validate-data.js`, no npm dependencies) validates all
 
 **Raw idea:**
 > Extracted from Codex architectural review: add a validation script so data edits that break required schema fields are caught before deploy.
+
+---
+
+### #032 — JSDoc Typedefs for Core Engine Objects
+
+**Status:** Planned
+**Added:** 2026-04-03
+**Scope:** Small
+**Source:** Code review recommendation (Codex, 2026-04-02)
+
+**Description:**
+Add `@typedef` annotations for the core data shapes used throughout engine.js and app.js: `State`, `Profile`, `Warning`, `PrinterDef`, `MaterialDef`, `NozzleDef`, `Param`. Zero runtime cost — pure JSDoc comments that unlock VS Code autocomplete and catch accidental property misuse during development. No TypeScript compiler needed.
+
+**Implementation Plan:**
+- [ ] engine.js — add `@typedef` blocks near the top of the file for all core object shapes; annotate return types on public functions (`resolveProfile`, `getWarnings`, `getFilters`, etc.)
+- [ ] app.js — annotate the `state` object and key local variables with `@type {State}` etc.
+
+**Raw idea:**
+> Extracted from Codex architectural review: add JSDoc typedefs for State, Profile, Warning, PrinterDef etc. to improve autocomplete and reduce accidental misuse without adding TypeScript overhead.
+
+---
+
+### #033 — Engine Modularization (ES Modules)
+
+**Status:** Planned
+**Added:** 2026-04-03
+**Scope:** Medium
+**Source:** Code review recommendation (Codex, 2026-04-02)
+
+**Description:**
+Split `engine.js` into native ES modules using `type="module"` in index.html — no bundler required. Each module owns one responsibility. The public `Engine` API is re-exported from `engine/index.js` so `app.js` needs only one import change. Only worth doing when the engine is actively growing and the monolith is slowing development.
+
+**Proposed split:**
+```
+engine/
+├── index.js          ← public Engine API (re-exports)
+├── data-loader.js    ← fetch + cache all JSON
+├── i18n.js           ← t(), setLang(), getLang()
+├── profile.js        ← resolveProfile()
+├── warnings.js       ← getWarnings()
+├── troubleshooter.js ← getTroubleshooter()
+└── estimator.js      ← print time estimation
+```
+
+**Implementation Plan:**
+- [ ] Create `engine/` directory and split engine.js into the modules above
+- [ ] Update `engine/index.js` to re-export the full public API
+- [ ] Update `index.html`: add `type="module"` to script tags, change `src="engine.js"` to `src="engine/index.js"`
+- [ ] Verify app.js works unchanged (it accesses `Engine.*` globals)
+- [ ] Remove old `engine.js` once verified
+
+**Raw idea:**
+> Extracted from Codex architectural review: split engine.js into ES modules (no bundler needed) to reduce regression risk and make each responsibility independently editable.
+
+---
+
+### #034 — app.js Render/Event Refactor
+
+**Status:** Idea
+**Added:** 2026-04-03
+**Scope:** Large
+**Source:** Code review recommendation (Codex, 2026-04-02)
+
+**Description:**
+app.js currently builds UI by directly querying and mutating many fixed DOM IDs, and re-registers event listeners across multiple render cycles. This makes it fragile when HTML changes and risks accidental listener duplication over time. A refactor would introduce declarative render functions per view (`renderConfigure`, `renderTroubleshoot`, `renderFeedback`) with narrow input models, and centralize all event registration in a single setup path with teardown-aware rebinding. **High risk, low near-term reward** — only pursue if app.js becomes a source of regressions.
+
+**Implementation Plan:**
+- [ ] app.js — extract `renderConfigure(state)`, `renderTroubleshoot(state)`, `renderFeedback()` as top-level functions with no side effects beyond their container element
+- [ ] app.js — move all `addEventListener` calls into a single `bindControls()` call on boot; use event delegation where possible to avoid rebinding on re-render
+- [ ] app.js — replace direct `document.getElementById` calls with a small `$id(id)` helper that warns on missing elements in dev
+
+**Raw idea:**
+> Extracted from Codex architectural review: reduce DOM coupling in app.js with declarative per-view render functions and centralized event registration.
