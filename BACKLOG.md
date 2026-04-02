@@ -1037,3 +1037,24 @@ app.js currently builds UI by directly querying and mutating many fixed DOM IDs,
 
 **Raw idea:**
 > Extracted from Codex architectural review: reduce DOM coupling in app.js with declarative per-view render functions and centralized event registration.
+
+---
+
+### #035 — CI Pipeline (Lint + Data Validation + Smoke Test)
+
+**Status:** Idea
+**Added:** 2026-04-03
+**Scope:** Small
+**Source:** Code review recommendation (Codex, 2026-04-02)
+
+**Description:**
+Add a minimal CI pipeline that runs on every push/PR to catch regressions before they reach production. Baseline: ESLint for JS syntax/style, the existing `scripts/validate-data.js` for data integrity, and a headless smoke test that verifies the page boots without console errors. Low value for a solo dev today — worth adding if a second contributor joins or deploy frequency increases.
+
+**Implementation Plan:**
+- [ ] Add `package.json` with `scripts`: `lint` (ESLint), `format:check` (Prettier), `test:data` (`node scripts/validate-data.js`), `test:smoke` (Playwright or Puppeteer headless boot check)
+- [ ] Add `.eslintrc.json` with sensible rules for vanilla JS (no framework)
+- [ ] Add `.github/workflows/ci.yml` — runs on push to `main` and on PRs: install deps → lint → validate data → smoke test
+- [ ] Ensure CI passes on current codebase before enforcing as required check
+
+**Raw idea:**
+> Extracted from Codex architectural review: add ESLint, Prettier, data validation, and a headless smoke test to a GitHub Actions workflow to catch regressions before deploy.
