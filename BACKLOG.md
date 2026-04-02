@@ -635,7 +635,7 @@ Switching Simple → Advanced carries selections over and reveals hidden filters
 
 ### #027 — Slicer-Aware Tab Structure Based on Printer Brand
 
-**Status:** Done (Phase 1: Bambu Studio + PrusaSlicer)
+**Status:** Done (Phase 1: Bambu Studio + PrusaSlicer, Phase 2: OrcaSlicer)
 **Added:** 2026-04-02
 **Scope:** Medium–Large
 **Source:** User idea (extends #002 and #009)
