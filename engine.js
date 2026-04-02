@@ -503,8 +503,8 @@ const Engine = (() => {
 
     return [
       { key: 'printer',     label: t('filterPrinter'),  multi: false, required: true,  items: printerChips  },
-      { key: 'nozzle',      label: t('filterNozzle'),   multi: false, required: true,  items: nozzleChips   },
       { key: 'material',    label: t('filterMaterial'), multi: false, required: true,  items: materialChips },
+      { key: 'nozzle',      label: t('filterNozzle'),   multi: false, required: true,  items: nozzleChips   },
       { key: 'useCase',     label: t('filterUseCase'),  multi: true,  required: false, items: [
         { id: 'prototype',  name: t('ucPrototype')  },
         { id: 'functional', name: t('ucFunctional') },
@@ -1555,6 +1555,19 @@ const Engine = (() => {
     return { ok: w.length === 0, warnings: w };
   }
 
+  // ── Nozzle filtering by material compatibility ───────────────────────────────
+  function getCompatibleNozzles(materialId) {
+    if (!materialId) return _nozzles.map(n => ({ id: n.id, name: n.name, compatible: true }));
+    const material = getMaterial(materialId);
+    if (!material) return _nozzles.map(n => ({ id: n.id, name: n.name, compatible: true }));
+    return _nozzles.map(n => {
+      const { ok } = isNozzleCompatibleWithMaterial(n.id, materialId);
+      const mvsVal = material.base_settings.max_mvs?.[String(n.size)];
+      const mvsBlocked = mvsVal === null;
+      return { id: n.id, name: n.name, compatible: ok && !mvsBlocked };
+    });
+  }
+
   // ── Profile export ───────────────────────────────────────────────────────────
   // Returns a clean flat object mapping Bambu Studio parameter names to values
   function exportProfile(state) {
@@ -1755,6 +1768,7 @@ const Engine = (() => {
     setActiveSlicer,
     getActiveSlicer,
     isNozzleCompatibleWithMaterial,
+    getCompatibleNozzles,
     getSymptoms,
     getTroubleshootingTips,
     exportProfile,

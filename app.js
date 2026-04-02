@@ -705,6 +705,23 @@ function setMode(mode) {
   render();
 }
 
+// ── Nozzle chip filtering based on material compatibility ────────────────────
+function updateNozzleChips() {
+  const container = document.getElementById('chips_nozzle');
+  if (!container) return;
+  const nozzles = Engine.getCompatibleNozzles(state.material);
+  container.querySelectorAll('.chip').forEach(chip => {
+    const nz = nozzles.find(n => n.id === chip.dataset.value);
+    const incompatible = nz && !nz.compatible;
+    chip.classList.toggle('incompatible', incompatible);
+    if (incompatible && chip.classList.contains('selected')) {
+      // Deselect incompatible nozzle
+      chip.classList.remove('selected');
+      state.nozzle = null;
+    }
+  });
+}
+
 // ── Chip interaction ──────────────────────────────────────────────────────────
 function handleChipClick(container, clicked, key, value, isMulti) {
   if (isMulti) {
@@ -726,6 +743,7 @@ function handleChipClick(container, clicked, key, value, isMulti) {
 function render() {
   updateCollapseBadges();
   renderPrinterSummary();
+  updateNozzleChips();
   // Update panel sub-titles based on active slicer
   const T = Engine.t;
   const slicerSub = (key) => { const sk = key + '_' + Engine.getActiveSlicer(); const v = T(sk); return v !== sk ? v : T(key); };

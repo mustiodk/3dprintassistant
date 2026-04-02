@@ -541,7 +541,7 @@
         "cooling_fan_overhang": "30%",
         "slow_layer_time": "15 s",
         "max_mvs": {
-          "0.2": null,
+          "0.2": "8 mm\u00b3/s",
           "0.4": "14 mm\u00b3/s",
           "0.6": "18 mm\u00b3/s"
         },
@@ -576,7 +576,7 @@
       ],
       "build_plate_display": "Engineering Plate (glue required)",
       "nozzle_requirements": {
-        "min_diameter": 0.4,
+        "min_diameter": 0.2,
         "material": "any"
       },
       "ams_compatible": true,
@@ -629,7 +629,7 @@
         "cooling_fan_overhang": "30%",
         "slow_layer_time": "15 s",
         "max_mvs": {
-          "0.2": null,
+          "0.2": "8 mm\u00b3/s",
           "0.4": "14 mm\u00b3/s",
           "0.6": "18 mm\u00b3/s"
         },
@@ -664,7 +664,7 @@
       ],
       "build_plate_display": "Engineering Plate (glue required)",
       "nozzle_requirements": {
-        "min_diameter": 0.4,
+        "min_diameter": 0.2,
         "material": "any"
       },
       "ams_compatible": true,
@@ -1044,7 +1044,7 @@
         "cooling_fan_overhang": "100%",
         "slow_layer_time": "15 s",
         "max_mvs": {
-          "0.2": null,
+          "0.2": "5 mm\u00b3/s",
           "0.4": "8 mm\u00b3/s",
           "0.6": "10 mm\u00b3/s"
         },
@@ -1071,7 +1071,7 @@
       ],
       "build_plate_display": "Cool Plate",
       "nozzle_requirements": {
-        "min_diameter": 0.4,
+        "min_diameter": 0.2,
         "material": "any"
       },
       "ams_compatible": true,
