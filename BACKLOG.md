@@ -924,8 +924,9 @@ The tag could be a small badge or icon next to each parameter value, or a subtle
 
 ### #030 — i18n Locale Extraction
 
-**Status:** In Progress
+**Status:** Done
 **Added:** 2026-04-03
+**Shipped:** 2026-04-03
 **Scope:** Small
 **Source:** Code review recommendation (Codex, 2026-04-02)
 
@@ -946,8 +947,9 @@ Move all UI translation strings from the embedded `_T` object in `engine.js` int
 
 ### #031 — JSON Schema Validation Script
 
-**Status:** In Progress
+**Status:** Done
 **Added:** 2026-04-03
+**Shipped:** 2026-04-03
 **Scope:** Small
 **Source:** Code review recommendation (Codex, 2026-04-02)
 
