@@ -384,6 +384,8 @@ function selectModel(printerId) {
   });
 
   renderPrinterSummary();
+  // Auto-collapse picker immediately after selecting a printer
+  if (state.printer) collapsePrinterPicker();
   render();
 }
 
@@ -480,15 +482,8 @@ function handlePrinterSearch(query) {
       resultsWrap.classList.remove('open');
       document.getElementById('printerSearchInput').value = '';
 
-      // Highlight selected model after panel opens
-      setTimeout(() => {
-        document.querySelectorAll('.model-chip').forEach(c => {
-          if (c.querySelector('span').textContent === m.name) {
-            c.classList.add('selected', 'just-selected');
-            setTimeout(() => c.classList.remove('just-selected'), 600);
-          }
-        });
-      }, 100);
+      // Auto-collapse after search selection
+      collapsePrinterPicker();
       render();
     });
     resultsInner.appendChild(item);
