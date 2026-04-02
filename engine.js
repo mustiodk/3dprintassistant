@@ -17,394 +17,8 @@ const Engine = (() => {
   // ── Language system ───────────────────────────────────────────────────────────
   let _lang = 'en'; // 'en' | 'da'
 
-  const _T = {
-    en: {
-      // Header / nav
-      logoText:         '3D Print Assistant',
-      logoSub:          'Print Profile Configurator',
-      modeSimple:       'Simple',
-      modeAdvanced:     'Advanced',
-      reset:            'Reset',
-      navConfigure:     'Configure',
-      navTroubleshoot:  'Troubleshoot',
-      navPurge:         'AMS Purge',
-      navFeedback:      'Feedback',
-      // Filter hints
-      hintRequired:     'required',
-      hintOptional:     'optional',
-      hintMulti:        'multi-select',
-      // Filter section labels
-      filterPrinter:    'Printer',
-      filterNozzle:     'Nozzle',
-      filterMaterial:   'Material',
-      filterUseCase:    'What are you printing?',
-      filterSurface:    'Surface Quality',
-      filterStrength:   'Strength',
-      filterSpeed:      'Speed Priority',
-      filterEnv:        'Environment',
-      filterSupport:    'Support',
-      filterColors:     'Colors / AMS',
-      filterLevel:      'Experience Level',
-      filterSpecial:    'Special Requirements',
-      // Use cases
-      ucPrototype:      'Prototype',
-      ucFunctional:     'Functional part',
-      ucDecorative:     'Decorative',
-      ucMiniature:      'Miniature / details',
-      ucLarge:          'Large part',
-      // Support types
-      supNone:          'None',
-      supEasy:          'Easy removal',
-      supQuality:       'Quality',
-      // Color modes
-      colSingle:        'Single color',
-      colMulti24:       'Multicolor 2–4',
-      colMulti5:        'Multicolor 5+',
-      // User levels
-      lvlBeginner:      'Beginner',
-      lvlBeginnerDesc:  'Safe margins',
-      lvlInter:         'Intermediate',
-      lvlInterDesc:     'Standard',
-      lvlAdvanced:      'Advanced',
-      lvlAdvancedDesc:  'Precise tuning',
-      // Special requirements
-      spWaterproof:     'Waterproof',
-      spHighTemp:       'High temp (>60°C)',
-      spMetallic:       'Metallic finish',
-      spMatte:          'Matte finish',
-      spGlossy:         'Glossy / Silk',
-      spUV:             'UV-resistant',
-      // Empty state
-      emptyTitle:       'Select your setup above',
-      emptySub:         'Choose a printer, nozzle, and material to generate your optimized profile.',
-      // Profile panel
-      panelFilTitle:    'Filament Settings',
-      panelFilSub:      'Filament tab in Bambu Studio',
-      panelProfTitle:   'Print Profile Settings',
-      panelProfSub:     'Process tab in Bambu Studio',
-      exportBtn:        '↓ Export',
-      exportSaved:      '✓ Saved',
-      compareBtn:       '⇌ Compare',
-      compareClear:     '✕ Clear Compare',
-      compareLocked:    'Locked A:',
-      compareColA:      'A',
-      compareColB:      'B current',
-      compareHdrA:      'A locked',
-      compareHdrB:      'B current',
-      // Profile tabs
-      tabQuality:       'Quality',
-      tabStrength:      'Strength',
-      tabSpeed:         'Speed',
-      tabSupport:       'Support',
-      tabOthers:        'Others',
-      // Filament panel sections
-      secTemps:         'Print temperature',
-      secNozzleTemp:    'Nozzle temperature',
-      secBedTemp:       'Bed temperature',
-      secCooling:       'Part cooling fan',
-      secSpeedLimit:    'Volumetric speed limitation',
-      secSetup:         'Setup',
-      secAdvExtrusion:  'Setting overrides',
-      // PrusaSlicer filament section overrides
-      secTemps_prusaslicer:        'Temperature',
-      secNozzleTemp_prusaslicer:   'Nozzle temperature',
-      secBedTemp_prusaslicer:      'Bed temperature',
-      secCooling_prusaslicer:      'Fan settings',
-      secSpeedLimit_prusaslicer:   'Print speed override',
-      secAdvExtrusion_prusaslicer: 'Filament Overrides',
-      // Panel sub-titles per slicer
-      panelProfSub_prusaslicer:    'Print Settings in PrusaSlicer',
-      panelFilSub_prusaslicer:     'Filament Settings in PrusaSlicer',
-      panelProfSub_orcaslicer:     'Process tab in OrcaSlicer',
-      panelFilSub_orcaslicer:      'Filament settings in OrcaSlicer',
-      // Filament panel rows
-      rowNozzleTemp:    'Nozzle temp',
-      rowBedTemp:       'Bed temp',
-      rowInitLayer:     'Initial layer',
-      rowOtherLayers:   'Other layers',
-      rowCoolingFan:    'Part cooling fan',
-      rowFanMin:        'Fan speed (min)',
-      rowFanOverhang:   'Fan — overhangs',
-      rowSlowLayer:     'Slow below layer time',
-      rowMVS:           'Max volumetric speed',
-      rowBuildPlate:    'Build plate',
-      rowAMS:           'AMS compatible',
-      rowDrying:        'Drying',
-      rowEnclosure:     'Enclosure',
-      rowPA:            'Pressure advance',
-      rowFlow:          'Flow ratio',
-      rowRetractLen:    'Retraction length',
-      rowRetractSpd:    'Retraction speed',
-      // Misc values
-      valYes:           'Yes',
-      valNo:            'No',
-      noSettings:       'No settings recommended for this tab with the current selection.',
-      noSettingsComp:   'No settings to compare for this tab.',
-      advDivider:       'Advanced',
-      // Checklist
-      checklistTitle:   'Before you print',
-      checklistSteps:   'steps',
-      // Troubleshooter
-      troubleTitle:     "What's going wrong?",
-      troubleSub:       'Pick a symptom — get a ranked list of likely causes and exact setting fixes.',
-      troubleHeader:    'Likely causes — most common first',
-      troubleMatNote:   'Select a material in Configure to highlight most relevant causes',
-      troubleMatActive: 'Highlighted causes are most relevant for',
-      // Symptoms (names + descriptions — fallback to JSON values if key missing)
-      sym_stringing_name:        'Stringing / Oozing',
-      sym_stringing_desc:        'Fine hairs or threads between parts',
-      sym_warping_name:          'Warping / Bed Adhesion',
-      sym_warping_desc:          'Corners or edges lifting off the bed',
-      sym_layer_separation_name: 'Layer Separation',
-      sym_layer_separation_desc: 'Layers splitting apart or not bonding',
-      sym_under_extrusion_name:  'Under-extrusion / Gaps',
-      sym_under_extrusion_desc:  'Gaps in walls, weak infill, or missing material',
-      sym_over_extrusion_name:   'Over-extrusion / Blobs',
-      sym_over_extrusion_desc:   'Too much material, blobs, or thick rough walls',
-      sym_elephant_foot_name:    'Elephant Foot',
-      sym_elephant_foot_desc:    'First layer flares out wider than the rest',
-      sym_ringing_name:          'Ringing / Ghosting',
-      sym_ringing_desc:          'Ripple or wave pattern near sharp features',
-      sym_first_layer_name:      'Poor First Layer',
-      sym_first_layer_desc:      'First layer not sticking, uneven, or has gaps',
-      sym_tpu_jam_name:          'Flexible Filament Jam (TPU)',
-      sym_tpu_jam_desc:          'Soft TPU buckling, grinding, or jamming in the extruder',
-      // AMS Purge
-      purgeTitle:       'AMS Purge Volume Calculator',
-      purgeSub:         'Calculate optimal filament flush volumes to prevent color contamination between AMS transitions.',
-      purgeSlots:       'AMS slots',
-      purgeMatNote:     'Select a material in Configure to apply the correct multiplier',
-      purgeUsing:       'Using',
-      purgeMultLabel:   'multiplier',
-      purgeMatLabel:    'Flush volume (mm³) — from row → to column',
-      purgeFromTo:      'From ↓ · To →',
-      purgeLow:         'Low <120',
-      purgeMid:         'Medium 120–220',
-      purgeHigh:        'High 220–320',
-      purgeCrit:        'Critical >320',
-      purgeUnit:        'mm³ per transition',
-      // Print time estimator
-      ptTitle:          'Print Time Estimator',
-      ptSub:            'Rough estimate based on your profile speeds and object dimensions.',
-      ptHeight:         'Height',
-      ptWidth:          'Width',
-      ptDepth:          'Depth',
-      ptWalls:          'Walls',
-      ptInfill:         'Infill',
-      ptLayers:         'layers',
-      ptAt:             'at',
-      ptOuterSpeed:     'outer wall',
-      ptResult:         'Estimated print time',
-      ptDisclaimer:     'Rough estimate only — excludes supports, prime tower, and complex geometry.',
-      // Feedback
-      feedbackTitle:       'Share Feedback',
-      feedbackSub:         'Found a bug or have a feature idea? Let us know — every submission helps improve the tool.',
-      feedbackBugTitle:    'Bug Report',
-      feedbackBugDesc:     'Something isn\'t working as expected',
-      feedbackFeatTitle:   'Feature Request',
-      feedbackFeatDesc:    'Have an idea to improve the tool?',
-      feedbackOtherTitle:  'Other',
-      feedbackOtherDesc:   'General thoughts or questions',
-      // Footer + modal
-      footer:           '3D Print Assistant — your 3D printing companion',
-      aboutLink:        'About',
-      disclaimerNote:   'These are suggestions only, not guarantees.',
-      disclaimerLink:   'Read disclaimer',
-      roadmapLink:      'Roadmap',
-    },
-    da: {
-      // Header / nav
-      logoText:         '3D Print Assistant',
-      logoSub:          'Printprofil Konfigurator',
-      modeSimple:       'Simpel',
-      modeAdvanced:     'Avanceret',
-      reset:            'Nulstil',
-      navConfigure:     'Konfigurer',
-      navTroubleshoot:  'Fejlfinding',
-      navPurge:         'AMS Skylning',
-      navFeedback:      'Feedback',
-      // Filter hints
-      hintRequired:     'påkrævet',
-      hintOptional:     'valgfri',
-      hintMulti:        'vælg flere',
-      // Filter section labels
-      filterPrinter:    'Printer',
-      filterNozzle:     'Dyse',
-      filterMaterial:   'Materiale',
-      filterUseCase:    'Hvad printer du?',
-      filterSurface:    'Overfladekvalitet',
-      filterStrength:   'Styrke',
-      filterSpeed:      'Hastighedsprioritet',
-      filterEnv:        'Omgivelser',
-      filterSupport:    'Understøtning',
-      filterColors:     'Farver / AMS',
-      filterLevel:      'Erfaringsniveau',
-      filterSpecial:    'Særlige krav',
-      // Use cases
-      ucPrototype:      'Prototype',
-      ucFunctional:     'Funktionsdel',
-      ucDecorative:     'Dekorativ',
-      ucMiniature:      'Miniature / detaljer',
-      ucLarge:          'Stor del',
-      // Support types
-      supNone:          'Ingen',
-      supEasy:          'Nem fjernelse',
-      supQuality:       'Kvalitet',
-      // Color modes
-      colSingle:        'Enkelt farve',
-      colMulti24:       'Multifarve 2–4',
-      colMulti5:        'Multifarve 5+',
-      // User levels
-      lvlBeginner:      'Begynder',
-      lvlBeginnerDesc:  'Sikre marginer',
-      lvlInter:         'Mellemniveau',
-      lvlInterDesc:     'Standard',
-      lvlAdvanced:      'Avanceret',
-      lvlAdvancedDesc:  'Præcis justering',
-      // Special requirements
-      spWaterproof:     'Vandtæt',
-      spHighTemp:       'Høj temp (>60°C)',
-      spMetallic:       'Metallisk finish',
-      spMatte:          'Mat overflade',
-      spGlossy:         'Blank / Silke',
-      spUV:             'UV-resistent',
-      // Empty state
-      emptyTitle:       'Vælg dit setup ovenfor',
-      emptySub:         'Vælg printer, dyse og materiale for at generere din optimerede profil.',
-      // Profile panel
-      panelFilTitle:    'Filament indstillinger',
-      panelFilSub:      'Filament fanen i Bambu Studio',
-      panelProfTitle:   'Printprofil indstillinger',
-      panelProfSub:     'Process fanen i Bambu Studio',
-      exportBtn:        '↓ Eksporter',
-      exportSaved:      '✓ Gemt',
-      compareBtn:       '⇌ Sammenlign',
-      compareClear:     '✕ Ryd sammenligning',
-      compareLocked:    'Låst A:',
-      compareColA:      'A',
-      compareColB:      'B aktuel',
-      compareHdrA:      'A låst',
-      compareHdrB:      'B aktuel',
-      // Profile tabs
-      tabQuality:       'Kvalitet',
-      tabStrength:      'Styrke',
-      tabSpeed:         'Hastighed',
-      tabSupport:       'Understøtning',
-      tabOthers:        'Andet',
-      // Filament panel sections
-      secTemps:         'Print temperatur',
-      secNozzleTemp:    'Dysetemperatur',
-      secBedTemp:       'Bordtemperatur',
-      secCooling:       'Blæser (part cooling)',
-      secSpeedLimit:    'Volumetrisk hastighedsgrænse',
-      secSetup:         'Opsætning',
-      secAdvExtrusion:  'Indstillingsændringer',
-      // PrusaSlicer filament section overrides
-      secTemps_prusaslicer:        'Temperatur',
-      secCooling_prusaslicer:      'Blæserindstillinger',
-      secSpeedLimit_prusaslicer:   'Print hastighed',
-      secAdvExtrusion_prusaslicer: 'Filament ændringer',
-      // Panel sub-titles per slicer
-      panelProfSub_prusaslicer:    'Print Settings i PrusaSlicer',
-      panelFilSub_prusaslicer:     'Filament Settings i PrusaSlicer',
-      panelProfSub_orcaslicer:     'Process tab i OrcaSlicer',
-      panelFilSub_orcaslicer:      'Filament settings i OrcaSlicer',
-      // Filament panel rows
-      rowNozzleTemp:    'Dysetemperatur',
-      rowBedTemp:       'Bordtemperatur',
-      rowInitLayer:     'Første lag',
-      rowOtherLayers:   'Øvrige lag',
-      rowCoolingFan:    'Kølingsblæser',
-      rowFanMin:        'Blæser (min)',
-      rowFanOverhang:   'Blæser — overhæng',
-      rowSlowLayer:     'Langsom ved kort lagtid',
-      rowMVS:           'Maks. volumetrisk hastighed',
-      rowBuildPlate:    'Printplade',
-      rowAMS:           'AMS kompatibel',
-      rowDrying:        'Tørring',
-      rowEnclosure:     'Kabinet',
-      rowPA:            'Trykkompensation',
-      rowFlow:          'Flowforhold',
-      rowRetractLen:    'Tilbagetrækningslængde',
-      rowRetractSpd:    'Tilbagetrækningshastighed',
-      // Misc values
-      valYes:           'Ja',
-      valNo:            'Nej',
-      noSettings:       'Ingen indstillinger anbefalet til denne fane med den aktuelle opsætning.',
-      noSettingsComp:   'Ingen indstillinger at sammenligne for denne fane.',
-      advDivider:       'Avanceret',
-      // Checklist
-      checklistTitle:   'Før du printer',
-      checklistSteps:   'trin',
-      // Troubleshooter
-      troubleTitle:     'Hvad går galt?',
-      troubleSub:       'Vælg et symptom — få en rangeret liste over sandsynlige årsager og præcise indstillingsrettelser.',
-      troubleHeader:    'Sandsynlige årsager — mest almindelige først',
-      troubleMatNote:   'Vælg et materiale i Konfigurer for at fremhæve de mest relevante årsager',
-      troubleMatActive: 'Fremhævede årsager er mest relevante for',
-      // Symptoms
-      sym_stringing_name:        'Stringing / Dryp',
-      sym_stringing_desc:        'Fine hår eller tråde mellem dele',
-      sym_warping_name:          'Warping / Pladefæste',
-      sym_warping_desc:          'Hjørner eller kanter løfter sig fra pladen',
-      sym_layer_separation_name: 'Lagadskillelse',
-      sym_layer_separation_desc: 'Lag der splitter eller ikke binder',
-      sym_under_extrusion_name:  'Underekstrudering / Huller',
-      sym_under_extrusion_desc:  'Huller i vægge, svag infill eller manglende materiale',
-      sym_over_extrusion_name:   'Overekstrudering / Klatter',
-      sym_over_extrusion_desc:   'For meget materiale, klatter eller tykke ru vægge',
-      sym_elephant_foot_name:    'Elefantfod',
-      sym_elephant_foot_desc:    'Første lag udvider sig bredere end resten',
-      sym_ringing_name:          'Ringing / Ghosting',
-      sym_ringing_desc:          'Rippel- eller bølgemønster nær skarpe kanter',
-      sym_first_layer_name:      'Dårligt første lag',
-      sym_first_layer_desc:      'Første lag klæber ikke, er ujævnt eller har huller',
-      sym_tpu_jam_name:          'Fleksibelt filament jam (TPU)',
-      sym_tpu_jam_desc:          'Blødt TPU bukker, slider eller sætter sig fast i extruderen',
-      // AMS Purge
-      purgeTitle:       'AMS Skylningsvolumen Beregner',
-      purgeSub:         'Beregn optimale skylningsvolumener for at forhindre farveforurening mellem AMS-skift.',
-      purgeSlots:       'AMS pladser',
-      purgeMatNote:     'Vælg et materiale i Konfigurer for at anvende den korrekte multiplikator',
-      purgeUsing:       'Bruger',
-      purgeMultLabel:   'multiplikator',
-      purgeMatLabel:    'Skylningsvolumen (mm³) — fra række → til kolonne',
-      purgeFromTo:      'Fra ↓ · Til →',
-      purgeLow:         'Lav <120',
-      purgeMid:         'Middel 120–220',
-      purgeHigh:        'Høj 220–320',
-      purgeCrit:        'Kritisk >320',
-      purgeUnit:        'mm³ pr. skift',
-      // Print time estimator
-      ptTitle:          'Printtidsestimator',
-      ptSub:            'Groft estimat baseret på dine profilhastigheder og objektmål.',
-      ptHeight:         'Højde',
-      ptWidth:          'Bredde',
-      ptDepth:          'Dybde',
-      ptWalls:          'Vægge',
-      ptInfill:         'Fyld',
-      ptLayers:         'lag',
-      ptAt:             'ved',
-      ptOuterSpeed:     'ydervæg',
-      ptResult:         'Estimeret printtid',
-      ptDisclaimer:     'Kun groft estimat — ekskluderer understøtninger, prime tower og kompleks geometri.',
-      // Feedback
-      feedbackTitle:       'Del Feedback',
-      feedbackSub:         'Fundet en fejl eller har en idé? Fortæl os det — hvert svar hjælper med at forbedre værktøjet.',
-      feedbackBugTitle:    'Fejlrapport',
-      feedbackBugDesc:     'Noget fungerer ikke som forventet',
-      feedbackFeatTitle:   'Funktionsønske',
-      feedbackFeatDesc:    'Har du en idé til at forbedre værktøjet?',
-      feedbackOtherTitle:  'Andet',
-      feedbackOtherDesc:   'Generelle tanker eller spørgsmål',
-      // Footer + modal
-      footer:           '3D Print Assistant — din 3D-print ledsager',
-      aboutLink:        'Om',
-      disclaimerNote:   'Disse er forslag, ikke garantier.',
-      disclaimerLink:   'Læs ansvarsfraskrivelse',
-      roadmapLink:      'Roadmap',
-    },
-  };
+  // Populated by init() from locales/*.json — do not add strings here
+  let _T = { en: {}, da: {} };
 
   // t(key) — returns current-language string, falls back to EN, then key name
   function t(key) {
@@ -421,13 +35,13 @@ const Engine = (() => {
   const S = (value, why = '') => ({ value, why, mode: 'simple' });
   const A = (value, why = '') => ({ value, why, mode: 'advanced' });
 
-  // ── Init — load all JSON data files ─────────────────────────────────────────
+  // ── Init — load all JSON data files + locale files ──────────────────────────
   async function init() {
-    // Restore persisted language preference
-    try { const stored = localStorage.getItem('3dpa_lang'); if (stored && _T[stored]) _lang = stored; } catch (_) {}
+    // Restore persisted language preference (keys are always 'en'/'da')
+    try { const stored = localStorage.getItem('3dpa_lang'); if (stored && _T[stored] !== undefined) _lang = stored; } catch (_) {}
 
     const base = './data/';
-    const [printersRes, materialsRes, nozzlesRes, envRes, objRes, warnRes, tsRes] =
+    const [printersRes, materialsRes, nozzlesRes, envRes, objRes, warnRes, tsRes, locEnRes, locDaRes] =
       await Promise.all([
         fetch(base + 'printers.json'),
         fetch(base + 'materials.json'),
@@ -436,10 +50,12 @@ const Engine = (() => {
         fetch(base + 'rules/objective_profiles.json'),
         fetch(base + 'rules/warnings.json'),
         fetch(base + 'rules/troubleshooter.json'),
+        fetch('./locales/en.json'),
+        fetch('./locales/da.json'),
       ]);
 
-    const [pd, md, nd, ed, od, wd, td] = await Promise.all(
-      [printersRes, materialsRes, nozzlesRes, envRes, objRes, warnRes, tsRes].map(r => {
+    const [pd, md, nd, ed, od, wd, td, enLocale, daLocale] = await Promise.all(
+      [printersRes, materialsRes, nozzlesRes, envRes, objRes, warnRes, tsRes, locEnRes, locDaRes].map(r => {
         if (!r.ok) throw new Error(`Failed to load ${r.url} (HTTP ${r.status})`);
         return r.json();
       })
@@ -453,6 +69,8 @@ const Engine = (() => {
     _objectives     = od;
     _warnings       = wd;
     _troubleshooter = td;
+    _T.en           = enLocale;
+    _T.da           = daLocale;
   }
 
   // ── Static UI filter arrays (pure UI concerns, not data-driven) ─────────────

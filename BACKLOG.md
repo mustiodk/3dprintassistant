@@ -919,3 +919,46 @@ The tag could be a small badge or icon next to each parameter value, or a subtle
 
 **Raw idea:**
 > Guidance and suggestions should clearly indicate what comes from brands' own guidelines and what comes as community input from experience and try-outs.
+
+---
+
+### #030 — i18n Locale Extraction
+
+**Status:** In Progress
+**Added:** 2026-04-03
+**Scope:** Small
+**Source:** Code review recommendation (Codex, 2026-04-02)
+
+**Description:**
+Move all UI translation strings from the embedded `_T` object in `engine.js` into dedicated `locales/en.json` and `locales/da.json` files. `Engine.init()` fetches them alongside other data files. The `t()`, `setLang()`, and `getLang()` API surface is unchanged. Reduces engine.js by ~400 lines, makes adding a 3rd language a pure data task, and separates UI copy from business logic.
+
+**Implementation Plan:**
+- [x] Create `locales/en.json` with all English translation strings
+- [x] Create `locales/da.json` with all Danish translation strings
+- [x] Update `engine.js`: replace `_T` constant with `let _T = { en: {}, da: {} }` and load locale files in `init()`
+- [x] Verify `t()`, `setLang()`, `getLang()` still work correctly
+- [x] Smoke-test all UI strings render in both languages
+
+**Raw idea:**
+> Extracted from Codex architectural review: move embedded translations out of engine.js into locale files to reduce monolith size and simplify future language additions.
+
+---
+
+### #031 — JSON Schema Validation Script
+
+**Status:** In Progress
+**Added:** 2026-04-03
+**Scope:** Small
+**Source:** Code review recommendation (Codex, 2026-04-02)
+
+**Description:**
+A Node.js script (`scripts/validate-data.js`, no npm dependencies) validates all JSON files under `data/` against their expected schema before a deploy. Catches typos, missing required fields, wrong types, and structural regressions silently caused by data edits. Run manually: `node scripts/validate-data.js`. Designed to be added to a CI step later.
+
+**Implementation Plan:**
+- [x] Create `scripts/validate-data.js` validating: `printers.json`, `materials.json`, `nozzles.json`, `rules/environment.json`, `rules/objective_profiles.json`, `rules/warnings.json`, `rules/troubleshooter.json`
+- [x] Each validator checks: required top-level keys, array lengths > 0, required fields per item, correct data types
+- [x] Script exits with code 0 on success, code 1 on failure with human-readable errors
+- [x] Verify script runs clean against current data files
+
+**Raw idea:**
+> Extracted from Codex architectural review: add a validation script so data edits that break required schema fields are caught before deploy.
