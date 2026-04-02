@@ -4,12 +4,24 @@
       "id": "std_0.4",
       "name": "Standard 0.4 mm",
       "size": 0.4,
-      "hardened": false,
       "material": "stainless_steel",
       "temp_offset": 0,
-      "suitable_for": ["pla", "petg", "tpu", "pva", "pla_silk", "pla_matte"],
-      "not_suitable_for": ["pla_cf", "petg_cf", "abs_cf", "pa_cf"],
-      "notes": "Default nozzle on most Bambu Lab printers. Excellent thermal conductivity. Wears with abrasive filaments."
+      "suitable_for": [
+        "pla",
+        "petg",
+        "tpu",
+        "pva",
+        "pla_silk",
+        "pla_matte"
+      ],
+      "not_suitable_for": [
+        "pla_cf",
+        "petg_cf",
+        "abs_cf",
+        "pa_cf"
+      ],
+      "notes": "Default nozzle on most Bambu Lab printers. Excellent thermal conductivity. Wears with abrasive filaments.",
+      "hardened": false
     },
     {
       "id": "hrd_0.4",
@@ -18,9 +30,20 @@
       "hardened": true,
       "material": "hardened_steel",
       "temp_offset": 7,
-      "suitable_for": ["pla", "petg", "abs", "asa", "tpu", "pla_cf", "petg_cf", "pa_cf", "pla_silk", "pla_matte"],
+      "suitable_for": [
+        "pla",
+        "petg",
+        "abs",
+        "asa",
+        "tpu",
+        "pla_cf",
+        "petg_cf",
+        "pa_cf",
+        "pla_silk",
+        "pla_matte"
+      ],
       "not_suitable_for": [],
-      "notes": "Required for CF/GF filaments. Lower thermal conductivity than brass — +5-10°C temp offset applied automatically."
+      "notes": "Required for CF/GF filaments. Lower thermal conductivity than brass \u2014 +5-10\u00b0C temp offset applied automatically."
     },
     {
       "id": "hrd_0.6",
@@ -29,9 +52,20 @@
       "hardened": true,
       "material": "hardened_steel",
       "temp_offset": 7,
-      "suitable_for": ["pla", "petg", "abs", "asa", "tpu", "pla_cf", "petg_cf", "pa_cf", "pla_silk", "pla_matte"],
+      "suitable_for": [
+        "pla",
+        "petg",
+        "abs",
+        "asa",
+        "tpu",
+        "pla_cf",
+        "petg_cf",
+        "pa_cf",
+        "pla_silk",
+        "pla_matte"
+      ],
       "not_suitable_for": [],
-      "notes": "Recommended for CF/GF filaments — larger opening reduces clogging risk from fibers. Significantly faster print speeds possible."
+      "notes": "Recommended for CF/GF filaments \u2014 larger opening reduces clogging risk from fibers. Significantly faster print speeds possible."
     },
     {
       "id": "prc_0.2",
@@ -40,9 +74,22 @@
       "hardened": false,
       "material": "stainless_steel",
       "temp_offset": 0,
-      "suitable_for": ["pla", "petg", "pla_silk", "pla_matte", "pva"],
-      "not_suitable_for": ["pla_cf", "petg_cf", "pa_cf", "abs_cf", "pla_wood", "pla_glow"],
-      "notes": "Ultra-fine detail for miniatures and precision parts. NEVER use with CF/GF or composite filaments — immediate clogging."
+      "suitable_for": [
+        "pla",
+        "petg",
+        "pla_silk",
+        "pla_matte",
+        "pva"
+      ],
+      "not_suitable_for": [
+        "pla_cf",
+        "petg_cf",
+        "pa_cf",
+        "abs_cf",
+        "pla_wood",
+        "pla_glow"
+      ],
+      "notes": "Ultra-fine detail for miniatures and precision parts. NEVER use with CF/GF or composite filaments \u2014 immediate clogging."
     }
   ]
 }

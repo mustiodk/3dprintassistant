@@ -1,281 +1,569 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Backlog — 3D Print Assistant</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"/>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:           #0a0a0b;
-      --surface:      #111114;
-      --surface2:     #1a1a1f;
-      --border:       rgba(255,255,255,0.07);
-      --border2:      rgba(255,255,255,0.12);
-      --text:         #eeeef3;
-      --text2:        #888898;
-      --text3:        #b8b8cc;
-      --green:        #00e5a0;
-      --green-dim:    rgba(0,229,160,0.09);
-      --green-border: rgba(0,229,160,0.28);
-      --orange:       #ff6b35;
-      --orange-dim:   rgba(255,107,53,0.09);
-      --orange-border:rgba(255,107,53,0.3);
-      --purple:       #7b6ef6;
-      --r:            10px;
-    }
-    html[data-theme="light"] {
-      --bg:           #f2f2f7;
-      --surface:      #ffffff;
-      --surface2:     #eaeaf2;
-      --border:       rgba(0,0,0,0.07);
-      --border2:      rgba(0,0,0,0.13);
-      --text:         #0f0f1a;
-      --text2:        #606075;
-      --text3:        #3e3e55;
-      --green:        #009a6a;
-      --green-dim:    rgba(0,154,106,0.09);
-      --green-border: rgba(0,154,106,0.28);
-      --orange:       #d04a14;
-      --orange-dim:   rgba(208,74,20,0.09);
-      --orange-border:rgba(208,74,20,0.28);
-      --purple:       #5648d4;
+      --bg:        #0d0d14;
+      --surface:   #15151f;
+      --surface2:  #1d1d2b;
+      --surface3:  #242434;
+      --border:    #2a2a3e;
+      --border2:   #353550;
+      --text:      #e0e0f0;
+      --text2:     #9090b8;
+      --text3:     #5a5a80;
+      --accent:    #7c6ee6;
+      --green:     #4caf7d;
+      --amber:     #f0b429;
+      --blue:      #4a9eff;
+      --radius:    8px;
+      --radius-lg: 12px;
     }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Syne', system-ui, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
       min-height: 100vh;
-      font-size: 15px;
-      line-height: 1.6;
+      padding-bottom: 60px;
     }
 
-    /* ── Header ── */
+    /* ── Header ─────────────────────────────────────────────────────────────── */
     header {
       background: var(--surface);
-      border-bottom: 1px solid var(--border2);
-      padding: 0 32px;
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      height: 58px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      gap: 16px;
     }
-    .logo {
-      display: flex; align-items: center; gap: 11px;
-      text-decoration: none; color: inherit;
-    }
-    .logo-mark {
-      width: 32px; height: 32px;
-      background: var(--green);
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 12px; color: #0a0a0b;
-    }
-    .logo-text { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
-    .logo-sub  { font-size: 11px; color: var(--text2); font-family: 'DM Mono', monospace; }
-    .theme-btn {
-      background: none; border: 1px solid var(--border2);
-      color: var(--text2); border-radius: 6px;
-      padding: 5px 9px; cursor: pointer; font-size: 14px;
-    }
-    .theme-btn:hover { color: var(--text); }
+    header a { color: var(--text2); text-decoration: none; font-size: 13px; }
+    header a:hover { color: var(--text); }
+    .header-title { font-size: 17px; font-weight: 600; flex: 1; }
+    .header-meta  { font-size: 12px; color: var(--text3); }
 
-    /* ── Layout ── */
-    .container {
-      max-width: 820px;
-      margin: 0 auto;
-      padding: 40px 24px 80px;
-    }
+    /* ── Layout ─────────────────────────────────────────────────────────────── */
+    main { max-width: 960px; margin: 0 auto; padding: 28px 24px; }
 
-    /* ── Markdown styles ── */
-    #content h1 {
-      font-size: 26px; font-weight: 800; letter-spacing: -0.5px;
-      margin-bottom: 6px;
+    /* ── Dashboard ──────────────────────────────────────────────────────────── */
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
     }
-    #content > p:first-of-type {
-      color: var(--text2); font-size: 13px;
-      margin-bottom: 32px;
-      font-family: 'DM Mono', monospace;
-    }
-    #content h2 {
-      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--text2);
-      margin: 40px 0 16px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border2);
-    }
-    #content hr { display: none; }
-
-    /* ── Backlog item cards ── */
-    #content h3 {
-      font-size: 15px; font-weight: 700;
-      margin: 0;
-      color: var(--text);
-    }
-
-    /* Each item is the block between two <hr>s — we simulate cards via JS */
-    .backlog-card {
+    .stat {
       background: var(--surface);
-      border: 1px solid var(--border2);
-      border-radius: var(--r);
-      padding: 20px 22px;
-      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
     }
-    .backlog-card h3 { margin-bottom: 12px; }
-    .backlog-card p  { font-size: 13px; color: var(--text3); margin-bottom: 10px; line-height: 1.6; }
-    .backlog-card ul { padding-left: 18px; font-size: 13px; color: var(--text3); margin-bottom: 10px; }
-    .backlog-card li { margin-bottom: 4px; }
-    .backlog-card strong { color: var(--text); font-weight: 600; }
-    .backlog-card blockquote {
-      border-left: 3px solid var(--border2);
-      padding-left: 12px;
+    .stat-value { font-size: 24px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+    .stat-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; }
+    .stat.s-planned .stat-value { color: var(--accent); }
+    .stat.s-high    .stat-value { color: var(--green); }
+    .stat.s-gems    .stat-value { color: var(--amber); }
+
+    /* ── Category legend ────────────────────────────────────────────────────── */
+    .cat-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 22px;
+      padding: 12px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .cat-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
       color: var(--text2);
-      font-family: 'DM Mono', monospace;
-      font-size: 12px;
-      margin: 8px 0;
     }
-    .backlog-card code {
-      font-family: 'DM Mono', monospace;
+    .cat-dot-circle { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── Filters ────────────────────────────────────────────────────────────── */
+    .filter-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 12px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .filter-group { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .filter-label {
+      font-size: 10px; color: var(--text3);
+      text-transform: uppercase; letter-spacing: .07em;
+      margin-right: 2px; white-space: nowrap;
+    }
+    .pill {
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--text2);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .12s;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .pill:hover { border-color: var(--accent); color: var(--text); }
+    .pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .filter-divider { width: 1px; height: 18px; background: var(--border2); flex-shrink: 0; }
+    .filter-search {
+      flex: 1; min-width: 140px;
       background: var(--surface2);
-      padding: 1px 5px;
-      border-radius: 4px;
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      color: var(--text);
+      padding: 3px 12px;
       font-size: 12px;
+      outline: none;
     }
+    .filter-search::placeholder { color: var(--text3); }
+    .filter-search:focus { border-color: var(--accent); }
+    .filter-reset {
+      font-size: 11px; color: var(--text3);
+      cursor: pointer; padding: 3px 8px; border-radius: 4px;
+    }
+    .filter-reset:hover { color: var(--text); background: var(--surface2); }
 
-    /* ── Status badges ── */
+    /* ── Items ──────────────────────────────────────────────────────────────── */
+    #items-count { font-size: 11px; color: var(--text3); margin-bottom: 8px; }
+    .items-list  { display: flex; flex-direction: column; gap: 5px; }
+
+    /* ── Item card ──────────────────────────────────────────────────────────── */
+    .item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color .12s;
+    }
+    .item:hover { border-color: var(--border2); }
+
+    /* Gem: high value + small scope */
+    .item.gem { border-color: #3a2e08; background: linear-gradient(135deg, #1a1710 0%, var(--surface) 70%); }
+    .item.gem:hover { border-color: #8a6e18; }
+    .gem-star { color: var(--amber); font-size: 11px; flex-shrink: 0; }
+
+    .item.open { border-color: var(--border2); }
+    .item.dragging { opacity: .35; }
+    .item.drag-over { border-color: var(--accent) !important; }
+
+    .item-header {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 13px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .drag-handle {
+      color: var(--text3); cursor: grab; font-size: 14px;
+      flex-shrink: 0; line-height: 1; padding: 2px 0;
+    }
+    .drag-handle:active { cursor: grabbing; }
+    .item-id    { font-size: 11px; color: var(--text3); min-width: 28px; flex-shrink: 0; }
+    .item-title { flex: 1; font-size: 13px; font-weight: 500; }
+
+    .badges { display: flex; gap: 4px; flex-shrink: 0; align-items: center; }
     .badge {
-      display: inline-block;
-      font-size: 10px; font-weight: 700;
-      letter-spacing: 0.08em; text-transform: uppercase;
-      padding: 2px 8px; border-radius: 4px;
-      font-family: 'DM Mono', monospace;
+      font-size: 10px; padding: 2px 7px; border-radius: 10px;
+      font-weight: 500; letter-spacing: .02em; white-space: nowrap;
     }
-    .badge-idea     { background: var(--surface2); color: var(--text2); border: 1px solid var(--border2); }
-    .badge-planned  { background: var(--green-dim); color: var(--green); border: 1px solid var(--green-border); }
-    .badge-progress { background: var(--orange-dim); color: var(--orange); border: 1px solid var(--orange-border); }
-    .badge-done     { background: rgba(123,110,246,0.1); color: var(--purple); border: 1px solid rgba(123,110,246,0.3); }
+    .badge-high   { background:#162b1f; color:#6dcc9a; border:1px solid #254535; }
+    .badge-medium { background:#141e33; color:#6aabff; border:1px solid #233055; }
+    .badge-low    { background:#1c1c2a; color:var(--text3); border:1px solid var(--border2); }
 
-    .card-meta {
-      display: flex; align-items: center; gap: 8px;
-      margin-bottom: 12px; flex-wrap: wrap;
+    .badge-small  { background:#162b1f; color:#6dcc9a; border:1px solid #254535; }
+    .badge-medium-scope { background:#2a1e0e; color:#e0a040; border:1px solid #4a3318; }
+    .badge-large  { background:#2a1212; color:#e08080; border:1px solid #4a2020; }
+
+    .badge-planned    { background:#1e1840; color:#a090ff; border:1px solid #302860; }
+    .badge-idea       { background:#1c1c2a; color:var(--text2); border:1px solid var(--border2); }
+    .badge-inprogress { background:#142035; color:#60b0ff; border:1px solid #203550; }
+
+    .cat-pip { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+    .chevron { color: var(--text3); font-size: 10px; transition: transform .18s; flex-shrink: 0; }
+    .item.open .chevron { transform: rotate(90deg); }
+
+    /* ── Item body ──────────────────────────────────────────────────────────── */
+    .item-body {
+      display: none;
+      padding: 0 13px 13px 52px;
+      border-top: 1px solid var(--border);
     }
-    .scope-tag {
-      font-size: 10px; font-family: 'DM Mono', monospace;
-      color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em;
+    .item.open .item-body { display: block; }
+    .item-desc {
+      color: var(--text2); font-size: 13px;
+      margin: 10px 0 10px; line-height: 1.6;
+    }
+    .impl-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+    .impl-list li {
+      font-size: 12px; color: var(--text3);
+      display: flex; gap: 8px; align-items: flex-start;
+    }
+    .impl-list li::before {
+      content: '·'; color: var(--accent); font-size: 16px;
+      line-height: 1.1; flex-shrink: 0;
     }
 
-    /* ── Loading / error ── */
-    .loading { color: var(--text2); font-family: 'DM Mono', monospace; font-size: 13px; padding: 40px 0; }
+    /* ── Empty state ────────────────────────────────────────────────────────── */
+    .empty-state {
+      text-align: center; padding: 48px;
+      color: var(--text3); font-size: 13px; line-height: 2;
+    }
 
-    @media (max-width: 600px) {
-      header { padding: 0 16px; }
-      .logo-sub { display: none; }
-      .container { padding: 24px 16px 60px; }
+    /* ── Archive ────────────────────────────────────────────────────────────── */
+    .section-heading {
+      font-size: 11px; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--text3);
+      margin: 32px 0 12px;
+    }
+    .archive-toggle {
+      font-size: 12px; color: var(--text3); cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-bottom: 10px; user-select: none;
+    }
+    .archive-toggle:hover { color: var(--text2); }
+    .archive-list { display: flex; flex-direction: column; gap: 4px; }
+    .archive-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 13px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 13px;
+    }
+    .archive-id    { font-size: 11px; color: var(--text3); min-width: 26px; }
+    .archive-title { flex: 1; color: var(--text2); }
+    .archive-date  { font-size: 11px; color: var(--text3); white-space: nowrap; }
+
+    /* ── Responsive ─────────────────────────────────────────────────────────── */
+    @media (max-width: 700px) {
+      header { padding: 12px 16px; }
+      main   { padding: 16px 12px; }
+      .dashboard { grid-template-columns: repeat(3, 1fr); }
+      .badge-medium-scope, .badge-large, .badge-small { display: none; }
+      .item-body { padding-left: 13px; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <a class="logo" href="https://3dprintassistant.com">
-      <div class="logo-mark">3D</div>
-      <div>
-        <div class="logo-text">3D Print Assistant</div>
-        <div class="logo-sub">Feature Backlog</div>
-      </div>
-    </a>
-    <button class="theme-btn" id="themeBtn">☀</button>
-  </header>
 
-  <div class="container">
-    <div id="content"><p class="loading">Loading backlog…</p></div>
+<header>
+  <a href="/">← App</a>
+  <div class="header-title">3D Print Assistant — Backlog</div>
+  <div class="header-meta">Updated <span id="lastUpdated">—</span></div>
+</header>
+
+<main>
+
+  <div class="dashboard" id="dashboard"></div>
+  <div class="cat-legend" id="catLegend"></div>
+
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">Status</span>
+      <span class="pill active" data-filter="status" data-val="all">All</span>
+      <span class="pill" data-filter="status" data-val="planned">Planned</span>
+      <span class="pill" data-filter="status" data-val="idea">Idea</span>
+    </div>
+    <div class="filter-divider"></div>
+    <div class="filter-group">
+      <span class="filter-label">Value</span>
+      <span class="pill active" data-filter="value" data-val="all">All</span>
+      <span class="pill" data-filter="value" data-val="high">High</span>
+      <span class="pill" data-filter="value" data-val="medium">Medium</span>
+      <span class="pill" data-filter="value" data-val="low">Low</span>
+    </div>
+    <div class="filter-divider"></div>
+    <div class="filter-group">
+      <span class="filter-label">Scope</span>
+      <span class="pill active" data-filter="scope" data-val="all">All</span>
+      <span class="pill" data-filter="scope" data-val="small">Small</span>
+      <span class="pill" data-filter="scope" data-val="medium">Medium</span>
+      <span class="pill" data-filter="scope" data-val="large">Large</span>
+    </div>
+    <div class="filter-divider"></div>
+    <div class="filter-group" id="catFilters">
+      <span class="filter-label">Category</span>
+      <span class="pill active" data-filter="category" data-val="all">All</span>
+    </div>
+    <input class="filter-search" id="search" placeholder="Search…" type="text">
+    <span class="filter-reset" id="resetFilters">↺ Reset</span>
   </div>
 
-  <script>
-    // ── Theme toggle ──
-    const root = document.documentElement;
-    const btn  = document.getElementById('themeBtn');
-    try {
-      const saved = localStorage.getItem('3dpa_theme');
-      if (saved) { root.dataset.theme = saved; btn.textContent = saved === 'dark' ? '☀' : '☾'; }
-    } catch (_) {}
-    btn.addEventListener('click', () => {
-      const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
-      root.dataset.theme = next;
-      btn.textContent = next === 'dark' ? '☀' : '☾';
-      try { localStorage.setItem('3dpa_theme', next); } catch (_) {}
+  <div id="items-count"></div>
+  <div class="items-list" id="itemsList"></div>
+
+  <div class="section-heading">Shipped</div>
+  <div class="archive-toggle" id="archiveToggle">▶ Show shipped features</div>
+  <div class="archive-list" id="archiveList" style="display:none"></div>
+
+</main>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let data      = null;
+let order     = [];
+let filters   = { status: 'all', value: 'all', scope: 'all', category: 'all' };
+let searchQ   = '';
+let dragSrcId = null;
+const LS_KEY  = '3dpa_backlog_order';
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+fetch('./backlog.json')
+  .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+  .then(json => { data = json; initOrder(); renderAll(); })
+  .catch(err => {
+    document.querySelector('main').innerHTML =
+      `<div class="empty-state">⚠ Could not load backlog.json<br><small>${err.message}</small></div>`;
+  });
+
+// ── Order ─────────────────────────────────────────────────────────────────────
+function initOrder() {
+  const defaultOrder = data.items.map(i => i.id);
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_KEY));
+    if (Array.isArray(saved) && saved.length === defaultOrder.length
+        && defaultOrder.every(id => saved.includes(id))) {
+      order = saved; return;
+    }
+  } catch (_) {}
+  order = defaultOrder;
+}
+
+function saveOrder() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(order)); } catch (_) {}
+}
+
+function orderedItems() {
+  const map = Object.fromEntries(data.items.map(i => [i.id, i]));
+  return order.map(id => map[id]).filter(Boolean);
+}
+
+// ── Render all ────────────────────────────────────────────────────────────────
+function renderAll() {
+  document.getElementById('lastUpdated').textContent = data.meta.lastUpdated;
+  renderDashboard();
+  renderLegend();
+  renderCatPills();
+  renderItems();
+  renderArchive();
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const items   = data.items;
+  const planned = items.filter(i => i.status === 'planned').length;
+  const ideas   = items.filter(i => i.status === 'idea').length;
+  const high    = items.filter(i => i.value === 'high').length;
+  const gems    = items.filter(i => i.value === 'high' && i.scope === 'small').length;
+  document.getElementById('dashboard').innerHTML = [
+    ['Total', items.length, ''],
+    ['Planned', planned, 's-planned'],
+    ['Ideas', ideas, ''],
+    ['High Value', high, 's-high'],
+    ['Gems ★', gems, 's-gems'],
+    ['Shipped', data.archived.length, ''],
+  ].map(([label, val, cls]) =>
+    `<div class="stat ${cls}"><div class="stat-value">${val}</div><div class="stat-label">${label}</div></div>`
+  ).join('');
+}
+
+// ── Legend ────────────────────────────────────────────────────────────────────
+function renderLegend() {
+  document.getElementById('catLegend').innerHTML = Object.entries(data.categories)
+    .map(([, c]) =>
+      `<span class="cat-dot"><span class="cat-dot-circle" style="background:${c.color}"></span>${c.label} — ${c.desc}</span>`
+    ).join('');
+}
+
+// ── Category filter pills ─────────────────────────────────────────────────────
+function renderCatPills() {
+  const wrap = document.getElementById('catFilters');
+  Object.entries(data.categories).forEach(([key, c]) => {
+    const pill = Object.assign(document.createElement('span'), { className: 'pill' });
+    pill.dataset.filter = 'category';
+    pill.dataset.val    = key;
+    pill.innerHTML = `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${c.color};margin-right:4px;vertical-align:middle"></span>${c.label}`;
+    wrap.appendChild(pill);
+  });
+  bindPills();
+}
+
+// ── Filter binding ────────────────────────────────────────────────────────────
+function bindPills() {
+  document.querySelectorAll('.pill[data-filter]').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const f = pill.dataset.filter, v = pill.dataset.val;
+      filters[f] = v;
+      document.querySelectorAll(`.pill[data-filter="${f}"]`).forEach(p =>
+        p.classList.toggle('active', p.dataset.val === v)
+      );
+      renderItems();
     });
+  });
 
-    // ── Fetch and render BACKLOG.md ──
-    fetch('BACKLOG.md')
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
-      .then(md => {
-        // Split on HR (---) to get individual item blocks
-        const rawHtml = marked.parse(md);
-        const el = document.getElementById('content');
-        el.innerHTML = rawHtml;
+  document.getElementById('search').addEventListener('input', e => {
+    searchQ = e.target.value.toLowerCase().trim();
+    renderItems();
+  });
 
-        // Post-process: wrap each h3 block into a card
-        wrapItemsInCards(el);
+  document.getElementById('resetFilters').addEventListener('click', () => {
+    filters = { status: 'all', value: 'all', scope: 'all', category: 'all' };
+    searchQ = '';
+    document.getElementById('search').value = '';
+    document.querySelectorAll('.pill[data-filter]').forEach(p =>
+      p.classList.toggle('active', p.dataset.val === 'all')
+    );
+    renderItems();
+  });
+}
 
-        // Post-process: turn "Status: X" strong tags into badges
-        applyBadges(el);
-      })
-      .catch(err => {
-        document.getElementById('content').innerHTML =
-          `<p class="loading">Failed to load BACKLOG.md (${err.message}). Make sure you're serving the site locally or accessing it via Cloudflare Pages.</p>`;
-      });
+// ── Items render ──────────────────────────────────────────────────────────────
+function matchesFilters(item) {
+  if (filters.status   !== 'all' && item.status   !== filters.status)   return false;
+  if (filters.value    !== 'all' && item.value     !== filters.value)    return false;
+  if (filters.scope    !== 'all' && item.scope     !== filters.scope)    return false;
+  if (filters.category !== 'all' && item.category  !== filters.category) return false;
+  if (searchQ) {
+    const hay = [item.title, item.description, ...(item.implementation || [])].join(' ').toLowerCase();
+    if (!hay.includes(searchQ)) return false;
+  }
+  return true;
+}
 
-    function wrapItemsInCards(container) {
-      const children = Array.from(container.children);
-      let cardEl = null;
+function renderItems() {
+  const visible = orderedItems().filter(matchesFilters);
+  const list    = document.getElementById('itemsList');
+  const count   = document.getElementById('items-count');
+  count.textContent = `Showing ${visible.length} of ${data.items.length} items`;
 
-      children.forEach(child => {
-        if (child.tagName === 'H3') {
-          cardEl = document.createElement('div');
-          cardEl.className = 'backlog-card';
-          child.parentNode.insertBefore(cardEl, child);
-          cardEl.appendChild(child);
-        } else if (child.tagName === 'HR') {
-          cardEl = null;
-          child.remove();
-        } else if (cardEl) {
-          cardEl.appendChild(child);
-        }
-      });
-    }
+  if (!visible.length) {
+    list.innerHTML = '<div class="empty-state">No items match the current filters.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  visible.forEach(item => list.appendChild(buildCard(item)));
+  bindDragDrop();
+}
 
-    function applyBadges(container) {
-      container.querySelectorAll('.backlog-card p').forEach(p => {
-        p.innerHTML = p.innerHTML
-          .replace(/\*\*Status:\*\*\s*(Idea)/g,        '<span class="badge badge-idea">Idea</span>')
-          .replace(/\*\*Status:\*\*\s*(Planned)/g,     '<span class="badge badge-planned">Planned</span>')
-          .replace(/\*\*Status:\*\*\s*(In Progress)/g, '<span class="badge badge-progress">In Progress</span>')
-          .replace(/\*\*Status:\*\*\s*(Done)/g,        '<span class="badge badge-done">Done</span>');
-      });
+// ── Card ──────────────────────────────────────────────────────────────────────
+function buildCard(item) {
+  const cat   = data.categories[item.category] || {};
+  const isGem = item.value === 'high' && item.scope === 'small';
+  const el    = document.createElement('div');
+  el.className   = `item${isGem ? ' gem' : ''}`;
+  el.dataset.id  = item.id;
+  el.draggable   = true;
 
-      // Also move meta info (Status, Scope) into a card-meta div
-      container.querySelectorAll('.backlog-card').forEach(card => {
-        const paras = Array.from(card.querySelectorAll('p'));
-        const metaPara = paras.find(p => p.innerHTML.includes('badge') || p.textContent.includes('Scope:'));
-        if (metaPara) {
-          metaPara.innerHTML = metaPara.innerHTML
-            .replace(/\*\*Scope:\*\*\s*(\w+)/g, '<span class="scope-tag">$1</span>')
-            .replace(/\*\*Added:\*\*[^\n<]*/g, '')
-            .replace(/\*\*Source:\*\*[^\n<]*/g, '')
-            .replace(/<br\s*\/?>/g, '');
-          metaPara.className = 'card-meta';
-        }
-      });
-    }
-  </script>
+  const scopeCls  = item.scope === 'medium' ? 'badge-medium-scope' : `badge-${item.scope}`;
+  const statusCls = item.status === 'in-progress' ? 'badge-inprogress' : `badge-${item.status}`;
+  const statusTxt = { planned: 'Planned', idea: 'Idea', 'in-progress': 'In Progress' }[item.status] || item.status;
+  const implHtml  = (item.implementation || []).map(s => `<li>${esc(s)}</li>`).join('');
+
+  el.innerHTML = `
+    <div class="item-header">
+      <span class="drag-handle" title="Drag to reprioritize">⠿</span>
+      ${isGem ? '<span class="gem-star">★</span>' : ''}
+      <span class="item-id">#${item.id}</span>
+      <span class="item-title">${esc(item.title)}</span>
+      <div class="badges">
+        <span class="cat-pip" style="background:${cat.color||'#888'}" title="${cat.label||''}"></span>
+        <span class="badge badge-${item.value}">${cap(item.value)}</span>
+        <span class="badge ${scopeCls}">${cap(item.scope)}</span>
+        <span class="badge ${statusCls}">${statusTxt}</span>
+      </div>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="item-body">
+      <div class="item-desc">${esc(item.description)}</div>
+      ${implHtml ? `<ul class="impl-list">${implHtml}</ul>` : ''}
+    </div>`;
+
+  el.querySelector('.item-header').addEventListener('click', e => {
+    if (e.target.classList.contains('drag-handle')) return;
+    el.classList.toggle('open');
+  });
+  return el;
+}
+
+// ── Drag-and-drop ─────────────────────────────────────────────────────────────
+function bindDragDrop() {
+  document.querySelectorAll('.item[data-id]').forEach(card => {
+    card.addEventListener('dragstart', e => {
+      dragSrcId = +card.dataset.id;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      document.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+    });
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      document.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+      card.classList.add('drag-over');
+    });
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      const tgtId = +card.dataset.id;
+      if (!dragSrcId || dragSrcId === tgtId) return;
+      const si = order.indexOf(dragSrcId), ti = order.indexOf(tgtId);
+      if (si < 0 || ti < 0) return;
+      order.splice(si, 1);
+      order.splice(ti, 0, dragSrcId);
+      saveOrder();
+      renderItems();
+    });
+  });
+}
+
+// ── Archive ───────────────────────────────────────────────────────────────────
+function renderArchive() {
+  const list = document.getElementById('archiveList');
+  list.innerHTML = [...data.archived]
+    .sort((a, b) => b.shipped.localeCompare(a.shipped))
+    .map(item => {
+      const cat = data.categories[item.category] || {};
+      return `<div class="archive-item">
+        <span class="cat-pip" style="background:${cat.color||'#888'}" title="${cat.label||''}"></span>
+        <span class="archive-id">#${item.id}</span>
+        <span class="archive-title">${esc(item.title)}</span>
+        <span class="archive-date">${item.shipped}</span>
+      </div>`;
+    }).join('');
+
+  let open = false;
+  document.getElementById('archiveToggle').addEventListener('click', () => {
+    open = !open;
+    list.style.display = open ? 'flex' : 'none';
+    if (open) { list.style.flexDirection = 'column'; list.style.gap = '4px'; }
+    document.getElementById('archiveToggle').textContent = open ? '▼ Hide shipped features' : '▶ Show shipped features';
+  });
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : ''; }
+</script>
 </body>
 </html>

@@ -1,5 +1,7 @@
 # 3D Print Assistant — Feature Backlog
 
+> **Interactive dashboard:** Open [`backlog.html`](backlog.html) for the full backlog with filters, priority reordering, and gem highlighting.
+
 ## Status legend
 - **Idea** — captured, not yet assessed
 - **Planned** — approved, implementation ready

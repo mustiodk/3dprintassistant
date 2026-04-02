@@ -1,0 +1,490 @@
+{
+  "meta": {
+    "lastUpdated": "2026-04-03",
+    "project": "3D Print Assistant"
+  },
+  "categories": {
+    "ux":           { "label": "UX",           "icon": "🖥",  "color": "#4a9eff", "desc": "User interface & experience" },
+    "content":      { "label": "Content",      "icon": "📦",  "color": "#4caf7d", "desc": "More printers, materials & data" },
+    "export":       { "label": "Export",       "icon": "📤",  "color": "#9c6ee6", "desc": "Sharing & exporting" },
+    "community":    { "label": "Community",    "icon": "👥",  "color": "#e0609a", "desc": "Social & community features" },
+    "architecture": { "label": "Architecture", "icon": "⚙️",  "color": "#f09440", "desc": "Engine internals & code structure" },
+    "tooling":      { "label": "Tooling",      "icon": "🔧",  "color": "#888899", "desc": "Dev tools, CI & ops" }
+  },
+  "items": [
+    {
+      "id": 26,
+      "title": "Smart Simple/Advanced Configurator Mode",
+      "status": "planned",
+      "scope": "medium",
+      "value": "high",
+      "category": "ux",
+      "priority": 1,
+      "added": "2026-04-01",
+      "description": "Extend the Simple/Advanced toggle to control configurator input — not just output. Simple mode shows fewer filters with sensible defaults pre-applied; Advanced shows all 12 filters unchanged.",
+      "implementation": [
+        "Audit resolveProfile() to verify defaults don't cause unexpected output",
+        "engine.js — add simpleVisible flag + SIMPLE_DEFAULTS constant to filter definitions",
+        "app.js — update buildFilters() to skip hidden filters; setMode() to apply/clear defaults"
+      ]
+    },
+    {
+      "id": 1,
+      "title": "AMS Purge Volume Calculator",
+      "status": "planned",
+      "scope": "medium",
+      "value": "high",
+      "category": "ux",
+      "priority": 2,
+      "added": "2026-04-01",
+      "description": "Restore the previously-shipped purge calculator. Users select active AMS slots (2–4), assign brightness levels, and get a flush volume matrix per source→target transition adjusted by material multiplier.",
+      "implementation": [
+        "engine.js — restore purge calculation logic",
+        "app.js — restore purgeState, renderPurgeCalculator(), nav listener, setView('purge')",
+        "index.html — restore #navPurge button and #viewPurge container",
+        "style.css — restore .purge-* styles",
+        "locales/en.json + da.json — purge strings already present, verify they render"
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Copy Individual Setting Value",
+      "status": "idea",
+      "scope": "small",
+      "value": "high",
+      "category": "ux",
+      "priority": 3,
+      "added": "2026-04-01",
+      "description": "Click a value in the results panel to copy it to clipboard with a brief 'Copied!' flash. Eliminates the most frequent manual step users take when transferring values to their slicer.",
+      "implementation": [
+        "app.js — wrap param value in <span class=\"copy-value\">; click → clipboard.writeText(); toggle .copied for ~1.5s",
+        "style.css — pointer cursor, hover highlight, tooltip animation"
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Shareable Profile URL",
+      "status": "idea",
+      "scope": "small",
+      "value": "high",
+      "category": "export",
+      "priority": 4,
+      "added": "2026-04-01",
+      "description": "Encode active filter selections as URL query params so a profile can be shared via link. On page load, params pre-populate all selectors before running the engine.",
+      "implementation": [
+        "app.js — read URLSearchParams on DOMContentLoaded, pre-populate appState",
+        "app.js — call history.replaceState() with updated query params on each state change"
+      ]
+    },
+    {
+      "id": 17,
+      "title": "Profile Export to Bambu Studio .json",
+      "status": "idea",
+      "scope": "large",
+      "value": "high",
+      "category": "export",
+      "priority": 5,
+      "added": "2026-04-01",
+      "description": "Generate a valid Bambu Studio process profile .json that users can import directly — eliminating the entire manual transcription step.",
+      "implementation": [
+        "engine.js — exportToBambuStudio(profile) mapping internal params to Bambu Studio field names",
+        "data/bambu-field-map.json — param ID → Bambu Studio key + value transformations",
+        "app.js — 'Export for Bambu Studio' button triggering file download"
+      ]
+    },
+    {
+      "id": 16,
+      "title": "Troubleshooter Expansion",
+      "status": "idea",
+      "scope": "large",
+      "value": "high",
+      "category": "content",
+      "priority": 6,
+      "added": "2026-04-01",
+      "description": "Expand from 8 to 20+ symptoms: nozzle clog, layer shifting, z-banding, wet filament, poor overhangs, bridging failure. Each with 3–5 ranked causes, diagnostic steps, and setting recommendations.",
+      "implementation": [
+        "data/troubleshooter.json — add symptom entries with ranked causes",
+        "engine.js — extend cause ranking by active printer/material context"
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Orca Slicer Layout Support",
+      "status": "idea",
+      "scope": "medium",
+      "value": "high",
+      "category": "ux",
+      "priority": 7,
+      "added": "2026-04-01",
+      "description": "Add a slicer selector that switches which tab structure and parameter names are shown. Orca Slicer users see output matching their exact UI. Underlying values unchanged.",
+      "implementation": [
+        "engine.js — add ORCA_PROFILE_TABS; add slicer field to appState",
+        "app.js — slicer toggle in filter bar; re-render on change"
+      ]
+    },
+    {
+      "id": 14,
+      "title": "Mobile Layout Improvements",
+      "status": "idea",
+      "scope": "medium",
+      "value": "high",
+      "category": "ux",
+      "priority": 8,
+      "added": "2026-04-01",
+      "description": "Users stand at their printer with a phone. Filter groups collapse by default, chip rows scroll horizontally, results use a single-column layout. No engine changes needed.",
+      "implementation": [
+        "style.css — @media (max-width: 600px): collapsible groups, overflow-x: auto chips, single-column results",
+        "app.js — toggle .collapsed on filter headers; default collapsed on mobile"
+      ]
+    },
+    {
+      "id": 10,
+      "title": "More Printer Support",
+      "status": "idea",
+      "scope": "medium",
+      "value": "high",
+      "category": "content",
+      "priority": 9,
+      "added": "2026-04-01",
+      "description": "Add Bambu Lab A1 Combo, Prusa MK4, Prusa XL, Voron 2.4, Creality K1 Max. Each requires printer-specific rule coverage for warnings and speed/temp limits.",
+      "implementation": [
+        "data/printers.json — add entries with full printer fields",
+        "engine.js — audit warning rules for Bambu-specific assumptions; add overrides for Prusa/Voron"
+      ]
+    },
+    {
+      "id": 11,
+      "title": "More Material Support",
+      "status": "idea",
+      "scope": "medium",
+      "value": "high",
+      "category": "content",
+      "priority": 10,
+      "added": "2026-04-01",
+      "description": "Add PLA+, PLA Sparkle, PETG Transparent, PA12-CF, PPA-CF, ABS-GF. Each requires warning rule coverage for enclosure, nozzle hardness, and drying requirements.",
+      "implementation": [
+        "data/materials.json — add entries with speed multiplier, enclosure/nozzle/drying requirements",
+        "engine.js — extend warnings for CF/GF materials (hardened nozzle, enclosure, drying)"
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Parameter Tooltip / Info Panel",
+      "status": "idea",
+      "scope": "medium",
+      "value": "high",
+      "category": "ux",
+      "priority": 11,
+      "added": "2026-04-01",
+      "description": "Clicking ⓘ next to a parameter opens a modal explaining what it controls, why this value was chosen, and what increasing/decreasing it does. Turns the tool into a learning resource.",
+      "implementation": [
+        "data/param-info.json — entries keyed by param ID with description, whyThisValue, increaseEffect, decreaseEffect in EN/DA",
+        "app.js — click handler on ⓘ icons; render <dialog> modal with content",
+        "style.css — modal backdrop, card, close button"
+      ]
+    },
+    {
+      "id": 32,
+      "title": "JSDoc Typedefs for Core Engine Objects",
+      "status": "planned",
+      "scope": "small",
+      "value": "low",
+      "category": "tooling",
+      "priority": 12,
+      "added": "2026-04-03",
+      "description": "Add @typedef annotations for State, Profile, Warning, PrinterDef, MaterialDef, NozzleDef, Param. Zero runtime cost — unlocks VS Code autocomplete and catches property misuse without TypeScript.",
+      "implementation": [
+        "engine.js — add @typedef blocks near top; annotate return types on public functions",
+        "app.js — annotate state object and key variables with @type"
+      ]
+    },
+    {
+      "id": 33,
+      "title": "Engine Modularization (ES Modules)",
+      "status": "planned",
+      "scope": "medium",
+      "value": "low",
+      "category": "architecture",
+      "priority": 13,
+      "added": "2026-04-03",
+      "description": "Split engine.js into native ES modules (no bundler needed). Public Engine API re-exported from engine/index.js. Only pursue when engine is actively growing and the monolith slows development.",
+      "implementation": [
+        "Create engine/ directory; split into index.js, data-loader.js, i18n.js, profile.js, warnings.js, troubleshooter.js, estimator.js",
+        "index.html — add type=\"module\"; update script src",
+        "Verify app.js works unchanged; remove old engine.js"
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Copy All Settings as Formatted Text",
+      "status": "idea",
+      "scope": "small",
+      "value": "medium",
+      "category": "export",
+      "priority": 14,
+      "added": "2026-04-01",
+      "description": "\"Copy all\" button assembles the active tab's params as label: value plain text — paste-ready for notes, chat, or print logs.",
+      "implementation": [
+        "app.js — button in results header; iterate sections/params; clipboard.writeText(); brief confirmation",
+        "style.css — consistent secondary button style"
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Expanded Warning Explanations",
+      "status": "idea",
+      "scope": "small",
+      "value": "medium",
+      "category": "ux",
+      "priority": 15,
+      "added": "2026-04-01",
+      "description": "Make each warning chip expandable — clicking reveals root cause and 1–2 concrete fix steps. Turns single-line warnings into actionable guidance.",
+      "implementation": [
+        "engine.js — ensure warnings include detail and fix fields",
+        "app.js — toggle .expanded on chip click; show detail div",
+        "style.css — expand/collapse transition"
+      ]
+    },
+    {
+      "id": 13,
+      "title": "Print Checklist / Pre-flight",
+      "status": "idea",
+      "scope": "small",
+      "value": "medium",
+      "category": "ux",
+      "priority": 16,
+      "added": "2026-04-01",
+      "description": "After profile generation, show a context-driven pre-flight checklist (bed leveling, filament dryness, enclosure status) based on active printer/material combination.",
+      "implementation": [
+        "engine.js — getChecklist(state) returning [{ id, text }] filtered by context",
+        "app.js — render below profile tabs with checkboxes (ephemeral, no persistence)"
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Saved Presets (localStorage)",
+      "status": "idea",
+      "scope": "medium",
+      "value": "medium",
+      "category": "ux",
+      "priority": 17,
+      "added": "2026-04-01",
+      "description": "Name and save current filter state as a preset stored in localStorage; reload from a picker in one click. No backend required.",
+      "implementation": [
+        "app.js — 'Save preset' button; store { name, state } in localStorage; preset picker with delete; validate stale keys on load",
+        "style.css — picker and save button styling"
+      ]
+    },
+    {
+      "id": 21,
+      "title": "Export as HTML Print Sheet",
+      "status": "idea",
+      "scope": "small",
+      "value": "medium",
+      "category": "export",
+      "priority": 18,
+      "added": "2026-04-01",
+      "description": "Export a self-contained, fully offline HTML file showing all selections and recommended settings — a permanent print reference with no external dependencies.",
+      "implementation": [
+        "engine.js — generateHTMLSheet(state, profile) with inlined CSS",
+        "app.js — trigger download via <a href=\"data:text/html;\"> with generated filename"
+      ]
+    },
+    {
+      "id": 29,
+      "title": "Source Attribution for Recommendations",
+      "status": "idea",
+      "scope": "medium",
+      "value": "medium",
+      "category": "ux",
+      "priority": 19,
+      "added": "2026-04-02",
+      "description": "Badge each parameter value as 📋 Brand guideline, 👥 Community tested, or 🔧 Tool calculated. Builds trust and helps users decide how strictly to follow a recommendation.",
+      "implementation": [
+        "engine.js — add source: 'brand' | 'community' | 'calculated' to each param object",
+        "data/materials.json — tag base settings per source type",
+        "app.js + style.css — subtle badge next to each value; legend tooltip"
+      ]
+    },
+    {
+      "id": 19,
+      "title": "Multi-Language Expansion",
+      "status": "idea",
+      "scope": "medium",
+      "value": "medium",
+      "category": "ux",
+      "priority": 20,
+      "added": "2026-04-01",
+      "description": "Add German (DE), Dutch (NL), Swedish (SV). With locale files now external (#030 shipped), each new language is a pure data task — no engine changes needed.",
+      "implementation": [
+        "locales/de.json, nl.json, sv.json — translate all keys from en.json",
+        "app.js — render language toggle buttons dynamically from loaded locale keys"
+      ]
+    },
+    {
+      "id": 20,
+      "title": "Filament Database / Brand Profiles",
+      "status": "idea",
+      "scope": "large",
+      "value": "medium",
+      "category": "content",
+      "priority": 21,
+      "added": "2026-04-01",
+      "description": "Secondary Brand selector after material type (e.g. Bambu Lab PLA Basic, Polymaker PolyTerra) with temp/speed overrides from brand datasheets. Generic selection applies no override.",
+      "implementation": [
+        "data/brands.json — { materialId, brandId, tempOverride?, speedOverride?, source }",
+        "engine.js — apply brand overrides after base material resolution",
+        "app.js + style.css — secondary brand selector under material chips"
+      ]
+    },
+    {
+      "id": 15,
+      "title": "Community-Contributed Profiles",
+      "status": "idea",
+      "scope": "large",
+      "value": "medium",
+      "category": "community",
+      "priority": 22,
+      "added": "2026-04-01",
+      "description": "Read-only community profiles submitted via GitHub PR, shown as a 'Community verified' panel alongside the generated profile. Static, reviewer-controlled — no backend needed.",
+      "implementation": [
+        "data/community-profiles.json — { id, contributor, printer, nozzle, material, settings{}, rating, notes }",
+        "engine.js — getCommunityProfiles(state) sorted by rating",
+        "app.js + style.css — community panel and badges in results"
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Auto Dark Mode",
+      "status": "idea",
+      "scope": "small",
+      "value": "low",
+      "category": "ux",
+      "priority": 23,
+      "added": "2026-04-01",
+      "description": "Detect prefers-color-scheme: dark on first visit and apply matching theme. Explicit user toggle stored in localStorage takes priority on subsequent visits.",
+      "implementation": [
+        "app.js — on init, check localStorage; if absent use matchMedia; store explicit choice on toggle; add reactive OS listener"
+      ]
+    },
+    {
+      "id": 18,
+      "title": "Print Time Estimator Improvements",
+      "status": "idea",
+      "scope": "large",
+      "value": "low",
+      "category": "ux",
+      "priority": 24,
+      "added": "2026-04-01",
+      "description": "Add acceleration/deceleration modeling, support volume estimation, and a comparison table showing estimated time across Draft/Standard/Fine presets side by side.",
+      "implementation": [
+        "engine.js — extend estimatePrintTime() with accel correction; add estimateAllPresets()",
+        "app.js + style.css — comparison table UI with preset columns"
+      ]
+    },
+    {
+      "id": 34,
+      "title": "app.js Render/Event Refactor",
+      "status": "idea",
+      "scope": "large",
+      "value": "low",
+      "category": "architecture",
+      "priority": 25,
+      "added": "2026-04-03",
+      "description": "Declarative per-view render functions and centralized event registration to reduce DOM coupling and listener duplication risk. Deferred — high risk, low near-term reward. Only pursue if app.js becomes a regression source.",
+      "implementation": [
+        "app.js — extract renderConfigure(), renderTroubleshoot(), renderFeedback() as pure functions",
+        "app.js — consolidate all listeners into bindControls() on boot using event delegation"
+      ]
+    },
+    {
+      "id": 35,
+      "title": "CI Pipeline",
+      "status": "idea",
+      "scope": "small",
+      "value": "low",
+      "category": "tooling",
+      "priority": 26,
+      "added": "2026-04-03",
+      "description": "ESLint + data validation + headless smoke test on push/PR via GitHub Actions. Deferred — low value solo, worth adding when a second contributor joins.",
+      "implementation": [
+        "package.json — lint, test:data, test:smoke scripts",
+        ".github/workflows/ci.yml — install → lint → validate → smoke test"
+      ]
+    },
+    {
+      "id": 22,
+      "title": "User Profiles & Community Layer",
+      "status": "idea",
+      "scope": "large",
+      "value": "low",
+      "category": "community",
+      "priority": 27,
+      "added": "2026-04-01",
+      "description": "Optional user accounts (passwordless/social auth) for cross-device preset sync, print history, and community profile sharing. Core tool stays fully functional without login. Major backend complexity for a static tool.",
+      "implementation": [
+        "Phase 1 — Supabase Auth (Google/GitHub); sync localStorage presets to user record",
+        "Phase 2 — Auto-save profile snapshots; History view with one-click restore",
+        "Phase 3 — Share profile button; Community browse filtered by printer/material"
+      ]
+    }
+  ],
+  "archived": [
+    {
+      "id": 2,
+      "title": "Match Bambu Studio Process Tab Structure",
+      "category": "architecture",
+      "shipped": "2026-04-02",
+      "description": "Restructured PROFILE_TABS sections in engine.js to exactly match Bambu Studio's Process tab layout — Quality, Strength, Speed, Support, Others tabs with correct section groupings."
+    },
+    {
+      "id": 23,
+      "title": "Analytics — Cloudflare Web Analytics",
+      "category": "tooling",
+      "shipped": "2026-04-01",
+      "description": "Added Cloudflare Web Analytics beacon to index.html. Privacy-first, no cookies, GDPR-compliant, free on existing Cloudflare Pages hosting."
+    },
+    {
+      "id": 24,
+      "title": "SEO Optimization",
+      "category": "tooling",
+      "shipped": "2026-04-01",
+      "description": "Added meta tags, Open Graph, Twitter Card, canonical URL, JSON-LD structured data, sitemap.xml, robots.txt, and semantic HTML improvements."
+    },
+    {
+      "id": 25,
+      "title": "Roadmap Modal in Footer",
+      "category": "ux",
+      "shipped": "2026-04-01",
+      "description": "Roadmap link in footer opens a modal listing community-requested features, translated to EN/DA."
+    },
+    {
+      "id": 27,
+      "title": "Slicer-Aware Tab Structure",
+      "category": "ux",
+      "shipped": "2026-04-02",
+      "description": "Results panel displays section names and labels matching the slicer for the selected printer brand. Bambu Studio and PrusaSlicer fully implemented."
+    },
+    {
+      "id": 28,
+      "title": "TPU 85A / 90A Print & Support Guidance",
+      "category": "content",
+      "shipped": "2026-04-02",
+      "description": "Added dedicated material entries for TPU 85A and 90A with hardness-specific speed caps, retraction settings, cooling, support guidance, and engine warnings."
+    },
+    {
+      "id": 30,
+      "title": "i18n Locale Extraction",
+      "category": "architecture",
+      "shipped": "2026-04-03",
+      "description": "Moved all 169 EN + 167 DA translation strings from engine.js into locales/en.json and locales/da.json. Engine.init() fetches them alongside data files."
+    },
+    {
+      "id": 31,
+      "title": "JSON Schema Validation Script",
+      "category": "tooling",
+      "shipped": "2026-04-03",
+      "description": "scripts/validate-data.js validates all 7 data files against expected schema. Exit 0 = clean, exit 1 = human-readable errors. Run: node scripts/validate-data.js."
+    }
+  ]
+}
