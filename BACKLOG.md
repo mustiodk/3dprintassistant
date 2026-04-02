@@ -761,6 +761,92 @@ Notes page: (text area)
 Dependencies page:
 1. **Profile dependencies** — Compatible printers, Compatible printers condition, Compatible print profiles, Compatible print profiles condition
 
+**OrcaSlicer Process Tab Structure (verified from screenshots 2026-04-02):**
+
+Note: OrcaSlicer is a Bambu Studio fork. Very similar structure with some extra sections. Has 6 tabs (adds Multimaterial). Key terminology differences from BS: "First layer height" (not "Initial"), "Walls printing order" (not "Order of walls"), uses "Flush" terminology.
+
+Quality tab:
+1. **Layer height** — Layer height, First layer height
+2. **Line width** — Default, First layer, Outer wall, Inner wall, Top surface, Sparse infill, Internal solid infill, Support
+3. **Seam** — Seam position, Staggered inner seams, Seam gap, Scarf joint seam, Role base wipe speed, Wipe speed, Wipe on loops, Wipe before external loop
+4. **Precision** — Slice gap closing radius, Resolution, Arc fitting, X-Y hole compensation, X-Y contour compensation, Elephant foot compensation, Precise wall, Precise Z height, Convert holes to polyholes
+5. **Ironing** — Ironing type
+6. **Wall generator** — Wall generator, Wall transitioning settings, First layer minimum wall width, Minimum wall width, Minimum feature size, Minimum wall length
+7. **Walls and surfaces** — Walls printing order, Print infill first, Wall loop direction, Top/Bottom surface flow ratio, Only one wall on top surfaces, Only one wall on first layer, Avoid crossing walls, Small area flow compensation
+8. **Bridging** — Bridge flow ratio, Internal bridge flow ratio, External/Internal bridge density, Thick external/internal bridges, Extra bridge layers, Filter out small internal bridges, Bridge counterbore holes
+9. **Overhangs** — Detect overhang walls, Make overhangs printable, Extra perimeters on overhangs, Reverse on even
+
+Strength tab:
+1. **Walls** — Wall loops, Alternate extra wall, Detect thin walls
+2. **Top/bottom shells** — Top/Bottom shell layers, thickness, surface density, surface pattern, Top/Bottom solid infill/wall overlap
+3. **Infill** — Sparse infill density, Fill Multiline, Sparse infill pattern, direction, rotation template, anchor lengths, Internal solid infill pattern, Solid infill direction, rotation template, Apply gap fill, Filter out tiny gaps, Infill/wall overlap
+4. **Advanced** — Align infill direction to model, Insert solid layers, External/Internal bridge infill direction, Minimum sparse infill threshold, Infill combination, Detect narrow internal solid infill, Ensure vertical shell thickness
+
+Speed tab:
+1. **First layer speed** — First layer, First layer infill, Initial layer travel speed, Number of slow layers
+2. **Other layers speed** — Outer wall, Inner wall, Small perimeters, Small perimeters threshold, Sparse infill, Internal solid infill, Top surface, Gap infill
+3. **Overhang speed** — Slow down for overhangs, Slow down for curled perimeters, Overhang speed (multi-row), Bridge (External/Internal)
+4. **Travel speed** — Travel
+5. **Acceleration** — Normal printing, Outer wall, Inner wall, Bridge, Sparse infill, Internal solid infill, First layer, Top surface, Travel, Enable accel_to_decel, accel_to_decel
+6. **Jerk(XY)** — Default, Outer wall, Inner wall, Infill, Top surface, First layer, Travel
+7. **Advanced** — Extrusion rate smoothing
+
+Support tab:
+1. **Support** — Enable support, Type, Style, Threshold angle, Threshold overlap, First layer density, First layer expansion, On build plate only, Remove small overhangs
+2. **Raft** — Raft layers
+3. **Filament for Supports** — Support/raft base, Support/raft interface
+4. **Support ironing** — Ironing Support Interface
+5. **Advanced** — Top/Bottom Z distance, Support wall loops, Base pattern, Base pattern spacing, Pattern angle, Top/Bottom interface layers, Interface pattern, Top/Bottom interface spacing, Normal support expansion, Support/object xy distance, Support/object first layer gap, Don't support bridges
+
+Multimaterial tab:
+1. **Prime tower** — Enable
+2. **Ooze prevention** — Enable
+3. **Flush options** — Flush into objects' infill, Flush into objects' support
+4. **Advanced** — Use beam interlocking, Interface shells, Maximum width of segmented region, Interlocking depth of segmented region
+
+Others tab:
+1. **Skirt** — Skirt loops, type, minimum extrusion length, distance, start point, speed, height, Draft shield
+2. **Brim** — Brim type, Brim width, Brim-object gap
+3. **Special mode** — Slicing Mode, Print sequence, Intra-layer order, Spiral vase
+4. **Fuzzy skin** — Fuzzy skin, generator mode, noise type, point distance, thickness, Apply to first layer
+5. **G-code output** — Reduce infill retraction, Verbose G-code, Label objects, Exclude objects, Filename format
+6. **Post-processing Scripts**
+7. **Notes**
+
+**OrcaSlicer Filament Settings Structure (verified from screenshots 2026-04-02):**
+
+Filament sub-tab:
+1. **Basic information** — Type, Vendor, Soluble/Support material, Default color, Diameter, Density, Shrinkage XY/Z, Price, Softening temperature, Idle temperature, Recommended nozzle temperature (Min/Max)
+2. **Flow ratio and Pressure Advance** — Flow ratio, Enable pressure advance, Pressure advance, Enable adaptive pressure advance
+3. **Print chamber temperature** — Chamber temperature, Activate temperature control
+4. **Print temperature** — Nozzle (First layer / Other layers)
+5. **Bed temperature** — Per-plate (First layer / Other layers)
+6. **Volumetric speed limitation** — Max volumetric speed
+
+Cooling sub-tab:
+1. **Cooling for specific layer** — No cooling for first N layers, Full fan speed at layer
+2. **Part cooling fan** — Min/Max fan speed threshold, Keep fan always on, Slow printing down, Don't slow down outer walls, Min print speed, Force cooling for overhangs/bridges, Overhang cooling activation threshold, Overhangs/bridges fan speed, Internal bridges fan speed, Support interface fan speed, Ironing fan speed
+3. **Auxiliary part cooling fan** — Fan speed
+4. **Exhaust fan** — Activate air filtration, During print, Complete print
+
+Setting Overrides sub-tab:
+1. **Retraction** — Length, Z-hop height, Z-hop type, Only lift Z above/below, On surfaces, Retraction/Deretraction speed, Extra length on restart, Travel distance threshold, Retract on layer change, Wipe while retracting, Wipe distance, Retract amount before wipe
+
+Advanced sub-tab:
+1. **Filament start G-code** — (text area)
+2. **Filament end G-code** — (text area)
+
+Multimaterial sub-tab:
+1. **Wipe tower parameters** — Minimal purge on wipe tower
+2. **Tool change parameters with single extruder MM printers** — Loading/Unloading speeds, Delay, Cooling moves, Stamping settings, Ramming parameters
+3. **Tool change parameters with multi extruder MM printers** — Enable ramming for multi-tool, Multi-tool ramming volume/flow
+
+Dependencies sub-tab:
+1. **Compatible printers** — Select printers, Condition
+2. **Compatible process profiles** — Select profiles, Condition
+
+Notes sub-tab: (text area)
+
 **Implementation Plan:**
 - [ ] Document PrusaSlicer tab structure from screenshots (sections, param names, groupings)
 - [ ] Document OrcaSlicer tab structure from screenshots
