@@ -37,6 +37,14 @@
           "setting": "Part cooling fan",
           "fix": "PETG: set fan to 40–60%. Too high causes poor layer bonding; too low causes stringing.",
           "materials": ["PETG"]
+        },
+        {
+          "rank": 5,
+          "title": "Wet TPU filament (TPU only)",
+          "detail": "TPU absorbs moisture rapidly. Wet TPU produces constant oozing that looks like extreme stringing — retraction and temperature adjustments alone cannot fix moisture-caused stringing.",
+          "setting": "Filament drying",
+          "fix": "Dry TPU at 60–65°C for 6–8h before printing. Check for hissing or crackling sounds at the nozzle — these confirm moisture. 85A should be dried every session.",
+          "materials": ["TPU"]
         }
       ]
     },
@@ -325,6 +333,54 @@
           "setting": "Bed temperature",
           "fix": "Check material's recommended bed temp range in the filament settings panel. Let the bed fully reach temp before printing.",
           "materials": null
+        }
+      ]
+    },
+    {
+      "id": "tpu_jam",
+      "name": "Flexible Filament Jam (TPU)",
+      "icon": "🪱",
+      "desc": "Soft TPU buckling, grinding, or jamming in the extruder",
+      "causes": [
+        {
+          "rank": 1,
+          "title": "Print speed too high",
+          "detail": "Soft TPU cannot transmit push force at high speeds — it compresses instead. This is the most common cause of jams in 85A/90A.",
+          "setting": "Print speed / Max Volumetric Speed",
+          "fix": "TPU 85A: reduce to 15–20 mm/s. TPU 90A: reduce to 25–30 mm/s. Reduce MVS cap: 2 mm³/s for 85A, 3–5 mm³/s for 90A.",
+          "materials": ["TPU"]
+        },
+        {
+          "rank": 2,
+          "title": "Retraction too long or too fast",
+          "detail": "Flexible filament stretches under retraction tension. Excess retraction builds up stress in the melt zone and causes a plug to form.",
+          "setting": "Retraction length / Retraction speed",
+          "fix": "TPU 85A: set retraction to 0mm. TPU 90A: set to 0–0.5mm max. Retraction speed: 20–25 mm/s.",
+          "materials": ["TPU"]
+        },
+        {
+          "rank": 3,
+          "title": "Extruder idler tension too high",
+          "detail": "Default extruder tension is set for rigid filaments. It flattens soft TPU — the widened filament then jams in the PTFE tube or cold zone.",
+          "setting": "Extruder idler tension screw",
+          "fix": "Loosen the extruder idler tension screw. On Bambu printers, this screw is behind the toolhead. Reduce tension until the gears grip without visibly deforming the filament.",
+          "materials": ["TPU"]
+        },
+        {
+          "rank": 4,
+          "title": "Filament routed through PTFE tube (85A)",
+          "detail": "TPU 85A cannot be pushed reliably through long PTFE sections — it buckles inside the tube before reaching the hotend.",
+          "setting": "Filament path / Loading method",
+          "fix": "On Bambu X/P series: load TPU 85A from directly above the toolhead — do not use the AMS or route through the rear PTFE tube.",
+          "materials": ["TPU"]
+        },
+        {
+          "rank": 5,
+          "title": "Nozzle too small (85A only)",
+          "detail": "TPU 85A requires a 0.6mm or larger nozzle. Smaller nozzles create too much back-pressure for the soft filament to overcome.",
+          "setting": "Nozzle size",
+          "fix": "Switch to a 0.6mm or 0.8mm nozzle for TPU 85A. 0.4mm and below are not compatible.",
+          "materials": ["TPU"]
         }
       ]
     }

@@ -592,6 +592,157 @@
       ]
     },
     {
+      "id": "tpu_90a",
+      "name": "TPU 90A",
+      "group": "TPU",
+      "difficulty": "intermediate",
+      "base_settings": {
+        "nozzle_temp_base": 225,
+        "nozzle_temp_min": 220,
+        "nozzle_temp_max": 245,
+        "bed_temp_base": 35,
+        "bed_temp_min": 30,
+        "bed_temp_max": 50,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 0,
+        "cooling_fan": "80%",
+        "cooling_fan_min": "60%",
+        "cooling_fan_overhang": "100%",
+        "slow_layer_time": "18 s",
+        "max_mvs": { "0.2": null, "0.4": "3 mm³/s", "0.6": "5 mm³/s" },
+        "max_speed": 30,
+        "pressure_advance": 0.0,
+        "flow_ratio": 1.02,
+        "retraction_length": 0.0,
+        "retraction_speed": 25
+      },
+      "enclosure_required": false,
+      "enclosure_behavior": {
+        "open_preferred": true,
+        "reason": "TPU 90A benefits from good cooling. Open frame preferred — enclosed heat can cause heat creep in the cold zone with soft TPU."
+      },
+      "compatible_plates": [
+        { "plate_id": "textured_pei", "bed_temp_range": [30, 50], "glue": "none" },
+        { "plate_id": "cool_plate",   "bed_temp_range": [30, 45], "glue": "none" }
+      ],
+      "build_plate_display": "Textured PEI or Cool Plate",
+      "nozzle_requirements": { "min_diameter": 0.4, "material": "any" },
+      "ams_compatible": false,
+      "ams_lite_compatible": false,
+      "drying": {
+        "required": true,
+        "recommended": true,
+        "display": "Required — 60 °C / 6–8h (wet TPU 90A = hissing, stringing, weak layers)",
+        "oven_temp": 60,
+        "oven_duration_hours": 7,
+        "heatbed_temp": 75,
+        "heatbed_duration_hours": 12,
+        "storage_max_humidity_pct": 20
+      },
+      "properties": {
+        "heat_resistance_celsius": 60,
+        "uv_resistant": false,
+        "moisture_resistant": true,
+        "outdoor_suitable": true,
+        "food_safe_possible": false,
+        "flexible": true
+      },
+      "shrinkage_factor": 0.010,
+      "ventilation_required": false,
+      "warnings": [
+        "AMS and AMS Lite are not compatible — use the rear external spool holder and feed directly.",
+        "Dry before printing — moisture causes hissing, stringing, and weak layer adhesion.",
+        "Print at max 30 mm/s — faster speeds cause under-extrusion and extruder skipping."
+      ],
+      "notes": [
+        "Zero retraction (0mm) is recommended — flexible filament stretches instead of retracting properly. Use 0.0–0.5mm maximum.",
+        "Disable Pressure Advance (PA = 0) — PA calibration does not work correctly with elastic filaments.",
+        "Disable flow dynamic calibration before printing — it produces unreliable results on flexible materials.",
+        "90A Shore = soft flexible rubber. Softer and more elastic than 95A but more printable than 85A.",
+        "For tight-fit parts, add 0.1–0.2mm extra tolerance vs rigid material designs — TPU relaxes slightly after printing.",
+        "Supports are difficult to remove from TPU parts — avoid if possible, or use PLA/PETG as support material.",
+        "Do not apply glue to textured PEI — the combination is excessively sticky and will tear soft parts during removal.",
+        "Enable Avoid Crossing Walls (combing) to reduce open-air travel moves and minimise stringing."
+      ]
+    },
+    {
+      "id": "tpu_85a",
+      "name": "TPU 85A",
+      "group": "TPU",
+      "difficulty": "advanced",
+      "base_settings": {
+        "nozzle_temp_base": 225,
+        "nozzle_temp_min": 220,
+        "nozzle_temp_max": 240,
+        "bed_temp_base": 35,
+        "bed_temp_min": 30,
+        "bed_temp_max": 45,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 0,
+        "cooling_fan": "100%",
+        "cooling_fan_min": "80%",
+        "cooling_fan_overhang": "100%",
+        "slow_layer_time": "20 s",
+        "max_mvs": { "0.2": null, "0.4": null, "0.6": "2 mm³/s" },
+        "max_speed": 20,
+        "pressure_advance": 0.0,
+        "flow_ratio": 1.05,
+        "retraction_length": 0.0,
+        "retraction_speed": 20
+      },
+      "enclosure_required": false,
+      "enclosure_behavior": {
+        "open_preferred": true,
+        "reason": "TPU 85A requires maximum cooling for dimensional accuracy. Enclosed environments cause heat creep in the cold zone — keep open."
+      },
+      "compatible_plates": [
+        { "plate_id": "cool_plate",   "bed_temp_range": [30, 45], "glue": "none" },
+        { "plate_id": "textured_pei", "bed_temp_range": [30, 40], "glue": "none" }
+      ],
+      "build_plate_display": "Cool Plate (preferred) or Textured PEI",
+      "nozzle_requirements": { "min_diameter": 0.6, "material": "any" },
+      "ams_compatible": false,
+      "ams_lite_compatible": false,
+      "drying": {
+        "required": true,
+        "recommended": true,
+        "display": "Required — 65 °C / 8h minimum. Bambu brand: 70 °C / 8h. Wet 85A = hissing, spiderweb strings, print failure.",
+        "oven_temp": 65,
+        "oven_duration_hours": 8,
+        "heatbed_temp": 80,
+        "heatbed_duration_hours": 14,
+        "storage_max_humidity_pct": 15
+      },
+      "properties": {
+        "heat_resistance_celsius": 58,
+        "uv_resistant": false,
+        "moisture_resistant": true,
+        "outdoor_suitable": true,
+        "food_safe_possible": false,
+        "flexible": true
+      },
+      "shrinkage_factor": 0.015,
+      "ventilation_required": false,
+      "warnings": [
+        "TPU 85A requires a 0.6mm or larger nozzle — 0.2mm and 0.4mm nozzles are not supported and will clog.",
+        "AMS and AMS Lite are not compatible — feed directly from the rear spool holder. Do not route through PTFE tube on X/P series.",
+        "Dry before every print — moisture causes popping, spiderweb stringing, and complete print failure. 65°C / 8h minimum.",
+        "Print at max 20 mm/s — faster speeds cause the soft filament to buckle in the extruder and jam."
+      ],
+      "notes": [
+        "Zero retraction (0mm) is strongly recommended — any retraction stretches the soft filament and causes jams downstream.",
+        "Disable Pressure Advance (PA = 0) — elastic filament behaviour breaks PA calibration.",
+        "Disable flow dynamic calibration — it produces inaccurate results on flexible materials.",
+        "On Bambu printers: loosen the extruder idler tension screw before printing — default tension flattens 85A filament and jams it.",
+        "85A Shore = very soft rubber, like a shoe insole. Extremely flexible, requires slow speeds and careful setup.",
+        "For tight-fit parts, add 0.3–0.5mm extra tolerance vs rigid designs — 85A relaxes significantly after printing.",
+        "Supports in TPU fuse strongly with the part — use PLA as support material, or avoid supports by design.",
+        "Textured PEI can grip 85A too strongly — let the bed cool completely before removal. Cool Plate is easier.",
+        "Enable Avoid Crossing Walls (combing) to reduce stringing from open-air travel moves.",
+        "Printing live from a filament dryer box is best practice for 85A — it reabsorbs moisture quickly during long prints."
+      ]
+    },
+    {
       "id": "pva",
       "name": "PVA (Support)",
       "group": "PVA",

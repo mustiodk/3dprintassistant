@@ -167,6 +167,8 @@ const Engine = (() => {
       sym_ringing_desc:          'Ripple or wave pattern near sharp features',
       sym_first_layer_name:      'Poor First Layer',
       sym_first_layer_desc:      'First layer not sticking, uneven, or has gaps',
+      sym_tpu_jam_name:          'Flexible Filament Jam (TPU)',
+      sym_tpu_jam_desc:          'Soft TPU buckling, grinding, or jamming in the extruder',
       // AMS Purge
       purgeTitle:       'AMS Purge Volume Calculator',
       purgeSub:         'Calculate optimal filament flush volumes to prevent color contamination between AMS transitions.',
@@ -357,6 +359,8 @@ const Engine = (() => {
       sym_ringing_desc:          'Rippel- eller bølgemønster nær skarpe kanter',
       sym_first_layer_name:      'Dårligt første lag',
       sym_first_layer_desc:      'Første lag klæber ikke, er ujævnt eller har huller',
+      sym_tpu_jam_name:          'Fleksibelt filament jam (TPU)',
+      sym_tpu_jam_desc:          'Blødt TPU bukker, slider eller sætter sig fast i extruderen',
       // AMS Purge
       purgeTitle:       'AMS Skylningsvolumen Beregner',
       purgeSub:         'Beregn optimale skylningsvolumener for at forhindre farveforurening mellem AMS-skift.',
@@ -1209,6 +1213,32 @@ const Engine = (() => {
       warnings.push(`<strong>${printer.name} is open-frame.</strong> ${material.name} warps significantly without enclosure. Use a brim of 10mm+ and print in a draught-free, warm room. Consider an enclosure upgrade.`);
     }
 
+    // 17. Nozzle too small for material (e.g. TPU 85A requires 0.6mm+)
+    if (nozzle && material.nozzle_requirements?.min_diameter && nozzle.size < material.nozzle_requirements.min_diameter) {
+      warnings.push(`<strong>${material.name} requires a ${material.nozzle_requirements.min_diameter}mm or larger nozzle.</strong> Your selected ${nozzle.size}mm nozzle is too small — the soft material cannot generate enough pressure to flow cleanly and will clog.`);
+    }
+
+    // 18. MVS null = nozzle size not supported for this material
+    if (nozzle && material.base_settings.max_mvs) {
+      const mvsVal = material.base_settings.max_mvs[String(nozzle.size)];
+      if (mvsVal === null) {
+        warnings.push(`<strong>${material.name} is not recommended with a ${nozzle.size}mm nozzle.</strong> This nozzle size is not supported for this material — use a larger nozzle (0.6mm+).`);
+      }
+    }
+
+    // 19. Soft TPU + enclosed printer — heat creep risk
+    if (material.id === 'tpu_85a' && printer && printer.enclosure !== 'none') {
+      warnings.push(`<strong>${material.name} + enclosed printer:</strong> Keep the enclosure open or remove the top panel. Enclosed ambient heat causes heat creep with very soft TPU, leading to clogs.`);
+    }
+    if (material.id === 'tpu_90a' && printer && printer.enclosure === 'active_heated') {
+      warnings.push(`<strong>${material.name} + active enclosure:</strong> Open the enclosure door during printing. Excessive ambient heat causes heat creep with soft TPU.`);
+    }
+
+    // 20. Soft TPU moisture critical reminder
+    if (material.id === 'tpu_85a') {
+      warnings.push(`<strong>TPU 85A moisture warning:</strong> This material absorbs moisture faster than any other common filament. Dry at 65°C for 8h before printing and print from a sealed dryer if possible.`);
+    }
+
     return warnings;
   }
 
@@ -1350,10 +1380,11 @@ const Engine = (() => {
       let outerSpeed = isCoreXY ? sm.outer_corexy : sm.outer_bedslinger;
       let innerSpeed = isCoreXY ? sm.inner_corexy : sm.inner_bedslinger;
 
-      // TPU hard speed cap — flexible filament must be slow
+      // TPU speed cap — per-material max_speed (85A=20, 90A=30, 95A=60)
       if (isTPU) {
-        outerSpeed = Math.min(outerSpeed, 40);
-        innerSpeed = Math.min(innerSpeed, 50);
+        const tpuMax = material.base_settings.max_speed || 40;
+        outerSpeed = Math.min(outerSpeed, tpuMax);
+        innerSpeed = Math.min(innerSpeed, Math.round(tpuMax * 1.25));
       }
 
       // ABS/ASA: moderate cap for warp prevention
@@ -1409,7 +1440,7 @@ const Engine = (() => {
 
       // Advanced speed settings
       let initSpeed = isCoreXY ? sm.initial_layer : (sm.initial_layer - 5);
-      if (isTPU)    initSpeed = Math.min(initSpeed, 20);
+      if (isTPU)    initSpeed = Math.min(initSpeed, Math.round((material.base_settings.max_speed || 40) * 0.5));
       if (isABSlike) initSpeed = Math.min(initSpeed, 25);
       const initSpeedFinal = env ? Math.round(initSpeed * (env.first_layer_speed_multiplier || 1.0)) : initSpeed;
 
@@ -1433,7 +1464,12 @@ const Engine = (() => {
         : sm.inner_accel_bedslinger;
       const initAccel = sm.initial_accel;
 
-      if (isTPU) { outerAccel = Math.min(outerAccel, 500); innerAccel = Math.min(innerAccel, 800); }
+      if (isTPU) {
+        const tpuMax = material.base_settings.max_speed || 40;
+        const accelCap = tpuMax <= 20 ? 300 : tpuMax <= 30 ? 400 : 500;
+        outerAccel = Math.min(outerAccel, accelCap);
+        innerAccel = Math.min(innerAccel, Math.round(accelCap * 1.6));
+      }
 
       p.outer_wall_acceleration    = A(`${outerAccel} mm/s²`,
         isTPU     ? 'Very low acceleration for TPU — prevents filament stretching and under-extrusion.' :

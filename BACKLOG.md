@@ -863,7 +863,7 @@ Notes sub-tab: (text area)
 
 ### #028 — TPU 85A / 90A Detailed Print & Support Guidance
 
-**Status:** Idea
+**Status:** Done
 **Added:** 2026-04-02
 **Scope:** Medium
 **Source:** User request
