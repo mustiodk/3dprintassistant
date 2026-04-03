@@ -2,6 +2,14 @@
 // No business logic here. All logic lives in engine.js.
 // When the API is built, engine.js moves server-side and app.js changes URLs only.
 
+// ── Analytics ─────────────────────────────────────────────────────────────────
+function track(name, props) {
+  try {
+    if (localStorage.getItem('3dpa_notrack') === '1') return;
+    window.cfBeacon?.pushEvent?.(name, props || {});
+  } catch (_) {}
+}
+
 // ── State ─────────────────────────────────────────────────────────────────────
 const state = {
   printer: null, nozzle: null, material: null,
@@ -16,6 +24,7 @@ let activeTabId       = 'quality';       // persisted across re-renders
 let currentView       = 'configure';     // 'configure' | 'troubleshoot' | 'feedback'
 let activeSymptom     = null;            // troubleshooter selected symptom id
 let comparisonProfile = null;            // { profile, label } when Profile A is locked
+let _lastTrackedCombo = null;            // deduplicates profile_generated events
 let pickerBrand       = null;            // currently expanded brand in printer picker
 let pickerShowMore    = false;           // whether secondary brands are visible
 let pickerCollapsed   = false;           // auto-collapse picker after printer selected + other filter clicked
@@ -383,6 +392,10 @@ function selectModel(printerId) {
     }
   });
 
+  if (state.printer) {
+    const p = Engine.getPrinter(state.printer);
+    track('printer_selected', { printer: state.printer, brand: p?.manufacturer || 'unknown' });
+  }
   renderPrinterSummary();
   // Auto-collapse picker immediately after selecting a printer
   if (state.printer) collapsePrinterPicker();
@@ -584,6 +597,7 @@ function buildTroubleshooter() {
 
 function selectSymptom(id) {
   activeSymptom = activeSymptom === id ? null : id;
+  if (activeSymptom) track('troubleshoot_used', { symptom: id });
   document.querySelectorAll('.symptom-chip').forEach(c => {
     c.classList.toggle('active', c.dataset.id === activeSymptom);
   });
@@ -648,6 +662,9 @@ function bindControls() {
   document.getElementById('navFeedback').addEventListener('click',      () => setView('feedback'));
 
   document.getElementById('exportBtn').addEventListener('click', () => {
+    if (state.printer && state.nozzle && state.material) {
+      track('export_clicked', { printer: state.printer, nozzle: state.nozzle, material: state.material });
+    }
     const btn  = document.getElementById('exportBtn');
     const orig = btn.textContent;
     btn.textContent = '🔥 Coming in hot';
@@ -719,15 +736,28 @@ function updateNozzleChips() {
 
 // ── Chip interaction ──────────────────────────────────────────────────────────
 function handleChipClick(container, clicked, key, value, isMulti) {
+  let justSelected = false;
   if (isMulti) {
     const was = clicked.classList.contains('selected');
     clicked.classList.toggle('selected', !was);
     state[key] = was ? state[key].filter(v => v !== value) : [...state[key], value];
+    justSelected = !was;
   } else {
     const was = clicked.classList.contains('selected');
     container.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
     clicked.classList.toggle('selected', !was);
     state[key] = was ? null : value;
+    justSelected = !was;
+  }
+  if (justSelected) {
+    if (key === 'nozzle') {
+      track('nozzle_selected', { nozzle: value, material: state.material || null });
+    } else if (key === 'material') {
+      const mat = Engine.getMaterial(value);
+      track('material_selected', { material: value, group: mat?.group || 'unknown' });
+    } else if (key === 'useCase') {
+      track('use_case_selected', { use_case: value });
+    }
   }
   // Auto-collapse printer picker when interacting with any other filter
   if (key !== 'printer') collapsePrinterPicker();
@@ -745,6 +775,13 @@ function render() {
   document.getElementById('panelProfSub').textContent = slicerSub('panelProfSub');
   document.getElementById('panelFilSub').textContent  = slicerSub('panelFilSub');
   const hasMin = state.printer && state.nozzle && state.material;
+  if (hasMin) {
+    const combo = `${state.printer}|${state.nozzle}|${state.material}`;
+    if (combo !== _lastTrackedCombo) {
+      _lastTrackedCombo = combo;
+      track('profile_generated', { printer: state.printer, nozzle: state.nozzle, material: state.material });
+    }
+  }
   document.getElementById('emptyState').style.display    = hasMin ? 'none' : '';
   document.getElementById('resultsLayout').style.display = hasMin ? ''     : 'none';
 
