@@ -85,6 +85,7 @@
     <button class="nav-btn active" id="navConfigure">Configure</button>
     <button class="nav-btn" id="navTroubleshoot">Troubleshoot</button>
     <button class="nav-btn" id="navFeedback">Feedback</button>
+    <button class="nav-btn nav-beta" id="navBeta">iOS Beta</button>
   </nav>
 
 
@@ -143,6 +144,21 @@
     </div>
     <div class="trouble-symptom-grid" id="symptomGrid"></div>
     <div id="troubleResults"></div>
+  </div>
+
+  <!-- ── iOS Beta view ─────────────────────────────────────────────────────── -->
+  <div class="container" id="viewBeta" style="display:none">
+    <div class="trouble-hero">
+      <div class="trouble-hero-title" id="betaHeroTitle">Join the iOS Beta</div>
+      <div class="trouble-hero-sub" id="betaHeroSub">3D Print Assistant is coming to iPhone. Apply for early access and help shape the app.</div>
+    </div>
+    <div class="feedback-cards">
+      <button class="feedback-card feedback-card--beta" id="betaApplyCard" data-tally-open="q4Wgvd" data-tally-layout="modal" data-tally-auto-close="3000">
+        <div class="feedback-card-icon">⬡</div>
+        <div class="feedback-card-title" id="betaCardTitle">Apply for Early Access</div>
+        <div class="feedback-card-desc" id="betaCardDesc">Get TestFlight access before the public launch</div>
+      </button>
+    </div>
   </div>
 
   <!-- ── Feedback view ────────────────────────────────────────────────────── -->

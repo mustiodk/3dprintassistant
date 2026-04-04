@@ -802,6 +802,11 @@ body, header, .top-nav, .filters, .panel, .chip,
 .nav-btn:hover         { color: var(--text); }
 .nav-btn.active        { color: var(--green); border-bottom-color: var(--green); }
 .nav-home              { text-decoration: none; margin-right: 8px; padding-right: 16px; border-right: 1px solid var(--border2); }
+.nav-beta              { color: var(--green); }
+.nav-beta:hover        { color: var(--green); opacity: 0.85; }
+.nav-beta.active       { color: var(--green); border-bottom-color: var(--green); }
+.feedback-card--beta   { border-color: var(--green-border); }
+.feedback-card--beta:hover { border-color: var(--green); background: var(--green-dim); }
 
 /* ── Troubleshooter view ── */
 .trouble-hero {

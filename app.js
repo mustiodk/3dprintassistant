@@ -21,7 +21,7 @@ const state = {
 let currentMode       = 'simple';        // 'simple' | 'advanced'
 let currentTheme      = 'dark';          // 'dark' | 'light'
 let activeTabId       = 'quality';       // persisted across re-renders
-let currentView       = 'configure';     // 'configure' | 'troubleshoot' | 'feedback'
+let currentView       = 'configure';     // 'configure' | 'troubleshoot' | 'feedback' | 'beta'
 let activeSymptom     = null;            // troubleshooter selected symptom id
 let comparisonProfile = null;            // { profile, label } when Profile A is locked
 let _lastTrackedCombo = null;            // deduplicates profile_generated events
@@ -144,6 +144,7 @@ function applyLang() {
   document.getElementById('navConfigure').textContent      = T('navConfigure');
   document.getElementById('navTroubleshoot').textContent   = T('navTroubleshoot');
   document.getElementById('navFeedback').textContent       = T('navFeedback');
+  document.getElementById('navBeta').textContent           = T('navBeta');
 
   // Lang toggle active state
   document.getElementById('langEN').classList.toggle('active', lang === 'en');
@@ -156,6 +157,10 @@ function applyLang() {
   // Heroes
   document.getElementById('troubleHeroTitle').textContent   = T('troubleTitle');
   document.getElementById('troubleHeroSub').textContent     = T('troubleSub');
+  document.getElementById('betaHeroTitle').textContent          = T('betaHeroTitle');
+  document.getElementById('betaHeroSub').textContent            = T('betaHeroSub');
+  document.getElementById('betaCardTitle').textContent          = T('betaCardTitle');
+  document.getElementById('betaCardDesc').textContent           = T('betaCardDesc');
   document.getElementById('feedbackHeroTitle').textContent      = T('feedbackTitle');
   document.getElementById('feedbackHeroSub').textContent        = T('feedbackSub');
   document.getElementById('feedbackCardBugTitle').textContent   = T('feedbackBugTitle');
@@ -574,9 +579,11 @@ function setView(view) {
   document.getElementById('viewConfigure').style.display    = view === 'configure'    ? '' : 'none';
   document.getElementById('viewTroubleshoot').style.display  = view === 'troubleshoot'  ? '' : 'none';
   document.getElementById('viewFeedback').style.display      = view === 'feedback'      ? '' : 'none';
+  document.getElementById('viewBeta').style.display          = view === 'beta'          ? '' : 'none';
   document.getElementById('navConfigure').classList.toggle('active',    view === 'configure');
   document.getElementById('navTroubleshoot').classList.toggle('active',  view === 'troubleshoot');
   document.getElementById('navFeedback').classList.toggle('active',      view === 'feedback');
+  document.getElementById('navBeta').classList.toggle('active',          view === 'beta');
 }
 
 // ── Build troubleshooter symptom grid ─────────────────────────────────────────
@@ -660,6 +667,7 @@ function bindControls() {
   document.getElementById('navConfigure').addEventListener('click',    () => setView('configure'));
   document.getElementById('navTroubleshoot').addEventListener('click',  () => setView('troubleshoot'));
   document.getElementById('navFeedback').addEventListener('click',      () => setView('feedback'));
+  document.getElementById('navBeta').addEventListener('click',          () => setView('beta'));
 
   document.getElementById('exportBtn').addEventListener('click', () => {
     if (state.printer && state.nozzle && state.material) {
