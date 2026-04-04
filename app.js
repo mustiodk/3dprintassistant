@@ -938,7 +938,7 @@ function renderFilamentPanel(filament, nozzle) {
   const T     = Engine.t;
   // Slicer-aware section labels: try slicer-specific key first, fall back to default
   const FS = (key) => { const sk = key + '_' + Engine.getActiveSlicer(); const v = T(sk); return v !== sk ? v : T(key); };
-  const temps = Engine.getAdjustedTemps(state.material, state.environment, state.nozzle);
+  const temps = Engine.getAdjustedTemps(state.material, state.environment, state.nozzle, state.speed);
   const mvs   = filament.max_mvs[nozzle.size] || '—';
   const adv   = currentMode === 'advanced' ? Engine.getAdvancedFilamentSettings(state) : null;
 

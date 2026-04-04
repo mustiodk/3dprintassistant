@@ -177,6 +177,7 @@ const Engine = (() => {
           { label: 'Ironing',         params: ['ironing'] },
           { label: 'Wall generator',  params: ['wall_generator'] },
           { label: 'Advanced',        params: ['order_of_walls', 'bridge_flow', 'only_one_wall_top', 'avoid_crossing_walls'] },
+          { label: 'Retraction',      params: ['retraction_distance', 'retraction_speed', 'pressure_advance'] },
         ],
       },
       {
@@ -222,6 +223,7 @@ const Engine = (() => {
           { label: 'Quality',            params: ['avoid_crossing_walls', 'bridge_flow'] },
           { label: 'Advanced',           params: ['seam_position', 'order_of_walls', 'wall_generator'] },
           { label: 'Only one perimeter', params: ['only_one_wall_top'] },
+          { label: 'Retraction',       params: ['retraction_distance', 'retraction_speed', 'pressure_advance'] },
         ],
       },
       {
@@ -268,6 +270,7 @@ const Engine = (() => {
           { label: 'Wall generator',     params: ['wall_generator'] },
           { label: 'Walls and surfaces', params: ['order_of_walls', 'only_one_wall_top', 'avoid_crossing_walls'] },
           { label: 'Bridging',          params: ['bridge_flow'] },
+          { label: 'Retraction',        params: ['retraction_distance', 'retraction_speed', 'pressure_advance'] },
         ],
       },
       {
@@ -353,6 +356,9 @@ const Engine = (() => {
       ironing:                       'Ironing',
       slow_down_tall:                'Slow down for tall prints',
       brim_width:                    'Brim width',
+      retraction_distance:           'Retraction distance',
+      retraction_speed:              'Retraction speed',
+      pressure_advance:              'Pressure advance',
     },
     prusaslicer: {
       layer_height:                  'Layer height',
@@ -397,6 +403,9 @@ const Engine = (() => {
       ironing:                       'Enable ironing',
       slow_down_tall:                'Slow down for tall prints',
       brim_width:                    'Brim width',
+      retraction_distance:           'Retraction length',
+      retraction_speed:              'Retraction speed',
+      pressure_advance:              'Pressure advance',
     },
     orcaslicer: {
       layer_height:                  'Layer height',
@@ -441,6 +450,9 @@ const Engine = (() => {
       ironing:                       'Ironing type',
       slow_down_tall:                'Slow down for tall prints',
       brim_width:                    'Brim width',
+      retraction_distance:           'Retraction distance',
+      retraction_speed:              'Retraction speed',
+      pressure_advance:              'Pressure advance',
     },
   };
 
@@ -560,7 +572,7 @@ const Engine = (() => {
 
   // ── Temperature with environment + nozzle material offset ───────────────────
   // nozzleId is optional — pass it to include nozzle material compensation
-  function getAdjustedTemps(materialId, environmentId, nozzleId) {
+  function getAdjustedTemps(materialId, environmentId, nozzleId, speedId) {
     const mat    = getMaterial(materialId);
     const env    = getEnv(environmentId);
     const nozzle = nozzleId ? getNozzle(nozzleId) : null;
@@ -570,7 +582,8 @@ const Engine = (() => {
     const envNozzleAdj = env    ? (env.nozzle_adj || 0) : 0;
     const envBedAdj    = env    ? (env.bed_adj    || 0) : 0;
     const nozzleOffset = nozzle ? (nozzle.temp_offset || 0) : 0;
-    const totalNozzle  = envNozzleAdj + nozzleOffset;
+    const speedAdj     = speedId === 'fast' ? 5 : 0;
+    const totalNozzle  = envNozzleAdj + nozzleOffset + speedAdj;
 
     let nozzleStr = `${bs.nozzle_temp_base + totalNozzle} °C`;
     if (totalNozzle > 0) nozzleStr += `  (+${totalNozzle} adj)`;
@@ -857,6 +870,13 @@ const Engine = (() => {
       warnings.push(`<strong>TPU 85A moisture warning:</strong> This material absorbs moisture faster than any other common filament. Dry at 65°C for 8h before printing and print from a sealed dryer if possible.`);
     }
 
+    // 21. Hygroscopic material + humid environment — critical drying warning
+    if (material.base_settings.hygroscopic === 'high' && state.environment === 'humid') {
+      const drying = material.drying;
+      const dryInfo = drying ? ` Dry at ${drying.oven_temp}°C for ${drying.oven_duration_hours}h before printing.` : '';
+      warnings.push(`<strong>Critical: ${material.name} is highly moisture-sensitive and you selected a humid environment.</strong> This material must be thoroughly dried before printing — moisture causes bubbling, stringing, and weak layer adhesion.${dryInfo} Print from a sealed dryer if possible.`);
+    }
+
     return warnings;
   }
 
@@ -1023,17 +1043,27 @@ const Engine = (() => {
         innerSpeed = Math.min(innerSpeed, 80);
       }
 
-      // MVS speed cap from material JSON data
+      // MVS speed cap from material JSON data (per-nozzle max_mvs)
       const mat_bs = material.base_settings;
+      const layerH = surface ? surface.layer_height : 0.2;
       if (mat_bs.max_mvs && nozzle) {
         const mvsStr = mat_bs.max_mvs[String(nozzleSize)];
         if (mvsStr) {
           const mvs = parseFloat(mvsStr);
           const defaultLineWidth = nozzleSize * 1.05;
-          const layerH = surface ? surface.layer_height : 0.2;
           const mvsSpeedCap = Math.floor(mvs / (defaultLineWidth * layerH));
           outerSpeed = Math.min(outerSpeed, mvsSpeedCap);
           innerSpeed = Math.min(innerSpeed, Math.floor(mvsSpeedCap * 1.4));
+        }
+      }
+
+      // Global max_volumetric_speed cap (material-level, nozzle-agnostic)
+      if (mat_bs.max_volumetric_speed && nozzle) {
+        const crossSection = nozzleSize * layerH;
+        const globalMvsCap = Math.floor(mat_bs.max_volumetric_speed / crossSection);
+        if (outerSpeed > globalMvsCap || innerSpeed > globalMvsCap) {
+          outerSpeed = Math.min(outerSpeed, globalMvsCap);
+          innerSpeed = Math.min(innerSpeed, Math.floor(globalMvsCap * 1.4));
         }
       }
 
@@ -1155,6 +1185,34 @@ const Engine = (() => {
         'A brim prevents corners and thin features from lifting off the bed during printing.');
     }
 
+    // ─── RETRACTION & PRESSURE ADVANCE (from material data) ───────────────────
+    const mbs = material.base_settings;
+
+    if (mbs.retraction_distance != null) {
+      p.retraction_distance = S(`${mbs.retraction_distance} mm`,
+        isTPU ? 'Very short retraction for flexible filament — longer retractions cause jams in the extruder.' :
+        mbs.retraction_distance >= 1.0 ? 'Longer retraction to prevent ooze with this high-temp material.' :
+        'Standard retraction distance for this material.');
+    }
+
+    if (mbs.retraction_speed != null) {
+      p.retraction_speed = S(`${mbs.retraction_speed} mm/s`,
+        isTPU ? 'Slow retraction prevents stretching and grinding of flexible filament.' :
+        'Retraction speed tuned for this material\'s melt characteristics.');
+    }
+
+    if (mbs.k_factor_matrix) {
+      const nzStr = String(nozzleSize);
+      const keys = Object.keys(mbs.k_factor_matrix).sort((a, b) => Number(a) - Number(b));
+      // Exact match or closest key
+      let kKey = keys.includes(nzStr) ? nzStr : keys.reduce((prev, curr) =>
+        Math.abs(Number(curr) - nozzleSize) < Math.abs(Number(prev) - nozzleSize) ? curr : prev
+      );
+      const kVal = mbs.k_factor_matrix[kKey];
+      p.pressure_advance = A(`${kVal}`,
+        `Pressure advance (K-factor) calibrated for ${kKey}mm nozzle. Fine-tune with a PA calibration test print.`);
+    }
+
     return p;
   }
 
@@ -1196,7 +1254,7 @@ const Engine = (() => {
     if (!printer || !material || !nozzle) return null;
 
     const profile  = resolveProfile(state);
-    const temps    = getAdjustedTemps(state.material, state.environment, state.nozzle);
+    const temps    = getAdjustedTemps(state.material, state.environment, state.nozzle, state.speed);
     const adv      = getAdvancedFilamentSettings(state);
 
     // Flatten profile — take the .value from each param object
