@@ -16,9 +16,12 @@ const state = {
   useCase: [], surface: null, strength: null, speed: null,
   environment: null, support: null, colors: null,
   userLevel: null, special: [],
+  seam: null, brim: null, build_plate: null,
+  extruder_type: null, filament_condition: null, ironing: null,
 };
 
 let currentMode       = 'simple';        // 'simple' | 'advanced'
+const expandedSections = new Set();      // tracks which filters have been expanded via "+N more"
 let currentTheme      = 'dark';          // 'dark' | 'light'
 let activeTabId       = 'quality';       // persisted across re-renders
 let currentView       = 'configure';     // 'configure' | 'troubleshoot' | 'feedback' | 'beta'
@@ -190,13 +193,7 @@ function applyLang() {
 
   // Rebuild filters with translated labels + re-sync selections
   buildFilters();
-  Engine.FILTERS.forEach(filter => {
-    const val      = state[filter.key];
-    const selected = Array.isArray(val) ? val : (val ? [val] : []);
-    document.querySelectorAll(`#chips_${filter.key} .chip`).forEach(chip => {
-      chip.classList.toggle('selected', selected.includes(chip.dataset.value));
-    });
-  });
+  restoreChipSelections();
 
   // Rebuild troubleshooter symptoms grid with translated names
   const grid = document.getElementById('symptomGrid');
@@ -523,6 +520,9 @@ function buildFilters() {
       return;
     }
 
+    // Skip advanced filters when in simple mode
+    if (filter.advanced && currentMode !== 'advanced') return;
+
     const section = document.createElement('div');
     section.className = 'filter-section';
     const T    = Engine.t;
@@ -549,13 +549,67 @@ function buildFilters() {
     });
 
     const chipsEl = section.querySelector('.chips');
+    const hasCore   = filter.items.some(i => i.core === true);
+    const isExpanded = expandedSections.has(filter.key);
+
+    // Auto-expand if a non-core item is already selected
+    if (hasCore && !isExpanded) {
+      const val = state[filter.key];
+      const selected = Array.isArray(val) ? val : (val ? [val] : []);
+      const hasNonCoreSelected = selected.some(v => filter.items.find(i => i.id === v && i.core === false));
+      if (hasNonCoreSelected) expandedSections.add(filter.key);
+    }
+    const showAll = !hasCore || expandedSections.has(filter.key);
+
+    let hiddenCount = 0;
     filter.items.forEach(item => {
+      const isHidden = hasCore && !showAll && item.core === false;
+      if (isHidden) { hiddenCount++; return; }
       const chip = document.createElement('button');
       chip.className = 'chip';
       chip.dataset.value = item.id;
       chip.innerHTML = `<span>${item.name}</span>${item.desc ? `<span class="chip-desc">${item.desc}</span>` : ''}`;
       chip.addEventListener('click', () => handleChipClick(chipsEl, chip, filter.key, item.id, filter.multi));
       chipsEl.appendChild(chip);
+    });
+
+    // "+N more" button for collapsed core sections
+    if (hiddenCount > 0) {
+      const more = document.createElement('button');
+      more.className = 'chip more-chip';
+      more.innerHTML = `<span>+${hiddenCount} more</span>`;
+      more.addEventListener('click', (e) => {
+        e.stopPropagation();
+        expandedSections.add(filter.key);
+        buildFilters();
+        restoreChipSelections();
+      });
+      chipsEl.appendChild(more);
+    }
+
+    // "Show less" button when expanded from core
+    if (hasCore && showAll && expandedSections.has(filter.key)) {
+      const less = document.createElement('button');
+      less.className = 'chip more-chip';
+      less.innerHTML = `<span>Show less</span>`;
+      less.addEventListener('click', (e) => {
+        e.stopPropagation();
+        expandedSections.delete(filter.key);
+        buildFilters();
+        restoreChipSelections();
+      });
+      chipsEl.appendChild(less);
+    }
+  });
+}
+
+// ── Restore chip selections from state after rebuilding filters ───────────────
+function restoreChipSelections() {
+  Engine.FILTERS.forEach(filter => {
+    const val      = state[filter.key];
+    const selected = Array.isArray(val) ? val : (val ? [val] : []);
+    document.querySelectorAll(`#chips_${filter.key} .chip`).forEach(chip => {
+      chip.classList.toggle('selected', selected.includes(chip.dataset.value));
     });
   });
 }
@@ -699,6 +753,7 @@ function bindControls() {
   document.getElementById('resetBtn').addEventListener('click', () => {
     Object.keys(state).forEach(k => { state[k] = Array.isArray(state[k]) ? [] : null; });
     document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+    expandedSections.clear();
     comparisonProfile = null;
     // Reset printer picker state
     pickerBrand = null;
@@ -722,6 +777,8 @@ function setMode(mode) {
   currentMode = mode;
   document.getElementById('modeSimple').classList.toggle('active',   mode === 'simple');
   document.getElementById('modeAdvanced').classList.toggle('active', mode === 'advanced');
+  buildFilters();
+  restoreChipSelections();
   render();
 }
 
