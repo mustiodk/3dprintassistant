@@ -1,6 +1,75 @@
 {
   "nozzles": [
     {
+      "id": "std_0.2",
+      "name": "Standard 0.2 mm",
+      "size": 0.2,
+      "hardened": false,
+      "material": "stainless_steel",
+      "temp_offset": 0,
+      "suitable_for": [
+        "pla",
+        "petg",
+        "pla_silk",
+        "pla_matte",
+        "pva"
+      ],
+      "not_suitable_for": [
+        "pla_cf",
+        "petg_cf",
+        "pa_cf",
+        "abs_cf",
+        "pla_wood",
+        "pla_glow"
+      ],
+      "notes": "Fine detail nozzle. Good for miniatures and detailed prints. Not suitable for abrasive or composite filaments."
+    },
+    {
+      "id": "prc_0.2",
+      "name": "Precision 0.2 mm",
+      "size": 0.2,
+      "hardened": false,
+      "material": "stainless_steel",
+      "temp_offset": 0,
+      "suitable_for": [
+        "pla",
+        "petg",
+        "pla_silk",
+        "pla_matte",
+        "pva"
+      ],
+      "not_suitable_for": [
+        "pla_cf",
+        "petg_cf",
+        "pa_cf",
+        "abs_cf",
+        "pla_wood",
+        "pla_glow"
+      ],
+      "notes": "Ultra-fine detail for miniatures and precision parts. NEVER use with CF/GF or composite filaments \u2014 immediate clogging."
+    },
+    {
+      "id": "hrd_0.2",
+      "name": "Hardened 0.2 mm",
+      "size": 0.2,
+      "hardened": true,
+      "material": "hardened_steel",
+      "temp_offset": 7,
+      "suitable_for": [
+        "pla",
+        "petg",
+        "abs",
+        "asa",
+        "pla_cf",
+        "petg_cf",
+        "pa_cf",
+        "pla_silk",
+        "pla_matte"
+      ],
+      "not_suitable_for": [],
+      "notes": "Fine detail hardened nozzle. Can handle CF/GF filaments at small diameter. Lower thermal conductivity \u2014 temp offset applied."
+    },
+    {
       "id": "std_0.4",
       "name": "Standard 0.4 mm",
       "size": 0.4,
@@ -46,6 +115,32 @@
       "notes": "Required for CF/GF filaments. Lower thermal conductivity than brass \u2014 +5-10\u00b0C temp offset applied automatically."
     },
     {
+      "id": "std_0.6",
+      "name": "Standard 0.6 mm",
+      "size": 0.6,
+      "hardened": false,
+      "material": "stainless_steel",
+      "temp_offset": 0,
+      "suitable_for": [
+        "pla",
+        "petg",
+        "abs",
+        "asa",
+        "tpu",
+        "pva",
+        "pla_silk",
+        "pla_matte",
+        "hips"
+      ],
+      "not_suitable_for": [
+        "pla_cf",
+        "petg_cf",
+        "pa_cf",
+        "abs_cf"
+      ],
+      "notes": "Larger nozzle for faster prints. Good balance of speed and quality. Wears with abrasive filaments."
+    },
+    {
       "id": "hrd_0.6",
       "name": "Hardened 0.6 mm",
       "size": 0.6,
@@ -68,28 +163,52 @@
       "notes": "Recommended for CF/GF filaments \u2014 larger opening reduces clogging risk from fibers. Significantly faster print speeds possible."
     },
     {
-      "id": "prc_0.2",
-      "name": "Precision 0.2 mm",
-      "size": 0.2,
+      "id": "std_0.8",
+      "name": "Standard 0.8 mm",
+      "size": 0.8,
       "hardened": false,
       "material": "stainless_steel",
       "temp_offset": 0,
       "suitable_for": [
         "pla",
         "petg",
+        "abs",
+        "asa",
+        "tpu",
+        "pva",
         "pla_silk",
         "pla_matte",
-        "pva"
+        "hips"
       ],
       "not_suitable_for": [
         "pla_cf",
         "petg_cf",
         "pa_cf",
-        "abs_cf",
-        "pla_wood",
-        "pla_glow"
+        "abs_cf"
       ],
-      "notes": "Ultra-fine detail for miniatures and precision parts. NEVER use with CF/GF or composite filaments \u2014 immediate clogging."
+      "notes": "High-flow nozzle for rapid prototyping and large prints. Sacrifices fine detail for significant speed gains."
+    },
+    {
+      "id": "hrd_0.8",
+      "name": "Hardened 0.8 mm",
+      "size": 0.8,
+      "hardened": true,
+      "material": "hardened_steel",
+      "temp_offset": 7,
+      "suitable_for": [
+        "pla",
+        "petg",
+        "abs",
+        "asa",
+        "tpu",
+        "pla_cf",
+        "petg_cf",
+        "pa_cf",
+        "pla_silk",
+        "pla_matte"
+      ],
+      "not_suitable_for": [],
+      "notes": "High-flow hardened nozzle. Ideal for fast printing with abrasive filaments. Lower thermal conductivity \u2014 temp offset applied."
     }
   ]
 }

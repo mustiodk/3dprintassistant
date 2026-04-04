@@ -83,9 +83,10 @@ const Engine = (() => {
   ];
 
   const _SUPPORT_TYPES = [
-    { id: 'none',         name: 'None'                                      },
-    { id: 'easy_removal', name: 'Easy removal', desc: 'Tree · Z 0.20 mm'   },
-    { id: 'quality',      name: 'Quality',      desc: 'Normal · Z 0.12 mm' },
+    { id: 'none',           name: 'None'                                          },
+    { id: 'easy',           name: 'Easy removal',    desc: 'Tree · Z 0.30 mm'    },
+    { id: 'balanced',       name: 'Balanced',         desc: 'Tree · Z 0.20 mm'    },
+    { id: 'best_underside', name: 'Best underside',   desc: 'Normal · Z 0.10 mm'  },
   ];
 
   const _COLOR_MODES = [
@@ -109,12 +110,101 @@ const Engine = (() => {
     { id: 'uv_resistant', name: 'UV-resistant'      },
   ];
 
+  const _SEAM_OPTIONS = [
+    { id: 'aligned',          name: 'Aligned'          },
+    { id: 'sharpest_corner',  name: 'Sharpest corner'  },
+    { id: 'random',           name: 'Random'           },
+    { id: 'back',             name: 'Back'             },
+  ];
+
+  const _BRIM_OPTIONS = [
+    { id: 'auto',       name: 'Auto'                        },
+    { id: 'none',       name: 'None'                        },
+    { id: 'small',      name: 'Small',  desc: '5 mm'       },
+    { id: 'large',      name: 'Large',  desc: '10 mm'      },
+    { id: 'mouse_ears', name: 'Mouse ears'                  },
+  ];
+
+  const _BUILD_PLATE_OPTIONS = [
+    { id: 'smooth_pei',        name: 'Smooth PEI'        },
+    { id: 'textured_pei',      name: 'Textured PEI'      },
+    { id: 'cool_plate',        name: 'Cool Plate'        },
+    { id: 'engineering_plate',  name: 'Engineering Plate' },
+    { id: 'glass',             name: 'Glass'             },
+    { id: 'garolite',          name: 'Garolite'          },
+  ];
+
+  const _EXTRUDER_TYPES = [
+    { id: 'direct_drive', name: 'Direct drive' },
+    { id: 'bowden',       name: 'Bowden'       },
+  ];
+
+  const _FILAMENT_CONDITIONS = [
+    { id: 'freshly_dried',    name: 'Freshly dried'    },
+    { id: 'opened_recently',  name: 'Opened recently'  },
+    { id: 'unknown',          name: 'Unknown'          },
+  ];
+
+  const _IRONING_OPTIONS = [
+    { id: 'auto', name: 'Auto' },
+    { id: 'on',   name: 'On'   },
+    { id: 'off',  name: 'Off'  },
+  ];
+
+  // ── BUILD PLATE COMPATIBILITY ──────────────────────────────────────────────
+  const BUILD_PLATE_COMPAT = {
+    // material_group → { plate_id: 'good' | 'needs_prep' | 'avoid' }
+    PLA:  { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'good', engineering_plate: 'good', glass: 'good', garolite: 'avoid' },
+    PETG: { smooth_pei: 'needs_prep', textured_pei: 'good', cool_plate: 'good', engineering_plate: 'good', glass: 'needs_prep', garolite: 'avoid' },
+    ABS:  { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'avoid', engineering_plate: 'good', glass: 'needs_prep', garolite: 'avoid' },
+    ASA:  { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'avoid', engineering_plate: 'good', glass: 'needs_prep', garolite: 'avoid' },
+    TPU:  { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'good', engineering_plate: 'good', glass: 'good', garolite: 'avoid' },
+    PA:   { smooth_pei: 'needs_prep', textured_pei: 'needs_prep', cool_plate: 'avoid', engineering_plate: 'good', glass: 'avoid', garolite: 'good' },
+    PC:   { smooth_pei: 'needs_prep', textured_pei: 'good', cool_plate: 'avoid', engineering_plate: 'good', glass: 'avoid', garolite: 'good' },
+    PVA:  { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'good', engineering_plate: 'good', glass: 'good', garolite: 'good' },
+    HIPS: { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'avoid', engineering_plate: 'good', glass: 'needs_prep', garolite: 'avoid' },
+  };
+  const BUILD_PLATE_NOTES = {
+    smooth_pei:       { needs_prep: 'Apply glue stick as a release layer to prevent PETG from bonding to smooth PEI.',
+                        avoid: 'This material is not recommended on smooth PEI — poor adhesion or risk of damage.' },
+    textured_pei:     { needs_prep: 'Clean with IPA and apply thin glue stick layer for reliable adhesion.',
+                        avoid: 'Not recommended on textured PEI for this material.' },
+    cool_plate:       { avoid: 'Cool Plate (PEI-coated steel) cannot reach high enough temperatures for this material. Use engineering plate or textured PEI instead.' },
+    engineering_plate: { needs_prep: 'Clean with IPA before use. Engineering plate provides excellent adhesion for engineering materials.',
+                         avoid: 'Not recommended for this material on engineering plate.' },
+    glass:            { needs_prep: 'Apply glue stick or hairspray for adhesion. Clean glass surface with IPA before applying.',
+                        avoid: 'Glass bed is not suitable for this material — adhesion is unreliable.' },
+    garolite:         { needs_prep: 'Garolite provides excellent adhesion for nylons. No prep needed if surface is clean.',
+                        avoid: 'Garolite is specialized for nylon/PA materials — not recommended for this filament.' },
+  };
+
+  // ── Sort order + core item sets ─────────────────────────────────────────────
+  const _MATERIAL_ORDER = [
+    'pla_basic','pla_matte','pla_silk','pla_cf',
+    'petg_basic','petg_hf','petg_cf',
+    'abs','asa',
+    'tpu_95a','tpu_90a','tpu_85a',
+    'pa','pa_cf','pc','pet_cf',
+    'pva','hips'
+  ];
+  const _CORE_MATERIALS = new Set(['pla_basic','pla_matte','petg_basic','abs','tpu_95a']);
+  const _CORE_NOZZLES   = new Set(['std_0.4','hrd_0.4','std_0.6','prc_0.2']);
+  const _CORE_SURFACE   = new Set(['draft','standard','fine']);
+
+  function _sortByOrder(items, order) {
+    const idx = new Map(order.map((id, i) => [id, i]));
+    return [...items].sort((a, b) => (idx.get(a.id) ?? 999) - (idx.get(b.id) ?? 999));
+  }
+
   // ── FILTERS — built from loaded JSON + static arrays ────────────────────────
   function getFilters() {
     const printerChips  = _printers.map(p => ({ id: p.id, name: p.name }));
-    const nozzleChips   = _nozzles.map(n => ({ id: n.id, name: n.name }));
-    const materialChips = _materials.map(m => ({ id: m.id, name: m.name }));
-    const surfaceChips  = (_objectives.surface_quality || []).map(s => ({ id: s.id, name: s.name, desc: s.desc }));
+    const nozzleChips   = _nozzles.map(n => ({ id: n.id, name: n.name, core: _CORE_NOZZLES.has(n.id) }));
+    const materialChips = _sortByOrder(
+      _materials.map(m => ({ id: m.id, name: m.name, core: _CORE_MATERIALS.has(m.id) })),
+      _MATERIAL_ORDER
+    );
+    const surfaceChips  = (_objectives.surface_quality || []).map(s => ({ id: s.id, name: s.name, desc: s.desc, core: _CORE_SURFACE.has(s.id) }));
     const strengthChips = (_objectives.strength_levels || []).map(s => ({ id: s.id, name: s.name, desc: s.desc }));
     const speedChips    = (_objectives.speed_priority  || []).map(s => ({ id: s.id, name: s.name }));
     const envChips      = _envRules.map(e => ({ id: e.id, name: e.name, desc: e.desc }));
@@ -135,9 +225,10 @@ const Engine = (() => {
       { key: 'speed',       label: t('filterSpeed'),     multi: false, required: false, items: speedChips    },
       { key: 'environment', label: t('filterEnv'),       multi: false, required: false, items: envChips      },
       { key: 'support',     label: t('filterSupport'),   multi: false, required: false, items: [
-        { id: 'none',         name: t('supNone')                                     },
-        { id: 'easy_removal', name: t('supEasy'),    desc: 'Tree · Z 0.20 mm'        },
-        { id: 'quality',      name: t('supQuality'), desc: 'Normal · Z 0.12 mm'      },
+        { id: 'none',           name: t('supNone')                                            },
+        { id: 'easy',           name: t('supEasy'),          desc: 'Tree · Z 0.30 mm'        },
+        { id: 'balanced',       name: t('supBalanced'),      desc: 'Tree · Z 0.20 mm'        },
+        { id: 'best_underside', name: t('supBestUnderside'), desc: 'Normal · Z 0.10 mm'      },
       ]},
       { key: 'colors',      label: t('filterColors'),   multi: false, required: false, items: [
         { id: 'single',    name: t('colSingle')   },
@@ -148,6 +239,41 @@ const Engine = (() => {
         { id: 'beginner',     name: t('lvlBeginner'), desc: t('lvlBeginnerDesc') },
         { id: 'intermediate', name: t('lvlInter'),    desc: t('lvlInterDesc')    },
         { id: 'advanced',     name: t('lvlAdvanced'), desc: t('lvlAdvancedDesc') },
+      ]},
+      { key: 'seam',             label: t('filterSeam'),             multi: false, required: false, advanced: true, items: [
+        { id: 'aligned',         name: t('seamAligned')         },
+        { id: 'sharpest_corner', name: t('seamSharpest')        },
+        { id: 'random',          name: t('seamRandom')          },
+        { id: 'back',            name: t('seamBack')            },
+      ]},
+      { key: 'brim',             label: t('filterBrim'),             multi: false, required: false, advanced: true, items: [
+        { id: 'auto',       name: t('brimAuto')      },
+        { id: 'none',       name: t('brimNone')      },
+        { id: 'small',      name: t('brimSmall'),    desc: '5 mm'  },
+        { id: 'large',      name: t('brimLarge'),    desc: '10 mm' },
+        { id: 'mouse_ears', name: t('brimMouseEars') },
+      ]},
+      { key: 'build_plate',     label: t('filterBuildPlate'),       multi: false, required: false, advanced: true, items: [
+        { id: 'smooth_pei',       name: t('bpSmoothPEI')       },
+        { id: 'textured_pei',     name: t('bpTexturedPEI')     },
+        { id: 'cool_plate',       name: t('bpCoolPlate')       },
+        { id: 'engineering_plate', name: t('bpEngineering')     },
+        { id: 'glass',            name: t('bpGlass')           },
+        { id: 'garolite',         name: t('bpGarolite')        },
+      ]},
+      { key: 'extruder_type',   label: t('filterExtruderType'),     multi: false, required: false, advanced: true, items: [
+        { id: 'direct_drive', name: t('extDirectDrive') },
+        { id: 'bowden',       name: t('extBowden')      },
+      ]},
+      { key: 'filament_condition', label: t('filterFilamentCond'),   multi: false, required: false, advanced: true, items: [
+        { id: 'freshly_dried',   name: t('fcDried')    },
+        { id: 'opened_recently', name: t('fcOpened')   },
+        { id: 'unknown',         name: t('fcUnknown')  },
+      ]},
+      { key: 'ironing',         label: t('filterIroning'),          multi: false, required: false, advanced: true, items: [
+        { id: 'auto', name: t('ironAuto') },
+        { id: 'on',   name: t('ironOn')   },
+        { id: 'off',  name: t('ironOff')  },
       ]},
       { key: 'special',     label: t('filterSpecial'),  multi: true,  required: false, items: [
         { id: 'waterproof',   name: t('spWaterproof') },
@@ -891,8 +1017,48 @@ const Engine = (() => {
     }
 
     // B5. PEI adhesion alert — aggressive bonding to smooth PEI
-    if (material.adhesion_risk_pei === 'high') {
+    if (material.adhesion_risk_pei === 'high' && !state.build_plate) {
       warnings.push(`<strong>${material.name} bonds aggressively to smooth PEI.</strong> Use a glue stick or hairspray as a release layer to prevent damage to the build plate surface. A textured PEI sheet is also a safe alternative.`);
+    }
+
+    // C1. Build plate compatibility warning
+    if (state.build_plate && material.group) {
+      const compat = BUILD_PLATE_COMPAT[material.group];
+      if (compat) {
+        const rating = compat[state.build_plate];
+        const plateOption = _BUILD_PLATE_OPTIONS.find(bp => bp.id === state.build_plate);
+        const plateName = plateOption ? plateOption.name : state.build_plate;
+        if (rating === 'avoid') {
+          const note = BUILD_PLATE_NOTES[state.build_plate]?.avoid || `${material.name} is not recommended on ${plateName}.`;
+          warnings.push(`<strong>${material.name} + ${plateName}: Not recommended.</strong> ${note}`);
+        } else if (rating === 'needs_prep') {
+          const note = BUILD_PLATE_NOTES[state.build_plate]?.needs_prep || `${plateName} requires surface preparation for ${material.name}.`;
+          warnings.push(`<strong>${material.name} + ${plateName}: Prep required.</strong> ${note}`);
+        }
+      }
+    }
+
+    // C2. Filament condition — unknown + hygroscopic material
+    if (state.filament_condition === 'unknown' && material.base_settings.hygroscopic && material.base_settings.hygroscopic !== 'none') {
+      const drying = material.drying;
+      const dryInfo = drying ? ` Dry at ${drying.oven_temp}°C for ${drying.oven_duration_hours}h before printing.` : '';
+      warnings.push(`<strong>Filament condition unknown for ${material.name}.</strong> This material is moisture-sensitive — if you haven't dried it recently, print quality may suffer.${dryInfo}`);
+    }
+
+    // C3. Layer height constraint — layer height > 75% of nozzle diameter
+    if (nozzle && state.surface) {
+      const surface = getSurface(state.surface);
+      if (surface) {
+        const maxLayer = nozzle.size * 0.75;
+        if (surface.layer_height > maxLayer) {
+          warnings.push(`<strong>Layer height too tall for ${nozzle.name}.</strong> ${surface.layer_height} mm exceeds 75% of nozzle diameter (${maxLayer.toFixed(2)} mm). This causes poor layer adhesion and extrusion issues. Select a finer surface quality or larger nozzle.`);
+        }
+      }
+    }
+
+    // C4. Bowden extruder info warning
+    if (state.extruder_type === 'bowden') {
+      warnings.push(`<strong>Bowden extruder selected.</strong> Retraction distances are increased to compensate for the longer filament path. Fine-tune based on your PTFE tube length.`);
     }
 
     return warnings;
@@ -944,7 +1110,14 @@ const Engine = (() => {
           ? 'Arachne uses variable-width extrusion to fill thin walls and fine details that Classic would leave partially empty.'
           : 'Classic produces consistent, predictable wall widths — better for structural parts.');
 
-      if (surface.seam_aligned) {
+      // Seam position — explicit state.seam overrides surface default
+      const seamLabels = { aligned: 'Aligned', sharpest_corner: 'Sharpest corner', random: 'Random', back: 'Back' };
+      if (state.seam && state.seam !== 'aligned') {
+        p.seam_position = S(seamLabels[state.seam] || state.seam,
+          state.seam === 'sharpest_corner' ? 'Seam placed at the sharpest corner of each layer — hides it in geometry.' :
+          state.seam === 'random'          ? 'Seam placed randomly each layer — spreads the mark across the surface instead of concentrating it.' :
+          state.seam === 'back'            ? 'Seam placed at the back of the model — keeps the visible side clean.' : '');
+      } else if (surface.seam_aligned) {
         p.seam_position = S('Aligned (or Back)',
           'At fine quality, the seam is more visible. Placing it consistently at one location makes it easy to hide or orient away from view.');
       }
@@ -1149,24 +1322,27 @@ const Engine = (() => {
     // ─── SUPPORT TAB ──────────────────────────────────────────────────────────
     const support = _SUPPORT_TYPES.find(s => s.id === state.support);
     if (support && support.id !== 'none') {
-      const isEasy = support.id === 'easy_removal';
-      const forceEasy = isBeginnerMode; // beginners always get easy-removal supports
+      const isTree = support.id === 'easy' || support.id === 'balanced';
+      const forceEasy = isBeginnerMode;
+      const zGap = support.id === 'easy' ? '0.30' : support.id === 'balanced' ? '0.20' : '0.10';
 
-      p.support_type            = S(isEasy || forceEasy ? 'Tree' : 'Normal',
-        isEasy || forceEasy
+      p.support_type            = S(isTree || forceEasy ? 'Tree' : 'Normal',
+        isTree || forceEasy
           ? 'Tree supports contact the model at minimal points and are significantly easier to remove without surface damage.'
           : 'Normal supports provide better surface quality on the underside of supported areas — use when finish matters.');
-      p.support_style           = S(isEasy || forceEasy ? 'Tree Hybrid' : 'Default', '');
-      p.support_threshold_angle = S(isEasy ? '40°' : '30°',
+      p.support_style           = S(isTree || forceEasy ? 'Tree Hybrid' : 'Default', '');
+      p.support_threshold_angle = S(support.id === 'best_underside' ? '30°' : '40°',
         'Only generate support where overhangs exceed this angle. Lower values generate more support — use 30° for quality-critical surfaces.');
-      p.support_z_distance      = S(isEasy ? '0.20 mm' : '0.12 mm',
-        isEasy
-          ? 'Larger Z gap makes support easy to snap off. Expect slight surface marks on the underside of supported areas.'
-          : 'Tighter Z distance produces cleaner supported surfaces at the cost of harder removal.');
+      p.support_z_distance      = S(`${zGap} mm`,
+        support.id === 'easy'
+          ? 'Large Z gap makes support very easy to snap off. Minimal surface marks.'
+          : support.id === 'balanced'
+          ? 'Moderate Z gap balances ease of removal with reasonable underside quality.'
+          : 'Tight Z distance produces the cleanest supported surfaces at the cost of harder removal.');
 
-      p.support_interface_layers  = A(isEasy ? '2' : '3',
+      p.support_interface_layers  = A(support.id === 'best_underside' ? '3' : '2',
         'Interface layers are solid layers between the support and model surface — more layers = better surface finish on the supported face, but harder to remove.');
-      p.support_interface_pattern = A(isEasy ? 'Rectilinear' : 'Grid',
+      p.support_interface_pattern = A(support.id === 'best_underside' ? 'Grid' : 'Rectilinear',
         'Grid interface provides stronger contact with the model surface. Rectilinear is easier to peel off after printing.');
     }
 
@@ -1181,9 +1357,15 @@ const Engine = (() => {
       }
     }
 
-    if (surface && surface.ironing) {
+    // Ironing — decoupled from surface quality, driven by state.ironing (auto/on/off)
+    const ironingState = state.ironing || 'auto';
+    const ironingEnabled = ironingState === 'on' ||
+      (ironingState === 'auto' && surface && ['fine', 'maximum', 'very_fine', 'ultra'].includes(surface.id));
+    if (ironingEnabled) {
       p.ironing = S('Enabled — Monotonic line',
-        'Ironing re-passes the nozzle over the top surface at low speed to melt and flatten bumps, producing a near-glossy flat finish.');
+        ironingState === 'auto'
+          ? 'Auto-enabled at Fine or better surface quality. Ironing re-passes the nozzle over the top surface to produce a near-smooth finish.'
+          : 'Ironing re-passes the nozzle over the top surface at low speed to melt and flatten bumps, producing a near-glossy flat finish.');
     }
 
     if (isLarge && !isCoreXY) {
@@ -1191,16 +1373,36 @@ const Engine = (() => {
         'On A1/A1 Mini the bed moves — tall prints amplify vibration as mass increases. Slowing top layers significantly reduces ringing artifacts.');
     }
 
-    // Brim logic — beginner always gets brim, others based on part type + material
-    const needsBrim = isFunctional || isLarge || special.includes('high_temp') || isBeginnerMode || isABSlike || isPA || isPC;
-    if (needsBrim) {
-      const brimSize = (isPA || isPC) ? '8–12 mm' : '5–8 mm';
-      p.brim_width = A(brimSize,
-        isPC         ? 'PC shrinks significantly — a wide brim is essential to prevent corner lift and delamination.' :
-        isPA         ? 'PA (Nylon) has high shrinkage — always use a brim to prevent warping, especially on larger parts.' :
-        isABSlike    ? 'Essential for ABS/ASA — these materials warp severely at corners without a brim.' :
-        isBeginnerMode ? 'Beginner tip: a brim dramatically improves first-layer success rate for any material.' :
-        'A brim prevents corners and thin features from lifting off the bed during printing.');
+    // Brim logic — explicit state.brim overrides auto-detection
+    const brimState = state.brim || 'auto';
+    if (brimState !== 'none') {
+      let brimValue, brimWhy;
+      if (brimState === 'auto') {
+        // Auto: decide based on material + use case
+        const highShrink = material.shrink_risk === 'high';
+        const needsBrim = isFunctional || isLarge || special.includes('high_temp') || isBeginnerMode || isABSlike || isPA || isPC || highShrink;
+        if (needsBrim) {
+          brimValue = (isPA || isPC || highShrink) ? '8–12 mm' : '5–8 mm';
+          brimWhy = isPC         ? 'PC shrinks significantly — a wide brim is essential to prevent corner lift and delamination.' :
+                    isPA         ? 'PA (Nylon) has high shrinkage — always use a brim to prevent warping, especially on larger parts.' :
+                    isABSlike    ? 'Essential for ABS/ASA — these materials warp severely at corners without a brim.' :
+                    highShrink   ? `${material.name} has high shrink risk — auto-brim applied to prevent warping.` :
+                    isBeginnerMode ? 'Beginner tip: a brim dramatically improves first-layer success rate for any material.' :
+                    'A brim prevents corners and thin features from lifting off the bed during printing.';
+        }
+      } else if (brimState === 'small') {
+        brimValue = '5 mm';
+        brimWhy = 'Small brim — minimal bed adhesion boost without excessive cleanup.';
+      } else if (brimState === 'large') {
+        brimValue = '10 mm';
+        brimWhy = 'Large brim — maximum adhesion for warp-prone materials and large parts.';
+      } else if (brimState === 'mouse_ears') {
+        brimValue = 'Mouse ears (corners only)';
+        brimWhy = 'Brim applied only to corners — prevents lifting while minimizing cleanup.';
+      }
+      if (brimValue) {
+        p.brim_width = A(brimValue, brimWhy);
+      }
     }
 
     // ─── RETRACTION & PRESSURE ADVANCE (from material data) ───────────────────
@@ -1238,6 +1440,17 @@ const Engine = (() => {
         p.retraction_distance = S(`${material.retraction_max} mm`,
           `Retraction clamped to ${material.retraction_max} mm — longer retractions cause grinding and jams with flexible filament.`);
       }
+    }
+
+    // C5. Bowden extruder retraction adjustment
+    if (state.extruder_type === 'bowden' && mbs.retraction_distance != null) {
+      const mult = material.flexible ? 1.5 : 3.5;
+      let bowdenRD = Math.round(mbs.retraction_distance * mult * 10) / 10;
+      if (material.retraction_max != null) bowdenRD = Math.min(bowdenRD, material.retraction_max);
+      p.retraction_distance = S(`${bowdenRD} mm`,
+        material.flexible
+          ? `Bowden retraction for flexible filament — modest increase (×${mult}) to avoid grinding. Fine-tune based on tube length.`
+          : `Bowden retraction increased (×${mult}) to compensate for the longer PTFE tube path. Fine-tune based on tube length.`);
     }
 
     // B1. Fan policy output — base fan speed recommendation from material data

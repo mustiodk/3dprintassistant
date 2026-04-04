@@ -28,6 +28,24 @@
       "seam_aligned": true
     },
     {
+      "id": "very_fine",
+      "name": "Very Fine",
+      "desc": "0.12 mm",
+      "layer_height": 0.12,
+      "ironing": false,
+      "wall_generator": "Arachne",
+      "seam_aligned": true
+    },
+    {
+      "id": "ultra",
+      "name": "Ultra",
+      "desc": "0.08 mm",
+      "layer_height": 0.08,
+      "ironing": false,
+      "wall_generator": "Arachne",
+      "seam_aligned": true
+    },
+    {
       "id": "maximum",
       "name": "Maximum",
       "desc": "0.12 mm + ironing",
