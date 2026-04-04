@@ -545,7 +545,16 @@
         "pressure_advance": 0.04,
         "flow_ratio": 0.96,
         "retraction_length": 1,
-        "retraction_speed": 45
+        "retraction_speed": 35,
+        "max_volumetric_speed": 15,
+        "k_factor_matrix": {
+          "0.2": 0.089,
+          "0.4": 0.05,
+          "0.6": 0.031,
+          "0.8": 0.02
+        },
+        "retraction_distance": 0.8,
+        "hygroscopic": "low"
       },
       "enclosure_required": false,
       "enclosure_behavior": {
@@ -595,7 +604,13 @@
       ],
       "notes": [
         "Max Volumetric Speed for 0.4 mm nozzle: 16 mm³/s — Bambu Studio's default (24) is incorrect for this material."
-      ]
+      ],
+      "shrink_risk": "low",
+      "flexible": false,
+      "abrasive": false,
+      "adhesion_risk_pei": "high",
+      "fan_policy": "moderate",
+      "retraction_max": 2
     },
     {
       "id": "abs",
@@ -1582,6 +1597,308 @@
       "adhesion_risk_pei": "high",
       "fan_policy": "off",
       "retraction_max": 2
+    },
+    {
+      "id": "pa_cf",
+      "name": "PA-CF (Nylon Carbon Fiber)",
+      "group": "PA",
+      "difficulty": "advanced",
+      "base_settings": {
+        "nozzle_temp_base": 260,
+        "nozzle_temp_min": 250,
+        "nozzle_temp_max": 280,
+        "bed_temp_base": 80,
+        "bed_temp_min": 70,
+        "bed_temp_max": 90,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 5,
+        "cooling_fan": "10–20%",
+        "cooling_fan_min": "5%",
+        "cooling_fan_overhang": "50%",
+        "slow_layer_time": "15 s",
+        "max_mvs": {
+          "0.4": "8 mm³/s",
+          "0.6": "12 mm³/s"
+        },
+        "max_speed": 150,
+        "pressure_advance": 0.04,
+        "flow_ratio": 0.98,
+        "retraction_length": 1,
+        "retraction_speed": 30,
+        "max_volumetric_speed": 6,
+        "k_factor_matrix": {
+          "0.2": 0.08,
+          "0.4": 0.045,
+          "0.6": 0.028,
+          "0.8": 0.018
+        },
+        "retraction_distance": 0.8,
+        "hygroscopic": "high"
+      },
+      "enclosure_required": false,
+      "enclosure_behavior": {
+        "enclosed_preferred": true,
+        "enclosure_strongly_recommended": true,
+        "reason": "PA warps significantly without stable ambient temperature — enclosure strongly recommended for anything larger than 50mm"
+      },
+      "compatible_plates": [
+        {
+          "plate_id": "engineering_plate",
+          "bed_temp_range": [
+            75,
+            90
+          ],
+          "glue": "required"
+        },
+        {
+          "plate_id": "high_temp_plate",
+          "bed_temp_range": [
+            75,
+            90
+          ],
+          "glue": "required"
+        }
+      ],
+      "build_plate_display": "Engineering Plate (glue required)",
+      "nozzle_requirements": {
+        "min_diameter": 0.4,
+        "material": "hardened"
+      },
+      "ams_compatible": true,
+      "ams_lite_compatible": false,
+      "drying": {
+        "required": true,
+        "recommended": true,
+        "display": "Critical — 70 °C / 8h before every print",
+        "oven_temp": 70,
+        "oven_duration_hours": 8,
+        "heatbed_temp": 85,
+        "heatbed_duration_hours": 16,
+        "storage_max_humidity_pct": 10
+      },
+      "properties": {
+        "heat_resistance_celsius": 110,
+        "uv_resistant": false,
+        "moisture_resistant": false,
+        "outdoor_suitable": false,
+        "food_safe_possible": false,
+        "flexible": false
+      },
+      "shrinkage_factor": 0.015,
+      "ventilation_required": false,
+      "warnings": [
+        "PA (Nylon) is extremely hygroscopic — absorbs moisture from air within hours of opening. Dry before EVERY print and store in a sealed dry box with desiccant.",
+        "High shrinkage (1.5%) — use generous brim (8–12mm) and enclosure to prevent warping and layer separation."
+      ],
+      "notes": [
+        "Carbon fiber reinforced nylon — very strong but requires hardened nozzle"
+      ],
+      "shrink_risk": "high",
+      "flexible": false,
+      "abrasive": true,
+      "adhesion_risk_pei": "medium",
+      "fan_policy": "off",
+      "retraction_max": 2
+    },
+    {
+      "id": "pet_cf",
+      "name": "PET-CF (PET Carbon Fiber)",
+      "group": "PET",
+      "difficulty": "advanced",
+      "base_settings": {
+        "nozzle_temp_base": 260,
+        "nozzle_temp_min": 250,
+        "nozzle_temp_max": 275,
+        "bed_temp_base": 80,
+        "bed_temp_min": 70,
+        "bed_temp_max": 90,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 5,
+        "cooling_fan": "30–50%",
+        "cooling_fan_min": "20%",
+        "cooling_fan_overhang": "70%",
+        "slow_layer_time": "15 s",
+        "max_mvs": {
+          "0.4": "6 mm³/s",
+          "0.6": "8 mm³/s"
+        },
+        "max_speed": 120,
+        "pressure_advance": 0.03,
+        "flow_ratio": 0.96,
+        "retraction_length": 0.8,
+        "retraction_speed": 30,
+        "max_volumetric_speed": 4,
+        "k_factor_matrix": {
+          "0.2": 0.098,
+          "0.4": 0.055,
+          "0.6": 0.034,
+          "0.8": 0.022
+        },
+        "retraction_distance": 0.8,
+        "hygroscopic": "low"
+      },
+      "enclosure_required": false,
+      "enclosure_behavior": {
+        "enclosed_preferred": true,
+        "safe_chamber_temp_max": 50,
+        "reason": "PETG-CF benefits from stable ambient temperature to reduce warping on larger parts"
+      },
+      "compatible_plates": [
+        {
+          "plate_id": "engineering_plate",
+          "bed_temp_range": [
+            65,
+            85
+          ],
+          "glue": "optional"
+        },
+        {
+          "plate_id": "textured_pei",
+          "bed_temp_range": [
+            65,
+            85
+          ],
+          "glue": "recommended"
+        }
+      ],
+      "build_plate_display": "Textured PEI or Engineering Plate (glue recommended)",
+      "nozzle_requirements": {
+        "min_diameter": 0.4,
+        "material": "hardened"
+      },
+      "ams_compatible": true,
+      "ams_lite_compatible": false,
+      "drying": {
+        "required": false,
+        "recommended": true,
+        "display": "Recommended — 65 °C / 6h",
+        "oven_temp": 65,
+        "oven_duration_hours": 6,
+        "heatbed_temp": 80,
+        "heatbed_duration_hours": 10,
+        "storage_max_humidity_pct": 20
+      },
+      "properties": {
+        "heat_resistance_celsius": 85,
+        "uv_resistant": false,
+        "moisture_resistant": true,
+        "outdoor_suitable": false,
+        "food_safe_possible": false,
+        "flexible": false
+      },
+      "shrinkage_factor": 0.004,
+      "ventilation_required": false,
+      "warnings": [
+        "Hardened steel nozzle required — carbon fibers will destroy brass/stainless nozzles within hours.",
+        "Do NOT use 0.2mm nozzle — carbon fibers cause immediate clogging. 0.4mm minimum."
+      ],
+      "notes": [
+        "PET-CF offers higher heat resistance than PETG-CF with excellent dimensional stability"
+      ],
+      "shrink_risk": "low",
+      "flexible": false,
+      "abrasive": true,
+      "adhesion_risk_pei": "high",
+      "fan_policy": "moderate",
+      "retraction_max": 2
+    },
+    {
+      "id": "hips",
+      "name": "HIPS",
+      "group": "HIPS",
+      "difficulty": "intermediate",
+      "base_settings": {
+        "nozzle_temp_base": 230,
+        "nozzle_temp_min": 220,
+        "nozzle_temp_max": 245,
+        "bed_temp_base": 90,
+        "bed_temp_min": 80,
+        "bed_temp_max": 100,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 5,
+        "cooling_fan": "0–20%",
+        "cooling_fan_min": "0%",
+        "cooling_fan_overhang": "30%",
+        "slow_layer_time": "15 s",
+        "max_mvs": {
+          "0.4": "15 mm³/s",
+          "0.6": "18 mm³/s"
+        },
+        "max_speed": 200,
+        "pressure_advance": 0.03,
+        "flow_ratio": 0.98,
+        "retraction_length": 0.8,
+        "retraction_speed": 40,
+        "max_volumetric_speed": 10,
+        "k_factor_matrix": {
+          "0.2": 0.068,
+          "0.4": 0.038,
+          "0.6": 0.024,
+          "0.8": 0.015
+        },
+        "retraction_distance": 0.8,
+        "hygroscopic": "low"
+      },
+      "enclosure_required": true,
+      "enclosure_behavior": {
+        "enclosure_required": true,
+        "reason": "ABS warps severely without enclosure heat. Enclosed chamber holds 45–55°C for reliable layer adhesion."
+      },
+      "compatible_plates": [
+        {
+          "plate_id": "high_temp_plate",
+          "bed_temp_range": [
+            85,
+            100
+          ],
+          "glue": "optional"
+        },
+        {
+          "plate_id": "engineering_plate",
+          "bed_temp_range": [
+            85,
+            100
+          ],
+          "glue": "optional"
+        }
+      ],
+      "build_plate_display": "High Temp Plate or Engineering Plate",
+      "nozzle_requirements": {
+        "min_diameter": 0.2,
+        "material": "any"
+      },
+      "ams_compatible": true,
+      "ams_lite_compatible": false,
+      "drying": {
+        "required": false,
+        "recommended": true,
+        "display": "Recommended — 60 °C / 4h",
+        "oven_temp": 60,
+        "oven_duration_hours": 4,
+        "heatbed_temp": 70,
+        "heatbed_duration_hours": 8,
+        "storage_max_humidity_pct": 20
+      },
+      "properties": {
+        "heat_resistance_celsius": 90,
+        "uv_resistant": false,
+        "moisture_resistant": false,
+        "outdoor_suitable": false,
+        "food_safe_possible": false,
+        "flexible": false
+      },
+      "shrinkage_factor": 0.006,
+      "ventilation_required": true,
+      "warnings": [],
+      "notes": [
+        "Commonly used as soluble support material for ABS — dissolves in D-Limonene"
+      ],
+      "shrink_risk": "high",
+      "flexible": false,
+      "abrasive": false,
+      "adhesion_risk_pei": "low",
+      "fan_policy": "off",
+      "retraction_max": 2.5
     }
   ]
 }
