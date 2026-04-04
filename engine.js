@@ -177,7 +177,7 @@ const Engine = (() => {
           { label: 'Ironing',         params: ['ironing'] },
           { label: 'Wall generator',  params: ['wall_generator'] },
           { label: 'Advanced',        params: ['order_of_walls', 'bridge_flow', 'only_one_wall_top', 'avoid_crossing_walls'] },
-          { label: 'Retraction',      params: ['retraction_distance', 'retraction_speed', 'pressure_advance'] },
+          { label: 'Retraction',      params: ['retraction_distance', 'retraction_speed', 'pressure_advance', 'fan_speed'] },
         ],
       },
       {
@@ -223,7 +223,7 @@ const Engine = (() => {
           { label: 'Quality',            params: ['avoid_crossing_walls', 'bridge_flow'] },
           { label: 'Advanced',           params: ['seam_position', 'order_of_walls', 'wall_generator'] },
           { label: 'Only one perimeter', params: ['only_one_wall_top'] },
-          { label: 'Retraction',       params: ['retraction_distance', 'retraction_speed', 'pressure_advance'] },
+          { label: 'Retraction',       params: ['retraction_distance', 'retraction_speed', 'pressure_advance', 'fan_speed'] },
         ],
       },
       {
@@ -270,7 +270,7 @@ const Engine = (() => {
           { label: 'Wall generator',     params: ['wall_generator'] },
           { label: 'Walls and surfaces', params: ['order_of_walls', 'only_one_wall_top', 'avoid_crossing_walls'] },
           { label: 'Bridging',          params: ['bridge_flow'] },
-          { label: 'Retraction',        params: ['retraction_distance', 'retraction_speed', 'pressure_advance'] },
+          { label: 'Retraction',        params: ['retraction_distance', 'retraction_speed', 'pressure_advance', 'fan_speed'] },
         ],
       },
       {
@@ -359,6 +359,7 @@ const Engine = (() => {
       retraction_distance:           'Retraction distance',
       retraction_speed:              'Retraction speed',
       pressure_advance:              'Pressure advance',
+      fan_speed:                     'Fan speed',
     },
     prusaslicer: {
       layer_height:                  'Layer height',
@@ -406,6 +407,7 @@ const Engine = (() => {
       retraction_distance:           'Retraction length',
       retraction_speed:              'Retraction speed',
       pressure_advance:              'Pressure advance',
+      fan_speed:                     'Fan speed',
     },
     orcaslicer: {
       layer_height:                  'Layer height',
@@ -453,6 +455,7 @@ const Engine = (() => {
       retraction_distance:           'Retraction distance',
       retraction_speed:              'Retraction speed',
       pressure_advance:              'Pressure advance',
+      fan_speed:                     'Fan speed',
     },
   };
 
@@ -877,6 +880,21 @@ const Engine = (() => {
       warnings.push(`<strong>Critical: ${material.name} is highly moisture-sensitive and you selected a humid environment.</strong> This material must be thoroughly dried before printing — moisture causes bubbling, stringing, and weak layer adhesion.${dryInfo} Print from a sealed dryer if possible.`);
     }
 
+    // B2. Enclosure enforcement — high shrink risk on open printer
+    if (material.shrink_risk === 'high' && printer && printer.enclosure === 'none') {
+      warnings.push(`<strong>${material.name} has high shrinkage risk on an open printer.</strong> This material requires a stable enclosed environment to prevent warping and layer cracking. Use a draft shield, close nearby doors/windows, add a wide brim (8–12mm), and consider a DIY enclosure.`);
+    }
+
+    // B4. Abrasive nozzle check — abrasive material on non-hardened nozzle
+    if (material.abrasive && nozzle && !nozzle.hardened) {
+      warnings.push(`<strong>${material.name} contains abrasive fillers.</strong> This will rapidly wear a standard brass nozzle — expect visible degradation within hours of printing. Switch to a hardened steel nozzle for this material.`);
+    }
+
+    // B5. PEI adhesion alert — aggressive bonding to smooth PEI
+    if (material.adhesion_risk_pei === 'high') {
+      warnings.push(`<strong>${material.name} bonds aggressively to smooth PEI.</strong> Use a glue stick or hairspray as a release layer to prevent damage to the build plate surface. A textured PEI sheet is also a safe alternative.`);
+    }
+
     return warnings;
   }
 
@@ -1211,6 +1229,25 @@ const Engine = (() => {
       const kVal = mbs.k_factor_matrix[kKey];
       p.pressure_advance = A(`${kVal}`,
         `Pressure advance (K-factor) calibrated for ${kKey}mm nozzle. Fine-tune with a PA calibration test print.`);
+    }
+
+    // B3. Flexible retraction bounds — clamp retraction distance to retraction_max
+    if (material.flexible && material.retraction_max != null && mbs.retraction_distance != null) {
+      const rd = mbs.retraction_distance;
+      if (rd > material.retraction_max) {
+        p.retraction_distance = S(`${material.retraction_max} mm`,
+          `Retraction clamped to ${material.retraction_max} mm — longer retractions cause grinding and jams with flexible filament.`);
+      }
+    }
+
+    // B1. Fan policy output — base fan speed recommendation from material data
+    const fanMap = { high: '100%', moderate: '50%', low: '25%', off: '0%' };
+    if (material.fan_policy && fanMap[material.fan_policy]) {
+      p.fan_speed = S(fanMap[material.fan_policy],
+        material.fan_policy === 'off'      ? 'Fan off — this material needs slow, even cooling to prevent warping and layer cracking.' :
+        material.fan_policy === 'moderate'  ? 'Moderate fan — balances cooling for dimensional accuracy without causing adhesion issues.' :
+        material.fan_policy === 'high'      ? 'Full fan speed — rapid cooling locks in detail and prevents sagging on overhangs.' :
+        'Low fan speed — minimal cooling to maintain layer adhesion.');
     }
 
     return p;

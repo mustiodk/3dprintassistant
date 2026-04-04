@@ -97,7 +97,13 @@
       "shrinkage_factor": 0.003,
       "ventilation_required": false,
       "warnings": [],
-      "notes": []
+      "notes": [],
+      "shrink_risk": "none",
+      "flexible": false,
+      "abrasive": false,
+      "adhesion_risk_pei": "low",
+      "fan_policy": "high",
+      "retraction_max": 2
     },
     {
       "id": "pla_matte",
@@ -191,7 +197,13 @@
       "notes": [
         "Matte texture naturally hides layer lines — fine layers (0.15 mm) make little visual difference vs standard.",
         "Use wall loops 3+ — under-extrusion gaps are more visible on matte surfaces."
-      ]
+      ],
+      "shrink_risk": "none",
+      "flexible": false,
+      "abrasive": false,
+      "adhesion_risk_pei": "low",
+      "fan_policy": "high",
+      "retraction_max": 2
     },
     {
       "id": "pla_silk",
@@ -286,7 +298,13 @@
         "Lower fan speed than standard PLA — more heat retained gives the characteristic sheen.",
         "Needs +5-10°C nozzle vs standard PLA for proper flow — higher viscosity from metallic pigments.",
         "Slow outer wall speed (40–60 mm/s) for best surface gloss."
-      ]
+      ],
+      "shrink_risk": "none",
+      "flexible": false,
+      "abrasive": false,
+      "adhesion_risk_pei": "low",
+      "fan_policy": "high",
+      "retraction_max": 2
     },
     {
       "id": "pla_cf",
@@ -383,7 +401,13 @@
       "notes": [
         "Produces stiff, dimensionally stable parts with a matte carbon-fiber texture.",
         "Abrasive fibers will gradually wear AMS PTFE tubes — inspect periodically."
-      ]
+      ],
+      "shrink_risk": "none",
+      "flexible": false,
+      "abrasive": true,
+      "adhesion_risk_pei": "low",
+      "fan_policy": "high",
+      "retraction_max": 2
     },
     {
       "id": "petg_basic",
@@ -486,7 +510,13 @@
       "notes": [
         "PETG bonds aggressively to smooth PEI — always use textured PEI or apply a glue stick layer.",
         "Too little cooling → stringing. Too much → poor layer adhesion. Start at 40% and adjust."
-      ]
+      ],
+      "shrink_risk": "low",
+      "flexible": false,
+      "abrasive": false,
+      "adhesion_risk_pei": "high",
+      "fan_policy": "moderate",
+      "retraction_max": 2
     },
     {
       "id": "petg_hf",
@@ -662,7 +692,13 @@
         "Requires fully enclosed printer — open-frame printers will produce warped, failed prints.",
         "Apply glue stick evenly to engineering plate before every print for reliable adhesion.",
         "Print slowly (outer wall ≤ 60 mm/s) for best layer bonding and warp resistance."
-      ]
+      ],
+      "shrink_risk": "high",
+      "flexible": false,
+      "abrasive": false,
+      "adhesion_risk_pei": "low",
+      "fan_policy": "off",
+      "retraction_max": 2.5
     },
     {
       "id": "asa",
@@ -759,7 +795,13 @@
         "ASA is the outdoor-rated alternative to ABS — superior UV and weather resistance.",
         "Apply glue stick to engineering plate before every print.",
         "Functionally identical to ABS in terms of printing requirements."
-      ]
+      ],
+      "shrink_risk": "high",
+      "flexible": false,
+      "abrasive": false,
+      "adhesion_risk_pei": "high",
+      "fan_policy": "off",
+      "retraction_max": 2.5
     },
     {
       "id": "tpu_95a",
@@ -857,7 +899,13 @@
         "Minimal retraction required (0.3 mm) — flexible filament stretches instead of retracting properly.",
         "95A Shore hardness = semi-flexible. Stiffer than rubber bands, softer than rigid plastics.",
         "Disable combing mode for best results — TPU oozes during travel moves."
-      ]
+      ],
+      "shrink_risk": "low",
+      "flexible": true,
+      "abrasive": false,
+      "adhesion_risk_pei": "medium",
+      "fan_policy": "moderate",
+      "retraction_max": 1.2
     },
     {
       "id": "tpu_90a",
@@ -983,7 +1031,13 @@
         "On Bambu P series: load through PTFE tube (push filament through manually first, then reconnect).",
         "Manual unloading required after heating to 250°C — automatic unloading with cutter is not supported.",
         "Place model in the middle-front of the heatbed to reduce filament friction through the PTFE tube."
-      ]
+      ],
+      "shrink_risk": "low",
+      "flexible": true,
+      "abrasive": false,
+      "adhesion_risk_pei": "medium",
+      "fan_policy": "moderate",
+      "retraction_max": 1
     },
     {
       "id": "tpu_85a",
@@ -1113,7 +1167,13 @@
         "Manual unloading required — heat to 250°C, slowly press unload button and gently pull filament out. Auto-unload with cutter not supported.",
         "Use a new or dedicated hotend for TPU — residue from other filaments can cause clogs in soft TPU.",
         "Before loading: flush the hotend at 250°C with PLA Matte 3-5 times to clear any residue."
-      ]
+      ],
+      "shrink_risk": "low",
+      "flexible": true,
+      "abrasive": false,
+      "adhesion_risk_pei": "medium",
+      "fan_policy": "moderate",
+      "retraction_max": 0.8
     },
     {
       "id": "pva",
@@ -1203,7 +1263,13 @@
         "Water-soluble support material — produces perfectly clean support interfaces on complex geometries.",
         "Only compatible with PLA as the primary model material (same bed temp range).",
         "After printing: submerge in warm water (30–40°C) for 12–24h until supports dissolve completely."
-      ]
+      ],
+      "shrink_risk": "low",
+      "flexible": false,
+      "abrasive": false,
+      "adhesion_risk_pei": "low",
+      "fan_policy": "moderate",
+      "retraction_max": 1.5
     },
     {
       "id": "petg_cf",
@@ -1301,7 +1367,13 @@
         "Carbon fiber fill adds stiffness and dimensional stability compared to standard PETG.",
         "Parts are matte and slightly rough — excellent for functional enclosures and structural brackets.",
         "PETG-CF bonds aggressively to smooth PEI — always use engineering plate or textured PEI."
-      ]
+      ],
+      "shrink_risk": "low",
+      "flexible": false,
+      "abrasive": true,
+      "adhesion_risk_pei": "high",
+      "fan_policy": "moderate",
+      "retraction_max": 2
     },
     {
       "id": "pa",
@@ -1399,7 +1471,13 @@
         "Outstanding toughness and fatigue resistance — ideal for functional hinges, gears, snap-fits.",
         "Slight flexibility when thin — better impact resistance than rigid plastics like ABS or PLA.",
         "Prints best with dry box feeding directly into printer — even 30 min of air exposure degrades quality."
-      ]
+      ],
+      "shrink_risk": "high",
+      "flexible": false,
+      "abrasive": false,
+      "adhesion_risk_pei": "medium",
+      "fan_policy": "off",
+      "retraction_max": 2
     },
     {
       "id": "pc",
@@ -1497,7 +1575,13 @@
         "Highest impact and heat resistance of all common FFF materials — used in bulletproof glass.",
         "Optically transparent when printed with high infill — unique property among FFF materials.",
         "Requires very slow outer wall speed (≤40 mm/s) for good layer adhesion at these temperatures."
-      ]
+      ],
+      "shrink_risk": "high",
+      "flexible": false,
+      "abrasive": false,
+      "adhesion_risk_pei": "high",
+      "fan_policy": "off",
+      "retraction_max": 2
     }
   ]
 }
