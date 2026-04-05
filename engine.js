@@ -303,7 +303,6 @@ const Engine = (() => {
           { label: 'Ironing',         params: ['ironing'] },
           { label: 'Wall generator',  params: ['wall_generator'] },
           { label: 'Advanced',        params: ['order_of_walls', 'bridge_flow', 'only_one_wall_top', 'avoid_crossing_walls'] },
-          { label: 'Retraction',      params: ['retraction_distance', 'retraction_speed', 'pressure_advance', 'fan_speed'] },
         ],
       },
       {
@@ -349,7 +348,6 @@ const Engine = (() => {
           { label: 'Quality',            params: ['avoid_crossing_walls', 'bridge_flow'] },
           { label: 'Advanced',           params: ['seam_position', 'order_of_walls', 'wall_generator'] },
           { label: 'Only one perimeter', params: ['only_one_wall_top'] },
-          { label: 'Retraction',       params: ['retraction_distance', 'retraction_speed', 'pressure_advance', 'fan_speed'] },
         ],
       },
       {
@@ -396,7 +394,6 @@ const Engine = (() => {
           { label: 'Wall generator',     params: ['wall_generator'] },
           { label: 'Walls and surfaces', params: ['order_of_walls', 'only_one_wall_top', 'avoid_crossing_walls'] },
           { label: 'Bridging',          params: ['bridge_flow'] },
-          { label: 'Retraction',        params: ['retraction_distance', 'retraction_speed', 'pressure_advance', 'fan_speed'] },
         ],
       },
       {
@@ -482,7 +479,7 @@ const Engine = (() => {
       ironing:                       'Ironing',
       slow_down_tall:                'Slow down for tall prints',
       brim_width:                    'Brim width',
-      retraction_distance:           'Retraction distance',
+      retraction_distance:           'Retraction length',
       retraction_speed:              'Retraction speed',
       pressure_advance:              'Pressure advance',
       fan_speed:                     'Fan speed',
@@ -723,6 +720,19 @@ const Engine = (() => {
     return { nozzle: nozzleStr, bed: bedStr };
   }
 
+  // ── Resolve PA from k_factor_matrix (nozzle-specific) or fallback ────────────
+  function _resolvePA(bs, nozzle) {
+    if (bs.k_factor_matrix && nozzle) {
+      const nzStr = String(nozzle.size);
+      const keys = Object.keys(bs.k_factor_matrix).sort((a, b) => Number(a) - Number(b));
+      const kKey = keys.includes(nzStr) ? nzStr : keys.reduce((prev, curr) =>
+        Math.abs(Number(curr) - nozzle.size) < Math.abs(Number(prev) - nozzle.size) ? curr : prev
+      );
+      return bs.k_factor_matrix[kKey];
+    }
+    return bs.pressure_advance;
+  }
+
   // ── Advanced filament settings ────────────────────────────────────────────────
   function getAdvancedFilamentSettings(state) {
     const mat    = getMaterial(state.material);
@@ -748,7 +758,7 @@ const Engine = (() => {
       cooling_fan_min:        bs.cooling_fan_min,
       cooling_fan_overhang:   bs.cooling_fan_overhang,
       slow_layer_time:        bs.slow_layer_time,
-      pressure_advance:       String(bs.pressure_advance ?? '—'),
+      pressure_advance:       String(_resolvePA(bs, nozzle) ?? '—'),
       flow_ratio:             String(bs.flow_ratio       ?? '—'),
       retraction_length:      `${bs.retraction_length} mm`,
       retraction_speed:       `${bs.retraction_speed} mm/s`,
@@ -1421,16 +1431,10 @@ const Engine = (() => {
         'Retraction speed tuned for this material\'s melt characteristics.');
     }
 
-    if (mbs.k_factor_matrix) {
-      const nzStr = String(nozzleSize);
-      const keys = Object.keys(mbs.k_factor_matrix).sort((a, b) => Number(a) - Number(b));
-      // Exact match or closest key
-      let kKey = keys.includes(nzStr) ? nzStr : keys.reduce((prev, curr) =>
-        Math.abs(Number(curr) - nozzleSize) < Math.abs(Number(prev) - nozzleSize) ? curr : prev
-      );
-      const kVal = mbs.k_factor_matrix[kKey];
-      p.pressure_advance = A(`${kVal}`,
-        `Pressure advance (K-factor) calibrated for ${kKey}mm nozzle. Fine-tune with a PA calibration test print.`);
+    const paVal = _resolvePA(mbs, nozzle);
+    if (paVal != null) {
+      p.pressure_advance = A(`${paVal}`,
+        `Pressure advance (K-factor) calibrated for ${nozzleSize}mm nozzle. Fine-tune with a PA calibration test print.`);
     }
 
     // B3. Flexible retraction bounds — clamp retraction distance to retraction_max
