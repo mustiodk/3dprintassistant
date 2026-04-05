@@ -1499,7 +1499,326 @@ const Engine = (() => {
   }
 
   // ── Profile export ───────────────────────────────────────────────────────────
-  // Returns a clean flat object mapping Bambu Studio parameter names to values
+
+  // Bambu Studio field mapping: engine param ID → BS JSON field name
+  const BAMBU_PROCESS_MAP = {
+    layer_height:              'layer_height',
+    initial_layer_height:      'initial_layer_print_height',
+    wall_generator:            'wall_generator',
+    seam_position:             'seam_position',
+    order_of_walls:            'wall_infill_order',
+    xy_hole_compensation:      'xy_hole_compensation',
+    elephant_foot_compensation:'elefant_foot_compensation',  // Bambu typo is real
+    outer_wall_line_width:     'outer_wall_line_width',
+    inner_wall_line_width:     'inner_wall_line_width',
+    top_surface_line_width:    'top_surface_line_width',
+    arc_fitting:               'enable_arc_fitting',
+    avoid_crossing_walls:      'avoid_crossing_walls',
+    only_one_wall_top:         'only_one_wall_top',
+    bridge_flow:               'bridge_flow',
+    wall_loops:                'wall_loops',
+    top_shell_layers:          'top_shell_layers',
+    bottom_shell_layers:       'bottom_shell_layers',
+    sparse_infill_pattern:     'sparse_infill_pattern',
+    sparse_infill_density:     'sparse_infill_density',
+    top_surface_pattern:       'top_surface_pattern',
+    bottom_surface_pattern:    'bottom_surface_pattern',
+    internal_solid_infill_pattern: 'internal_solid_infill_pattern',
+    infill_combination:        'infill_combination',
+    outer_wall_speed:          'outer_wall_speed',
+    inner_wall_speed:          'inner_wall_speed',
+    initial_layer_speed:       'initial_layer_speed',
+    top_surface_speed:         'top_surface_speed',
+    gap_fill_speed:            'gap_infill_speed',
+    outer_wall_acceleration:   'outer_wall_acceleration',
+    inner_wall_acceleration:   'inner_wall_acceleration',
+    initial_layer_acceleration:'initial_layer_acceleration',
+    support_type:              'support_type',
+    support_style:             'support_style',
+    support_threshold_angle:   'support_threshold_angle',
+    support_z_distance:        'support_top_z_distance',
+    support_interface_layers:  'support_interface_top_layers',
+    support_interface_pattern: 'support_interface_pattern',
+    brim_width:                'brim_width',
+    ironing:                   'ironing_type',
+    slow_down_tall:            'enable_height_slowdown',
+  };
+
+  // BS fields that need array wrapping: ["value"] instead of "value"
+  const BAMBU_ARRAY_FIELDS = new Set([
+    'outer_wall_speed', 'inner_wall_speed', 'sparse_infill_speed',
+    'internal_solid_infill_speed', 'top_surface_speed', 'bridge_speed',
+    'gap_infill_speed', 'initial_layer_speed', 'travel_speed',
+    'default_acceleration', 'outer_wall_acceleration', 'inner_wall_acceleration',
+    'sparse_infill_acceleration', 'top_surface_acceleration', 'initial_layer_acceleration',
+    'travel_acceleration', 'initial_layer_travel_acceleration',
+    'nozzle_temperature', 'nozzle_temperature_initial_layer',
+    'hot_plate_temp', 'hot_plate_temp_initial_layer',
+    'cool_plate_temp', 'cool_plate_temp_initial_layer',
+    'textured_plate_temp', 'textured_plate_temp_initial_layer',
+    'eng_plate_temp', 'eng_plate_temp_initial_layer',
+    'fan_min_speed', 'fan_max_speed', 'additional_cooling_fan_speed',
+    'filament_max_volumetric_speed', 'filament_flow_ratio',
+    'pressure_advance', 'filament_retraction_length', 'filament_retraction_speed',
+  ]);
+
+  // Bambu Studio printer name format: "Bambu Lab X1 Carbon 0.4 nozzle"
+  const BAMBU_PRINTER_NAMES = {
+    x1c:      'Bambu Lab X1 Carbon',
+    x1e:      'Bambu Lab X1E',
+    p1s:      'Bambu Lab P1S',
+    p1p:      'Bambu Lab P1P',
+    p2s:      'Bambu Lab P2S',
+    a1:       'Bambu Lab A1',
+    a1_mini:  'Bambu Lab A1 mini',
+    h2c:      'Bambu Lab H2C',
+    h2d:      'Bambu Lab H2D',
+    h2s:      'Bambu Lab H2S',
+  };
+
+  // ── Extract numeric value from engine output strings ────────────────────────
+  function _extractValue(str) {
+    if (str == null) return null;
+    const s = String(str).trim();
+    // Handle "Enabled" / "Disabled" / boolean-like
+    if (/^enabled/i.test(s)) return '1';
+    if (/^disabled/i.test(s)) return '0';
+    // Handle percentage: "15%" → "15%"
+    if (/^\d+%$/.test(s)) return s;
+    // Handle ranges: "5–8 mm" → take lower bound
+    const rangeMatch = s.match(/^(\d+(?:\.\d+)?)[–\-](\d+(?:\.\d+)?)/);
+    if (rangeMatch) return rangeMatch[1];
+    // Handle plain number with optional unit: "200 mm/s" → "200", "0.2 mm" → "0.2"
+    const numMatch = s.match(/^(\d+(?:\.\d+)?)/);
+    if (numMatch) return numMatch[1];
+    // Named values: pass through lowercase
+    return s.toLowerCase().replace(/ /g, '');
+  }
+
+  // ── Bambu Studio JSON export ────────────────────────────────────────────────
+  // Returns { process: {...}, filament: {...} } — two Bambu Studio-importable JSON objects
+  function exportBambuStudioJSON(state) {
+    const printer  = getPrinter(state.printer);
+    const material = getMaterial(state.material);
+    const nozzle   = getNozzle(state.nozzle);
+    if (!printer || !material || !nozzle) return null;
+
+    const slicer = getSlicerForPrinter(state.printer);
+    if (slicer !== 'bambu_studio') return null;  // Bambu printers only
+
+    const profile = resolveProfile(state);
+    const adv     = getAdvancedFilamentSettings(state);
+    const bs      = material.base_settings;
+    const pa      = _resolvePA(bs, nozzle);
+
+    // ── Process profile ───────────────────────────────────────────────────────
+    const printerName = BAMBU_PRINTER_NAMES[state.printer] || printer.name;
+    const nozzleStr   = String(nozzle.size);
+    const surfaceId   = state.surface || 'standard';
+
+    const process = {
+      type: 'process',
+      name: `3DPA — ${surfaceId} @${printerName} ${nozzleStr} nozzle`,
+      from: 'user',
+      inherits: '',
+      instantiation: 'true',
+      compatible_printers: [`${printerName} ${nozzleStr} nozzle`],
+    };
+
+    // Map engine params to BS fields
+    Object.entries(BAMBU_PROCESS_MAP).forEach(([engineKey, bsKey]) => {
+      const param = profile[engineKey];
+      if (!param) return;
+      const raw = param.value ?? param;
+      const val = _extractValue(raw);
+      if (val == null) return;
+
+      // Ironing special: "Enabled — Monotonic line" → "top"
+      if (engineKey === 'ironing') {
+        process[bsKey] = /enabled/i.test(String(raw)) ? 'top' : 'no ironing';
+        return;
+      }
+      // Support type: "Tree" → "tree(auto)", "Normal" → "normal(auto)"
+      if (engineKey === 'support_type') {
+        process[bsKey] = /tree/i.test(String(raw)) ? 'tree(auto)' : 'normal(auto)';
+        return;
+      }
+      // Wall generator: preserve casing
+      if (engineKey === 'wall_generator') {
+        process[bsKey] = String(raw).toLowerCase();
+        return;
+      }
+      // Boolean-like toggles
+      if (engineKey === 'arc_fitting' || engineKey === 'avoid_crossing_walls' ||
+          engineKey === 'only_one_wall_top' || engineKey === 'infill_combination' ||
+          engineKey === 'slow_down_tall') {
+        process[bsKey] = /enabled|1|true/i.test(String(raw)) ? '1' : '0';
+        return;
+      }
+      // Seam: normalize to BS values
+      if (engineKey === 'seam_position') {
+        const seamMap = { 'aligned': 'aligned', 'aligned (or back)': 'aligned', 'sharpest corner': 'nearest', 'random': 'random', 'back': 'back' };
+        process[bsKey] = seamMap[String(raw).toLowerCase()] || 'aligned';
+        return;
+      }
+      // Order of walls: normalize
+      if (engineKey === 'order_of_walls') {
+        process[bsKey] = /inner.*outer/i.test(String(raw)) ? 'inner wall/outer wall/infill' : 'outer wall/inner wall/infill';
+        return;
+      }
+      // Infill pattern: normalize
+      if (engineKey === 'sparse_infill_pattern') {
+        const patMap = { 'gyroid': 'gyroid', 'grid': 'grid', 'cross hatch': 'crosshatch', 'honeycomb': 'honeycomb' };
+        process[bsKey] = patMap[String(raw).toLowerCase()] || String(raw).toLowerCase();
+        return;
+      }
+      // Top/bottom surface pattern: normalize
+      if (engineKey === 'top_surface_pattern' || engineKey === 'bottom_surface_pattern') {
+        const spMap = { 'monotonic line': 'monotonicline', 'monotonic': 'monotonic', 'rectilinear': 'rectilinear' };
+        process[bsKey] = spMap[String(raw).toLowerCase()] || String(raw).toLowerCase();
+        return;
+      }
+      // Internal solid infill pattern
+      if (engineKey === 'internal_solid_infill_pattern') {
+        process[bsKey] = /rectilinear|auto/i.test(String(raw)) ? 'zig-zag' : String(raw).toLowerCase();
+        return;
+      }
+      // Support style
+      if (engineKey === 'support_style') {
+        process[bsKey] = /tree hybrid/i.test(String(raw)) ? 'tree_hybrid' : 'default';
+        return;
+      }
+
+      // Array-wrapped fields
+      process[bsKey] = BAMBU_ARRAY_FIELDS.has(bsKey) ? [val] : val;
+    });
+
+    // ── Filament profile ──────────────────────────────────────────────────────
+    const groupMap = { PLA: 'PLA', PETG: 'PETG', ABS: 'ABS', ASA: 'ASA', TPU: 'TPU', PA: 'PA', PC: 'PC', PVA: 'PVA', HIPS: 'HIPS' };
+    const filType  = groupMap[material.group] || material.group;
+
+    const filament = {
+      type: 'filament',
+      name: `3DPA — ${material.name} @${printerName}`,
+      from: 'user',
+      inherits: '',
+      filament_type:     [filType],
+      filament_vendor:   ['3D Print Assistant'],
+      filament_density:  [String(bs.density || '1.24')],
+      filament_diameter: ['1.75'],
+    };
+
+    // Temperatures — use adjusted temps from engine
+    if (adv) {
+      const nzInit  = String(parseInt(adv.initial_layer_temp) || '');
+      const nzOther = String(parseInt(adv.other_layers_temp) || '');
+      const bdInit  = String(parseInt(adv.initial_layer_bed_temp) || '');
+      const bdOther = String(parseInt(adv.other_layers_bed_temp) || '');
+      filament.nozzle_temperature               = [nzInit];
+      filament.nozzle_temperature_initial_layer  = [nzInit];
+      // Populate all plate temps — use the same value
+      filament.hot_plate_temp                    = [bdOther];
+      filament.hot_plate_temp_initial_layer      = [bdInit];
+      filament.textured_plate_temp               = [bdOther];
+      filament.textured_plate_temp_initial_layer  = [bdInit];
+      filament.cool_plate_temp                   = [String(Math.max(0, parseInt(bdOther) - 20))];
+      filament.cool_plate_temp_initial_layer      = [String(Math.max(0, parseInt(bdInit) - 20))];
+    }
+
+    // Flow / extrusion
+    if (bs.flow_ratio != null)         filament.filament_flow_ratio       = [String(bs.flow_ratio)];
+    if (pa != null)                    filament.pressure_advance          = [String(pa)];
+    if (bs.retraction_length != null)  filament.filament_retraction_length = [String(bs.retraction_length)];
+    if (bs.retraction_speed != null)   filament.filament_retraction_speed  = [String(bs.retraction_speed)];
+
+    // MVS
+    const mvsVal = bs.max_mvs?.[String(nozzle.size)];
+    if (mvsVal)  filament.filament_max_volumetric_speed = [String(mvsVal)];
+
+    // Fan
+    if (bs.cooling_fan_min != null) {
+      const fanPct = String(parseInt(bs.cooling_fan_min) || 0);
+      filament.fan_min_speed = [fanPct];
+      filament.fan_max_speed = ['100'];
+    }
+
+    return { process, filament };
+  }
+
+  // ── Format profile as shareable text ────────────────────────────────────────
+  function formatProfileAsText(state) {
+    const printer  = getPrinter(state.printer);
+    const material = getMaterial(state.material);
+    const nozzle   = getNozzle(state.nozzle);
+    if (!printer || !material || !nozzle) return null;
+
+    const profile  = resolveProfile(state);
+    const adv      = getAdvancedFilamentSettings(state);
+    const slicer   = getSlicerForPrinter(state.printer);
+    const tabs     = SLICER_TABS[slicer] || SLICER_TABS.bambu_studio;
+    const labels   = SLICER_PARAM_LABELS[slicer] || SLICER_PARAM_LABELS.bambu_studio;
+    const warnings = getWarnings(state);
+
+    const lines = [];
+    lines.push('═══════════════════════════════════════');
+    lines.push('  3D Print Assistant — Profile Export');
+    lines.push('═══════════════════════════════════════');
+    lines.push('');
+    lines.push(`Printer:  ${printer.name}`);
+    lines.push(`Nozzle:   ${nozzle.name}`);
+    lines.push(`Material: ${material.name}`);
+    lines.push(`Slicer:   ${slicer === 'bambu_studio' ? 'Bambu Studio' : slicer === 'prusaslicer' ? 'PrusaSlicer' : 'OrcaSlicer'}`);
+    lines.push('');
+
+    // Filament settings
+    if (adv) {
+      lines.push('── Filament Settings ──────────────────');
+      lines.push(`Nozzle temp (initial):  ${adv.initial_layer_temp}`);
+      lines.push(`Nozzle temp (other):    ${adv.other_layers_temp}`);
+      lines.push(`Bed temp (initial):     ${adv.initial_layer_bed_temp}`);
+      lines.push(`Bed temp (other):       ${adv.other_layers_bed_temp}`);
+      if (adv.pressure_advance !== '—') lines.push(`Pressure advance:       ${adv.pressure_advance}`);
+      if (adv.flow_ratio !== '—')       lines.push(`Flow ratio:             ${adv.flow_ratio}`);
+      lines.push(`Retraction length:      ${adv.retraction_length}`);
+      lines.push(`Retraction speed:       ${adv.retraction_speed}`);
+      lines.push('');
+    }
+
+    // Process settings by tab
+    tabs.forEach(tab => {
+      const tabParams = tab.sections.flatMap(s => s.params);
+      const entries = tabParams
+        .filter(p => profile[p])
+        .map(p => {
+          const val = profile[p].value ?? profile[p];
+          const label = labels[p] || p;
+          return `${label}: ${val}`;
+        });
+      if (entries.length) {
+        lines.push(`── ${tab.label} ${'─'.repeat(Math.max(0, 38 - tab.label.length))}`);
+        entries.forEach(e => lines.push(`  ${e}`));
+        lines.push('');
+      }
+    });
+
+    // Warnings
+    if (warnings.length) {
+      lines.push('── Warnings ───────────────────────────');
+      warnings.forEach(w => {
+        const raw = typeof w === 'string' ? w : (w.text || w);
+        const clean = String(raw).replace(/<[^>]+>/g, '');
+        lines.push(`  ⚠ ${clean}`);
+      });
+      lines.push('');
+    }
+
+    lines.push('───────────────────────────────────────');
+    lines.push('Generated by 3dprintassistant.com');
+
+    return lines.join('\n');
+  }
+
+  // ── Legacy export (flat reference object) ───────────────────────────────────
   function exportProfile(state) {
     const printer  = getPrinter(state.printer);
     const material = getMaterial(state.material);
@@ -1508,10 +1827,8 @@ const Engine = (() => {
     if (!printer || !material || !nozzle) return null;
 
     const profile  = resolveProfile(state);
-    const temps    = getAdjustedTemps(state.material, state.environment, state.nozzle, state.speed);
     const adv      = getAdvancedFilamentSettings(state);
 
-    // Flatten profile — take the .value from each param object
     const flat = {};
     Object.entries(profile).forEach(([k, v]) => { flat[k] = v?.value ?? v; });
 
@@ -1523,23 +1840,16 @@ const Engine = (() => {
         nozzle:        nozzle.name,
         material:      material.name,
         environment:   env ? env.name : 'Standard room',
-        note:          'This file is a settings reference for Bambu Studio. Values are recommendations — enter them manually into the corresponding Bambu Studio tabs.',
       },
       filament: {
         nozzle_temperature:              adv?.initial_layer_temp   ?? null,
         nozzle_temperature_other_layers: adv?.other_layers_temp    ?? null,
         bed_temperature:                 adv?.initial_layer_bed_temp ?? null,
         bed_temperature_other_layers:    adv?.other_layers_bed_temp  ?? null,
-        cooling_fan_speed:               material.base_settings.cooling_fan,
-        cooling_fan_speed_min:           material.base_settings.cooling_fan_min,
-        max_volumetric_speed:            material.base_settings.max_mvs?.[String(nozzle.size)] ?? null,
-        pressure_advance:                material.base_settings.pressure_advance,
+        pressure_advance:                _resolvePA(material.base_settings, nozzle),
         flow_ratio:                      material.base_settings.flow_ratio,
         retraction_length:               `${material.base_settings.retraction_length} mm`,
         retraction_speed:                `${material.base_settings.retraction_speed} mm/s`,
-        build_plate:                     material.build_plate_display,
-        drying:                          material.drying.display,
-        enclosure:                       getEnclosureDisplay(material),
       },
       process: flat,
     };
@@ -1702,6 +2012,8 @@ const Engine = (() => {
     getSymptoms,
     getTroubleshootingTips,
     exportProfile,
+    exportBambuStudioJSON,
+    formatProfileAsText,
     calcPurgeVolumes,
     calcPrintTime,
     setLang,

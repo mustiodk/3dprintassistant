@@ -722,15 +722,48 @@ function bindControls() {
   document.getElementById('navBeta').addEventListener('click',          () => setView('beta'));
 
   document.getElementById('exportBtn').addEventListener('click', () => {
-    if (state.printer && state.nozzle && state.material) {
-      track('export_clicked', { printer: state.printer, nozzle: state.nozzle, material: state.material });
-    }
+    if (!state.printer || !state.nozzle || !state.material) return;
+    track('export_clicked', { printer: state.printer, nozzle: state.nozzle, material: state.material });
+
+    const T    = Engine.t;
     const btn  = document.getElementById('exportBtn');
-    const orig = btn.textContent;
-    btn.textContent = '🔥 Coming in hot';
-    btn.style.color = 'var(--orange)';
-    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 2000);
+    const slicer = Engine.getSlicerForPrinter(state.printer);
+
+    if (slicer === 'bambu_studio') {
+      // Bambu printers: download two .json files
+      const result = Engine.exportBambuStudioJSON(state);
+      if (!result) return;
+      _downloadJSON(result.process, `3dpa-process-${state.printer}.json`);
+      setTimeout(() => _downloadJSON(result.filament, `3dpa-filament-${state.material}.json`), 300);
+      _flashBtn(btn, T('exportDownloaded'));
+    } else {
+      // Other printers: copy text to clipboard
+      const text = Engine.formatProfileAsText(state);
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        _flashBtn(btn, T('exportCopied'));
+      }).catch(() => {
+        _flashBtn(btn, 'Copy failed');
+      });
+    }
   });
+
+  function _downloadJSON(obj, filename) {
+    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function _flashBtn(btn, msg) {
+    const orig = btn.textContent;
+    btn.textContent = msg;
+    btn.style.color = 'var(--green)';
+    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 2500);
+  }
 
   document.getElementById('compareLockBtn').addEventListener('click', () => {
     if (comparisonProfile) {
@@ -779,6 +812,17 @@ function setMode(mode) {
   restoreChipSelections();
   render();
 }
+
+// ── Click-to-copy on setting rows ────────────────────────────────────────────
+document.addEventListener('click', (e) => {
+  const row = e.target.closest('.setting-row[data-copy]');
+  if (!row) return;
+  const text = row.dataset.copy;
+  navigator.clipboard.writeText(text).then(() => {
+    row.classList.add('copied');
+    setTimeout(() => row.classList.remove('copied'), 800);
+  }).catch(() => {});
+});
 
 // ── Nozzle chip filtering based on material compatibility ────────────────────
 function updateNozzleChips() {
@@ -837,6 +881,14 @@ function render() {
   const slicerSub = (key) => { const sk = key + '_' + Engine.getActiveSlicer(); const v = T(sk); return v !== sk ? v : T(key); };
   document.getElementById('panelProfSub').textContent = slicerSub('panelProfSub');
   document.getElementById('panelFilSub').textContent  = slicerSub('panelFilSub');
+  // Dynamic export button label based on slicer
+  const exportBtn = document.getElementById('exportBtn');
+  if (state.printer) {
+    const slicer = Engine.getSlicerForPrinter(state.printer);
+    exportBtn.textContent = slicer === 'bambu_studio' ? T('exportBambu') : T('exportCopy');
+  } else {
+    exportBtn.textContent = T('exportBtn');
+  }
   const hasMin = state.printer && state.nozzle && state.material;
   if (hasMin) {
     const combo = `${state.printer}|${state.nozzle}|${state.material}`;
@@ -1051,7 +1103,7 @@ function renderFilamentPanel(filament, nozzle) {
 }
 
 const row = (label, value, cls) =>
-  `<div class="setting-row">
+  `<div class="setting-row" data-copy="${label}: ${String(value).replace(/"/g, '&quot;').replace(/<[^>]+>/g, '')}">
      <span class="setting-name">${label}</span>
      <span class="setting-value${cls ? ' ' + cls : ''}">${value}</span>
    </div>`;
