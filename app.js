@@ -178,7 +178,7 @@ function applyLang() {
   document.getElementById('panelProfSub').textContent   = T('panelProfSub');
 
   // Buttons that live in the header area
-  document.getElementById('exportBtn').textContent     = T('exportBtn');
+  // document.getElementById('exportBtn').textContent     = T('exportBtn'); // Export disabled
   const lockBtn = document.getElementById('compareLockBtn');
   if (lockBtn) lockBtn.textContent = comparisonProfile ? T('compareClear') : T('compareBtn');
 
@@ -721,32 +721,8 @@ function bindControls() {
   document.getElementById('navFeedback').addEventListener('click',      () => setView('feedback'));
   document.getElementById('navBeta').addEventListener('click',          () => setView('beta'));
 
-  document.getElementById('exportBtn').addEventListener('click', () => {
-    if (!state.printer || !state.nozzle || !state.material) return;
-    track('export_clicked', { printer: state.printer, nozzle: state.nozzle, material: state.material });
-
-    const T    = Engine.t;
-    const btn  = document.getElementById('exportBtn');
-    const slicer = Engine.getSlicerForPrinter(state.printer);
-
-    if (slicer === 'bambu_studio') {
-      // Bambu printers: download two .json files
-      const result = Engine.exportBambuStudioJSON(state);
-      if (!result) return;
-      _downloadJSON(result.process, `3dpa-process-${state.printer}.json`);
-      setTimeout(() => _downloadJSON(result.filament, `3dpa-filament-${state.material}.json`), 300);
-      _flashBtn(btn, T('exportDownloaded'));
-    } else {
-      // Other printers: copy text to clipboard
-      const text = Engine.formatProfileAsText(state);
-      if (!text) return;
-      navigator.clipboard.writeText(text).then(() => {
-        _flashBtn(btn, T('exportCopied'));
-      }).catch(() => {
-        _flashBtn(btn, 'Copy failed');
-      });
-    }
-  });
+  // Export button — temporarily disabled until Bambu Studio import format is validated
+  // document.getElementById('exportBtn').addEventListener('click', () => { ... });
 
   function _downloadJSON(obj, filename) {
     const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
@@ -813,16 +789,8 @@ function setMode(mode) {
   render();
 }
 
-// ── Click-to-copy on setting rows ────────────────────────────────────────────
-document.addEventListener('click', (e) => {
-  const row = e.target.closest('.setting-row[data-copy]');
-  if (!row) return;
-  const text = row.dataset.copy;
-  navigator.clipboard.writeText(text).then(() => {
-    row.classList.add('copied');
-    setTimeout(() => row.classList.remove('copied'), 800);
-  }).catch(() => {});
-});
+// ── Click-to-copy on setting rows — temporarily disabled until export is validated
+// document.addEventListener('click', (e) => { ... });
 
 // ── Nozzle chip filtering based on material compatibility ────────────────────
 function updateNozzleChips() {
@@ -881,14 +849,9 @@ function render() {
   const slicerSub = (key) => { const sk = key + '_' + Engine.getActiveSlicer(); const v = T(sk); return v !== sk ? v : T(key); };
   document.getElementById('panelProfSub').textContent = slicerSub('panelProfSub');
   document.getElementById('panelFilSub').textContent  = slicerSub('panelFilSub');
-  // Dynamic export button label based on slicer
-  const exportBtn = document.getElementById('exportBtn');
-  if (state.printer) {
-    const slicer = Engine.getSlicerForPrinter(state.printer);
-    exportBtn.textContent = slicer === 'bambu_studio' ? T('exportBambu') : T('exportCopy');
-  } else {
-    exportBtn.textContent = T('exportBtn');
-  }
+  // Dynamic export button label — temporarily disabled
+  // const exportBtn = document.getElementById('exportBtn');
+  // if (state.printer) { ... }
   const hasMin = state.printer && state.nozzle && state.material;
   if (hasMin) {
     const combo = `${state.printer}|${state.nozzle}|${state.material}`;
@@ -1103,7 +1066,7 @@ function renderFilamentPanel(filament, nozzle) {
 }
 
 const row = (label, value, cls) =>
-  `<div class="setting-row" data-copy="${label}: ${String(value).replace(/"/g, '&quot;').replace(/<[^>]+>/g, '')}">
+  `<div class="setting-row">
      <span class="setting-name">${label}</span>
      <span class="setting-value${cls ? ' ' + cls : ''}">${value}</span>
    </div>`;
