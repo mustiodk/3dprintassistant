@@ -787,7 +787,7 @@ function updateNozzleChips() {
   const container = document.getElementById('chips_nozzle');
   if (!container) return;
   const nozzles = Engine.getCompatibleNozzles(state.material);
-  container.querySelectorAll('.chip').forEach(chip => {
+  container.querySelectorAll('.chip:not(.more-chip)').forEach(chip => {
     const nz = nozzles.find(n => n.id === chip.dataset.value);
     const incompatible = nz && !nz.compatible;
     chip.classList.toggle('incompatible', incompatible);
