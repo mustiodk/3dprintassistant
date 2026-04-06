@@ -1931,39 +1931,110 @@ const Engine = (() => {
     const nozzle   = getNozzle(state.nozzle);
     if (!printer || !material || !nozzle) return null;
 
-    const profile  = resolveProfile(state);
-    const adv      = getAdvancedFilamentSettings(state);
-    const slicer   = getSlicerForPrinter(state.printer);
-    const tabs     = SLICER_TABS[slicer] || SLICER_TABS.bambu_studio;
-    const labels   = SLICER_PARAM_LABELS[slicer] || SLICER_PARAM_LABELS.bambu_studio;
-    const warnings = getWarnings(state);
+    const profile    = resolveProfile(state);
+    const adv        = getAdvancedFilamentSettings(state);
+    const filament   = getFilamentProfile(state.material);
+    const slicer     = getSlicerForPrinter(state.printer);
+    const tabs       = SLICER_TABS[slicer] || SLICER_TABS.bambu_studio;
+    const labels     = SLICER_PARAM_LABELS[slicer] || SLICER_PARAM_LABELS.bambu_studio;
+    const warnings   = getWarnings(state);
+    const env        = getEnv(state.environment);
+
+    const slicerName = slicer === 'bambu_studio' ? 'Bambu Studio'
+                     : slicer === 'prusaslicer'  ? 'PrusaSlicer'
+                     :                             'OrcaSlicer';
+
+    const processTabName = slicer === 'prusaslicer' ? 'Print Settings tab'
+                         :                            'Process tab';
+
+    // Human-readable filter names
+    const FILTER_NAMES = {
+      surface:  { draft: 'Draft', standard: 'Standard', fine: 'Fine', very_fine: 'Very Fine', ultra: 'Ultra', maximum: 'Maximum' },
+      strength: { minimal: 'Minimal', standard: 'Standard', strong: 'Strong', maximum: 'Maximum' },
+      speed:    { fast: 'Fast', balanced: 'Balanced', quality: 'Quality above all' },
+    };
 
     const lines = [];
     lines.push('═══════════════════════════════════════');
     lines.push('  3D Print Assistant — Profile Export');
     lines.push('═══════════════════════════════════════');
     lines.push('');
-    lines.push(`Printer:  ${printer.name}`);
-    lines.push(`Nozzle:   ${nozzle.name}`);
-    lines.push(`Material: ${material.name}`);
-    lines.push(`Slicer:   ${slicer === 'bambu_studio' ? 'Bambu Studio' : slicer === 'prusaslicer' ? 'PrusaSlicer' : 'OrcaSlicer'}`);
+    lines.push(`Printer:          ${printer.name}`);
+    lines.push(`Nozzle:           ${nozzle.name}`);
+    lines.push(`Material:         ${material.name}`);
+    lines.push(`Slicer:           ${slicerName}`);
+    if (state.surface)     lines.push(`Surface quality:  ${FILTER_NAMES.surface[state.surface]   || state.surface}`);
+    if (state.strength)    lines.push(`Strength:         ${FILTER_NAMES.strength[state.strength] || state.strength}`);
+    if (state.speed)       lines.push(`Speed priority:   ${FILTER_NAMES.speed[state.speed]       || state.speed}`);
+    if (state.environment) lines.push(`Environment:      ${env ? env.name : state.environment}`);
     lines.push('');
 
-    // Filament settings
-    if (adv) {
+    // ── Filament Settings (complete) ─────────────────────────────────────────
+    if (adv && filament) {
       lines.push('── Filament Settings ──────────────────');
-      lines.push(`Nozzle temp (initial):  ${adv.initial_layer_temp}`);
-      lines.push(`Nozzle temp (other):    ${adv.other_layers_temp}`);
-      lines.push(`Bed temp (initial):     ${adv.initial_layer_bed_temp}`);
-      lines.push(`Bed temp (other):       ${adv.other_layers_bed_temp}`);
-      if (adv.pressure_advance !== '—') lines.push(`Pressure advance:       ${adv.pressure_advance}`);
-      if (adv.flow_ratio !== '—')       lines.push(`Flow ratio:             ${adv.flow_ratio}`);
-      lines.push(`Retraction length:      ${adv.retraction_length}`);
-      lines.push(`Retraction speed:       ${adv.retraction_speed}`);
+      lines.push(`  (Filament tab in ${slicerName})`);
+      lines.push('');
+
+      // Temperature — smart collapse: if initial === other, show one row
+      const nozzleSame = adv.initial_layer_temp === adv.other_layers_temp;
+      const bedSame    = adv.initial_layer_bed_temp === adv.other_layers_bed_temp;
+      lines.push('  TEMPERATURE');
+      if (nozzleSame) {
+        lines.push(`    Nozzle temp:             ${adv.initial_layer_temp}  (same for both layers)`);
+      } else {
+        lines.push(`    Nozzle temp (initial):   ${adv.initial_layer_temp}`);
+        lines.push(`    Nozzle temp (other):     ${adv.other_layers_temp}`);
+      }
+      if (bedSame) {
+        lines.push(`    Bed temp:                ${adv.initial_layer_bed_temp}  (same for both layers)`);
+      } else {
+        lines.push(`    Bed temp (initial):      ${adv.initial_layer_bed_temp}`);
+        lines.push(`    Bed temp (other):        ${adv.other_layers_bed_temp}`);
+      }
+      lines.push('');
+
+      // Fan settings
+      const hasFan = filament.cooling_fan != null || adv.cooling_fan_min != null
+                  || adv.cooling_fan_overhang != null || adv.slow_layer_time != null;
+      if (hasFan) {
+        lines.push('  FAN SETTINGS');
+        if (filament.cooling_fan != null)      lines.push(`    Part cooling fan:        ${filament.cooling_fan}`);
+        if (adv.cooling_fan_min != null)       lines.push(`    Fan speed (min):         ${adv.cooling_fan_min}`);
+        if (adv.cooling_fan_overhang != null)  lines.push(`    Overhang fan speed:      ${adv.cooling_fan_overhang}`);
+        if (adv.slow_layer_time != null)       lines.push(`    Min layer time:          ${adv.slow_layer_time}`);
+        lines.push('');
+      }
+
+      // Volumetric speed limit
+      const mvs = filament.max_mvs ? (filament.max_mvs[String(nozzle.size)] || null) : null;
+      if (mvs) {
+        lines.push('  SPEED LIMIT');
+        lines.push(`    Max volumetric speed:    ${mvs}`);
+        lines.push('');
+      }
+
+      // Setup
+      lines.push('  SETUP');
+      if (filament.build_plate) lines.push(`    Build plate:             ${filament.build_plate}`);
+      lines.push(`    AMS compatible:          ${filament.ams ? 'Yes' : 'No'}`);
+      if (filament.drying)    lines.push(`    Drying:                  ${filament.drying}`);
+      if (filament.enclosure) lines.push(`    Enclosure:               ${filament.enclosure}`);
+      lines.push('');
+
+      // Extrusion
+      lines.push('  EXTRUSION');
+      if (adv.pressure_advance !== '—') lines.push(`    Pressure advance:        ${adv.pressure_advance}`);
+      if (adv.flow_ratio !== '—')       lines.push(`    Flow ratio:              ${adv.flow_ratio}`);
+      lines.push(`    Retraction length:       ${adv.retraction_length}`);
+      lines.push(`    Retraction speed:        ${adv.retraction_speed}`);
       lines.push('');
     }
 
-    // Process settings by tab
+    // ── Print Profile Settings ───────────────────────────────────────────────
+    lines.push('── Print Profile Settings ─────────────');
+    lines.push(`  (${processTabName} in ${slicerName})`);
+    lines.push('');
+
     tabs.forEach(tab => {
       const tabParams = tab.sections.flatMap(s => s.params);
       const entries = tabParams
@@ -1971,11 +2042,11 @@ const Engine = (() => {
         .map(p => {
           const val = profile[p].value ?? profile[p];
           const label = labels[p] || p;
-          return `${label}: ${val}`;
+          return `    ${label}: ${val}`;
         });
       if (entries.length) {
-        lines.push(`── ${tab.label} ${'─'.repeat(Math.max(0, 38 - tab.label.length))}`);
-        entries.forEach(e => lines.push(`  ${e}`));
+        lines.push(`  ${tab.label}`);
+        entries.forEach(e => lines.push(e));
         lines.push('');
       }
     });

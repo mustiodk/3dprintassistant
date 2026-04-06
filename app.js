@@ -1073,25 +1073,41 @@ function renderFilamentPanel(filament, nozzle) {
   const T     = Engine.t;
   // Slicer-aware section labels: try slicer-specific key first, fall back to default
   const FS = (key) => { const sk = key + '_' + Engine.getActiveSlicer(); const v = T(sk); return v !== sk ? v : T(key); };
-  const temps = Engine.getAdjustedTemps(state.material, state.environment, state.nozzle, state.speed);
-  const mvs   = filament.max_mvs[nozzle.size] || '—';
-  const adv   = currentMode === 'advanced' ? Engine.getAdvancedFilamentSettings(state) : null;
+  const mvs      = filament.max_mvs[nozzle.size] || '—';
+  // Always compute advanced temps so we can show initial vs other in both modes
+  const advTemps = Engine.getAdvancedFilamentSettings(state);
+  // Advanced-only extras (cooling details, retraction, PA) — only in advanced mode
+  const adv      = currentMode === 'advanced' ? advTemps : null;
+
+  // Smart collapse: if initial === other, show one row with "(both layers)" note
+  const nozzleSame = advTemps && advTemps.initial_layer_temp === advTemps.other_layers_temp;
+  const bedSame    = advTemps && advTemps.initial_layer_bed_temp === advTemps.other_layers_bed_temp;
 
   let html = '';
 
-  if (adv) {
-    html += `
-      <div class="setting-section-label">${FS('secNozzleTemp')}</div>
-      ${row(T('rowInitLayer'),   adv.initial_layer_temp,     'val-temp')}
-      ${row(T('rowOtherLayers'), adv.other_layers_temp,      'val-temp')}
-      <div class="setting-section-label">${FS('secBedTemp')}</div>
-      ${row(T('rowInitLayer'),   adv.initial_layer_bed_temp, 'val-temp')}
-      ${row(T('rowOtherLayers'), adv.other_layers_bed_temp,  'val-temp')}`;
+  if (advTemps) {
+    // Nozzle temperature — always show initial + other (or collapsed if equal)
+    html += `<div class="setting-section-label">${FS('secNozzleTemp')}</div>`;
+    if (nozzleSame) {
+      html += row(T('rowNozzleTemp'), advTemps.initial_layer_temp + ' — both layers', 'val-temp');
+    } else {
+      html += row(T('rowInitLayer'),   advTemps.initial_layer_temp,  'val-temp');
+      html += row(T('rowOtherLayers'), advTemps.other_layers_temp,   'val-temp');
+    }
+    // Bed temperature — always show initial + other (or collapsed if equal)
+    html += `<div class="setting-section-label">${FS('secBedTemp')}</div>`;
+    if (bedSame) {
+      html += row(T('rowBedTemp'), advTemps.initial_layer_bed_temp + ' — both layers', 'val-temp');
+    } else {
+      html += row(T('rowInitLayer'),   advTemps.initial_layer_bed_temp, 'val-temp');
+      html += row(T('rowOtherLayers'), advTemps.other_layers_bed_temp,  'val-temp');
+    }
   } else {
-    html += `
-      <div class="setting-section-label">${FS('secTemps')}</div>
-      ${row(T('rowNozzleTemp'), temps.nozzle, 'val-temp')}
-      ${row(T('rowBedTemp'),    temps.bed,    'val-temp')}`;
+    // Fallback (no material data)
+    const temps = Engine.getAdjustedTemps(state.material, state.environment, state.nozzle, state.speed);
+    html += `<div class="setting-section-label">${FS('secTemps')}</div>`;
+    html += row(T('rowNozzleTemp'), temps.nozzle, 'val-temp');
+    html += row(T('rowBedTemp'),    temps.bed,    'val-temp');
   }
 
   html += `
