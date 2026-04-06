@@ -259,6 +259,11 @@ body, header, .top-nav, .filters, .panel, .chip,
   margin-top: 2px;
   letter-spacing: 0.02em;
 }
+.chip.has-desc {
+  white-space: normal;
+  text-align: left;
+  max-width: 260px;
+}
 
 /* Incompatible nozzle chips — dimmed and non-interactive */
 .chip.incompatible {
@@ -534,6 +539,7 @@ body, header, .top-nav, .filters, .panel, .chip,
 }
 .setting-row:hover { background: var(--chip-hover); }
 .setting-row.copied { background: rgba(0, 229, 160, 0.12); }
+.setting-row.copied-flash { background: rgba(0, 229, 160, 0.15); }
 .setting-row + .setting-row { border-top: 1px solid var(--border); }
 
 .setting-name  { font-size: 13px; color: var(--text2); flex-shrink: 0; }
@@ -603,6 +609,15 @@ body, header, .top-nav, .filters, .panel, .chip,
 
 /* Advanced label in filament panel */
 .adv-label { color: var(--purple) !important; }
+
+.tab-desc {
+  font-size: 12px;
+  color: var(--text2);
+  opacity: 0.7;
+  margin: 0 0 12px 0;
+  padding: 0 18px;
+  line-height: 1.4;
+}
 
 .setting-why {
   font-size: 11.5px;
@@ -704,6 +719,21 @@ body, header, .top-nav, .filters, .panel, .chip,
   transition: color 0.15s, border-color 0.15s;
 }
 .export-btn:hover { color: var(--text); border-color: var(--border2); }
+.export-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+.export-group { display: flex; align-items: center; gap: 6px; }
+.beta-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255,160,50,0.15);
+  color: #ffaa33;
+  border: 1px solid rgba(255,160,50,0.3);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
 .compare-btn { display: none; } /* hidden until profile is loaded */
 .compare-btn.visible { display: block; }
 .compare-btn:hover { color: var(--purple); border-color: var(--purple-border); }
@@ -1203,6 +1233,7 @@ body, header, .top-nav, .filters, .panel, .chip,
   /* Setting rows — value wraps gracefully */
   .setting-row          { flex-wrap: wrap; gap: 2px; }
   .setting-value        { text-align: left; }
+  .tab-desc             { padding: 0 14px; }
 
   /* Warnings */
   .warning-item         { font-size: 12px; }

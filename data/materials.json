@@ -97,7 +97,9 @@
       "shrinkage_factor": 0.003,
       "ventilation_required": false,
       "warnings": [],
-      "notes": [],
+      "notes": [
+        "Clean PEI with IPA between prints. Store in sealed bag to prevent brittleness over time."
+      ],
       "shrink_risk": "none",
       "flexible": false,
       "abrasive": false,

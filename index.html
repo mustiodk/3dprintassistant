@@ -124,9 +124,12 @@
             </div>
             <div class="panel-header-actions">
               <button class="compare-btn" id="compareLockBtn" title="Lock current profile as A to compare against a second configuration">⇌ Compare</button>
-              <!-- Export button hidden until Bambu Studio import format is validated
-              <button class="export-btn" id="exportBtn" title="Download all recommended settings as JSON">↓ Export</button>
-              -->
+              <div class="export-group" id="exportGroup" style="display:none">
+                <span class="beta-badge">Beta</span>
+                <button class="export-btn" id="exportProcessBtn" title="Download process profile (print settings) for Bambu Studio">↓ Process</button>
+                <button class="export-btn" id="exportFilamentBtn" title="Download filament profile (temperatures, cooling, PA) for Bambu Studio">↓ Filament</button>
+              </div>
+              <button class="export-btn" id="exportCopyBtn" style="display:none" title="Copy profile as text">↓ Copy</button>
             </div>
           </div>
           <div id="compareBanner"></div>

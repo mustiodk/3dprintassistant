@@ -3,7 +3,7 @@
     {
       "id": "draft",
       "name": "Draft",
-      "desc": "0.30 mm",
+      "desc": "0.30mm layers — fast prints, visible layer lines. Good for prototypes.",
       "layer_height": 0.30,
       "ironing": false,
       "wall_generator": "Classic",
@@ -12,7 +12,7 @@
     {
       "id": "standard",
       "name": "Standard",
-      "desc": "0.20 mm",
+      "desc": "0.20mm layers — balanced speed and quality for everyday prints.",
       "layer_height": 0.20,
       "ironing": false,
       "wall_generator": "Classic",
@@ -21,7 +21,7 @@
     {
       "id": "fine",
       "name": "Fine",
-      "desc": "0.15 mm",
+      "desc": "0.15mm layers — smooth surfaces, noticeably slower.",
       "layer_height": 0.15,
       "ironing": false,
       "wall_generator": "Arachne",
@@ -30,7 +30,7 @@
     {
       "id": "very_fine",
       "name": "Very Fine",
-      "desc": "0.12 mm",
+      "desc": "0.12mm layers — extremely fine detail for display pieces.",
       "layer_height": 0.12,
       "ironing": false,
       "wall_generator": "Arachne",
@@ -39,7 +39,7 @@
     {
       "id": "ultra",
       "name": "Ultra",
-      "desc": "0.08 mm",
+      "desc": "0.08mm layers — maximum resolution, very slow. Miniatures and precision parts.",
       "layer_height": 0.08,
       "ironing": false,
       "wall_generator": "Arachne",
@@ -48,7 +48,7 @@
     {
       "id": "maximum",
       "name": "Maximum",
-      "desc": "0.12 mm + ironing",
+      "desc": "0.12mm + ironing — near-invisible layers with glossy top surface.",
       "layer_height": 0.12,
       "ironing": true,
       "wall_generator": "Arachne",
@@ -59,7 +59,7 @@
     {
       "id": "minimal",
       "name": "Minimal",
-      "desc": "2 walls · 8%",
+      "desc": "2 walls · 8% — lightweight, fast, not load-bearing.",
       "wall_loops": 2,
       "infill_density": 8,
       "infill_pattern": "Cross Hatch",
@@ -70,7 +70,7 @@
     {
       "id": "standard",
       "name": "Standard",
-      "desc": "3 walls · 15%",
+      "desc": "3 walls · 15% — good for most prints.",
       "wall_loops": 3,
       "infill_density": 15,
       "infill_pattern": "Grid",
@@ -81,7 +81,7 @@
     {
       "id": "strong",
       "name": "Strong",
-      "desc": "4 walls · 35%",
+      "desc": "4 walls · 35% Gyroid — handles moderate loads and stress.",
       "wall_loops": 4,
       "infill_density": 35,
       "infill_pattern": "Gyroid",
@@ -92,7 +92,7 @@
     {
       "id": "maximum",
       "name": "Maximum",
-      "desc": "6 walls · 60%",
+      "desc": "6 walls · 60% — maximum durability, heavy and slow.",
       "wall_loops": 6,
       "infill_density": 60,
       "infill_pattern": "Gyroid",
@@ -105,6 +105,7 @@
     {
       "id": "fast",
       "name": "Fast",
+      "desc": "Prioritizes print speed — may sacrifice surface quality.",
       "outer_corexy": 150,
       "outer_bedslinger": 100,
       "inner_corexy": 300,
@@ -123,6 +124,7 @@
     {
       "id": "balanced",
       "name": "Balanced",
+      "desc": "Good balance of speed and quality for everyday use.",
       "outer_corexy": 100,
       "outer_bedslinger": 80,
       "inner_corexy": 200,
@@ -141,6 +143,7 @@
     {
       "id": "quality",
       "name": "Quality above all",
+      "desc": "Slower speeds for better surfaces and dimensional accuracy.",
       "outer_corexy": 50,
       "outer_bedslinger": 40,
       "inner_corexy": 150,

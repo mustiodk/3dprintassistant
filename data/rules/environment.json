@@ -3,7 +3,7 @@
     {
       "id": "normal",
       "name": "Normal room",
-      "desc": null,
+      "desc": "Standard room, 18–25°C, no significant drafts.",
       "ambient_temp_range": [15, 30],
       "nozzle_adj": 0,
       "bed_adj": 0,
@@ -18,7 +18,7 @@
     {
       "id": "cold",
       "name": "Cold garage (5–15°C)",
-      "desc": null,
+      "desc": "Cool room below 18°C or near windows — may affect adhesion.",
       "ambient_temp_range": [5, 15],
       "nozzle_adj": 5,
       "bed_adj": 0,
@@ -36,7 +36,7 @@
     {
       "id": "vcold",
       "name": "Very cold (<5°C)",
-      "desc": null,
+      "desc": "Below 5°C — garage or outdoor printing, significant warping risk.",
       "ambient_temp_range": [-20, 5],
       "nozzle_adj": 10,
       "bed_adj": 5,
@@ -55,7 +55,7 @@
     {
       "id": "humid",
       "name": "High humidity",
-      "desc": null,
+      "desc": "Above 60% humidity — moisture-sensitive materials need drying.",
       "ambient_temp_range": [15, 35],
       "nozzle_adj": 0,
       "bed_adj": 0,

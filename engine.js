@@ -206,7 +206,7 @@ const Engine = (() => {
     );
     const surfaceChips  = (_objectives.surface_quality || []).map(s => ({ id: s.id, name: s.name, desc: s.desc, core: _CORE_SURFACE.has(s.id) }));
     const strengthChips = (_objectives.strength_levels || []).map(s => ({ id: s.id, name: s.name, desc: s.desc }));
-    const speedChips    = (_objectives.speed_priority  || []).map(s => ({ id: s.id, name: s.name }));
+    const speedChips    = (_objectives.speed_priority  || []).map(s => ({ id: s.id, name: s.name, desc: s.desc }));
     const envChips      = _envRules.map(e => ({ id: e.id, name: e.name, desc: e.desc }));
 
     return [
@@ -214,26 +214,26 @@ const Engine = (() => {
       { key: 'material',    label: t('filterMaterial'), multi: false, required: true,  items: materialChips },
       { key: 'nozzle',      label: t('filterNozzle'),   multi: false, required: true,  items: nozzleChips   },
       { key: 'useCase',     label: t('filterUseCase'),  multi: true,  required: false, items: [
-        { id: 'prototype',  name: t('ucPrototype')  },
-        { id: 'functional', name: t('ucFunctional') },
-        { id: 'decorative', name: t('ucDecorative') },
-        { id: 'miniature',  name: t('ucMiniature')  },
-        { id: 'large',      name: t('ucLarge')      },
+        { id: 'prototype',  name: t('ucPrototype'),  desc: 'Quick iteration — speed over finish, infill combination enabled.' },
+        { id: 'functional', name: t('ucFunctional'), desc: 'Load-bearing parts — tighter tolerances, stronger walls.' },
+        { id: 'decorative', name: t('ucDecorative'), desc: 'Visual display — prioritizes surface finish and detail.' },
+        { id: 'miniature',  name: t('ucMiniature'),  desc: 'Small detailed models — Arachne walls, fine layers recommended.' },
+        { id: 'large',      name: t('ucLarge'),      desc: 'Large prints — brim added, tall-print slowdown enabled.' },
       ]},
       { key: 'surface',     label: t('filterSurface'),   multi: false, required: false, items: surfaceChips  },
       { key: 'strength',    label: t('filterStrength'),  multi: false, required: false, items: strengthChips },
       { key: 'speed',       label: t('filterSpeed'),     multi: false, required: false, items: speedChips    },
       { key: 'environment', label: t('filterEnv'),       multi: false, required: false, items: envChips      },
       { key: 'support',     label: t('filterSupport'),   multi: false, required: false, items: [
-        { id: 'none',           name: t('supNone')                                            },
-        { id: 'easy',           name: t('supEasy'),          desc: 'Tree · Z 0.30 mm'        },
-        { id: 'balanced',       name: t('supBalanced'),      desc: 'Tree · Z 0.20 mm'        },
-        { id: 'best_underside', name: t('supBestUnderside'), desc: 'Normal · Z 0.10 mm'      },
+        { id: 'none',           name: t('supNone'),          desc: 'No support material generated.' },
+        { id: 'easy',           name: t('supEasy'),          desc: 'Tree · Z 0.30mm — supports snap off easily, rougher underside.' },
+        { id: 'balanced',       name: t('supBalanced'),      desc: 'Tree · Z 0.20mm — reasonable removal with decent underside.' },
+        { id: 'best_underside', name: t('supBestUnderside'), desc: 'Normal · Z 0.10mm — smooth underside, supports harder to remove.' },
       ]},
       { key: 'colors',      label: t('filterColors'),   multi: false, required: false, items: [
-        { id: 'single',    name: t('colSingle')   },
-        { id: 'multi_2_4', name: t('colMulti24')  },
-        { id: 'multi_5',   name: t('colMulti5')   },
+        { id: 'single',    name: t('colSingle'),  desc: 'Single filament — no prime tower needed.' },
+        { id: 'multi_2_4', name: t('colMulti24'), desc: '2–4 colors — prime tower enabled to prevent color bleed.' },
+        { id: 'multi_5',   name: t('colMulti5'),  desc: '5+ colors — flush into infill saves material on large palettes.' },
       ]},
       { key: 'userLevel',   label: t('filterLevel'),    multi: false, required: false, items: [
         { id: 'beginner',     name: t('lvlBeginner'), desc: t('lvlBeginnerDesc') },
@@ -241,47 +241,47 @@ const Engine = (() => {
         { id: 'advanced',     name: t('lvlAdvanced'), desc: t('lvlAdvancedDesc') },
       ]},
       { key: 'seam',             label: t('filterSeam'),             multi: false, required: false, advanced: true, items: [
-        { id: 'aligned',         name: t('seamAligned')         },
-        { id: 'sharpest_corner', name: t('seamSharpest')        },
-        { id: 'random',          name: t('seamRandom')          },
-        { id: 'back',            name: t('seamBack')            },
+        { id: 'aligned',         name: t('seamAligned'),   desc: 'Seams line up vertically — visible line but predictable placement.' },
+        { id: 'sharpest_corner', name: t('seamSharpest'),  desc: 'Hides seams at sharp corners — best for geometric models.' },
+        { id: 'random',          name: t('seamRandom'),    desc: 'Seams scattered randomly — no visible line but subtle texture.' },
+        { id: 'back',            name: t('seamBack'),      desc: 'Seams placed at the back — hidden from front view.' },
       ]},
       { key: 'brim',             label: t('filterBrim'),             multi: false, required: false, advanced: true, items: [
-        { id: 'auto',       name: t('brimAuto')      },
-        { id: 'none',       name: t('brimNone')      },
-        { id: 'small',      name: t('brimSmall'),    desc: '5 mm'  },
-        { id: 'large',      name: t('brimLarge'),    desc: '10 mm' },
-        { id: 'mouse_ears', name: t('brimMouseEars') },
+        { id: 'auto',       name: t('brimAuto'),      desc: 'Engine decides based on material shrink risk and part geometry.' },
+        { id: 'none',       name: t('brimNone'),      desc: 'No brim — clean edges, relies on bed adhesion alone.' },
+        { id: 'small',      name: t('brimSmall'),     desc: '5mm brim — light adhesion boost, easy to remove.' },
+        { id: 'large',      name: t('brimLarge'),     desc: '10mm brim — strong adhesion for warp-prone materials.' },
+        { id: 'mouse_ears', name: t('brimMouseEars'), desc: 'Brim only at corners — prevents lifting with minimal cleanup.' },
       ]},
       { key: 'build_plate',     label: t('filterBuildPlate'),       multi: false, required: false, advanced: true, items: [
-        { id: 'smooth_pei',       name: t('bpSmoothPEI')       },
-        { id: 'textured_pei',     name: t('bpTexturedPEI')     },
-        { id: 'cool_plate',       name: t('bpCoolPlate')       },
-        { id: 'engineering_plate', name: t('bpEngineering')     },
-        { id: 'glass',            name: t('bpGlass')           },
-        { id: 'garolite',         name: t('bpGarolite')        },
+        { id: 'smooth_pei',       name: t('bpSmoothPEI'),   desc: 'Glossy bottom finish. Use glue as release agent for PETG.' },
+        { id: 'textured_pei',     name: t('bpTexturedPEI'), desc: 'Matte finish, great adhesion, easy release for most materials.' },
+        { id: 'cool_plate',       name: t('bpCoolPlate'),   desc: 'For PLA and TPU. Limited to lower bed temperatures.' },
+        { id: 'engineering_plate', name: t('bpEngineering'), desc: 'For high-temp materials (PC, PA). Heat resistant.' },
+        { id: 'glass',            name: t('bpGlass'),       desc: 'Smooth finish, needs glue stick for adhesion.' },
+        { id: 'garolite',         name: t('bpGarolite'),    desc: 'Best for Nylon (PA) — excellent adhesion without glue.' },
       ]},
       { key: 'extruder_type',   label: t('filterExtruderType'),     multi: false, required: false, advanced: true, items: [
-        { id: 'direct_drive', name: t('extDirectDrive') },
-        { id: 'bowden',       name: t('extBowden')      },
+        { id: 'direct_drive', name: t('extDirectDrive'), desc: 'Short filament path — better retraction, handles flexibles well.' },
+        { id: 'bowden',       name: t('extBowden'),      desc: 'Long PTFE tube — higher retraction needed, struggles with soft TPU.' },
       ]},
       { key: 'filament_condition', label: t('filterFilamentCond'),   multi: false, required: false, advanced: true, items: [
-        { id: 'freshly_dried',   name: t('fcDried')    },
-        { id: 'opened_recently', name: t('fcOpened')   },
-        { id: 'unknown',         name: t('fcUnknown')  },
+        { id: 'freshly_dried',   name: t('fcDried'),   desc: 'Dried within 24h — optimal for moisture-sensitive materials.' },
+        { id: 'opened_recently', name: t('fcOpened'),  desc: 'Opened within a week — fine for PLA, risky for PA/TPU.' },
+        { id: 'unknown',         name: t('fcUnknown'), desc: 'Unknown condition — drying warning added for hygroscopic materials.' },
       ]},
       { key: 'ironing',         label: t('filterIroning'),          multi: false, required: false, advanced: true, items: [
-        { id: 'auto', name: t('ironAuto') },
-        { id: 'on',   name: t('ironOn')   },
-        { id: 'off',  name: t('ironOff')  },
+        { id: 'auto', name: t('ironAuto'), desc: 'Engine decides based on surface quality level (on at Fine+).' },
+        { id: 'on',   name: t('ironOn'),   desc: 'Iron top surfaces — smooths visible layers, adds print time.' },
+        { id: 'off',  name: t('ironOff'),  desc: 'No ironing — faster, acceptable for non-visible surfaces.' },
       ]},
       { key: 'special',     label: t('filterSpecial'),  multi: true,  required: false, items: [
-        { id: 'waterproof',   name: t('spWaterproof') },
-        { id: 'high_temp',    name: t('spHighTemp')   },
-        { id: 'metallic',     name: t('spMetallic')   },
-        { id: 'matte',        name: t('spMatte')      },
-        { id: 'glossy',       name: t('spGlossy')     },
-        { id: 'uv_resistant', name: t('spUV')         },
+        { id: 'waterproof',   name: t('spWaterproof'), desc: 'Extra walls and top layers to prevent water penetration.' },
+        { id: 'high_temp',    name: t('spHighTemp'),   desc: 'Part will face heat — suggests ABS/ASA/PC materials.' },
+        { id: 'metallic',     name: t('spMetallic'),   desc: 'Metallic finish — slower outer wall for best sheen.' },
+        { id: 'matte',        name: t('spMatte'),      desc: 'Matte surface — layer lines less visible naturally.' },
+        { id: 'glossy',       name: t('spGlossy'),     desc: 'Glossy finish — ironing and fine layers recommended.' },
+        { id: 'uv_resistant', name: t('spUV'),         desc: 'Outdoor use — suggests ASA or UV-resistant materials.' },
       ]},
     ];
   }
@@ -294,7 +294,7 @@ const Engine = (() => {
   const SLICER_TABS = {
     bambu_studio: [
       {
-        id: 'quality', label: 'Quality',
+        id: 'quality', label: 'Quality', desc: 'Layer height, line width, wall precision, seam placement, and surface finish.',
         sections: [
           { label: 'Layer height',    params: ['layer_height', 'initial_layer_height'] },
           { label: 'Line width',      params: ['outer_wall_line_width', 'inner_wall_line_width', 'top_surface_line_width'] },
@@ -306,7 +306,7 @@ const Engine = (() => {
         ],
       },
       {
-        id: 'strength', label: 'Strength',
+        id: 'strength', label: 'Strength', desc: 'Wall count, infill pattern and density, top/bottom shell thickness.',
         sections: [
           { label: 'Walls',             params: ['wall_loops'] },
           { label: 'Top/bottom shells',  params: ['top_shell_layers', 'bottom_shell_layers', 'top_surface_pattern', 'bottom_surface_pattern', 'internal_solid_infill_pattern'] },
@@ -315,7 +315,7 @@ const Engine = (() => {
         ],
       },
       {
-        id: 'speed', label: 'Speed',
+        id: 'speed', label: 'Speed', desc: 'Print move speeds, acceleration limits, and initial layer settings.',
         sections: [
           { label: 'Initial layer speed', params: ['initial_layer_speed'] },
           { label: 'Other layers speed',  params: ['outer_wall_speed', 'inner_wall_speed', 'top_surface_speed', 'gap_fill_speed'] },
@@ -323,14 +323,14 @@ const Engine = (() => {
         ],
       },
       {
-        id: 'support', label: 'Support',
+        id: 'support', label: 'Support', desc: 'Support type, pattern, interface quality, and removal settings.',
         sections: [
           { label: 'Support',   params: ['support_type', 'support_style', 'support_threshold_angle'] },
           { label: 'Advanced',  params: ['support_z_distance', 'support_interface_layers', 'support_interface_pattern'] },
         ],
       },
       {
-        id: 'others', label: 'Others',
+        id: 'others', label: 'Others', desc: 'Brim, prime tower, purge options, and special print modes.',
         sections: [
           { label: 'Bed adhesion',  params: ['brim_width'] },
           { label: 'Prime tower',   params: ['prime_tower'] },
@@ -341,7 +341,7 @@ const Engine = (() => {
     ],
     prusaslicer: [
       {
-        id: 'quality', label: 'Quality',
+        id: 'quality', label: 'Quality', desc: 'Layer height, perimeter quality, seam, wall generator, and bridging.',
         sections: [
           { label: 'Layer height',       params: ['layer_height', 'initial_layer_height'] },
           { label: 'Horizontal shells',  params: ['top_shell_layers', 'bottom_shell_layers'] },
@@ -351,7 +351,7 @@ const Engine = (() => {
         ],
       },
       {
-        id: 'strength', label: 'Strength',
+        id: 'strength', label: 'Strength', desc: 'Infill pattern and density, ironing, and print time optimizations.',
         sections: [
           { label: 'Infill',                  params: ['sparse_infill_density', 'sparse_infill_pattern', 'top_surface_pattern', 'bottom_surface_pattern', 'internal_solid_infill_pattern'] },
           { label: 'Ironing',                 params: ['ironing'] },
@@ -359,7 +359,7 @@ const Engine = (() => {
         ],
       },
       {
-        id: 'speed', label: 'Speed',
+        id: 'speed', label: 'Speed', desc: 'Print move speeds, first layer modifiers, and acceleration control.',
         sections: [
           { label: 'Speed for print moves',  params: ['outer_wall_speed', 'inner_wall_speed', 'top_surface_speed', 'gap_fill_speed'] },
           { label: 'Modifiers',              params: ['initial_layer_speed'] },
@@ -367,14 +367,14 @@ const Engine = (() => {
         ],
       },
       {
-        id: 'support', label: 'Support',
+        id: 'support', label: 'Support', desc: 'Support material type, overhang threshold, and interface settings.',
         sections: [
           { label: 'Support material',              params: ['support_type', 'support_style', 'support_threshold_angle'] },
           { label: 'Options for support material',  params: ['support_z_distance', 'support_interface_layers', 'support_interface_pattern'] },
         ],
       },
       {
-        id: 'others', label: 'Others',
+        id: 'others', label: 'Others', desc: 'Skirt, brim, wipe tower, and advanced print options.',
         sections: [
           { label: 'Skirt and brim',  params: ['brim_width'] },
           { label: 'Wipe tower',      params: ['prime_tower'] },
@@ -384,7 +384,7 @@ const Engine = (() => {
     ],
     orcaslicer: [
       {
-        id: 'quality', label: 'Quality',
+        id: 'quality', label: 'Quality', desc: 'Layer height, line width, seam, precision, ironing, and wall settings.',
         sections: [
           { label: 'Layer height',       params: ['layer_height', 'initial_layer_height'] },
           { label: 'Line width',         params: ['outer_wall_line_width', 'inner_wall_line_width', 'top_surface_line_width'] },
@@ -397,7 +397,7 @@ const Engine = (() => {
         ],
       },
       {
-        id: 'strength', label: 'Strength',
+        id: 'strength', label: 'Strength', desc: 'Wall count, infill pattern and density, top/bottom shell thickness.',
         sections: [
           { label: 'Walls',             params: ['wall_loops'] },
           { label: 'Top/bottom shells',  params: ['top_shell_layers', 'bottom_shell_layers', 'top_surface_pattern', 'bottom_surface_pattern', 'internal_solid_infill_pattern'] },
@@ -406,7 +406,7 @@ const Engine = (() => {
         ],
       },
       {
-        id: 'speed', label: 'Speed',
+        id: 'speed', label: 'Speed', desc: 'Print move speeds, first layer speed, and acceleration settings.',
         sections: [
           { label: 'First layer speed',  params: ['initial_layer_speed'] },
           { label: 'Other layers speed',  params: ['outer_wall_speed', 'inner_wall_speed', 'top_surface_speed', 'gap_fill_speed'] },
@@ -414,14 +414,14 @@ const Engine = (() => {
         ],
       },
       {
-        id: 'support', label: 'Support',
+        id: 'support', label: 'Support', desc: 'Support type, pattern, interface quality, and removal settings.',
         sections: [
           { label: 'Support',   params: ['support_type', 'support_style', 'support_threshold_angle'] },
           { label: 'Advanced',  params: ['support_z_distance', 'support_interface_layers', 'support_interface_pattern'] },
         ],
       },
       {
-        id: 'others', label: 'Others',
+        id: 'others', label: 'Others', desc: 'Skirt, brim, prime tower, flush options, and special modes.',
         sections: [
           { label: 'Skirt',          params: [] },
           { label: 'Brim',           params: ['brim_width'] },
@@ -1183,7 +1183,12 @@ const Engine = (() => {
             ? 'Grid is efficient and strong in the XY plane. A solid default for most everyday parts.'
             : 'Cross Hatch is the fastest infill to print. Adequate for prototypes where strength is not the priority.');
 
-      p.sparse_infill_density = S(`${strength.infill_density}%`, '');
+      p.sparse_infill_density = S(`${strength.infill_density}%`,
+        strength.infill_density >= 40
+          ? 'High infill for maximum rigidity — significantly increases weight and print time.'
+          : strength.infill_density <= 10
+            ? 'Low infill keeps the part lightweight and fast to print. Adequate for non-structural use.'
+            : 'Balanced infill — enough internal structure for everyday parts without excessive material use.');
 
       const lowInfill  = strength.infill_density <= 15;
       const fineLayers = surface && surface.layer_height <= 0.15;
@@ -1191,7 +1196,7 @@ const Engine = (() => {
       p.top_shell_layers = S(`${topShells}`,
         topShells >= 5
           ? 'More top shells prevent pillowing (small holes in the top face) — common at low infill densities or with fine layer heights.'
-          : '');
+          : 'Standard top shell count — enough layers to produce a solid, closed top surface.');
 
       const bottomShells = strength.bottom_shell_layers_base || Math.max(3, topShells - 1);
       p.bottom_shell_layers = A(`${bottomShells}`,
@@ -1283,9 +1288,14 @@ const Engine = (() => {
         isABSlike  ? 'Slower outer walls reduce warping risk by allowing each layer more time to cool gradually.' :
         !isCoreXY  ? 'A1/A1 Mini have a 10,000 mm/s² acceleration limit — higher speeds cause ringing on tall prints.' :
         petgCapped ? 'PETG surface quality degrades noticeably above 80 mm/s outer wall speed — capped for this material.' :
-        sm.id === 'quality' ? 'Slow outer walls reduce vibration artifacts and give each layer more time to solidify uniformly.' : '');
+        sm.id === 'quality' ? 'Slow outer walls reduce vibration artifacts and give each layer more time to solidify uniformly.' :
+        'Outer wall speed balanced for your printer type — CoreXY handles higher speeds without ringing.');
 
-      p.inner_wall_speed = S(`${innerSpeed} mm/s`, '');
+      p.inner_wall_speed = S(`${innerSpeed} mm/s`,
+        isTPU     ? 'Inner walls also capped for flexible filament — consistent flow matters more than speed.' :
+        isABSlike ? 'Moderate inner wall speed helps ABS/ASA cool uniformly between layers.' :
+        !isCoreXY ? 'Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints.' :
+        'Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints.');
 
       // Advanced speed settings
       let initSpeed = isCoreXY ? sm.initial_layer : (sm.initial_layer - 5);
@@ -1298,7 +1308,8 @@ const Engine = (() => {
 
       const topSpeed = isCoreXY ? sm.top_surface_corexy : sm.top_surface_bedslinger;
       p.top_surface_speed = A(`${topSpeed} mm/s`,
-        sm.id === 'quality' ? 'Slow top surface speed produces the most uniform and flat top layer — critical when ironing is enabled.' : '');
+        sm.id === 'quality' ? 'Slow top surface speed produces the most uniform and flat top layer — critical when ironing is enabled.' :
+        'Top surface speed tuned for your printer — slower than inner walls since this layer is visible.');
 
       const gapSpeed = isCoreXY ? sm.gap_fill_corexy : sm.gap_fill_bedslinger;
       p.gap_fill_speed = A(`${gapSpeed} mm/s`,
@@ -1323,8 +1334,13 @@ const Engine = (() => {
       p.outer_wall_acceleration    = A(`${outerAccel} mm/s²`,
         isTPU     ? 'Very low acceleration for TPU — prevents filament stretching and under-extrusion.' :
         !isCoreXY ? 'Lower acceleration on A1/A1 Mini prevents ringing from the moving print bed mass.' :
-        isABSlike ? 'Reduced acceleration helps ABS/ASA cool more uniformly, reducing warping.' : '');
-      p.inner_wall_acceleration    = A(`${innerAccel} mm/s²`, '');
+        isABSlike ? 'Reduced acceleration helps ABS/ASA cool more uniformly, reducing warping.' :
+        'Outer wall acceleration tuned for your printer — balances speed with surface quality.');
+      p.inner_wall_acceleration    = A(`${innerAccel} mm/s²`,
+        isTPU     ? 'Low acceleration for flexible filament — matches outer wall limits to prevent jams.' :
+        !isCoreXY ? 'Reduced acceleration for bedslinger — inner walls still contribute to visible ringing.' :
+        isABSlike ? 'Lower acceleration helps ABS/ASA maintain consistent layer bonding.' :
+        'Higher than outer wall — inner walls are hidden so acceleration artifacts are not visible.');
       p.initial_layer_acceleration = A(`${initAccel} mm/s²`,
         'Very low acceleration ensures the nozzle moves smoothly at slow speed — prevents the first layer from being dragged or lifting at corners.');
     }
@@ -1340,7 +1356,10 @@ const Engine = (() => {
         isTree || forceEasy
           ? 'Tree supports contact the model at minimal points and are significantly easier to remove without surface damage.'
           : 'Normal supports provide better surface quality on the underside of supported areas — use when finish matters.');
-      p.support_style           = S(isTree || forceEasy ? 'Tree Hybrid' : 'Default', '');
+      p.support_style           = S(isTree || forceEasy ? 'Tree Hybrid' : 'Default',
+        isTree || forceEasy
+          ? 'Hybrid combines tree and normal support — tree branches where possible, normal on flat overhangs.'
+          : 'Default support style — grid pattern provides reliable support for all overhang types.');
       p.support_threshold_angle = S(support.id === 'best_underside' ? '30°' : '40°',
         'Only generate support where overhangs exceed this angle. Lower values generate more support — use 30° for quality-critical surfaces.');
       p.support_z_distance      = S(`${zGap} mm`,
@@ -1513,7 +1532,7 @@ const Engine = (() => {
     inner_wall_line_width:     'inner_wall_line_width',
     top_surface_line_width:    'top_surface_line_width',
     arc_fitting:               'enable_arc_fitting',
-    avoid_crossing_walls:      'avoid_crossing_walls',
+    avoid_crossing_walls:      'reduce_crossing_wall',
     only_one_wall_top:         'only_one_wall_top',
     bridge_flow:               'bridge_flow',
     wall_loops:                'wall_loops',
@@ -1558,6 +1577,7 @@ const Engine = (() => {
     'textured_plate_temp', 'textured_plate_temp_initial_layer',
     'eng_plate_temp', 'eng_plate_temp_initial_layer',
     'fan_min_speed', 'fan_max_speed', 'additional_cooling_fan_speed',
+    'overhang_fan_speed', 'slow_down_layer_time', 'enable_height_slowdown',
     'filament_max_volumetric_speed', 'filament_flow_ratio',
     'pressure_advance', 'filament_retraction_length', 'filament_retraction_speed',
   ]);
@@ -1570,11 +1590,128 @@ const Engine = (() => {
     p1p:      'Bambu Lab P1P',
     p2s:      'Bambu Lab P2S',
     a1:       'Bambu Lab A1',
-    a1_mini:  'Bambu Lab A1 mini',
+    a1mini:   'Bambu Lab A1 mini',
     h2c:      'Bambu Lab H2C',
     h2d:      'Bambu Lab H2D',
     h2s:      'Bambu Lab H2S',
   };
+
+  // Printer base names for building compatible_printers dynamically (nozzle appended at export time)
+  const BAMBU_COMPATIBLE_PRINTER_BASE = {
+    x1c:    'Bambu Lab X1 Carbon',
+    x1e:    'Bambu Lab X1E',
+    p1s:    'Bambu Lab P1S',
+    p1p:    'Bambu Lab P1P',
+    p2s:    'Bambu Lab P2S',
+    a1:     'Bambu Lab A1',
+    a1mini: 'Bambu Lab A1 mini',
+    h2c:    'Bambu Lab H2C',
+    h2d:    'Bambu Lab H2D',
+    h2s:    'Bambu Lab H2S',
+  };
+
+  // Bambu Studio process profile inheritance: printer_id → { layer_height → exact system profile name }
+  // These names MUST match installed system profiles exactly. P1S/X1C/X1E share CoreXY process profiles.
+  const BAMBU_PROCESS_INHERITS = {
+    x1c:    { '0.08': '0.08mm Extra Fine @BBL X1C', '0.12': '0.12mm Fine @BBL X1C', '0.15': '0.16mm Optimal @BBL X1C', '0.20': '0.20mm Standard @BBL X1C', '0.24': '0.24mm Draft @BBL X1C', '0.28': '0.28mm Extra Draft @BBL X1C', '0.30': '0.28mm Extra Draft @BBL X1C' },
+    x1e:    null,  // shares with X1C
+    p1s:    null,  // shares with X1C
+    p2s:    null,  // shares with X1C
+    p1p:    { '0.08': '0.08mm Extra Fine @BBL P1P', '0.12': '0.12mm Fine @BBL P1P', '0.15': '0.16mm Optimal @BBL P1P', '0.20': '0.20mm Standard @BBL P1P', '0.24': '0.24mm Draft @BBL P1P', '0.28': '0.28mm Extra Draft @BBL P1P', '0.30': '0.28mm Extra Draft @BBL P1P' },
+    a1:     { '0.08': '0.08mm Extra Fine @BBL A1', '0.12': '0.12mm Fine @BBL A1', '0.15': '0.16mm Optimal @BBL A1', '0.20': '0.20mm Standard @BBL A1', '0.24': '0.24mm Draft @BBL A1', '0.28': '0.28mm Extra Draft @BBL A1', '0.30': '0.28mm Extra Draft @BBL A1' },
+    a1mini: { '0.08': '0.08mm Extra Fine @BBL A1M', '0.12': '0.12mm Fine @BBL A1M', '0.15': '0.16mm Optimal @BBL A1M', '0.20': '0.20mm Standard @BBL A1M', '0.24': '0.24mm Draft @BBL A1M', '0.28': '0.28mm Extra Draft @BBL A1M', '0.30': '0.28mm Extra Draft @BBL A1M' },
+  };
+
+  // Bambu Studio filament profile inheritance: material_id → exact system profile name
+  // Uses @base suffix — the universal base profile that all printer-specific variants inherit from
+  // Must match exact names shown in Bambu Studio under System presets > Bambu / Generic
+  // Bambu Studio filament base names: material_id → BS filament name (without printer suffix)
+  // The full inherits string is built dynamically: baseName + " @BBL " + printerSuffix
+  const BAMBU_FILAMENT_BASE_NAMES = {
+    pla_basic:  'Bambu PLA Basic',
+    pla_matte:  'Bambu PLA Matte',
+    pla_silk:   'Bambu PLA Silk',
+    pla_cf:     'Bambu PLA-CF',
+    petg_basic: 'Bambu PETG Basic',
+    petg_hf:    'Bambu PETG HF',
+    petg_cf:    'Bambu PETG-CF',
+    abs:        'Bambu ABS',
+    asa:        'Bambu ASA',
+    tpu_95a:    'Bambu TPU 95A',
+    tpu_90a:    'Bambu TPU 95A',    // 90A not in BS, use 95A as closest
+    tpu_85a:    'Bambu TPU 95A',    // 85A not in BS, use 95A as closest
+    pva:        'Bambu PVA',
+    pa:         'Generic PA',
+    pa_cf:      'Bambu PAHT-CF',
+    pc:         'Generic PC',
+    pet_cf:     'Bambu PETG-CF',    // PET-CF closest to PETG-CF
+    hips:       'Generic HIPS',
+  };
+
+  // Fallback by group if material ID not found
+  const BAMBU_FILAMENT_BASE_BY_GROUP = {
+    PLA:  'Bambu PLA Basic',
+    PETG: 'Bambu PETG Basic',
+    ABS:  'Bambu ABS',
+    ASA:  'Bambu ASA',
+    TPU:  'Bambu TPU 95A',
+    PA:   'Generic PA',
+    PC:   'Generic PC',
+    PVA:  'Bambu PVA',
+    HIPS: 'Generic HIPS',
+  };
+
+  // Known printer-specific filament profiles that exist in BS system folder
+  // Format: { materialBaseName: { printerId: 'exact suffix' } }
+  // If a material+printer combo isn't listed here, we fall back to @base
+  const BAMBU_FILAMENT_PRINTER_OVERRIDES = {
+    'Bambu PLA Basic':  { p1s: 'P1S 0.4 nozzle', x1c: 'X1C', p2s: 'P2S', a1: 'A1', a1mini: 'A1M', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+    'Bambu PLA Matte':  { p1s: 'P1S 0.4 nozzle', x1c: 'X1C', p2s: 'P2S', a1: 'A1', a1mini: 'A1M', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+    'Bambu PLA Silk':   { x1c: 'X1C', p2s: 'P2S', a1: 'A1', a1mini: 'A1M', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+    'Bambu PLA-CF':     { x1c: 'X1C', p2s: 'P2S', a1: 'A1', a1mini: 'A1M', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+    'Bambu PETG Basic': { x1c: 'X1C', p2s: 'P2S', a1: 'A1', a1mini: 'A1M', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+    'Bambu PETG HF':    { p1s: 'P1S 0.4 nozzle', x1c: 'X1C', p2s: 'P2S', a1: 'A1', a1mini: 'A1M', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+    'Bambu PETG-CF':    { x1c: 'X1C', p2s: 'P2S', a1: 'A1', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+    'Bambu ABS':        { p1s: 'P1S 0.4 nozzle', x1c: 'X1C', x1e: 'X1E', p2s: 'P2S', a1: 'A1', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+    'Bambu ASA':        { x1c: 'X1C', x1e: 'X1E', p2s: 'P2S', a1: 'A1', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+    'Bambu TPU 95A':    { x1c: 'X1C', p2s: 'P2S', a1: 'A1', a1mini: 'A1M', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+    'Bambu PVA':        { x1c: 'X1C', p2s: 'P2S', a1: 'A1', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+    'Bambu PAHT-CF':    { x1c: 'X1C', x1e: 'X1E', p2s: 'P2S', a1: 'A1', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+    'Generic PA':       { x1c: 'X1C', p2s: 'P2S', a1: 'A1', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+    'Generic PC':       { p1s: 'P1S', x1c: 'X1C', x1e: 'X1E', p2s: 'P2S', a1: 'A1', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+    'Generic HIPS':     { x1c: 'X1C', p2s: 'P2S', a1: 'A1', a1mini: 'A1M', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+  };
+
+  function _findProcessParent(printerId, layerHeight) {
+    // Resolve printers that share profiles with X1C
+    const map = BAMBU_PROCESS_INHERITS[printerId] || BAMBU_PROCESS_INHERITS.x1c;
+    if (!map) return null;
+    // Find closest available layer height (keys are strings like '0.20')
+    const available = Object.keys(map).map(Number).sort();
+    const target = parseFloat(layerHeight);
+    let closest = available[0];
+    for (const h of available) {
+      if (Math.abs(h - target) < Math.abs(closest - target)) closest = h;
+    }
+    // Look up using the original string key from the map
+    const closestKey = Object.keys(map).find(k => Math.abs(Number(k) - closest) < 0.001);
+    return closestKey ? map[closestKey] : null;
+  }
+
+  function _findFilamentParent(materialId, materialGroup, printerId) {
+    const baseName = BAMBU_FILAMENT_BASE_NAMES[materialId]
+                  || BAMBU_FILAMENT_BASE_BY_GROUP[materialGroup];
+    if (!baseName) return null;
+    // Use printer-specific profile if one exists, otherwise fall back to X1C
+    // compatible_printers is added to the exported user profile to override any restriction
+    const overrides = BAMBU_FILAMENT_PRINTER_OVERRIDES[baseName];
+    if (overrides && overrides[printerId]) {
+      return `${baseName} @BBL ${overrides[printerId]}`;
+    }
+    // X1C has the broadest filament coverage — use as fallback
+    // Our exported profile will include compatible_printers to allow it on any printer
+    return `${baseName} @BBL X1C`;
+  }
 
   // ── Extract numeric value from engine output strings ────────────────────────
   function _extractValue(str) {
@@ -1606,7 +1743,15 @@ const Engine = (() => {
     const slicer = getSlicerForPrinter(state.printer);
     if (slicer !== 'bambu_studio') return null;  // Bambu printers only
 
-    const profile = resolveProfile(state);
+    // Fill default filters so resolveProfile returns a complete set of params
+    const exportState = Object.assign({}, state, {
+      surface:     state.surface     || 'standard',
+      strength:    state.strength    || 'standard',
+      speed:       state.speed       || 'balanced',
+      environment: state.environment || 'normal',
+    });
+
+    const profile = resolveProfile(exportState);
     const adv     = getAdvancedFilamentSettings(state);
     const bs      = material.base_settings;
     const pa      = _resolvePA(bs, nozzle);
@@ -1616,13 +1761,20 @@ const Engine = (() => {
     const nozzleStr   = String(nozzle.size);
     const surfaceId   = state.surface || 'standard';
 
+    // Resolve layer height for inherits lookup
+    const layerHeight = profile.layer_height ? parseFloat(String(profile.layer_height.value).match(/[\d.]+/)?.[0] || '0.20') : 0.20;
+    const processParent = _findProcessParent(state.printer, layerHeight);
+    const filamentParent = _findFilamentParent(state.material, material.group, state.printer);
+    if (!processParent) return null;  // Can't export without valid parent
+
+    const processName = `3DPA ${material.name} ${layerHeight}mm @${printerName}`;
+
     const process = {
-      type: 'process',
-      name: `3DPA — ${surfaceId} @${printerName} ${nozzleStr} nozzle`,
-      from: 'user',
-      inherits: '',
-      instantiation: 'true',
-      compatible_printers: [`${printerName} ${nozzleStr} nozzle`],
+      from: 'User',
+      inherits: processParent,
+      name: processName,
+      print_settings_id: processName,
+      version: '2.5.0.14',
     };
 
     // Map engine params to BS fields
@@ -1688,24 +1840,44 @@ const Engine = (() => {
         process[bsKey] = /tree hybrid/i.test(String(raw)) ? 'tree_hybrid' : 'default';
         return;
       }
+      // Support interface pattern: BS only uses "auto", "rectilinear", or "grid"
+      if (engineKey === 'support_interface_pattern') {
+        const sipMap = { 'rectilinear': 'rectilinear', 'grid': 'grid', 'auto': 'auto' };
+        process[bsKey] = sipMap[String(raw).toLowerCase()] || 'auto';
+        return;
+      }
+      // Brim width: "5–8 mm" → "5", "Mouse ears (corners only)" → "5" (BS has no mouse ears)
+      if (engineKey === 'brim_width') {
+        const rawStr = String(raw).toLowerCase();
+        if (/mouse|corner/i.test(rawStr)) {
+          process[bsKey] = '5';  // Approximate: BS doesn't support mouse ears, use small brim
+        } else {
+          const num = String(raw).match(/(\d+)/);
+          process[bsKey] = num ? num[1] : '5';
+        }
+        return;
+      }
 
       // Array-wrapped fields
       process[bsKey] = BAMBU_ARRAY_FIELDS.has(bsKey) ? [val] : val;
     });
 
     // ── Filament profile ──────────────────────────────────────────────────────
-    const groupMap = { PLA: 'PLA', PETG: 'PETG', ABS: 'ABS', ASA: 'ASA', TPU: 'TPU', PA: 'PA', PC: 'PC', PVA: 'PVA', HIPS: 'HIPS' };
-    const filType  = groupMap[material.group] || material.group;
+    const filamentName = `3DPA ${material.name}`;
 
+    const printerBase = BAMBU_COMPATIBLE_PRINTER_BASE[state.printer];
+    const compatiblePrinters = printerBase
+      ? [`${printerBase} ${nozzleStr} nozzle`]
+      : null;
     const filament = {
-      type: 'filament',
-      name: `3DPA — ${material.name} @${printerName}`,
-      from: 'user',
-      inherits: '',
-      filament_type:     [filType],
-      filament_vendor:   ['3D Print Assistant'],
-      filament_density:  [String(bs.density || '1.24')],
-      filament_diameter: ['1.75'],
+      from: 'User',
+      inherits: filamentParent || '',
+      name: filamentName,
+      filament_settings_id: [filamentName],  // MUST be Array of Strings
+      filament_type: [material.group || 'PLA'],  // Always required — BS uses this to identify filament configs
+      version: '2.5.0.14',
+      // Override parent's compatible_printers so BS accepts this profile on any printer
+      ...(compatiblePrinters ? { compatible_printers: compatiblePrinters } : {}),
     };
 
     // Temperatures — use adjusted temps from engine
@@ -1714,7 +1886,7 @@ const Engine = (() => {
       const nzOther = String(parseInt(adv.other_layers_temp) || '');
       const bdInit  = String(parseInt(adv.initial_layer_bed_temp) || '');
       const bdOther = String(parseInt(adv.other_layers_bed_temp) || '');
-      filament.nozzle_temperature               = [nzInit];
+      filament.nozzle_temperature               = [nzOther];
       filament.nozzle_temperature_initial_layer  = [nzInit];
       // Populate all plate temps — use the same value
       filament.hot_plate_temp                    = [bdOther];
@@ -1733,13 +1905,20 @@ const Engine = (() => {
 
     // MVS
     const mvsVal = bs.max_mvs?.[String(nozzle.size)];
-    if (mvsVal)  filament.filament_max_volumetric_speed = [String(mvsVal)];
+    if (mvsVal)  filament.filament_max_volumetric_speed = [String(parseFloat(mvsVal))];
 
-    // Fan
+    // Fan speeds
     if (bs.cooling_fan_min != null) {
-      const fanPct = String(parseInt(bs.cooling_fan_min) || 0);
-      filament.fan_min_speed = [fanPct];
+      filament.fan_min_speed = [String(parseInt(bs.cooling_fan_min) || 0)];
       filament.fan_max_speed = ['100'];
+    }
+    // Overhang fan speed (e.g. "80%" → 80)
+    if (bs.cooling_fan_overhang != null) {
+      filament.overhang_fan_speed = [String(parseInt(bs.cooling_fan_overhang) || 0)];
+    }
+    // Slow down below layer time (e.g. "15 s" → 15)
+    if (bs.slow_layer_time != null) {
+      filament.slow_down_layer_time = [String(parseInt(bs.slow_layer_time) || 0)];
     }
 
     return { process, filament };

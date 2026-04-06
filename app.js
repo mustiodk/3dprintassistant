@@ -178,7 +178,7 @@ function applyLang() {
   document.getElementById('panelProfSub').textContent   = T('panelProfSub');
 
   // Buttons that live in the header area
-  // document.getElementById('exportBtn').textContent     = T('exportBtn'); // Export disabled
+  // Export buttons text handled dynamically in renderProfilePanel
   const lockBtn = document.getElementById('compareLockBtn');
   if (lockBtn) lockBtn.textContent = comparisonProfile ? T('compareClear') : T('compareBtn');
 
@@ -564,7 +564,7 @@ function buildFilters() {
       const isHidden = hasCore && !showAll && item.core === false;
       if (isHidden) { hiddenCount++; return; }
       const chip = document.createElement('button');
-      chip.className = 'chip';
+      chip.className = item.desc ? 'chip has-desc' : 'chip';
       chip.dataset.value = item.id;
       chip.innerHTML = `<span>${item.name}</span>${item.desc ? `<span class="chip-desc">${item.desc}</span>` : ''}`;
       chip.addEventListener('click', () => handleChipClick(chipsEl, chip, filter.key, item.id, filter.multi));
@@ -721,8 +721,43 @@ function bindControls() {
   document.getElementById('navFeedback').addEventListener('click',      () => setView('feedback'));
   document.getElementById('navBeta').addEventListener('click',          () => setView('beta'));
 
-  // Export button — temporarily disabled until Bambu Studio import format is validated
-  // document.getElementById('exportBtn').addEventListener('click', () => { ... });
+  // Process export button
+  document.getElementById('exportProcessBtn').addEventListener('click', () => {
+    if (!state.printer || !state.nozzle || !state.material) return;
+    const T = Engine.t;
+    const btn = document.getElementById('exportProcessBtn');
+    track('export_clicked', { type: 'process', printer: state.printer, nozzle: state.nozzle, material: state.material });
+    const result = Engine.exportBambuStudioJSON(state);
+    if (result?.process) {
+      _downloadJSON(result.process, `3DPA_process_${state.material}.json`);
+      _flashBtn(btn, '↓ Done');
+    }
+  });
+
+  // Filament export button
+  document.getElementById('exportFilamentBtn').addEventListener('click', () => {
+    if (!state.printer || !state.nozzle || !state.material) return;
+    const T = Engine.t;
+    const btn = document.getElementById('exportFilamentBtn');
+    track('export_clicked', { type: 'filament', printer: state.printer, nozzle: state.nozzle, material: state.material });
+    const result = Engine.exportBambuStudioJSON(state);
+    if (result?.filament) {
+      _downloadJSON(result.filament, `3DPA_filament_${state.material}.json`);
+      _flashBtn(btn, '↓ Done');
+    }
+  });
+
+  // Copy fallback for non-Bambu printers
+  document.getElementById('exportCopyBtn').addEventListener('click', () => {
+    if (!state.printer || !state.nozzle || !state.material) return;
+    const T = Engine.t;
+    const btn = document.getElementById('exportCopyBtn');
+    track('export_clicked', { type: 'copy', printer: state.printer, nozzle: state.nozzle, material: state.material });
+    const text = Engine.formatProfileAsText(state);
+    if (text) {
+      navigator.clipboard.writeText(text).then(() => _flashBtn(btn, T('exportCopied')));
+    }
+  });
 
   function _downloadJSON(obj, filename) {
     const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
@@ -789,8 +824,18 @@ function setMode(mode) {
   render();
 }
 
-// ── Click-to-copy on setting rows — temporarily disabled until export is validated
-// document.addEventListener('click', (e) => { ... });
+// ── Click-to-copy on setting rows ───────────────────────────────────────────
+document.addEventListener('click', (e) => {
+  const row = e.target.closest('.setting-row');
+  if (!row) return;
+  const name  = row.querySelector('.setting-name')?.textContent || '';
+  const value = row.querySelector('.setting-value')?.textContent || '';
+  if (!name || !value) return;
+  navigator.clipboard.writeText(`${name}: ${value}`).then(() => {
+    row.classList.add('copied-flash');
+    setTimeout(() => row.classList.remove('copied-flash'), 600);
+  });
+});
 
 // ── Nozzle chip filtering based on material compatibility ────────────────────
 function updateNozzleChips() {
@@ -849,10 +894,30 @@ function render() {
   const slicerSub = (key) => { const sk = key + '_' + Engine.getActiveSlicer(); const v = T(sk); return v !== sk ? v : T(key); };
   document.getElementById('panelProfSub').textContent = slicerSub('panelProfSub');
   document.getElementById('panelFilSub').textContent  = slicerSub('panelFilSub');
-  // Dynamic export button label — temporarily disabled
-  // const exportBtn = document.getElementById('exportBtn');
-  // if (state.printer) { ... }
+  // Show correct export UI based on slicer
+  const exportGroup  = document.getElementById('exportGroup');
+  const exportCopyBtn = document.getElementById('exportCopyBtn');
   const hasMin = state.printer && state.nozzle && state.material;
+  if (hasMin && state.printer) {
+    const slicer = Engine.getSlicerForPrinter(state.printer);
+    if (slicer === 'bambu_studio') {
+      exportGroup.style.display  = 'flex';
+      exportCopyBtn.style.display = 'none';
+      // Grey out filament button if no filament export available
+      const result = Engine.exportBambuStudioJSON(state);
+      const filamentBtn = document.getElementById('exportFilamentBtn');
+      filamentBtn.disabled = !result?.filament;
+      filamentBtn.title = result?.filament
+        ? 'Download filament profile (temperatures, cooling, PA) for Bambu Studio'
+        : 'Filament export not available for this material/printer combination';
+    } else {
+      exportGroup.style.display  = 'none';
+      exportCopyBtn.style.display = 'block';
+    }
+  } else {
+    exportGroup.style.display  = 'none';
+    exportCopyBtn.style.display = 'none';
+  }
   if (hasMin) {
     const combo = `${state.printer}|${state.nozzle}|${state.material}`;
     if (combo !== _lastTrackedCombo) {
@@ -1166,7 +1231,8 @@ function renderProfilePanel(profile) {
       }
     }
 
-    return `<div class="tab-content${tab.id === activeTabId ? ' active' : ''}" data-tab="${tab.id}">${body}</div>`;
+    const descHtml = tab.desc ? `<p class="tab-desc">${tab.desc}</p>` : '';
+    return `<div class="tab-content${tab.id === activeTabId ? ' active' : ''}" data-tab="${tab.id}">${descHtml}${body}</div>`;
   }).join('');
 
   // Tab switching — update activeTabId so it persists across renders
