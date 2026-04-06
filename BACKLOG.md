@@ -12,6 +12,28 @@
 
 ## Planned
 
+### #036 — Profile Parameter Data Architecture + Value Correctness
+**Status:** Planned | **Scope:** Medium-Large | **Spec:** [IMPL-036-profile-params.md](IMPL-036-profile-params.md)
+
+Eliminate hardcoded slicer dropdown values in engine.js. Move all parameter values to `objective_profiles.json` as BS-compatible values. Fix broken exports, add missing parameters, expand support style options.
+
+**Root problems:**
+- `internal_solid_infill_pattern` exports `"zig-zag"` — invalid BS value ❌
+- `ironing_pattern` never exported (separate BS field) ❌
+- `seam_position` shows "Aligned (or Back)" / "Sharpest corner" — not real BS labels ⚠
+- `support_style` uses 2 of 5 BS options, no use-case awareness ⚠
+- `ironing` stored as display string, not BS value ⚠
+- `internal_solid_infill_pattern` always "Auto (Rectilinear)" regardless of quality level ⚠
+
+**Deliverables:**
+- [ ] `objective_profiles.json` — add 5 new fields to surface_quality entries (seam_position, only_one_wall_top, ironing_type, ironing_pattern, internal_solid_infill_pattern)
+- [ ] `engine.js` resolveProfile() — replace hardcoded strings with data reads + display lookup tables
+- [ ] `engine.js` exportBambuStudioJSON() — fix zig-zag bug, add ironing_pattern, expand support_style map (5 options)
+- [ ] SLICER_TABS + SLICER_PARAM_LABELS — split ironing → ironing_type + ironing_pattern across all 3 slicers
+- [ ] Full import test in Bambu Studio
+
+---
+
 ### #001 — AMS Purge Volume Calculator
 **Status:** Planned | **Scope:** Medium
 
