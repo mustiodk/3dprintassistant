@@ -5,14 +5,61 @@
     "project": "3D Print Assistant"
   },
   "categories": {
-    "ux":           { "label": "UX",           "icon": "🖥",  "color": "#4a9eff", "desc": "User interface & experience" },
-    "content":      { "label": "Content",      "icon": "📦",  "color": "#4caf7d", "desc": "More printers, materials & data" },
-    "export":       { "label": "Export",       "icon": "📤",  "color": "#9c6ee6", "desc": "Sharing & exporting" },
-    "community":    { "label": "Community",    "icon": "👥",  "color": "#e0609a", "desc": "Social & community features" },
-    "architecture": { "label": "Architecture", "icon": "⚙️",  "color": "#f09440", "desc": "Engine internals & code structure" },
-    "tooling":      { "label": "Tooling",      "icon": "🔧",  "color": "#888899", "desc": "Dev tools, CI & ops" }
+    "ux": {
+      "label": "UX",
+      "icon": "\ud83d\udda5",
+      "color": "#4a9eff",
+      "desc": "User interface & experience"
+    },
+    "content": {
+      "label": "Content",
+      "icon": "\ud83d\udce6",
+      "color": "#4caf7d",
+      "desc": "More printers, materials & data"
+    },
+    "export": {
+      "label": "Export",
+      "icon": "\ud83d\udce4",
+      "color": "#9c6ee6",
+      "desc": "Sharing & exporting"
+    },
+    "community": {
+      "label": "Community",
+      "icon": "\ud83d\udc65",
+      "color": "#e0609a",
+      "desc": "Social & community features"
+    },
+    "architecture": {
+      "label": "Architecture",
+      "icon": "\u2699\ufe0f",
+      "color": "#f09440",
+      "desc": "Engine internals & code structure"
+    },
+    "tooling": {
+      "label": "Tooling",
+      "icon": "\ud83d\udd27",
+      "color": "#888899",
+      "desc": "Dev tools, CI & ops"
+    }
   },
   "items": [
+    {
+      "id": 36,
+      "title": "Profile Parameter Data Architecture + Value Correctness",
+      "status": "planned",
+      "scope": "large",
+      "value": "high",
+      "category": "engine",
+      "priority": 1,
+      "added": "2026-04-07",
+      "description": "Eliminate hardcoded slicer dropdown values in engine.js. Move all parameter values to objective_profiles.json as BS-compatible values. Fix broken exports (zig-zag bug), add missing ironing_pattern field, expand support_style to 5 options with use-case awareness. Architectural principle: data files store BS JSON values, engine maps to display strings, export is passthrough.\n\nRoot bugs: internal_solid_infill_pattern exports 'zig-zag' (invalid), ironing_pattern never exported, seam_position shows wrong labels, support_style uses 2 of 5 options. Spec: IMPL-036-profile-params.md.",
+      "implementation": [
+        "Phase A \u2014 objective_profiles.json: add seam_position, only_one_wall_top, ironing_type, ironing_pattern, internal_solid_infill_pattern to all 6 surface_quality entries; remove legacy ironing (bool) and seam_aligned (bool)",
+        "Phase B \u2014 engine.js resolveProfile(): replace 5 hardcoded blocks with data reads + SEAM_DISPLAY / IRONING_DISPLAY / INTERNAL_INFILL_DISPLAY lookup tables; expand support_style to tree_slim/strong/hybrid/organic by use case",
+        "Phase C \u2014 engine.js export: fix zig-zag bug, add ironing_pattern to PARAM_MAP, expand support_style transform (2\u21925 options), update SLICER_TABS to split ironing \u2192 ironing_type + ironing_pattern across all 3 slicers",
+        "Verify: import into Bambu Studio and confirm ironing, solid infill, seam, support style all load correctly"
+      ]
+    },
     {
       "id": 26,
       "title": "Smart Simple/Advanced Configurator Mode",
@@ -22,11 +69,11 @@
       "category": "ux",
       "priority": 1,
       "added": "2026-04-01",
-      "description": "Extend the Simple/Advanced toggle to control configurator input — not just output. Simple mode shows fewer filters with sensible defaults pre-applied; Advanced shows all 12 filters unchanged.",
+      "description": "Extend the Simple/Advanced toggle to control configurator input \u2014 not just output. Simple mode shows fewer filters with sensible defaults pre-applied; Advanced shows all 12 filters unchanged.",
       "implementation": [
         "Audit resolveProfile() to verify defaults don't cause unexpected output",
-        "engine.js — add simpleVisible flag + SIMPLE_DEFAULTS constant to filter definitions",
-        "app.js — update buildFilters() to skip hidden filters; setMode() to apply/clear defaults"
+        "engine.js \u2014 add simpleVisible flag + SIMPLE_DEFAULTS constant to filter definitions",
+        "app.js \u2014 update buildFilters() to skip hidden filters; setMode() to apply/clear defaults"
       ]
     },
     {
@@ -38,13 +85,13 @@
       "category": "ux",
       "priority": 2,
       "added": "2026-04-01",
-      "description": "Restore the previously-shipped purge calculator. Users select active AMS slots (2–4), assign brightness levels, and get a flush volume matrix per source→target transition adjusted by material multiplier.",
+      "description": "Restore the previously-shipped purge calculator. Users select active AMS slots (2\u20134), assign brightness levels, and get a flush volume matrix per source\u2192target transition adjusted by material multiplier.",
       "implementation": [
-        "engine.js — restore purge calculation logic",
-        "app.js — restore purgeState, renderPurgeCalculator(), nav listener, setView('purge')",
-        "index.html — restore #navPurge button and #viewPurge container",
-        "style.css — restore .purge-* styles",
-        "locales/en.json + da.json — purge strings already present, verify they render"
+        "engine.js \u2014 restore purge calculation logic",
+        "app.js \u2014 restore purgeState, renderPurgeCalculator(), nav listener, setView('purge')",
+        "index.html \u2014 restore #navPurge button and #viewPurge container",
+        "style.css \u2014 restore .purge-* styles",
+        "locales/en.json + da.json \u2014 purge strings already present, verify they render"
       ]
     },
     {
@@ -58,8 +105,8 @@
       "added": "2026-04-01",
       "description": "Click a value in the results panel to copy it to clipboard with a brief 'Copied!' flash. Eliminates the most frequent manual step users take when transferring values to their slicer.",
       "implementation": [
-        "app.js — wrap param value in <span class=\"copy-value\">; click → clipboard.writeText(); toggle .copied for ~1.5s",
-        "style.css — pointer cursor, hover highlight, tooltip animation"
+        "app.js \u2014 wrap param value in <span class=\"copy-value\">; click \u2192 clipboard.writeText(); toggle .copied for ~1.5s",
+        "style.css \u2014 pointer cursor, hover highlight, tooltip animation"
       ]
     },
     {
@@ -73,24 +120,8 @@
       "added": "2026-04-01",
       "description": "Encode active filter selections as URL query params so a profile can be shared via link. On page load, params pre-populate all selectors before running the engine.",
       "implementation": [
-        "app.js — read URLSearchParams on DOMContentLoaded, pre-populate appState",
-        "app.js — call history.replaceState() with updated query params on each state change"
-      ]
-    },
-    {
-      "id": 17,
-      "title": "Profile Export to Bambu Studio .json",
-      "status": "idea",
-      "scope": "large",
-      "value": "high",
-      "category": "export",
-      "priority": 5,
-      "added": "2026-04-01",
-      "description": "Generate a valid Bambu Studio process profile .json that users can import directly — eliminating the entire manual transcription step.",
-      "implementation": [
-        "engine.js — exportToBambuStudio(profile) mapping internal params to Bambu Studio field names",
-        "data/bambu-field-map.json — param ID → Bambu Studio key + value transformations",
-        "app.js — 'Export for Bambu Studio' button triggering file download"
+        "app.js \u2014 read URLSearchParams on DOMContentLoaded, pre-populate appState",
+        "app.js \u2014 call history.replaceState() with updated query params on each state change"
       ]
     },
     {
@@ -102,10 +133,10 @@
       "category": "content",
       "priority": 6,
       "added": "2026-04-01",
-      "description": "Expand from 8 to 20+ symptoms: nozzle clog, layer shifting, z-banding, wet filament, poor overhangs, bridging failure. Each with 3–5 ranked causes, diagnostic steps, and setting recommendations.",
+      "description": "Expand from 8 to 20+ symptoms: nozzle clog, layer shifting, z-banding, wet filament, poor overhangs, bridging failure. Each with 3\u20135 ranked causes, diagnostic steps, and setting recommendations.",
       "implementation": [
-        "data/troubleshooter.json — add symptom entries with ranked causes",
-        "engine.js — extend cause ranking by active printer/material context"
+        "data/troubleshooter.json \u2014 add symptom entries with ranked causes",
+        "engine.js \u2014 extend cause ranking by active printer/material context"
       ]
     },
     {
@@ -119,8 +150,8 @@
       "added": "2026-04-01",
       "description": "Add Bambu Lab A1 Combo, Prusa MK4, Prusa XL, Voron 2.4, Creality K1 Max. Each requires printer-specific rule coverage for warnings and speed/temp limits.",
       "implementation": [
-        "data/printers.json — add entries with full printer fields",
-        "engine.js — audit warning rules for Bambu-specific assumptions; add overrides for Prusa/Voron"
+        "data/printers.json \u2014 add entries with full printer fields",
+        "engine.js \u2014 audit warning rules for Bambu-specific assumptions; add overrides for Prusa/Voron"
       ]
     },
     {
@@ -134,8 +165,8 @@
       "added": "2026-04-01",
       "description": "Add PLA+, PLA Sparkle, PETG Transparent, PA12-CF, PPA-CF, ABS-GF. Each requires warning rule coverage for enclosure, nozzle hardness, and drying requirements.",
       "implementation": [
-        "data/materials.json — add entries with speed multiplier, enclosure/nozzle/drying requirements",
-        "engine.js — extend warnings for CF/GF materials (hardened nozzle, enclosure, drying)"
+        "data/materials.json \u2014 add entries with speed multiplier, enclosure/nozzle/drying requirements",
+        "engine.js \u2014 extend warnings for CF/GF materials (hardened nozzle, enclosure, drying)"
       ]
     },
     {
@@ -147,11 +178,11 @@
       "category": "ux",
       "priority": 9,
       "added": "2026-04-01",
-      "description": "Clicking ⓘ next to a parameter opens a modal explaining what it controls, why this value was chosen, and what increasing/decreasing it does. Turns the tool into a learning resource.",
+      "description": "Clicking \u24d8 next to a parameter opens a modal explaining what it controls, why this value was chosen, and what increasing/decreasing it does. Turns the tool into a learning resource.",
       "implementation": [
-        "data/param-info.json — entries keyed by param ID with description, whyThisValue, increaseEffect, decreaseEffect in EN/DA",
-        "app.js — click handler on ⓘ icons; render <dialog> modal with content",
-        "style.css — modal backdrop, card, close button"
+        "data/param-info.json \u2014 entries keyed by param ID with description, whyThisValue, increaseEffect, decreaseEffect in EN/DA",
+        "app.js \u2014 click handler on \u24d8 icons; render <dialog> modal with content",
+        "style.css \u2014 modal backdrop, card, close button"
       ]
     },
     {
@@ -163,10 +194,10 @@
       "category": "tooling",
       "priority": 10,
       "added": "2026-04-03",
-      "description": "Add @typedef annotations for State, Profile, Warning, PrinterDef, MaterialDef, NozzleDef, Param. Zero runtime cost — unlocks VS Code autocomplete and catches property misuse without TypeScript.",
+      "description": "Add @typedef annotations for State, Profile, Warning, PrinterDef, MaterialDef, NozzleDef, Param. Zero runtime cost \u2014 unlocks VS Code autocomplete and catches property misuse without TypeScript.",
       "implementation": [
-        "engine.js — add @typedef blocks near top; annotate return types on public functions",
-        "app.js — annotate state object and key variables with @type"
+        "engine.js \u2014 add @typedef blocks near top; annotate return types on public functions",
+        "app.js \u2014 annotate state object and key variables with @type"
       ]
     },
     {
@@ -181,7 +212,7 @@
       "description": "Split engine.js into native ES modules (no bundler needed). Public Engine API re-exported from engine/index.js. Only pursue when engine is actively growing and the monolith slows development.",
       "implementation": [
         "Create engine/ directory; split into index.js, data-loader.js, i18n.js, profile.js, warnings.js, troubleshooter.js, estimator.js",
-        "index.html — add type=\"module\"; update script src",
+        "index.html \u2014 add type=\"module\"; update script src",
         "Verify app.js works unchanged; remove old engine.js"
       ]
     },
@@ -194,10 +225,10 @@
       "category": "export",
       "priority": 12,
       "added": "2026-04-01",
-      "description": "\"Copy all\" button assembles the active tab's params as label: value plain text — paste-ready for notes, chat, or print logs.",
+      "description": "\"Copy all\" button assembles the active tab's params as label: value plain text \u2014 paste-ready for notes, chat, or print logs.",
       "implementation": [
-        "app.js — button in results header; iterate sections/params; clipboard.writeText(); brief confirmation",
-        "style.css — consistent secondary button style"
+        "app.js \u2014 button in results header; iterate sections/params; clipboard.writeText(); brief confirmation",
+        "style.css \u2014 consistent secondary button style"
       ]
     },
     {
@@ -209,11 +240,11 @@
       "category": "ux",
       "priority": 13,
       "added": "2026-04-01",
-      "description": "Make each warning chip expandable — clicking reveals root cause and 1–2 concrete fix steps. Turns single-line warnings into actionable guidance.",
+      "description": "Make each warning chip expandable \u2014 clicking reveals root cause and 1\u20132 concrete fix steps. Turns single-line warnings into actionable guidance.",
       "implementation": [
-        "engine.js — ensure warnings include detail and fix fields",
-        "app.js — toggle .expanded on chip click; show detail div",
-        "style.css — expand/collapse transition"
+        "engine.js \u2014 ensure warnings include detail and fix fields",
+        "app.js \u2014 toggle .expanded on chip click; show detail div",
+        "style.css \u2014 expand/collapse transition"
       ]
     },
     {
@@ -227,8 +258,8 @@
       "added": "2026-04-01",
       "description": "Name and save current filter state as a preset stored in localStorage; reload from a picker in one click. No backend required.",
       "implementation": [
-        "app.js — 'Save preset' button; store { name, state } in localStorage; preset picker with delete; validate stale keys on load",
-        "style.css — picker and save button styling"
+        "app.js \u2014 'Save preset' button; store { name, state } in localStorage; preset picker with delete; validate stale keys on load",
+        "style.css \u2014 picker and save button styling"
       ]
     },
     {
@@ -240,10 +271,10 @@
       "category": "export",
       "priority": 15,
       "added": "2026-04-01",
-      "description": "Export a self-contained, fully offline HTML file showing all selections and recommended settings — a permanent print reference with no external dependencies.",
+      "description": "Export a self-contained, fully offline HTML file showing all selections and recommended settings \u2014 a permanent print reference with no external dependencies.",
       "implementation": [
-        "engine.js — generateHTMLSheet(state, profile) with inlined CSS",
-        "app.js — trigger download via <a href=\"data:text/html;\"> with generated filename"
+        "engine.js \u2014 generateHTMLSheet(state, profile) with inlined CSS",
+        "app.js \u2014 trigger download via <a href=\"data:text/html;\"> with generated filename"
       ]
     },
     {
@@ -255,11 +286,11 @@
       "category": "ux",
       "priority": 16,
       "added": "2026-04-02",
-      "description": "Badge each parameter value as 📋 Brand guideline, 👥 Community tested, or 🔧 Tool calculated. Builds trust and helps users decide how strictly to follow a recommendation.",
+      "description": "Badge each parameter value as \ud83d\udccb Brand guideline, \ud83d\udc65 Community tested, or \ud83d\udd27 Tool calculated. Builds trust and helps users decide how strictly to follow a recommendation.",
       "implementation": [
-        "engine.js — add source: 'brand' | 'community' | 'calculated' to each param object",
-        "data/materials.json — tag base settings per source type",
-        "app.js + style.css — subtle badge next to each value; legend tooltip"
+        "engine.js \u2014 add source: 'brand' | 'community' | 'calculated' to each param object",
+        "data/materials.json \u2014 tag base settings per source type",
+        "app.js + style.css \u2014 subtle badge next to each value; legend tooltip"
       ]
     },
     {
@@ -271,10 +302,10 @@
       "category": "ux",
       "priority": 17,
       "added": "2026-04-01",
-      "description": "Add German (DE), Dutch (NL), Swedish (SV). With locale files now external (#030 shipped), each new language is a pure data task — no engine changes needed.",
+      "description": "Add German (DE), Dutch (NL), Swedish (SV). With locale files now external (#030 shipped), each new language is a pure data task \u2014 no engine changes needed.",
       "implementation": [
-        "locales/de.json, nl.json, sv.json — translate all keys from en.json",
-        "app.js — render language toggle buttons dynamically from loaded locale keys"
+        "locales/de.json, nl.json, sv.json \u2014 translate all keys from en.json",
+        "app.js \u2014 render language toggle buttons dynamically from loaded locale keys"
       ]
     },
     {
@@ -288,9 +319,9 @@
       "added": "2026-04-01",
       "description": "Secondary Brand selector after material type (e.g. Bambu Lab PLA Basic, Polymaker PolyTerra) with temp/speed overrides from brand datasheets. Generic selection applies no override.",
       "implementation": [
-        "data/brands.json — { materialId, brandId, tempOverride?, speedOverride?, source }",
-        "engine.js — apply brand overrides after base material resolution",
-        "app.js + style.css — secondary brand selector under material chips"
+        "data/brands.json \u2014 { materialId, brandId, tempOverride?, speedOverride?, source }",
+        "engine.js \u2014 apply brand overrides after base material resolution",
+        "app.js + style.css \u2014 secondary brand selector under material chips"
       ]
     },
     {
@@ -302,11 +333,11 @@
       "category": "community",
       "priority": 19,
       "added": "2026-04-01",
-      "description": "Read-only community profiles submitted via GitHub PR, shown as a 'Community verified' panel alongside the generated profile. Static, reviewer-controlled — no backend needed.",
+      "description": "Read-only community profiles submitted via GitHub PR, shown as a 'Community verified' panel alongside the generated profile. Static, reviewer-controlled \u2014 no backend needed.",
       "implementation": [
-        "data/community-profiles.json — { id, contributor, printer, nozzle, material, settings{}, rating, notes }",
-        "engine.js — getCommunityProfiles(state) sorted by rating",
-        "app.js + style.css — community panel and badges in results"
+        "data/community-profiles.json \u2014 { id, contributor, printer, nozzle, material, settings{}, rating, notes }",
+        "engine.js \u2014 getCommunityProfiles(state) sorted by rating",
+        "app.js + style.css \u2014 community panel and badges in results"
       ]
     },
     {
@@ -320,7 +351,7 @@
       "added": "2026-04-01",
       "description": "Detect prefers-color-scheme: dark on first visit and apply matching theme. Explicit user toggle stored in localStorage takes priority on subsequent visits.",
       "implementation": [
-        "app.js — on init, check localStorage; if absent use matchMedia; store explicit choice on toggle; add reactive OS listener"
+        "app.js \u2014 on init, check localStorage; if absent use matchMedia; store explicit choice on toggle; add reactive OS listener"
       ]
     },
     {
@@ -334,8 +365,8 @@
       "added": "2026-04-01",
       "description": "Add acceleration/deceleration modeling, support volume estimation, and a comparison table showing estimated time across Draft/Standard/Fine presets side by side.",
       "implementation": [
-        "engine.js — extend estimatePrintTime() with accel correction; add estimateAllPresets()",
-        "app.js + style.css — comparison table UI with preset columns"
+        "engine.js \u2014 extend estimatePrintTime() with accel correction; add estimateAllPresets()",
+        "app.js + style.css \u2014 comparison table UI with preset columns"
       ]
     },
     {
@@ -347,10 +378,10 @@
       "category": "architecture",
       "priority": 22,
       "added": "2026-04-03",
-      "description": "Declarative per-view render functions and centralized event registration to reduce DOM coupling and listener duplication risk. Deferred — high risk, low near-term reward. Only pursue if app.js becomes a regression source.",
+      "description": "Declarative per-view render functions and centralized event registration to reduce DOM coupling and listener duplication risk. Deferred \u2014 high risk, low near-term reward. Only pursue if app.js becomes a regression source.",
       "implementation": [
-        "app.js — extract renderConfigure(), renderTroubleshoot(), renderFeedback() as pure functions",
-        "app.js — consolidate all listeners into bindControls() on boot using event delegation"
+        "app.js \u2014 extract renderConfigure(), renderTroubleshoot(), renderFeedback() as pure functions",
+        "app.js \u2014 consolidate all listeners into bindControls() on boot using event delegation"
       ]
     },
     {
@@ -362,10 +393,10 @@
       "category": "tooling",
       "priority": 23,
       "added": "2026-04-03",
-      "description": "ESLint + data validation + headless smoke test on push/PR via GitHub Actions. Deferred — low value solo, worth adding when a second contributor joins.",
+      "description": "ESLint + data validation + headless smoke test on push/PR via GitHub Actions. Deferred \u2014 low value solo, worth adding when a second contributor joins.",
       "implementation": [
-        "package.json — lint, test:data, test:smoke scripts",
-        ".github/workflows/ci.yml — install → lint → validate → smoke test"
+        "package.json \u2014 lint, test:data, test:smoke scripts",
+        ".github/workflows/ci.yml \u2014 install \u2192 lint \u2192 validate \u2192 smoke test"
       ]
     },
     {
@@ -379,9 +410,9 @@
       "added": "2026-04-01",
       "description": "Optional user accounts (passwordless/social auth) for cross-device preset sync, print history, and community profile sharing. Core tool stays fully functional without login. Major backend complexity for a static tool.",
       "implementation": [
-        "Phase 1 — Supabase Auth (Google/GitHub); sync localStorage presets to user record",
-        "Phase 2 — Auto-save profile snapshots; History view with one-click restore",
-        "Phase 3 — Share profile button; Community browse filtered by printer/material"
+        "Phase 1 \u2014 Supabase Auth (Google/GitHub); sync localStorage presets to user record",
+        "Phase 2 \u2014 Auto-save profile snapshots; History view with one-click restore",
+        "Phase 3 \u2014 Share profile button; Community browse filtered by printer/material"
       ]
     }
   ],
@@ -398,7 +429,7 @@
       "title": "Print Checklist / Pre-flight",
       "category": "ux",
       "shipped": "2026-04-03",
-      "description": "Context-driven pre-flight checklist rendered below the profile tabs. getChecklist() in engine.js returns items with text, detail, and critical flags; renderChecklist() in app.js displays them with ✓/⚠ icons and i18n support."
+      "description": "Context-driven pre-flight checklist rendered below the profile tabs. getChecklist() in engine.js returns items with text, detail, and critical flags; renderChecklist() in app.js displays them with \u2713/\u26a0 icons and i18n support."
     },
     {
       "id": 9,
@@ -412,11 +443,11 @@
       "title": "Match Bambu Studio Process Tab Structure",
       "category": "architecture",
       "shipped": "2026-04-02",
-      "description": "Restructured PROFILE_TABS sections in engine.js to exactly match Bambu Studio's Process tab layout — Quality, Strength, Speed, Support, Others tabs with correct section groupings."
+      "description": "Restructured PROFILE_TABS sections in engine.js to exactly match Bambu Studio's Process tab layout \u2014 Quality, Strength, Speed, Support, Others tabs with correct section groupings."
     },
     {
       "id": 23,
-      "title": "Analytics — Cloudflare Web Analytics",
+      "title": "Analytics \u2014 Cloudflare Web Analytics",
       "category": "tooling",
       "shipped": "2026-04-01",
       "description": "Added Cloudflare Web Analytics beacon to index.html. Privacy-first, no cookies, GDPR-compliant, free on existing Cloudflare Pages hosting."
@@ -462,6 +493,22 @@
       "category": "tooling",
       "shipped": "2026-04-03",
       "description": "scripts/validate-data.js validates all 7 data files against expected schema. Exit 0 = clean, exit 1 = human-readable errors. Run: node scripts/validate-data.js."
+    },
+    {
+      "id": 17,
+      "title": "Profile Export to Bambu Studio .json",
+      "status": "done",
+      "scope": "large",
+      "value": "high",
+      "category": "export",
+      "priority": 5,
+      "added": "2026-04-01",
+      "description": "Generate a valid Bambu Studio process profile .json that users can import directly \u2014 eliminating the entire manual transcription step.",
+      "implementation": [
+        "engine.js \u2014 exportToBambuStudio(profile) mapping internal params to Bambu Studio field names",
+        "data/bambu-field-map.json \u2014 param ID \u2192 Bambu Studio key + value transformations",
+        "app.js \u2014 'Export for Bambu Studio' button triggering file download"
+      ]
     }
   ]
 }
