@@ -184,7 +184,7 @@ function applyLang() {
 
   // Footer
   const footerEl = document.getElementById('footerText');
-  footerEl.innerHTML = `${T('footer')} &middot; <button class="about-link" id="roadmapBtn">${T('roadmapLink')}</button> &middot; <button class="about-link" id="aboutBtn">${T('aboutLink')}</button> &middot; <button class="about-link" id="disclaimerFooterBtn">${T('disclaimerLink')}</button>`;
+  footerEl.innerHTML = `${T('footer')} &middot; <button class="about-link" id="roadmapBtn">${T('roadmapLink')}</button> &middot; <button class="about-link" id="aboutBtn">${T('aboutLink')}</button> &middot; <button class="about-link" id="disclaimerFooterBtn">${T('disclaimerLink')}</button> &middot; <a class="about-link" href="/privacy">Privacy</a>`;
   document.getElementById('roadmapBtn').addEventListener('click', () => openModal('roadmap'));
   document.getElementById('aboutBtn').addEventListener('click', () => openModal('about'));
   document.getElementById('disclaimerFooterBtn').addEventListener('click', () => openModal('disclaimer'));
@@ -1033,7 +1033,10 @@ function updatePTState(key, val) {
 // ── Warnings ──────────────────────────────────────────────────────────────────
 function renderWarnings(warnings) {
   document.getElementById('warningsBar').innerHTML = warnings
-    .map(m => `<div class="warning-item"><span class="warn-icon">⚠</span><span>${m}</span></div>`)
+    .map(m => {
+      const body = m.detail ? `<strong>${m.text}</strong> ${m.detail}` : m.text;
+      return `<div class="warning-item"><span class="warn-icon">⚠</span><span>${body}</span></div>`;
+    })
     .join('');
 }
 
