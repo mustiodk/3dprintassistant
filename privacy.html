@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Privacy Policy — 3D Print Assistant</title>
+  <meta name="description" content="Privacy policy for 3D Print Assistant. We collect only crash and diagnostic data via Sentry to fix bugs. No personal information, no tracking."/>
+  <link rel="canonical" href="https://3dprintassistant.com/privacy"/>
+  <meta name="robots" content="index, follow"/>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+
+  <style>
+    .privacy-wrap {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 60px 24px 80px;
+    }
+    .privacy-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-decoration: none;
+      margin-bottom: 40px;
+      transition: color 0.15s;
+    }
+    .privacy-back:hover { color: var(--primary); }
+    .privacy-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 6px;
+    }
+    .privacy-date {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 40px;
+    }
+    .privacy-section {
+      margin-bottom: 36px;
+    }
+    .privacy-section h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 12px;
+    }
+    .privacy-section p,
+    .privacy-section li {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      margin: 0 0 8px;
+    }
+    .privacy-section ul {
+      padding-left: 20px;
+      margin: 8px 0;
+    }
+    .privacy-section a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .privacy-section a:hover { text-decoration: underline; }
+    .privacy-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+    .privacy-table th {
+      text-align: left;
+      padding: 8px 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+      font-family: 'Syne', sans-serif;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .privacy-table td {
+      padding: 8px 12px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .privacy-table td:first-child { color: var(--text-primary); }
+    .badge-no {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 6px;
+    }
+    .badge-yes {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--primary);
+      background: rgba(var(--primary-rgb, 0,230,118), 0.08);
+      border: 1px solid rgba(var(--primary-rgb, 0,230,118), 0.25);
+      border-radius: 4px;
+      padding: 2px 6px;
+    }
+    .privacy-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 36px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="privacy-wrap">
+
+    <a href="/" class="privacy-back">← 3D Print Assistant</a>
+
+    <h1 class="privacy-title">Privacy Policy</h1>
+    <p class="privacy-date">Last updated: April 8, 2026</p>
+
+    <div class="privacy-section">
+      <p>3D Print Assistant is a hobby project developed by Musti. This policy explains what data the app and website collect and why.</p>
+    </div>
+
+    <hr class="privacy-divider"/>
+
+    <div class="privacy-section">
+      <h2>What we collect</h2>
+      <p>The iOS app uses <strong>Sentry</strong> (sentry.io) to automatically collect crash reports and performance diagnostics. This includes:</p>
+      <ul>
+        <li>Crash reports and stack traces — to identify and fix bugs</li>
+        <li>Device model and iOS version — to reproduce issues on specific devices</li>
+        <li>App version — to identify which version a crash occurred in</li>
+        <li>Performance traces — collected on approximately 10% of sessions</li>
+      </ul>
+      <p>This data is sent to Sentry's servers and governed by <a href="https://sentry.io/privacy/" target="_blank" rel="noopener">Sentry's Privacy Policy</a>.</p>
+      <p>The website uses <strong>Cloudflare Web Analytics</strong> for anonymous, privacy-preserving traffic measurement. No cookies are used and no personal data is collected.</p>
+    </div>
+
+    <div class="privacy-section">
+      <h2>What we do NOT collect</h2>
+      <table class="privacy-table">
+        <thead>
+          <tr>
+            <th>Data type</th>
+            <th>Collected?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Name, email, or contact info</td><td><span class="badge-no">No</span></td></tr>
+          <tr><td>Location data</td><td><span class="badge-no">No</span></td></tr>
+          <tr><td>User ID or device identifier</td><td><span class="badge-no">No</span></td></tr>
+          <tr><td>Usage analytics or behavioural tracking</td><td><span class="badge-no">No</span></td></tr>
+          <tr><td>Advertising identifiers</td><td><span class="badge-no">No</span></td></tr>
+          <tr><td>Purchase history</td><td><span class="badge-no">No</span></td></tr>
+          <tr><td>Health or financial data</td><td><span class="badge-no">No</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr class="privacy-divider"/>
+
+    <div class="privacy-section">
+      <h2>How data is used</h2>
+      <p>Crash and diagnostic data is used solely to identify and fix bugs. It is not sold, shared with advertisers, or used for tracking of any kind.</p>
+    </div>
+
+    <div class="privacy-section">
+      <h2>Data retention</h2>
+      <p>Crash data is retained in Sentry according to <a href="https://sentry.io/privacy/" target="_blank" rel="noopener">Sentry's standard data retention policy</a>. You can request deletion by contacting the developer.</p>
+    </div>
+
+    <hr class="privacy-divider"/>
+
+    <div class="privacy-section">
+      <h2>Contact</h2>
+      <p>Questions about this policy: <a href="mailto:mustiodk@gmail.com">mustiodk@gmail.com</a></p>
+    </div>
+
+  </div>
+</body>
+</html>
