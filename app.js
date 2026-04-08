@@ -599,6 +599,9 @@ function buildFilters() {
       chipsEl.appendChild(less);
     }
   });
+
+  // Re-apply collapsed state after rebuild (e.g. mode switch keeps picker folded)
+  applyPickerCollapsed();
 }
 
 // ── Restore chip selections from state after rebuilding filters ───────────────
