@@ -68,11 +68,9 @@ header {
 .logo { display: flex; align-items: center; gap: 11px; text-decoration: none; color: inherit; }
 .logo-mark {
   width: 32px; height: 32px;
-  background: var(--green);
   border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 12px; color: #0a0a0b;
-  letter-spacing: -0.5px; flex-shrink: 0;
+  flex-shrink: 0;
+  object-fit: cover;
 }
 .logo-text { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
 .logo-sub  { font-size: 11px; color: var(--text2); font-family: 'DM Mono', monospace; }
