@@ -150,22 +150,52 @@
 
 ---
 
-## Remaining for App Store submission
+## 🚀 SUBMITTED FOR REVIEW (end of session)
 
-**Blocking:**
-1. Real-iPad screenshots (9 PNGs, captured on iPad 13 Pro via TestFlight → AirDrop to Mac)
-2. Re-attach build `f87b095` once it processes in Apple's pipeline
-3. Re-take iPhone screenshots if user wants the print-profile-desc fix visible (optional polish)
-4. Click "Add for Review" → confirm submission
+User prepared fresh iPhone + iPad screenshots offline (real iPad 13 Pro via TestFlight + recapture for iPhone). Walked through final ASC steps:
+- Replaced iPhone screenshots in 6.9" slot
+- Uploaded iPad screenshots to 13" iPad slot
+- Re-attached build `f87b095` (the "two pre-launch fixes" build)
+- Filled App Review Information: unchecked Sign-In, contact info, reviewer Notes (explaining offline-only, no IAP, no login, demo path)
+- Selected **Manual Release**
+- Saved → clicked **Add for Review** → checks passed → **Submitted**
 
-**Non-blocking nice-to-haves done today:**
-- App Information, Pricing, Privacy, v1.0 metadata all complete in ASC
-- 9 iPhone 6.9" screenshots already uploaded (in good order: Home → Configure → Output → pickers → details)
-- Build `202604151712` attached as fallback if re-attach is hassle
+Status now: **"Waiting for Review"** in App Store Connect.
+
+13 days ahead of the April 28 self-imposed deadline.
 
 ## Next session should
-1. If still pre-submission: complete iPad screenshots + re-attach + submit
-2. If submitted: monitor App Store Review status (typical 24-48h)
-3. After approval: pick release moment (Manual was selected) + announce
-4. Post-launch: triage any Discord feedback that comes in via `#3dpa-ios-feedback`
-5. Start v1.1 planning — light mode is the obvious first item
+1. **Check ASC status first thing** — has it moved to "In Review" or "Pending Developer Release" (= approved) or "Rejected"?
+2. **If approved**: pick release moment, click Release, then announce on Discord + Twitter + LinkedIn etc.
+3. **If rejected**: paste rejection text into chat, diagnose, fix metadata or code as needed, resubmit.
+4. **If still waiting**: don't push code to main — would create new TestFlight builds that aren't part of the review. Use the time for v1.1 planning instead.
+5. **v1.1 candidate features** to prep prompt for:
+   - Light mode (top item — see backlog spec, est ~half day to full day)
+   - More printer support (#010)
+   - Saved presets via SwiftData (#012)
+   - Multi-language (Danish first — strings already centralized via Strings.swift, ready for NSLocalizedString swap)
+
+## Don't-do-during-review reminder
+- No new commits to main (CI auto-builds; the build under review is locked, but attached metadata fields can drift)
+- No edits to the actual code, screenshots, or metadata fields except the "Editable Anytime" ones (Promotional Text, Support URL, Privacy Policy URL, Marketing URL)
+- If user wants to push v1.1 work: branch off main, accumulate locally, merge after v1.0 is live
+
+## Commits this session (chronological)
+1. `a81281c` — BR-12 OutputViewModel guard + arm-first reset
+2. `57611d3` — BR-12 arm-only on 5 pickers (over-corrected)
+3. `15c49da` — BR-12 final: scoped per-screen tap-1 reset
+4. `5a5624a` — BR-11: feedback system end-to-end
+5. `4e21834` — Feedback Menu empty-systemImage warning fix
+6. `db80164` — Feedback thank-you alert visibility fix
+7. `ddb1416` — Feedback Picker SF Symbols (emoji broken on iOS 26.3 sim)
+8. `02edd2f` (web) — App Store screenshots refresh
+9. `49044c7` — iPhone-only TARGETED_DEVICE_FAMILY (REVERTED)
+10. `d4bdfc0` — Revert iPhone-only
+11. `1a96f83` — Print Profile tab desc double-render fix
+12. `f87b095` — Brand default `""` + Printer/Nozzle reset clears local selectedId
+
+Build attached to App Review: `f87b095` (~build 202604152051).
+
+---
+
+🎉 **Six months of work in Apple's hands. Hard part is done.**

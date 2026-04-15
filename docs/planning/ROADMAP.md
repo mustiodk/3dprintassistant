@@ -2,7 +2,7 @@
 
 **Single source of truth for all planning.** Replaces IMPLEMENTATION_PLAN.md, TASKS.md, and web BACKLOG.md.
 
-**Last updated:** 2026-04-15 evening (App Store submission in progress; pending iPad screenshots from real device. BR-11 feedback live, BR-12 empty-output hardened, BR-3 dark-mode rationale revised)
+**Last updated:** 2026-04-15 night — **🚀 SUBMITTED FOR REVIEW.** Status: "Waiting for Review" in App Store Connect. Build: `f87b095` (the "two pre-launch fixes" build). Manual release selected — will release at chosen moment after approval.
 **Owner:** Musti (solo dev)
 **Priority:** iOS release first, then web enhancements.
 
@@ -15,7 +15,7 @@
 | Area | Status |
 |------|--------|
 | **Web app** | Live at 3dprintassistant.com. 64 printers, 12 brands, 18 materials, 9 nozzles, 3 slicers. |
-| **iOS app** | App Store **submission in progress**. CI/CD clean. **32/32 tests passing**. ASC nearly complete: app info ✓, pricing/availability ✓, privacy labels ✓, 9 iPhone 6.9" screenshots uploaded ✓, build `202604151712` attached ✓. Build `f87b095` (latest fixes) processing for re-attach. **Pending:** iPad screenshots (must be captured on real iPad — simulator has unrelated bug), then submit. |
+| **iOS app** | 🚀 **SUBMITTED FOR REVIEW** 2026-04-15 night. Status: "Waiting for Review" in ASC. Build attached: `f87b095`. Manual release selected. CI/CD clean. **32/32 tests passing**. iPhone + iPad screenshots uploaded. Apple typical timeline 12–48h. After approval: release at chosen moment. **Don't push code to main during review** — new commits would create new TestFlight builds, attached build is locked. |
 | **Engine** | Shared `engine.js` via JavaScriptCore on iOS. Web is master — edit there, copy to iOS. |
 | **Export** | Engine + bridge done. iOS UI **hidden** (deferred post-release). Web UI **disabled** (Bambu Studio rejected .json). |
 
@@ -350,6 +350,7 @@ The iOS app is the top priority. Everything below is ordered to get to a public 
 | Pre-submission polish | Print Profile tab description double-render fix (`1a96f83`); BrandPicker default un-preselected (`f87b095`); Printer/Nozzle picker tap-1 now clears local `selectedId` checkmark (`f87b095`) | 2026-04-15 |
 | App Store screenshots refresh | Recaptured on iPhone 17 Pro Max (1320×2868) post-BR-11 to show new feedback UI. Old set in `_backup-apr14/`. Web commit `02edd2f` | 2026-04-15 |
 | App Store Connect submission setup | App Information + categories + age 4+ + content rights + pricing (Free, all 175 countries) + privacy nutrition (Diagnostics only) + v1.0 metadata + 9 iPhone 6.9" screenshots uploaded + build `202604151712` attached. Pending: iPad screenshots from real device + Add for Review | 2026-04-15 |
+| 🚀 **App Store submission** | Build `f87b095` attached, fresh iPhone + iPad screenshots uploaded, App Review Information + Notes filled, Manual release selected, **submitted to App Review**. Status: "Waiting for Review". 13 days ahead of April 28 deadline | 2026-04-15 |
 
 ---
 
