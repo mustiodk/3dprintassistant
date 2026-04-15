@@ -2,7 +2,7 @@
 
 **Single source of truth for all planning.** Replaces IMPLEMENTATION_PLAN.md, TASKS.md, and web BACKLOG.md.
 
-**Last updated:** 2026-04-14 (Cross-device UI review done, 4 P0/P1 fixes applied, App Store screenshots retaken)
+**Last updated:** 2026-04-15 evening (App Store submission in progress; pending iPad screenshots from real device. BR-11 feedback live, BR-12 empty-output hardened, BR-3 dark-mode rationale revised)
 **Owner:** Musti (solo dev)
 **Priority:** iOS release first, then web enhancements.
 
@@ -15,7 +15,7 @@
 | Area | Status |
 |------|--------|
 | **Web app** | Live at 3dprintassistant.com. 64 printers, 12 brands, 18 materials, 9 nozzles, 3 slicers. |
-| **iOS app** | TestFlight beta. CI/CD clean (macos-26, checkout@v5, Xcode Cloud deleted). 18/18 tests passing. **Cross-device UI review done on SE/17 Pro/17 Pro Max** (27 screenshots, 4 P0/P1 fixes applied 2026-04-14). Screenshots retaken at 1320×2868. Metadata ready. UI polish + device QA done. App icon done ✅. Benchy logo on home + nav bars. Pending: App Store Connect upload (BR-6). |
+| **iOS app** | App Store **submission in progress**. CI/CD clean. **32/32 tests passing**. ASC nearly complete: app info ✓, pricing/availability ✓, privacy labels ✓, 9 iPhone 6.9" screenshots uploaded ✓, build `202604151712` attached ✓. Build `f87b095` (latest fixes) processing for re-attach. **Pending:** iPad screenshots (must be captured on real iPad — simulator has unrelated bug), then submit. |
 | **Engine** | Shared `engine.js` via JavaScriptCore on iOS. Web is master — edit there, copy to iOS. |
 | **Export** | Engine + bridge done. iOS UI **hidden** (deferred post-release). Web UI **disabled** (Bambu Studio rejected .json). |
 
@@ -81,9 +81,10 @@ The iOS app is the top priority. Everything below is ordered to get to a public 
 ### BR-2: Export UX improvements (was: review #8) ✅ 2026-04-08
 - [x] iOS: descriptive export filenames — `3DPA_process_{printer}_{nozzle}_{material}.json` `[iOS]`
 
-### BR-3: Dark mode strategy (was: review #9) ✅ 2026-04-08
-- [x] Decision: **dark-only, intentional branding choice** — matches web app, no light mode color system exists `[iOS]`
-- `.preferredColorScheme(.dark)` in ContentView, WarningsSheet, ChecklistSheet is correct — do not remove
+### BR-3: Dark mode strategy (was: review #9) ✅ 2026-04-08 — **revised 2026-04-15**
+- [x] Decision for v1.0: **dark-only** to ship faster `[iOS]`
+- `.preferredColorScheme(.dark)` enforced in ContentView, WarningsSheet, ChecklistSheet, FeedbackView
+- **Revised 2026-04-15**: Original "matches web app, no light mode color system exists" comment was inaccurate. Web has had full light mode + theme toggle since initial release (`html[data-theme="light"]` in style.css with 19 light tokens, `☀` toggle in header). The actual reason for iOS dark-only: `ColorTheme.swift` was hardcoded dark during MVP build, and adding light variants is real work (see backlog item below). Keep dark-only for v1.0; promote light mode to v1.1.
 
 ### BR-4: Failure states and recovery UX (was: review #10) ✅ 2026-04-08
 - [x] iOS: engine load failure shows retry button + "Report issue" link (Tally form) `[iOS]`
@@ -130,6 +131,44 @@ The iOS app is the top priority. Everything below is ordered to get to a public 
 - [x] QA: export/share + clipboard/long-press flows `[iOS]`
 - [x] QA: rotation behavior, empty results, warning-heavy configs `[iOS]`
 - [x] QA: incompatible nozzle flows, non-Bambu export `[iOS]`
+
+### BR-11: In-app feedback system (iOS) ✅ 2026-04-15
+> Native SwiftUI sheet with 7 categories, conditional fields per category, auto-attached device/app metadata. Backend: Discord webhook (#3dpa-ios-feedback) — zero third-party deps, instant pings to the dev's Discord server. Tally / proper backend deferred to phase 2 when the web form is updated simultaneously.
+- [x] `Models/FeedbackCategory.swift` — 7 categories (generalFeedback, featureRequest, missingPrinter, missingFilament, missingNozzle, missingSlicer, bugReport) with emoji + Discord embed colors `[iOS]`
+- [x] `Services/FeedbackService.swift` — actor, async Discord webhook POST, typed `FeedbackError` for UI `[iOS]`
+- [x] `Views/Feedback/FeedbackView.swift` — native sheet, dark theme, Menu-based category picker, conditional fields `[iOS]`
+- [x] `Views/Feedback/FeedbackViewModel.swift` — form state, per-category validation, submission coordinator `[iOS]`
+- [x] `Views/Feedback/MissingSomethingButton.swift` — shared footer link for the 4 picker screens `[iOS]`
+- [x] Auto-attach: app version, build number, iOS version, device model (`utsname` identifier), locale, optional reply-to email `[iOS]`
+- [x] Entry point 1: Home screen footer — "Send Feedback" (replaces previous Tally link) `[iOS]`
+- [x] Entry point 2: Home engine-failure — "Report this issue" → bug pre-filled with engine error `[iOS]`
+- [x] Entry point 3: OutputView nav bar — `bubble.left` icon, general feedback `[iOS]`
+- [x] Entry point 4: OutputView export-failure alert — "Report Issue" → bug + error context `[iOS]`
+- [x] Entry point 5: BrandPicker footer — `missingPrinter` category with "whole brand missing" note `[iOS]`
+- [x] Entry point 6: PrinterPicker footer — `missingPrinter` category with current brand as context `[iOS]`
+- [x] Entry point 7: MaterialPicker footer — `missingFilament` category `[iOS]`
+- [x] Entry point 8: NozzlePicker footer — `missingNozzle` category `[iOS]`
+- [x] Secret handling: `DISCORD_FEEDBACK_WEBHOOK` in Config.xcconfig (gitignored), injected via `$(DISCORD_FEEDBACK_WEBHOOK)` in Info.plist. `//` escaped as `/${}/` because xcconfig treats `//` as a comment delim. CI workflow updated to populate from GitHub secret. `[iOS]`
+- [x] `Strings.Home.sendFeedback` + `Strings.Feedback.*` — centralized copy `[iOS]`
+- [x] 9 new `FeedbackTests` — payload shape, empty-field stripping, email optionality, validation per category, whitespace handling, prefill seeding + non-overwrite. **32/32 passing** (was 23) `[iOS]`
+- Commit: `5a5624a`.
+- **Manual follow-up**: add `DISCORD_FEEDBACK_WEBHOOK` secret to GitHub repo settings (raw URL, no escaping needed — workflow handles that). If unset, CI still succeeds but the built app's submit throws `FeedbackError.webhookNotConfigured` with a "reach out via Discord" fallback message.
+
+### BR-12: Empty-output hardening ✅ 2026-04-15
+> User reproduced on TestFlight: tap Reset on Print Details (Goals) → tap Generate Profile → empty OutputView. Root cause: the two-tap Reset pattern called `appState.reset()` on BOTH taps across all 6 screens, silently clearing fields (printer/material/nozzle) not visible on the current screen. User taps Reset on Goals → printer/material cleared invisibly → taps Generate → OutputView loads with empty state → engine calls silently return empty (`try?` swallows throw) → blank output.
+- [x] iOS: Defensive guard in `OutputViewModel.loadProfile` — fail fast to `invalidSelection` state when printer or material is empty `[iOS]`
+- [x] iOS: New `invalidSelectionView` in OutputView — icon + message + "Back to start" CTA matching the HomeView engine-error pattern `[iOS]`
+- [x] iOS: Fixed `OutputView.handleReset` — first tap only arms, second tap resets state + router together atomically `[iOS]`
+- [x] iOS: Scoped tap-1 reset on **all 5 pre-Output screens** — each screen clears only its own fields on tap 1 (visible feedback preserved), full `appState.reset()` + `router.reset()` only on tap 2. Removes the cross-field silent-clear bug without regressing UX. `[iOS]`
+  - BrandPicker tap 1 → `brand = "bambu_lab"`
+  - PrinterPicker tap 1 → `printer = ""`
+  - MaterialPicker tap 1 → `material = "", selectedId = nil`
+  - NozzlePicker tap 1 → `nozzle = "std_0.4"`
+  - GoalsView tap 1 → `resetGoals()` (new helper on AppState — clears all goal fields, leaves printer/material/nozzle)
+- [x] iOS: `Strings.Output.invalidTitle/invalidMessage/invalidCta` added `[iOS]`
+- [x] Tests: 5 new `OutputViewModelTests` — empty printer, empty material, both empty, valid state, valid-after-invalid reload. **23/23 passing** (was 18) `[iOS]`
+- Commits: `a81281c` (guard + OutputView Reset), `57611d3` (arm-only on 5 screens — too aggressive, regressed visible feedback), `15c49da` (scoped per-screen tap 1 — final).
+- Belt-and-suspenders: scoped reset eliminates the main path; guard catches anything else.
 
 ### BR-10: Cross-device UI review ✅ 2026-04-14
 - [x] Added `3DPrintAssistantUITests` target + `ScreenCaptureUITests.swift` — programmatic screen capture across device sizes `[iOS]`
@@ -249,7 +288,7 @@ The iOS app is the top priority. Everything below is ordered to get to a public 
 ### High value
 | # | Feature | Scope | Notes |
 |---|---------|-------|-------|
-| — | Light mode / system appearance support | Large | Requires full `ColorTheme` light variants + all screens tested. Deferred — app is dark-only by design for now |
+| **v1.1 candidate** | Light mode / system appearance support (iOS — close the gap with web) | Large (~half day to full day) | **Web already has both** (`html[data-theme="light"]` since initial release + `☀` toggle in header). iOS is dark-only because `ColorTheme.swift` was hardcoded dark during MVP. Spec: (1) add `light` variants for all 10–15 `ColorTheme` tokens, (2) switch hardcoded `Color(hex:)` to environment-aware (`Color(light:dark:)` or asset catalog), (3) remove the 4 `.preferredColorScheme(.dark)` calls (ContentView, WarningsSheet, ChecklistSheet, FeedbackView), (4) sweep all screens for contrast + readability in light, (5) decide UX — system-follow (default) vs explicit toggle (would need a Settings screen). Test on iPhone + iPad in dynamic switching. |
 |---|---------|-------|-------|
 | #001 | AMS Purge Volume Calculator | Medium | Previously shipped on web, needs restore |
 | #026 | Smart Simple/Advanced Configurator Mode | Medium | Input-side simple/advanced split |
@@ -306,6 +345,11 @@ The iOS app is the top priority. Everything below is ordered to get to a public 
 | Web | iOS Beta signup wording updated, about/SEO updates | 2026-04-04–08 |
 | Branding | App icon (clay Benchy), logo on web header + iOS home + all nav bars, website link on iOS home, OutputView nav bar cleanup | 2026-04-13 |
 | BR-10 Cross-device UI review | UITest target + 33 screenshots across SE/17 Pro/17 Pro Max, 4 P0/P1 fixes (segmented control wrap, nav bar truncation, sticky checklist footer), App Store screenshots retaken. iOS commit `cbf0947`, web commit `bccfca4` | 2026-04-14 |
+| BR-11 Feedback system | Native SwiftUI feedback sheet → Discord webhook (#3dpa-ios-feedback). 7 categories, 8 entry points, auto-attached device metadata, 9 new tests. iOS commits `5a5624a` → `ddb1416` (incl. SF symbol picker fix, alert visibility fix). Manual: `DISCORD_FEEDBACK_WEBHOOK` added to GitHub secrets | 2026-04-15 |
+| BR-12 Empty-output hardening | OutputViewModel guard + scoped per-screen tap-1 reset. Final iteration after 2 over-corrections. iOS commits `a81281c` → `15c49da`. 5 new tests | 2026-04-15 |
+| Pre-submission polish | Print Profile tab description double-render fix (`1a96f83`); BrandPicker default un-preselected (`f87b095`); Printer/Nozzle picker tap-1 now clears local `selectedId` checkmark (`f87b095`) | 2026-04-15 |
+| App Store screenshots refresh | Recaptured on iPhone 17 Pro Max (1320×2868) post-BR-11 to show new feedback UI. Old set in `_backup-apr14/`. Web commit `02edd2f` | 2026-04-15 |
+| App Store Connect submission setup | App Information + categories + age 4+ + content rights + pricing (Free, all 175 countries) + privacy nutrition (Diagnostics only) + v1.0 metadata + 9 iPhone 6.9" screenshots uploaded + build `202604151712` attached. Pending: iPad screenshots from real device + Add for Review | 2026-04-15 |
 
 ---
 
