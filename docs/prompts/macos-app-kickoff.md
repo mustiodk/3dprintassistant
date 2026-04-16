@@ -1,110 +1,193 @@
 # Session kickoff — 3D Print Assistant for macOS (v0.1)
 
-Paste this as the first message when starting a new Cowork session dedicated to the macOS app.
+Paste this as the first message when starting a fresh Cowork session dedicated to the macOS app.
 
 ---
 
 ## Context
 
-We're starting a **new project** for the macOS version of 3D Print Assistant. Parent folder should be `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant-macos/` — **ask me to confirm the folder name before creating it** (per my standing rule in CLAUDE.md).
+We're starting a **new project**: native macOS companion app for 3D Print Assistant. Parent folder is `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant-macos/`. **Before creating the folder, confirm the name with me** (per my standing rule in CLAUDE.md).
 
-### What this is
-A native Mac app that wraps the existing web app (`3dprintassistant.com`) as a **WKWebView** with bundled offline assets. Same core product (profile generator + troubleshooter), native Mac chrome (title bar, menu bar, window state), offline-first, no account, no tracking.
+**Backlog entry:** #037 in `3dprintassistant/docs/planning/ROADMAP.md` (Medium value).
 
-Backlog reference: **#037** in `3dprintassistant/docs/planning/ROADMAP.md` (Medium value, ~half day to day).
+---
 
-### Why this approach (decided in 2026-04-16 session)
-- Same pattern as iOS (engine.js + data/*.json bundled) but **simpler** — no JavaScriptCore bridge needed. WKWebView renders the full UI directly.
-- Shares web files via the existing sync rule ("edit in web project → copy to iOS/macOS").
-- Native `.app` bundle → eligible for Mac App Store.
-- Real distinctive Mac feel: traffic-light window chrome, menu bar with File/View/Help, optional transparent title bar.
+## Architecture (decided — do not re-litigate)
 
-Rejected alternatives:
-- **Electron** — 200MB binary for a pure webview wrapper. Not justified.
-- **Catalyst** (run iOS app as Mac) — looks like "iPad app on Mac," not a real Mac app.
-- **Tauri** — cross-platform, only if Windows is also on the roadmap now (it's #038, Larger vision — deferred).
+**Path 3: SwiftUI + WKWebView with bundled offline assets.**
 
-### Pre-decision: try PWA first?
-User mentioned they might want to try **Safari → Add to Dock** as a quick validation before building the real app. If they haven't decided, ask:
-> "Do you want to spend 30 min polishing the PWA manifest + `apple-touch-icon` + meta tags for `3dprintassistant.com` first to validate the feel via Safari's 'Add to Dock', or go straight to building the native SwiftUI wrapper?"
+```
+┌──────────────────────────────────┐
+│  PrintAssistantMac.app (~8 MB)   │
+│                                  │
+│  ┌────────────────────────────┐  │
+│  │ SwiftUI window chrome      │  │
+│  │ (title bar, menus, sizing) │  │
+│  └────────────────────────────┘  │
+│  ┌────────────────────────────┐  │
+│  │ WKWebView                  │  │
+│  │   ↓ loads                  │  │
+│  │   file:///Resources/web/   │  │
+│  │     index.html             │  │
+│  │     app.js                 │  │
+│  │     engine.js              │  │
+│  │     style.css              │  │
+│  │     feedback-form.js       │  │
+│  │     data/*.json            │  │
+│  │     locales/*.json         │  │
+│  └────────────────────────────┘  │
+└──────────────────────────────────┘
+   No network needed for core use.
+   Only /api/feedback hits network.
+```
 
-If PWA first → 1 small commit on the web repo to add `manifest.webmanifest`, high-res icons, proper meta tags. Then the user tries it in Safari and decides.
-If native first → proceed below.
+### Why Path 3 (and not Path 2 or 2.5)
+- **Matches product ethos** — "free, offline, no tracking" stays true on Mac
+- **Consistent with iOS** — same "edit web, copy to app" discipline, same offline-first behavior
+- **Stronger Mac App Store story** — has native value (works offline), not "just a website wrapper"
+- **No server dependency** — Cloudflare outage doesn't break Mac users
+
+### Rejected alternatives (documented so we don't revisit)
+- **Path 2** (loads live `https://3dprintassistant.com`): breaks offline, slower cold start, Cloudflare becomes a dependency, weaker App Store review story
+- **Path 2.5** (bundled logic + live data fetch): marginal benefit for extra plumbing; data files are KB-scale so bundling them isn't a cost
+- **Electron**: 200MB binary for a webview wrapper. No.
+- **Catalyst**: looks like "iPad app on Mac," not a real Mac app
+- **Tauri**: would make sense if Windows were active roadmap, but #038 is Larger Vision and gated behind macOS success
+
+---
+
+## Required mitigations (these are NOT optional — they're what makes Path 3 sustainable)
+
+### Mitigation 1: Automated web-asset sync
+Sync rule must not rely on human memory. Pick ONE of:
+
+**Option A (preferred) — Xcode Build Phase:**
+Run Script phase, before "Copy Bundle Resources":
+```bash
+WEB="${SRCROOT}/../3dprintassistant"
+DEST="${SRCROOT}/PrintAssistantMac/Resources/web"
+rm -rf "$DEST"
+mkdir -p "$DEST"
+cp "$WEB/index.html" "$WEB/app.js" "$WEB/engine.js" "$WEB/style.css" "$WEB/feedback-form.js" "$DEST/"
+cp -R "$WEB/data" "$WEB/locales" "$DEST/"
+```
+
+**Option B — standalone `sync-web-assets.sh`:**
+Same commands. Developer runs it manually before opening Xcode. Less safe (easy to forget).
+
+Go with Option A. Build Phase = zero manual load, impossible to forget.
+
+### Mitigation 2: `/api/feedback` protocol-aware submission
+Edit `feedback-form.js` (in the web repo — this fix lives there, not in Mac repo):
+
+```js
+// feedback-form.js onSubmit()
+const apiBase = (location.protocol === 'file:')
+  ? 'https://3dprintassistant.com'
+  : '';  // same-origin on web
+const res = await fetch(`${apiBase}/api/feedback`, { ... });
+```
+
+Also must update the Cloudflare Worker's CORS allowlist in `functions/api/feedback.js` to allow `file://` origin (or: skip the Origin check when the Origin header is missing/null, which is what WKWebView on macOS sends for file:// pages).
+
+**Decision needed in session:** safer CORS model for this case. Options:
+- (a) Allow `null` Origin — permissive, simplest
+- (b) Whitelist a custom user-agent header the Mac app sends — tighter but more code
+- (a) is probably fine for a hobby app; flag the trade-off when you get to it.
+
+### Mitigation 3: Document the sync rule
+Update `3dprintassistant/CLAUDE.md` and/or `3dprintassistant-macos/CLAUDE.md`:
+
+> **Data sync rule (macOS):** `engine.js`, `data/*.json`, `locales/*.json`, and UI files (`index.html`, `app.js`, `style.css`, `feedback-form.js`) live in the web repo. The Mac repo's Xcode Build Phase copies them into `Resources/web/` at build time. Never edit them in the Mac repo.
+
+Same pattern as iOS data sync rule, just swap iOS → macOS.
 
 ---
 
 ## Before you do anything
 
-1. Read `/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md` in full — project rules, memory hot cache, shorthand
-2. Read `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/planning/ROADMAP.md` — status table, #037 backlog row, #038 backlog row
-3. Read `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-04-16-cowork-appdev.md` — latest session log, tells you iOS is released/EU-blocked, web feedback migration just shipped
-4. **If the macOS folder doesn't exist yet:** ask me before creating it. Then create it at `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant-macos/`.
+1. Read `/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md` — project rules, memory hot cache, shorthand
+2. Read `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/planning/ROADMAP.md` — status table + #037 backlog row (Path 3 decision + mitigations spelled out)
+3. Read `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-04-16-cowork-appdev.md` — latest session log, tells you iOS is released/EU-blocked, web feedback just migrated
+4. **Confirm folder name with me** before running `mkdir 3dprintassistant-macos`.
 
 ---
 
-## Initial plan (this session's scope)
+## Implementation plan (propose via EnterPlanMode)
 
-Propose an implementation plan via EnterPlanMode. Likely structure:
+### Phase 0 — scaffolding (30 min)
+- [ ] Create `3dprintassistant-macos/` folder (after my confirmation)
+- [ ] `project.yml` (XcodeGen) — macOS 14+ deployment target, bundle id `com.mragile.3dprintassistant`, SwiftUI app
+- [ ] `PrintAssistantMacApp.swift` — `@main` SwiftUI app
+- [ ] `ContentView.swift` — window hosting the web view
+- [ ] `WebView.swift` — `NSViewRepresentable` wrapping WKWebView
+- [ ] `AppConstants.swift` — web URL, feedback URL, etc.
+- [ ] Bundle seed: copy web files into `Resources/web/` manually for first build (Build Phase comes in Phase 1)
+- [ ] Load `Resources/web/index.html` via `loadFileURL(_:allowingReadAccessTo:)`
+- [ ] Verify it runs: `xcodegen generate && xcodebuild build -scheme PrintAssistantMac CODE_SIGNING_ALLOWED=NO` → open the `.app`
 
-### Phase 0 — scaffolding
-- [ ] `project.yml` (XcodeGen) for a SwiftUI + WKWebView macOS app, deployment target macOS 14+
-- [ ] `Info.plist` with app name, bundle id (`com.mragile.3dprintassistant`), icon, copyright
-- [ ] `AppDelegate.swift` / `PrintAssistantApp.swift` entry (SwiftUI `@main`)
-- [ ] `ContentView.swift` hosting `WKWebViewRepresentable`
-- [ ] `WebView.swift` — NSViewRepresentable wrapping WKWebView, configured for local resources
-- [ ] Bundle web assets — copy `3dprintassistant/index.html` + `app.js` + `engine.js` + `style.css` + `feedback-form.js` + `locales/*.json` + `data/*.json` into `Resources/web/`
-- [ ] Load initial page via `loadFileURL(_:allowingReadAccessTo:)`
-- [ ] Verify it runs via `xcodebuild` / open the `.app`
+### Phase 1 — Build Phase sync (15 min) — **Mitigation 1**
+- [ ] Add "Run Script" Build Phase to Xcode project.yml (pre-Copy-Bundle-Resources)
+- [ ] Script body from the snippet above
+- [ ] Delete seed files from git (only `.gitignore` the `Resources/web/` directory — files are generated at build)
+- [ ] Verify: edit engine.js in web repo, rebuild Mac app, confirm change is visible
 
-### Phase 1 — native chrome
-- [ ] App icon (reuse iOS Benchy, resize to macOS icon sizes via `iconutil`)
-- [ ] Window state persistence (remember size + position via `NSWindow` frame autosave)
-- [ ] Default window size (probably 1280×900, matches typical web view)
-- [ ] Optional: transparent/unified title bar for clean look
-- [ ] Menu bar items:
-  - File → New Window
-  - View → Actual Size, Zoom In, Zoom Out (map to WKWebView zoom)
-  - Help → Visit Website (opens `https://3dprintassistant.com` in default browser), Send Feedback (opens the same modal via JS call into the webview), About
+### Phase 2 — /api/feedback protocol fix (20 min) — **Mitigation 2**
+- [ ] Edit `3dprintassistant/feedback-form.js` → add `apiBase` const based on `location.protocol`
+- [ ] Edit `3dprintassistant/functions/api/feedback.js` → decide CORS policy for `null` origin (recommend: allow null since it's always from a bundled app submitting with the standard user-agent pattern)
+- [ ] Verify on web (still works from browser), verify on Mac app (works from bundle)
+- [ ] Commit + push the web changes — auto-deploys to Cloudflare
 
-### Phase 2 — offline-first verification
-- [ ] Disable network access in Mac OS → confirm app still fully works (all data bundled)
-- [ ] Verify the **web Feedback modal** does NOT try to call `/api/feedback` in the bundled context — this is the subtle trap. It would hit `file:///.../api/feedback` which 404s. Either:
-  - (a) swap to calling `https://3dprintassistant.com/api/feedback` when running from file:// (bridge via a small protocol handler)
-  - (b) strip the Feedback section entirely from the bundled HTML and expose it only via Help menu → opens browser
-  - Need to decide during Phase 2
+### Phase 3 — native Mac chrome (1–2 hours)
+- [ ] App icon — reuse iOS Benchy, generate `.icns` via `iconutil` from 1024×1024 + sizes (512,256,128,64,32,16 @1x and @2x)
+- [ ] Window state persistence — `NSWindow` frame autosave name
+- [ ] Default window size (1280×900 feels right for the web layout)
+- [ ] Menu bar:
+  - File → New Window (duplicate window)
+  - Edit → standard edit menu (auto-populated by SwiftUI)
+  - View → Actual Size (⌘0), Zoom In (⌘+), Zoom Out (⌘−) → bind to `webView.magnification`
+  - Help → "Visit Website" (opens `https://3dprintassistant.com` in default browser), "Send Feedback" (JS bridge: execute `FeedbackForm.open('generalFeedback')` in webview), "About 3D Print Assistant"
+- [ ] Optional polish: transparent unified title bar for a cleaner look
 
-### Phase 3 — distribution
-- [ ] Notarize for distribution outside App Store (DMG path)
-- [ ] OR: Mac App Store submission (needs entitlements + review)
-- [ ] Decide: DMG first (faster), MAS later
+### Phase 4 — verification
+- [ ] Disable all network (Little Snitch block or airplane mode equivalent)
+- [ ] Verify entire app works except Feedback submit (which should show a clean error)
+- [ ] Enable network, verify Feedback submit lands in `#web-app-feedback` with the expected embed
+- [ ] Run on multiple window sizes: 800×600, 1280×900, 1920×1080, 2560×1440 — check for layout issues
 
-### Phase 4 — update ROADMAP
-- [ ] ROADMAP backlog #037 → move to Completed phases, note shipped version
-- [ ] Add data-sync rule for macOS to CLAUDE.md and roadmap architecture section
+### Phase 5 — distribution decision
+- [ ] Decide: DMG (direct download, sign + notarize) OR Mac App Store (more friction but discoverability)
+- [ ] DMG recommended for v0.1 — faster to ship, no review wait
+- [ ] MAS later in a follow-up session
+
+### Phase 6 — ROADMAP + CLAUDE.md housekeeping
+- [ ] Move #037 from backlog to Completed phases with shipped version
+- [ ] Create `3dprintassistant-macos/CLAUDE.md` with architecture notes + build commands
+- [ ] Add the macOS data-sync rule to the web repo's CLAUDE.md
 
 ---
 
-## Constraints / preferences (from CLAUDE.md)
+## Constraints / preferences (from user's CLAUDE.md)
 
-- **Smooth, minimal, functional UI** — this project inherits the design system of the web. No extra chrome, no gradients, no flashy. Just WKWebView + native Mac defaults.
-- **No build step for web assets** — they're bundled as-is. Any future engine.js change on web must be copied in (same rule as iOS).
-- **Progress bar on every multi-step task** — `[🟩🟩⬜⬜ 40%] step name`. User wants to see this even for short sessions.
-- **Quality over speed** — MVP is already out on other platforms. This one should feel polished from v0.1.
-- **Token routing** — if the work is pure Swift/Git/file ops, prefer doing it in Claude Code (this tool) — don't offload to Gemini unless doing large-file analysis of `engine.js` etc.
-
----
-
-## First question to ask me
-
-> Before creating `3dprintassistant-macos/`, should I also plan to reuse assets from the web project (copying `engine.js`, `data/*.json`, etc. into `Resources/web/`), or do you want to start fully fresh and add assets later?
-
-Then wait for my answer before running `mkdir` or `xcodegen`.
+- **Smooth, minimal, functional** — inherits web design system. No extra chrome, no gradients.
+- **Progress bar on every multi-step task** — `[🟩🟩⬜⬜ 40%] step name`. Show it every time.
+- **Quality over speed** — MVP is out on other platforms. v0.1 here should feel polished.
+- **Token routing** — Swift/Git/file ops stay in Claude Code (this session). Don't offload to Gemini.
 
 ---
 
 ## Don't-do
 
-- **No Chrome MCP / Cloudflare poking.** This session is Swift/Xcode only.
-- **No cross-platform shortcuts** — if I ask for Windows during this session, flag it: #038 is deferred until macOS ships and validates desktop demand.
-- **No changes to the iOS repo** unless explicitly requested.
-- **No preview server** for the macOS app — verification is via `xcodebuild` + `open Build/Products/Debug/PrintAssistantMac.app`.
+- **No Chrome MCP / Cloudflare dashboard poking this session** — the Cloudflare env + Worker are set up, no changes needed. If I ask you to make a CORS change, just edit `functions/api/feedback.js` and push. Don't touch the dashboard.
+- **No changes to the iOS repo** unless explicitly asked
+- **No preview server for the Mac app** — verification is via `xcodebuild` + opening the `.app`
+- **No re-debate of Path 2 vs 3** — decision is locked. If you think of a reason to revisit, raise it as an `AskUserQuestion` but frame it as "I noticed X, should we reconsider?", don't unilaterally change direction
+- **Windows support (#038) is off-topic for this session**
+
+---
+
+## First question to ask me
+
+> Confirming scaffold: folder name `3dprintassistant-macos`, bundle id `com.mragile.3dprintassistant`, macOS 14+ deployment target, app name "3D Print Assistant" — any changes before I start Phase 0?
+
+Then wait for my answer.
