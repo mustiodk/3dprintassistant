@@ -2,7 +2,7 @@
 
 **Single source of truth for all planning.** Replaces IMPLEMENTATION_PLAN.md, TASKS.md, and web BACKLOG.md.
 
-**Last updated:** 2026-04-15 night — **🚀 SUBMITTED FOR REVIEW.** Status: "Waiting for Review" in App Store Connect. Build: `f87b095` (the "two pre-launch fixes" build). Manual release selected — will release at chosen moment after approval.
+**Last updated:** 2026-04-17 — **iOS v1.0 APPROVED, EU distribution blocked by Trader Status verification** (submitted, awaiting Apple 1–4 bd). App live in ~121 non-EU countries but announcement held until DK unlocks. **Web Tally→Discord feedback migration shipped** same day — web and iOS now use the same Discord-webhook-backed feedback flow (separate inbox channels).
 **Owner:** Musti (solo dev)
 **Priority:** iOS release first, then web enhancements.
 
@@ -14,8 +14,8 @@
 
 | Area | Status |
 |------|--------|
-| **Web app** | Live at 3dprintassistant.com. 64 printers, 12 brands, 18 materials, 9 nozzles, 3 slicers. |
-| **iOS app** | 🚀 **SUBMITTED FOR REVIEW** 2026-04-15 night. Status: "Waiting for Review" in ASC. Build attached: `f87b095`. Manual release selected. CI/CD clean. **32/32 tests passing**. iPhone + iPad screenshots uploaded. Apple typical timeline 12–48h. After approval: release at chosen moment. **Don't push code to main during review** — new commits would create new TestFlight builds, attached build is locked. |
+| **Web app** | Live at 3dprintassistant.com. 64 printers, 12 brands, 18 materials, 9 nozzles, 3 slicers. Feedback now flows to Discord `#web-app-feedback` via Cloudflare Worker at `/api/feedback` (Tally retired 2026-04-17). |
+| **iOS app** | ✅ **APPROVED + released 2026-04-16**. Live in ~121 non-EU countries via generic `apps.apple.com/app/3d-print-assistant/id6761634761` link. 🚩 **EU distribution blocked** by EU DSA Trader Status — submitted as Business (CVR + home address public) 2026-04-16, awaiting Apple verification (1–4 business days). Announcement **held** until DK/EU unlocks so DK audience doesn't see "App Not Available." |
 | **Engine** | Shared `engine.js` via JavaScriptCore on iOS. Web is master — edit there, copy to iOS. |
 | **Export** | Engine + bridge done. iOS UI **hidden** (deferred post-release). Web UI **disabled** (Bambu Studio rejected .json). |
 
@@ -279,6 +279,11 @@ The iOS app is the top priority. Everything below is ordered to get to a public 
 - [ ] Advanced rows stagger reveal — cascade fade-in on mode switch `[iOS]`
 - [ ] Consistent pill animation on native segmented controls `[iOS]`
 
+### PR-8: Retire iOS Beta signup card (web)
+- [ ] Web: remove iOS Beta card + `viewBeta` in `index.html` — app is live, signup form is deprecated `[Web]`
+- [ ] Web: remove remaining Tally embed reference (q4Wgvd form) and any leftover beta-related locale strings `[Web]`
+- [ ] Web: remove `navBeta` and `setView('beta')` from `app.js` if no longer needed `[Web]`
+
 ---
 
 ## Future features — Backlog
@@ -303,6 +308,7 @@ The iOS app is the top priority. Everything below is ordered to get to a public 
 | #012 | Saved Presets (localStorage) | Medium | Name + save filter state |
 | #019 | Multi-Language Expansion | Medium | DE, NL, SV |
 | #029 | Source Attribution for Recommendations | Medium | Brand/community/calculated badges |
+| #037 | macOS App (WKWebView wrapper) | Medium | SwiftUI + WKWebView with bundled offline assets — same pattern as iOS, simpler (no JSCore bridge). Shares web files via existing sync rule. ~100 lines of Swift. DMG or Mac App Store. Try PWA "Add to Dock" in Safari 14+ first to validate UX before building. New project folder: `3dprintassistant-macos/`. |
 
 ### Larger vision
 | # | Feature | Scope | Notes |
@@ -312,6 +318,7 @@ The iOS app is the top priority. Everything below is ordered to get to a public 
 | #020 | Filament Database / Brand Profiles | Large | Brand-specific temp/speed overrides |
 | #015 | Community-Contributed Profiles | Large | GitHub PR-based community profiles |
 | #022 | User Profiles & Community Layer | Large | Accounts, sync, sharing |
+| #038 | Windows App | Large | Cross-platform wrapper via Tauri (preferred over Electron — ~10MB vs ~200MB, native-feel, Rust-backed, uses OS webview). Only pursue after macOS port (#037) validates desktop demand. Deferred to post-v1.2. |
 
 ### Technical debt
 | # | Feature | Scope | Notes |
@@ -351,6 +358,9 @@ The iOS app is the top priority. Everything below is ordered to get to a public 
 | App Store screenshots refresh | Recaptured on iPhone 17 Pro Max (1320×2868) post-BR-11 to show new feedback UI. Old set in `_backup-apr14/`. Web commit `02edd2f` | 2026-04-15 |
 | App Store Connect submission setup | App Information + categories + age 4+ + content rights + pricing (Free, all 175 countries) + privacy nutrition (Diagnostics only) + v1.0 metadata + 9 iPhone 6.9" screenshots uploaded + build `202604151712` attached. Pending: iPad screenshots from real device + Add for Review | 2026-04-15 |
 | 🚀 **App Store submission** | Build `f87b095` attached, fresh iPhone + iPad screenshots uploaded, App Review Information + Notes filled, Manual release selected, **submitted to App Review**. Status: "Waiting for Review". 13 days ahead of April 28 deadline | 2026-04-15 |
+| ✅ **App Store APPROVED + released** | App approved same-day after ~24h review. Hit Release. Live in ~121 non-EU countries. EU blocked by DSA Trader Status — submitted as Business (CVR) same day. Generic link: `apps.apple.com/app/3d-print-assistant/id6761634761` | 2026-04-16 |
+| **Discord server restructure** | Added `#announcements` (read-only), private `📥 owner inbox` category with `#ios-app-feedback` (renamed from `#3dpa-ios-feedback`) + new `#web-app-feedback`. iOS feedback webhook URL preserved through rename (Discord webhooks are channel-id-bound). Channel descriptions written for all 11 channels. Beta category deleted post-release. | 2026-04-16 |
+| **Web feedback Tally→Discord migration** | Replaced Tally (obdMK1 form) with native `<dialog>` modal + Cloudflare Worker at `/api/feedback` forwarding to Discord `#web-app-feedback`. Mirrors iOS 7-category taxonomy + embed shape exactly. Secret `DISCORD_WEBHOOK_URL` stored in Cloudflare Pages env vars (not in bundle). Required adding `wrangler.toml` + `worker.js` because project had been migrated to Workers Builds (static-assets-only → assets+worker). 3 commits: `331124b` (dormant stack), `36f9131` (Worker entrypoint), `3856440` (card swap). Verified end-to-end via curl. iOS Beta signup Tally form left intact (deprecated — app is live, card to be retired). | 2026-04-17 |
 
 ---
 
