@@ -1,0 +1,14 @@
+name = "3dprintassistant"
+compatibility_date = "2026-04-15"
+compatibility_flags = ["nodejs_compat"]
+
+# Worker entrypoint. Required so Cloudflare classifies this deployment as
+# "assets + worker" instead of "static assets only". Without `main`, the
+# Variables & Secrets UI is locked and functions/ is never routed.
+main = "worker.js"
+
+# Static site bindings. `directory = "."` serves everything in the repo root
+# as public assets. See .assetsignore for the exclusion list.
+[assets]
+directory = "."
+binding = "ASSETS"
