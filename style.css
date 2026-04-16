@@ -1427,3 +1427,149 @@ dialog.info-modal::backdrop {
 }
 .modal-body p + p { margin-top: 12px; }
 .modal-body strong { color: var(--text); font-weight: 600; }
+
+/* ── Feedback modal ── */
+dialog.feedback-modal {
+  max-width: 560px;
+}
+.feedback-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.feedback-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text2);
+  font-weight: 500;
+}
+.feedback-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.feedback-input,
+.feedback-textarea,
+.feedback-select {
+  width: 100%;
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.feedback-textarea {
+  resize: vertical;
+  min-height: 88px;
+  font-family: inherit;
+}
+.feedback-input:focus,
+.feedback-textarea:focus,
+.feedback-select:focus {
+  outline: none;
+  border-color: var(--green);
+  background: var(--surface);
+}
+.feedback-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='%23888898' d='M2 4l4 4 4-4z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 34px;
+  cursor: pointer;
+}
+.feedback-honeypot {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.feedback-error {
+  color: #ff8a80;
+  font-size: 13px;
+  line-height: 1.45;
+  background: rgba(255, 107, 53, 0.08);
+  border: 1px solid rgba(255, 107, 53, 0.25);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.feedback-error[hidden] { display: none; }
+.feedback-success[hidden] { display: none; }
+.feedback-label[hidden],
+.feedback-fields[hidden],
+.feedback-actions[hidden],
+.feedback-honeypot[hidden] { display: none; }
+.feedback-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+.feedback-btn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.feedback-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.feedback-btn--ghost {
+  background: transparent;
+  color: var(--text2);
+  border-color: var(--border2);
+}
+.feedback-btn--ghost:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text3);
+}
+.feedback-btn--primary {
+  background: var(--green);
+  color: #062018;
+}
+.feedback-btn--primary:hover:not(:disabled) { filter: brightness(1.05); }
+.feedback-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0 4px;
+  text-align: center;
+}
+.feedback-success-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 229, 160, 0.15);
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.feedback-success-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.feedback-success-sub {
+  font-size: 13px;
+  color: var(--text3);
+  line-height: 1.5;
+  max-width: 360px;
+}
+.feedback-success .feedback-btn { margin-top: 6px; }

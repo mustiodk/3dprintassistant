@@ -206,6 +206,11 @@ function applyLang() {
   // Re-render everything with new language
   render();
   renderTroubleshooter();
+
+  // If the feedback modal is open, re-render its strings
+  if (window.FeedbackForm && typeof window.FeedbackForm.refreshLang === 'function') {
+    window.FeedbackForm.refreshLang();
+  }
 }
 
 // ── Printer Picker (brand → model) ──────────────────────────────────────────
