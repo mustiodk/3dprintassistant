@@ -729,6 +729,16 @@ function bindControls() {
   document.getElementById('navFeedback').addEventListener('click',      () => setView('feedback'));
   document.getElementById('navBeta').addEventListener('click',          () => setView('beta'));
 
+  // Feedback modal — any .feedback-card[data-feedback-category] opens it
+  document.querySelectorAll('.feedback-card[data-feedback-category]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const category = btn.dataset.feedbackCategory;
+      if (window.FeedbackForm && typeof window.FeedbackForm.open === 'function') {
+        window.FeedbackForm.open(category);
+      }
+    });
+  });
+
   // Process export button
   document.getElementById('exportProcessBtn').addEventListener('click', () => {
     if (!state.printer || !state.nozzle || !state.material) return;
