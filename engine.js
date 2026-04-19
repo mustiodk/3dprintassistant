@@ -888,147 +888,214 @@ const Engine = (() => {
     const colors   = state.colors;
     if (!material) return warnings;
 
-    // 1. Material-level warnings from JSON data
-    (material.warnings || []).forEach(w => warnings.push(w));
+    // Helper — wrap a plain-string warning (from JSON data) as a structured object.
+    function w(id, text, detail, fix) {
+      return { id, text, detail: detail || '', fix: fix || '' };
+    }
+
+    // 1. Material-level warnings from JSON data (plain strings)
+    (material.warnings || []).forEach((msg, i) => {
+      warnings.push(w(`mat_${material.id}_${i}`, msg, '', ''));
+    });
 
     // 2. Enclosure requirement on open printer
     if (material.enclosure_required && printer && printer.enclosure === 'none') {
-      warnings.push(`<strong>${printer.name} is an open-frame printer.</strong> ${material.name} requires a fully enclosed printer. High warping risk — consider PLA or PETG instead.`);
+      warnings.push(w('enclosure_required',
+        `${printer.name} is an open-frame printer.`,
+        `${material.name} requires a fully enclosed printer. High warping risk — consider PLA or PETG instead.`));
     }
 
     // 3. PETG + open printer
     if (material.group === 'PETG' && printer && printer.enclosure === 'none') {
-      warnings.push(`<strong>${printer.name} has no enclosure.</strong> PETG prints better with stable ambient temperature. Consider a DIY enclosure or warm room to avoid layer separation.`);
+      warnings.push(w('petg_open_printer',
+        `${printer.name} has no enclosure.`,
+        'PETG prints better with stable ambient temperature. Consider a DIY enclosure or warm room to avoid layer separation.'));
     }
 
     // 4. PLA + passive enclosure (heat creep warning)
     if (material.group === 'PLA' && printer && printer.enclosure === 'passive' &&
         material.enclosure_behavior?.open_door_threshold_bed_temp != null) {
-      warnings.push(`<strong>PLA + enclosed printer:</strong> Open the front door and remove the top glass panel to prevent heat creep and potential clogs.`);
+      warnings.push(w('pla_heat_creep',
+        'PLA + enclosed printer:',
+        'Open the front door and remove the top glass panel to prevent heat creep and potential clogs.'));
     }
 
     // 5. CF/GF material + non-hardened nozzle
     if (material.nozzle_requirements?.material === 'hardened' && nozzle && !nozzle.hardened) {
-      warnings.push(`<strong>Wrong nozzle for ${material.name}.</strong> A hardened steel nozzle is required — carbon fibers will destroy standard nozzles within hours.`);
+      warnings.push(w('cf_soft_nozzle',
+        `Wrong nozzle for ${material.name}.`,
+        'A hardened steel nozzle is required — carbon fibers will destroy standard nozzles within hours.'));
     }
 
     // 6. CF material + 0.2mm nozzle
     if (material.nozzle_requirements?.min_diameter > 0.2 && nozzle && nozzle.size < material.nozzle_requirements.min_diameter) {
-      warnings.push(`<strong>Nozzle too small for ${material.name}.</strong> Minimum ${material.nozzle_requirements.min_diameter}mm required — 0.2mm nozzle will clog immediately.`);
+      warnings.push(w('cf_small_nozzle',
+        `Nozzle too small for ${material.name}.`,
+        `Minimum ${material.nozzle_requirements.min_diameter}mm required — 0.2mm nozzle will clog immediately.`));
     }
 
     // 7. AMS on TPU
     if (material.group === 'TPU' && !material.ams_compatible && colors && colors !== 'single') {
-      warnings.push(`<strong>TPU is not AMS compatible.</strong> Load TPU from the rear spool holder directly into the extruder.`);
+      warnings.push(w('tpu_ams_incompatible',
+        'TPU is not AMS compatible.',
+        'Load TPU from the rear spool holder directly into the extruder.'));
     }
 
     // 8. Special requirement warnings
     if (special.includes('high_temp') && material.properties.heat_resistance_celsius < 70) {
-      warnings.push(`<strong>${material.name} softens at ~${material.properties.heat_resistance_celsius}°C.</strong> For parts above 60°C, switch to PETG (69°C), ASA (~100°C), or ABS (~98°C).`);
+      warnings.push(w('high_temp_material',
+        `${material.name} softens at ~${material.properties.heat_resistance_celsius}°C.`,
+        'For parts above 60°C, switch to PETG (69°C), ASA (~100°C), or ABS (~98°C).'));
     }
     if (special.includes('uv_resistant') && !material.properties.uv_resistant) {
-      warnings.push(`<strong>UV resistance:</strong> ${material.name} degrades in prolonged sunlight. Consider ASA for outdoor applications.`);
+      warnings.push(w('uv_resistance',
+        'UV resistance:',
+        `${material.name} degrades in prolonged sunlight. Consider ASA for outdoor applications.`));
     }
     if (special.includes('metallic') && nozzle && !nozzle.hardened) {
-      warnings.push(`<strong>Metallic / abrasive filaments</strong> require a hardened steel nozzle — standard nozzles wear rapidly.`);
+      warnings.push(w('metallic_soft_nozzle',
+        'Metallic / abrasive filaments',
+        'require a hardened steel nozzle — standard nozzles wear rapidly.'));
     }
     if (special.includes('waterproof')) {
-      warnings.push(`<strong>For waterproofing:</strong> set wall loops to 4+ and infill to 60%+. PETG has better moisture and chemical resistance than PLA.`);
+      warnings.push(w('waterproof_settings',
+        'For waterproofing:',
+        'set wall loops to 4+ and infill to 60%+. PETG has better moisture and chemical resistance than PLA.'));
     }
     if (special.includes('glossy') && material.id !== 'pla_silk') {
-      warnings.push(`<strong>Glossy / Silk:</strong> PLA Silk produces the best gloss results. Slow outer wall to 40–50 mm/s and use fine layer height.`);
+      warnings.push(w('glossy_finish',
+        'Glossy / Silk:',
+        'PLA Silk produces the best gloss results. Slow outer wall to 40–50 mm/s and use fine layer height.'));
     }
     if (special.includes('matte') && material.id !== 'pla_matte') {
-      warnings.push(`<strong>Matte finish:</strong> PLA Matte is designed for this — consider switching material for best results.`);
+      warnings.push(w('matte_finish',
+        'Matte finish:',
+        'PLA Matte is designed for this — consider switching material for best results.'));
     }
 
     // 9. AMS incompatibility
     if (colors && colors !== 'single' && !material.ams_compatible) {
-      warnings.push(`<strong>${material.name} is not AMS compatible.</strong> Multi-color printing requires an AMS-compatible filament.`);
+      warnings.push(w('ams_incompatible',
+        `${material.name} is not AMS compatible.`,
+        'Multi-color printing requires an AMS-compatible filament.'));
     }
 
     // 10. Beginner + advanced materials
     if (state.userLevel === 'beginner' && ['ABS', 'ASA', 'PVA', 'PA', 'PC'].includes(material.group)) {
-      warnings.push(`<strong>Advanced material selected.</strong> ${material.name} requires experience and specific hardware. Consider starting with PLA Basic or PETG Basic.`);
+      warnings.push(w('beginner_advanced_material',
+        'Advanced material selected.',
+        `${material.name} requires experience and specific hardware. Consider starting with PLA Basic or PETG Basic.`));
     }
 
-    // 11. Environment warnings from JSON
+    // 11. Environment warnings from JSON (plain strings)
     const env = getEnv(state.environment);
-    if (env && env.warnings) env.warnings.forEach(w => warnings.push(w));
+    if (env && env.warnings) {
+      env.warnings.forEach((msg, i) => {
+        warnings.push(w(`env_${env.id}_${i}`, msg, '', ''));
+      });
+    }
 
     // 12. Creality printer — no multi-color system
     if (printer && printer.manufacturer === 'creality' &&
         (!printer.multi_color_systems || printer.multi_color_systems.length === 0) &&
         colors && colors !== 'single') {
-      warnings.push(`<strong>${printer.name} has no multi-color system.</strong> This printer requires manual filament swaps for color changes. Automatic color printing is not supported.`);
+      warnings.push(w('creality_no_multicolor',
+        `${printer.name} has no multi-color system.`,
+        'This printer requires manual filament swaps for color changes. Automatic color printing is not supported.'));
     }
 
     // 13. K2 Plus CFS note for multi-color — different system from Bambu AMS
     if (printer && printer.id === 'k2_plus' && colors && colors !== 'single') {
-      warnings.push(`<strong>K2 Plus uses Creality CFS, not Bambu AMS.</strong> Configure purge volumes in Creality Print software — Bambu Studio AMS settings do not apply.`);
+      warnings.push(w('k2_plus_cfs',
+        'K2 Plus uses Creality CFS, not Bambu AMS.',
+        'Configure purge volumes in Creality Print software — Bambu Studio AMS settings do not apply.'));
     }
 
     // 14. Printer max nozzle temp too low for material
     if (printer && printer.max_nozzle_temp != null && printer.max_nozzle_temp < material.base_settings.nozzle_temp_base) {
-      warnings.push(`<strong>${printer.name} max nozzle temp is ${printer.max_nozzle_temp}°C.</strong> ${material.name} requires ${material.base_settings.nozzle_temp_base}°C minimum. An all-metal hot end upgrade is required.`);
+      warnings.push(w('printer_max_nozzle_temp',
+        `${printer.name} max nozzle temp is ${printer.max_nozzle_temp}°C.`,
+        `${material.name} requires ${material.base_settings.nozzle_temp_base}°C minimum. An all-metal hot end upgrade is required.`));
     }
 
     // 15. PA / PC + active chamber heating tip
     if (printer && printer.active_chamber_heating && ['PA', 'PC'].includes(material.group)) {
-      warnings.push(`<strong>Active chamber heating on ${printer.name} is ideal for ${material.name}.</strong> Set chamber temp to ${material.group === 'PC' ? '45' : '40'}°C before starting — this dramatically reduces warping and delamination.`);
+      warnings.push(w('active_chamber_heating',
+        `Active chamber heating on ${printer.name} is ideal for ${material.name}.`,
+        `Set chamber temp to ${material.group === 'PC' ? '45' : '40'}°C before starting — this dramatically reduces warping and delamination.`));
     }
 
     // 16. PA strongly recommended enclosure — on open printer
     if (material.enclosure_behavior?.enclosure_strongly_recommended && printer && printer.enclosure === 'none') {
-      warnings.push(`<strong>${printer.name} is open-frame.</strong> ${material.name} warps significantly without enclosure. Use a brim of 10mm+ and print in a draught-free, warm room. Consider an enclosure upgrade.`);
+      warnings.push(w('pa_open_printer',
+        `${printer.name} is open-frame.`,
+        `${material.name} warps significantly without enclosure. Use a brim of 10mm+ and print in a draught-free, warm room. Consider an enclosure upgrade.`));
     }
 
     // 17. Nozzle too small for material (e.g. TPU 85A requires 0.6mm+)
     if (nozzle && material.nozzle_requirements?.min_diameter && nozzle.size < material.nozzle_requirements.min_diameter) {
-      warnings.push(`<strong>${material.name} requires a ${material.nozzle_requirements.min_diameter}mm or larger nozzle.</strong> Your selected ${nozzle.size}mm nozzle is too small — the soft material cannot generate enough pressure to flow cleanly and will clog.`);
+      warnings.push(w('nozzle_too_small',
+        `${material.name} requires a ${material.nozzle_requirements.min_diameter}mm or larger nozzle.`,
+        `Your selected ${nozzle.size}mm nozzle is too small — the soft material cannot generate enough pressure to flow cleanly and will clog.`));
     }
 
     // 18. MVS null = nozzle size not supported for this material
     if (nozzle && material.base_settings.max_mvs) {
       const mvsVal = material.base_settings.max_mvs[String(nozzle.size)];
       if (mvsVal === null) {
-        warnings.push(`<strong>${material.name} is not recommended with a ${nozzle.size}mm nozzle.</strong> This nozzle size is not supported for this material — use a larger nozzle (0.6mm+).`);
+        warnings.push(w('nozzle_not_supported',
+          `${material.name} is not recommended with a ${nozzle.size}mm nozzle.`,
+          'This nozzle size is not supported for this material — use a larger nozzle (0.6mm+).'));
       }
     }
 
     // 19. Soft TPU + enclosed printer — heat creep risk
     if (material.id === 'tpu_85a' && printer && printer.enclosure !== 'none') {
-      warnings.push(`<strong>${material.name} + enclosed printer:</strong> Keep the enclosure open or remove the top panel. Enclosed ambient heat causes heat creep with very soft TPU, leading to clogs.`);
+      warnings.push(w('tpu85a_enclosure',
+        `${material.name} + enclosed printer:`,
+        'Keep the enclosure open or remove the top panel. Enclosed ambient heat causes heat creep with very soft TPU, leading to clogs.'));
     }
     if (material.id === 'tpu_90a' && printer && printer.enclosure === 'active_heated') {
-      warnings.push(`<strong>${material.name} + active enclosure:</strong> Open the enclosure door during printing. Excessive ambient heat causes heat creep with soft TPU.`);
+      warnings.push(w('tpu90a_active_enclosure',
+        `${material.name} + active enclosure:`,
+        'Open the enclosure door during printing. Excessive ambient heat causes heat creep with soft TPU.'));
     }
 
     // 20. Soft TPU moisture critical reminder
     if (material.id === 'tpu_85a') {
-      warnings.push(`<strong>TPU 85A moisture warning:</strong> This material absorbs moisture faster than any other common filament. Dry at 65°C for 8h before printing and print from a sealed dryer if possible.`);
+      warnings.push(w('tpu85a_moisture',
+        'TPU 85A moisture warning:',
+        'This material absorbs moisture faster than any other common filament. Dry at 65°C for 8h before printing and print from a sealed dryer if possible.'));
     }
 
     // 21. Hygroscopic material + humid environment — critical drying warning
     if (material.base_settings.hygroscopic === 'high' && state.environment === 'humid') {
       const drying = material.drying;
       const dryInfo = drying ? ` Dry at ${drying.oven_temp}°C for ${drying.oven_duration_hours}h before printing.` : '';
-      warnings.push(`<strong>Critical: ${material.name} is highly moisture-sensitive and you selected a humid environment.</strong> This material must be thoroughly dried before printing — moisture causes bubbling, stringing, and weak layer adhesion.${dryInfo} Print from a sealed dryer if possible.`);
+      warnings.push(w('hygroscopic_humid',
+        `Critical: ${material.name} is highly moisture-sensitive and you selected a humid environment.`,
+        `This material must be thoroughly dried before printing — moisture causes bubbling, stringing, and weak layer adhesion.${dryInfo} Print from a sealed dryer if possible.`));
     }
 
     // B2. Enclosure enforcement — high shrink risk on open printer
     if (material.shrink_risk === 'high' && printer && printer.enclosure === 'none') {
-      warnings.push(`<strong>${material.name} has high shrinkage risk on an open printer.</strong> This material requires a stable enclosed environment to prevent warping and layer cracking. Use a draft shield, close nearby doors/windows, add a wide brim (8–12mm), and consider a DIY enclosure.`);
+      warnings.push(w('high_shrink_open',
+        `${material.name} has high shrinkage risk on an open printer.`,
+        'This material requires a stable enclosed environment to prevent warping and layer cracking. Use a draft shield, close nearby doors/windows, add a wide brim (8–12mm), and consider a DIY enclosure.'));
     }
 
     // B4. Abrasive nozzle check — abrasive material on non-hardened nozzle
     if (material.abrasive && nozzle && !nozzle.hardened) {
-      warnings.push(`<strong>${material.name} contains abrasive fillers.</strong> This will rapidly wear a standard brass nozzle — expect visible degradation within hours of printing. Switch to a hardened steel nozzle for this material.`);
+      warnings.push(w('abrasive_soft_nozzle',
+        `${material.name} contains abrasive fillers.`,
+        'This will rapidly wear a standard brass nozzle — expect visible degradation within hours of printing. Switch to a hardened steel nozzle for this material.'));
     }
 
     // B5. PEI adhesion alert — aggressive bonding to smooth PEI
     if (material.adhesion_risk_pei === 'high' && !state.build_plate) {
-      warnings.push(`<strong>${material.name} bonds aggressively to smooth PEI.</strong> Use a glue stick or hairspray as a release layer to prevent damage to the build plate surface. A textured PEI sheet is also a safe alternative.`);
+      warnings.push(w('pei_adhesion',
+        `${material.name} bonds aggressively to smooth PEI.`,
+        'Use a glue stick or hairspray as a release layer to prevent damage to the build plate surface. A textured PEI sheet is also a safe alternative.'));
     }
 
     // C1. Build plate compatibility warning
@@ -1040,10 +1107,14 @@ const Engine = (() => {
         const plateName = plateOption ? plateOption.name : state.build_plate;
         if (rating === 'avoid') {
           const note = BUILD_PLATE_NOTES[state.build_plate]?.avoid || `${material.name} is not recommended on ${plateName}.`;
-          warnings.push(`<strong>${material.name} + ${plateName}: Not recommended.</strong> ${note}`);
+          warnings.push(w('build_plate_avoid',
+            `${material.name} + ${plateName}: Not recommended.`,
+            note));
         } else if (rating === 'needs_prep') {
           const note = BUILD_PLATE_NOTES[state.build_plate]?.needs_prep || `${plateName} requires surface preparation for ${material.name}.`;
-          warnings.push(`<strong>${material.name} + ${plateName}: Prep required.</strong> ${note}`);
+          warnings.push(w('build_plate_prep',
+            `${material.name} + ${plateName}: Prep required.`,
+            note));
         }
       }
     }
@@ -1052,7 +1123,9 @@ const Engine = (() => {
     if (state.filament_condition === 'unknown' && material.base_settings.hygroscopic && material.base_settings.hygroscopic !== 'none') {
       const drying = material.drying;
       const dryInfo = drying ? ` Dry at ${drying.oven_temp}°C for ${drying.oven_duration_hours}h before printing.` : '';
-      warnings.push(`<strong>Filament condition unknown for ${material.name}.</strong> This material is moisture-sensitive — if you haven't dried it recently, print quality may suffer.${dryInfo}`);
+      warnings.push(w('filament_condition_unknown',
+        `Filament condition unknown for ${material.name}.`,
+        `This material is moisture-sensitive — if you haven't dried it recently, print quality may suffer.${dryInfo}`));
     }
 
     // C3. Layer height constraint — layer height > 75% of nozzle diameter
@@ -1061,14 +1134,18 @@ const Engine = (() => {
       if (surface) {
         const maxLayer = nozzle.size * 0.75;
         if (surface.layer_height > maxLayer) {
-          warnings.push(`<strong>Layer height too tall for ${nozzle.name}.</strong> ${surface.layer_height} mm exceeds 75% of nozzle diameter (${maxLayer.toFixed(2)} mm). This causes poor layer adhesion and extrusion issues. Select a finer surface quality or larger nozzle.`);
+          warnings.push(w('layer_height_exceeded',
+            `Layer height too tall for ${nozzle.name}.`,
+            `${surface.layer_height} mm exceeds 75% of nozzle diameter (${maxLayer.toFixed(2)} mm). This causes poor layer adhesion and extrusion issues. Select a finer surface quality or larger nozzle.`));
         }
       }
     }
 
     // C4. Bowden extruder info warning
     if (state.extruder_type === 'bowden') {
-      warnings.push(`<strong>Bowden extruder selected.</strong> Retraction distances are increased to compensate for the longer filament path. Fine-tune based on your PTFE tube length.`);
+      warnings.push(w('bowden_extruder',
+        'Bowden extruder selected.',
+        'Retraction distances are increased to compensate for the longer filament path. Fine-tune based on your PTFE tube length.'));
     }
 
     return warnings;
