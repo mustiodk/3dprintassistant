@@ -1,0 +1,57 @@
+{
+  "_meta": {
+    "purpose": "Per-slicer valid value sets for pattern / generator fields. Used by engine mapForSlicer() during export and UI rendering to auto-substitute values that the target slicer would reject. Source of truth: vendor preset JSONs + slicer source repos.",
+    "last_audited": "2026-04-20"
+  },
+  "slicers": {
+    "bambu_studio": {
+      "sparse_infill_patterns":     ["gyroid", "grid", "line", "crosshatch", "lightning", "zig-zag", "honeycomb", "cubic", "3dhoneycomb", "concentric"],
+      "top_surface_patterns":       ["monotonic", "monotonicline", "rectilinear", "concentric"],
+      "bottom_surface_patterns":    ["monotonic", "monotonicline", "rectilinear", "concentric"],
+      "internal_solid_infill_patterns": ["zig-zag", "rectilinear", "concentric"],
+      "support_interface_patterns": ["rectilinear_interlaced", "rectilinear", "concentric", "grid", "auto"],
+      "wall_generators":            ["classic", "arachne"],
+      "seam_positions":             ["aligned", "nearest", "back", "random"]
+    },
+    "prusaslicer": {
+      "sparse_infill_patterns":     ["rectilinear", "grid", "gyroid", "honeycomb", "3dhoneycomb", "concentric", "lightning", "triangles", "stars", "cubic"],
+      "top_surface_patterns":       ["monotonic", "monotoniclines", "rectilinear", "concentric", "hilbertcurve"],
+      "bottom_surface_patterns":    ["monotonic", "monotoniclines", "rectilinear", "concentric"],
+      "internal_solid_infill_patterns": ["rectilinear", "monotonic", "concentric"],
+      "support_interface_patterns": ["rectilinear", "concentric"],
+      "wall_generators":            ["classic", "arachne"],
+      "seam_positions":             ["aligned", "nearest", "rear", "random"]
+    },
+    "orcaslicer": {
+      "sparse_infill_patterns":     ["gyroid", "grid", "line", "crosshatch", "lightning", "zig-zag", "honeycomb", "cubic", "3dhoneycomb", "concentric", "rectilinear"],
+      "top_surface_patterns":       ["monotonic", "monotonicline", "rectilinear", "concentric"],
+      "bottom_surface_patterns":    ["monotonic", "monotonicline", "rectilinear", "concentric"],
+      "internal_solid_infill_patterns": ["zig-zag", "rectilinear", "monotonic", "concentric"],
+      "support_interface_patterns": ["rectilinear_interlaced", "rectilinear", "concentric", "grid", "auto"],
+      "wall_generators":            ["classic", "arachne"],
+      "seam_positions":             ["aligned", "nearest", "back", "random"]
+    }
+  },
+  "fallbacks": {
+    "sparse_infill_pattern": {
+      "crosshatch":  { "prusaslicer": "rectilinear" },
+      "cross hatch": { "prusaslicer": "rectilinear" },
+      "zig-zag":     { "prusaslicer": "rectilinear" },
+      "line":        { "prusaslicer": "rectilinear" },
+      "lightning":   { "prusaslicer": "rectilinear" }
+    },
+    "internal_solid_infill_pattern": {
+      "zig-zag":  { "prusaslicer": "rectilinear" },
+      "monotonic": { "bambu_studio": "rectilinear" }
+    },
+    "support_interface_pattern": {
+      "rectilinear_interlaced": { "prusaslicer": "rectilinear" },
+      "grid":                    { "prusaslicer": "rectilinear" }
+    },
+    "seam_position": {
+      "sharpest corner": { "bambu_studio": "nearest", "orcaslicer": "nearest", "prusaslicer": "nearest" },
+      "back":            { "prusaslicer": "rear" },
+      "aligned (or back)": { "bambu_studio": "aligned", "orcaslicer": "aligned", "prusaslicer": "aligned" }
+    }
+  }
+}

@@ -13,6 +13,7 @@ const Engine = (() => {
   let _objectives    = {};
   let _warnings      = {};
   let _troubleshooter = {};
+  let _slicerCaps    = null;  // loaded from data/rules/slicer_capabilities.json
 
   // ── Language system ───────────────────────────────────────────────────────────
   let _lang = 'en'; // 'en' | 'da'
@@ -41,7 +42,7 @@ const Engine = (() => {
     try { const stored = localStorage.getItem('3dpa_lang'); if (stored && _T[stored] !== undefined) _lang = stored; } catch (_) {}
 
     const base = './data/';
-    const [printersRes, materialsRes, nozzlesRes, envRes, objRes, warnRes, tsRes, locEnRes, locDaRes] =
+    const [printersRes, materialsRes, nozzlesRes, envRes, objRes, warnRes, tsRes, scRes, locEnRes, locDaRes] =
       await Promise.all([
         fetch(base + 'printers.json'),
         fetch(base + 'materials.json'),
@@ -50,12 +51,13 @@ const Engine = (() => {
         fetch(base + 'rules/objective_profiles.json'),
         fetch(base + 'rules/warnings.json'),
         fetch(base + 'rules/troubleshooter.json'),
+        fetch(base + 'rules/slicer_capabilities.json'),
         fetch('./locales/en.json'),
         fetch('./locales/da.json'),
       ]);
 
-    const [pd, md, nd, ed, od, wd, td, enLocale, daLocale] = await Promise.all(
-      [printersRes, materialsRes, nozzlesRes, envRes, objRes, warnRes, tsRes, locEnRes, locDaRes].map(r => {
+    const [pd, md, nd, ed, od, wd, td, scd, enLocale, daLocale] = await Promise.all(
+      [printersRes, materialsRes, nozzlesRes, envRes, objRes, warnRes, tsRes, scRes, locEnRes, locDaRes].map(r => {
         if (!r.ok) throw new Error(`Failed to load ${r.url} (HTTP ${r.status})`);
         return r.json();
       })
@@ -69,6 +71,7 @@ const Engine = (() => {
     _objectives     = od;
     _warnings       = wd;
     _troubleshooter = td;
+    _slicerCaps     = scd;
     _T.en           = enLocale;
     _T.da           = daLocale;
   }
@@ -601,6 +604,80 @@ const Engine = (() => {
   function getStrength(id)  { return (_objectives.strength_levels || []).find(s => s.id === id); }
   function getSpeedMode(id) { return (_objectives.speed_priority  || []).find(s => s.id === id); }
 
+  // ── Printer capability limits (IMPL-039) ────────────────────────────────────
+  // Returns { max_layer_height, min_layer_height, max_line_width, max_outer_wall_speed,
+  //          max_inner_wall_speed, max_travel_speed } for a given printer + nozzle.
+  // Formula defaults match Bambu/Prusa/Orca convention (verified against the vendor
+  // preset JSONs in `bambu configs/`). A printer may shadow any value via an optional
+  // `limits_override` field in printers.json for printers whose firmware is tighter
+  // than the formula (e.g. Ender 3 V3 SE caps outer wall speed below the default).
+  function getPrinterLimits(printer, nozzleSize) {
+    if (!printer || !nozzleSize) return null;
+    const override = printer.limits_override || {};
+    const nz = String(nozzleSize);
+    const nzOverride = (override.nozzles && override.nozzles[nz]) || {};
+    const mOverride = override.motion || {};
+    const maxSpeed = printer.max_speed || 500;
+
+    // Nozzle-driven geometry limits (universal — same across major slicers)
+    const max_layer_height = nzOverride.max_layer_height ?? +(nozzleSize * 0.70).toFixed(3);
+    const min_layer_height = nzOverride.min_layer_height ?? +(nozzleSize * 0.20).toFixed(3);
+    const max_line_width   = nzOverride.max_line_width   ?? +(nozzleSize * 2.00).toFixed(3);
+
+    // Motion limits (printer-driven, conservative — outer ~40%, inner ~60% of max_speed)
+    const max_outer_wall_speed = mOverride.max_outer_wall_speed ?? Math.min(Math.round(maxSpeed * 0.40), 300);
+    const max_inner_wall_speed = mOverride.max_inner_wall_speed ?? Math.min(Math.round(maxSpeed * 0.60), 500);
+    const max_travel_speed     = mOverride.max_travel_speed     ?? maxSpeed;
+
+    return { max_layer_height, min_layer_height, max_line_width,
+             max_outer_wall_speed, max_inner_wall_speed, max_travel_speed };
+  }
+
+  // Clamp a numeric value into [min, max], return the clamped value.
+  // Does NOT emit warnings — warning generation is centralized in getWarnings so
+  // resolveProfile + getWarnings stay pure functions of state.
+  function _clampNum(value, min, max) {
+    const n = typeof value === 'number' ? value : parseFloat(String(value));
+    if (!isFinite(n)) return value;
+    if (max != null && n > max + 1e-6) return +(+max).toFixed(3);
+    if (min != null && n < min - 1e-6) return +(+min).toFixed(3);
+    return n;
+  }
+
+  // Substitute a pattern/generator value for the target slicer if the slicer's
+  // valid-value set doesn't contain the original. Returns the original value
+  // unchanged when no substitution is needed, OR when slicer_capabilities.json
+  // is not yet loaded (fail-open so old callers keep working during init).
+  // Matching is loose — "Cross Hatch" / "crosshatch" / "Cross-Hatch" all compare
+  // equal, so we can keep UI-display names and vendor-import names in harmony.
+  // Example: mapForSlicer('Cross Hatch', 'sparse_infill_pattern', 'prusaslicer')
+  //   → 'rectilinear' (from slicer_capabilities.fallbacks; caller re-capitalizes)
+  function mapForSlicer(value, field, slicer) {
+    if (!_slicerCaps || !value || !field || !slicer) return value;
+    const slicerCap = _slicerCaps.slicers && _slicerCaps.slicers[slicer];
+    if (!slicerCap) return value;
+
+    const norm = s => String(s).toLowerCase().trim().replace(/[\s_-]+/g, '');
+    const normalized = norm(value);
+    const fieldKey = field.endsWith('s') ? field : field + 's';  // accept singular or plural
+    const validSet = slicerCap[fieldKey] || slicerCap[field + '_patterns'] || slicerCap[field];
+
+    if (!validSet || !Array.isArray(validSet)) return value;
+    // Loose containment check — compare after stripping whitespace/underscores/dashes
+    if (validSet.some(v => norm(v) === normalized)) return value;
+
+    const fallbackMap = _slicerCaps.fallbacks && _slicerCaps.fallbacks[field];
+    if (fallbackMap) {
+      // Also loose-match fallback keys
+      const matchingKey = Object.keys(fallbackMap).find(k => norm(k) === normalized);
+      if (matchingKey && fallbackMap[matchingKey][slicer]) {
+        return fallbackMap[matchingKey][slicer];
+      }
+    }
+    // No explicit fallback — return the first valid value as a safe default
+    return validSet[0];
+  }
+
   // ── Brand / printer picker helpers ────────────────────────────────────────────
   function buildModelDesc(p) {
     const parts = [];
@@ -1128,26 +1205,71 @@ const Engine = (() => {
         `This material is moisture-sensitive — if you haven't dried it recently, print quality may suffer.${dryInfo}`));
     }
 
-    // C3. Layer height constraint — layer height > 70% of nozzle diameter
-    // Matches Bambu Studio's printer-level ceiling (max_layer_height = 0.28 for
-    // 0.4mm nozzle, 0.42 for 0.6mm, etc). Prusa/Orca accept the same range.
-    if (nozzle && state.surface) {
-      const surface = getSurface(state.surface);
-      if (surface) {
-        const maxLayer = nozzle.size * 0.70;
-        if (surface.layer_height > maxLayer + 1e-6) {
-          warnings.push(w('layer_height_exceeded',
-            `Layer height too tall for ${nozzle.name}.`,
-            `${surface.layer_height} mm exceeds 70% of nozzle diameter (${maxLayer.toFixed(2)} mm). This causes poor layer adhesion and extrusion issues. Select a finer surface quality or larger nozzle.`));
+    // C3. (was layer-height-too-tall — replaced by C5 clamp notice below, which
+    // both flags the condition AND tells the user the engine already clamped the
+    // emitted value to printer max. Keeping the C5 message is more accurate than
+    // asking the user to pick a different surface when the clamp already handled it.)
+
+    // C4. Bowden extruder info warning — fires for explicit user override OR
+    // for printers whose built-in extruder_type is bowden (e.g. Prusa MINI+).
+    const effectiveExtruder = state.extruder_type || (printer && printer.extruder_type) || 'direct_drive';
+    if (effectiveExtruder === 'bowden') {
+      warnings.push(w('bowden_extruder',
+        state.extruder_type === 'bowden' ? 'Bowden extruder selected.' : `${printer.name} uses a bowden extruder.`,
+        'Retraction distances are increased to compensate for the longer filament path. Fine-tune based on your PTFE tube length.'));
+    }
+
+    // C5. Printer-capability clamping notices (IMPL-039)
+    // Informs the user when an emitted value was reduced because their printer's
+    // firmware / slicer can't accept the raw value from the objective profile.
+    // Intentionally appended last so clamps appear below more critical warnings.
+    if (printer && nozzle) {
+      const lim = getPrinterLimits(printer, nozzle.size);
+      if (lim) {
+        // Layer height clamp notice — fires when Draft+0.4mm scenarios etc. get reduced
+        if (state.surface) {
+          const surf = getSurface(state.surface);
+          if (surf && surf.layer_height > lim.max_layer_height + 1e-6) {
+            warnings.push(w('layer_height_clamped',
+              `Layer height reduced to ${lim.max_layer_height} mm for ${printer.name}.`,
+              `${surf.name} normally uses ${surf.layer_height} mm, but the slicer's printer-level ceiling for a ${nozzle.size} mm nozzle is ${lim.max_layer_height} mm. A taller layer would be rejected on import.`));
+          }
+        }
+        // Speed clamp notice — fires when default speeds exceed printer firmware cap
+        const speedMode = getSpeedMode(state.speed);
+        if (speedMode) {
+          const isCoreXY = printer.series === 'corexy';
+          const rawOuter = isCoreXY ? speedMode.outer_corexy : speedMode.outer_bedslinger;
+          if (rawOuter > lim.max_outer_wall_speed + 1e-6) {
+            warnings.push(w('outer_wall_speed_clamped',
+              `Outer wall speed capped at ${lim.max_outer_wall_speed} mm/s for ${printer.name}.`,
+              `Your speed preset requested ${rawOuter} mm/s but ${printer.name}'s firmware limit is ${printer.max_speed} mm/s, so the safe outer-wall cap is ${lim.max_outer_wall_speed} mm/s.`));
+          }
         }
       }
     }
 
-    // C4. Bowden extruder info warning
-    if (state.extruder_type === 'bowden') {
-      warnings.push(w('bowden_extruder',
-        'Bowden extruder selected.',
-        'Retraction distances are increased to compensate for the longer filament path. Fine-tune based on your PTFE tube length.'));
+    // C6. Slicer pattern substitution notices (IMPL-039)
+    // When a strength / support / surface pattern isn't supported by the user's
+    // slicer and mapForSlicer has substituted a fallback, tell the user so they
+    // know what they're actually getting (e.g. Prusa users on Minimal strength
+    // see "Rectilinear" instead of "Cross Hatch").
+    if (printer && _slicerCaps) {
+      const slicer = getSlicerForPrinter(state.printer) || 'bambu_studio';
+      const checks = [
+        { label: 'Sparse infill pattern',   field: 'sparse_infill_pattern', value: getStrength(state.strength)?.infill_pattern },
+        { label: 'Support interface pattern', field: 'support_interface_pattern', value: state.support === 'best_underside' ? 'Grid' : (state.support && state.support !== 'none' ? 'Rectilinear' : null) },
+      ];
+      checks.forEach(c => {
+        if (!c.value) return;
+        const mapped = mapForSlicer(c.value, c.field, slicer);
+        const norm = s => String(s).toLowerCase().trim().replace(/[\s_-]+/g, '');
+        if (norm(mapped) !== norm(c.value)) {
+          warnings.push(w(`pattern_substituted_${c.field}`,
+            `${c.label} substituted for ${slicer.replace(/slicer$/, 'Slicer')}.`,
+            `Your preset uses "${c.value}" — not available in your slicer. Emitted "${mapped}" as the closest equivalent.`));
+        }
+      });
     }
 
     return warnings;
@@ -1182,11 +1304,27 @@ const Engine = (() => {
     const nozzleSize   = nozzle ? nozzle.size : 0.4;
     const isBeginnerMode = state.userLevel === 'beginner';
 
+    // Printer capability limits for this nozzle — drives value clamping below
+    // so emitted values never exceed what the printer's slicer actually accepts.
+    const limits = getPrinterLimits(printer, nozzleSize);
+
+    // Target slicer for this printer — drives pattern/generator substitution so
+    // Prusa users don't see "Cross Hatch" (Bambu-only) in their profile.
+    const slicer = getSlicerForPrinter(state.printer) || 'bambu_studio';
+
+    // Helper: make a displayable pattern name slicer-correct.
+    // _slicerCaps stores lowercase value sets; we preserve/capitalize for UI display.
+    const _capitalize = s => typeof s !== 'string' ? s
+      : s.split(/(\s|[_-])/).map(part => /^[a-z]/.test(part) ? part.charAt(0).toUpperCase() + part.slice(1) : part).join('');
+    const patternFor = (value, field) => _capitalize(mapForSlicer(value, field, slicer));
+
     const p = {};
 
     // ─── QUALITY TAB ──────────────────────────────────────────────────────────
     if (surface) {
-      p.layer_height = S(`${surface.layer_height} mm`,
+      // Clamp layer_height to printer max (e.g. 0.4mm nozzle → Bambu max 0.28)
+      const lh = limits ? _clampNum(surface.layer_height, limits.min_layer_height, limits.max_layer_height) : surface.layer_height;
+      p.layer_height = S(`${lh} mm`,
         surface.id === 'draft'   ? 'Thick layers reduce total layer count significantly. Ideal for prototypes where surface finish is secondary.' :
         surface.id === 'maximum' ? 'Finest layer height. Combined with ironing produces a near-smooth top surface.' :
         surface.id === 'fine'    ? 'Fine layers visibly reduce the staircase effect on curved and angled surfaces.' :
@@ -1200,25 +1338,40 @@ const Engine = (() => {
           : 'Classic produces consistent, predictable wall widths — better for structural parts.');
 
       // Seam position — explicit state.seam overrides surface default
+      // patternFor translates our UI-canonical forms (e.g. "Sharpest corner") to
+      // the target slicer's equivalent (e.g. Prusa uses "Rear" instead of "Back",
+      // all slicers use "Nearest" for what we call "Sharpest corner").
       const seamLabels = { aligned: 'Aligned', sharpest_corner: 'Sharpest corner', random: 'Random', back: 'Back' };
       if (state.seam && state.seam !== 'aligned') {
-        p.seam_position = S(seamLabels[state.seam] || state.seam,
+        p.seam_position = S(patternFor(seamLabels[state.seam] || state.seam, 'seam_position'),
           state.seam === 'sharpest_corner' ? 'Seam placed at the sharpest corner of each layer — hides it in geometry.' :
           state.seam === 'random'          ? 'Seam placed randomly each layer — spreads the mark across the surface instead of concentrating it.' :
           state.seam === 'back'            ? 'Seam placed at the back of the model — keeps the visible side clean.' : '');
       } else if (surface.seam_aligned) {
-        p.seam_position = S('Aligned (or Back)',
+        p.seam_position = S(patternFor('Aligned (or Back)', 'seam_position'),
           'At fine quality, the seam is more visible. Placing it consistently at one location makes it easy to hide or orient away from view.');
       }
 
-      p.initial_layer_height = A('0.20 mm',
-        'A slightly thicker initial layer improves bed adhesion by increasing squish and contact area, regardless of the chosen surface quality.');
+      // Initial layer height scales with nozzle so tiny nozzles (0.2mm, max layer ~0.14)
+      // don't emit an illegal 0.20 value that every slicer would reject on import, and
+      // large nozzles (0.6/0.8mm) get a first-layer thick enough to bond reliably.
+      // Then clamped against the printer's actual max_layer_height as a belt-and-suspenders.
+      let initLayerH = Math.max(0.12, Math.min(nozzleSize * 0.5, 0.32));
+      if (limits) initLayerH = _clampNum(initLayerH, limits.min_layer_height, limits.max_layer_height);
+      p.initial_layer_height = A(`${initLayerH.toFixed(2)} mm`,
+        'A slightly thicker initial layer improves bed adhesion. Scales with nozzle size — small nozzles use thinner first layers, large nozzles use thicker ones.');
 
-      const ow = (nozzleSize * 1.05).toFixed(2);
-      const iw = (nozzleSize * 1.10).toFixed(2);
-      p.outer_wall_line_width  = A(`${ow} mm`, 'Slightly wider than nozzle diameter — improves surface quality and wall strength with minimal speed penalty.');
-      p.inner_wall_line_width  = A(`${iw} mm`, 'Wider inner walls print faster while maintaining structural integrity.');
-      p.top_surface_line_width = A(`${ow} mm`, 'Matching the outer wall width gives a consistent, uniform top surface appearance.');
+      // Line widths: nozzle × 1.05/1.10, clamped against printer's max_line_width
+      // (protects users of 0.8mm+ nozzles whose printers may cap line width tighter).
+      let ow = nozzleSize * 1.05;
+      let iw = nozzleSize * 1.10;
+      if (limits) {
+        ow = _clampNum(ow, null, limits.max_line_width);
+        iw = _clampNum(iw, null, limits.max_line_width);
+      }
+      p.outer_wall_line_width  = A(`${ow.toFixed(2)} mm`, 'Slightly wider than nozzle diameter — improves surface quality and wall strength with minimal speed penalty.');
+      p.inner_wall_line_width  = A(`${iw.toFixed(2)} mm`, 'Wider inner walls print faster while maintaining structural integrity.');
+      p.top_surface_line_width = A(`${ow.toFixed(2)} mm`, 'Matching the outer wall width gives a consistent, uniform top surface appearance.');
 
       p.arc_fitting = A('Enabled',
         'Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features.');
@@ -1255,7 +1408,8 @@ const Engine = (() => {
             ? 'Minimum walls for structural integrity. Suitable for prototypes and non-load-bearing parts.'
             : 'Standard wall count — good balance of strength, weight, and print time.');
 
-      p.sparse_infill_pattern = S(strength.infill_pattern,
+      const infillPat = patternFor(strength.infill_pattern, 'sparse_infill_pattern');
+      p.sparse_infill_pattern = S(infillPat,
         strength.infill_pattern === 'Gyroid'
           ? 'Gyroid provides uniform strength in all three axes. The nozzle never crosses existing infill lines in the same layer, reducing pressure spikes.'
           : strength.infill_pattern === 'Grid'
@@ -1283,11 +1437,11 @@ const Engine = (() => {
 
       const isFineQuality = surface && (surface.id === 'fine' || surface.id === 'maximum');
       p.top_surface_pattern = A(
-        isFineQuality ? 'Monotonic line' : 'Monotonic',
+        patternFor(isFineQuality ? 'Monotonic line' : 'Monotonic', 'top_surface_pattern'),
         'Monotonic line produces the smoothest top surface — each line always starts where the previous ended, eliminating gaps and improving gloss.');
 
-      p.bottom_surface_pattern       = A('Monotonic', 'Monotonic bottom surface pattern ensures complete coverage on the first visible layers.');
-      p.internal_solid_infill_pattern = A('Auto (Rectilinear)', 'Rectilinear is the fastest pattern for solid infill. Auto selects the optimal angle per layer.');
+      p.bottom_surface_pattern       = A(patternFor('Monotonic', 'bottom_surface_pattern'), 'Monotonic bottom surface pattern ensures complete coverage on the first visible layers.');
+      p.internal_solid_infill_pattern = A(patternFor('Rectilinear', 'internal_solid_infill_pattern'), 'Rectilinear is the fastest pattern for solid infill — the slicer alternates line direction per layer automatically.');
 
       if (speedMode?.id === 'fast' || isPrototype) {
         p.infill_combination = A('Enabled',
@@ -1360,6 +1514,14 @@ const Engine = (() => {
       if (isBeginnerMode) {
         outerSpeed = Math.round(outerSpeed * 0.8);
         innerSpeed = Math.round(innerSpeed * 0.8);
+      }
+
+      // Final printer capability clamp — catches edge cases where the emitted
+      // speed exceeds what this specific printer's firmware accepts (e.g.
+      // Ender 3 V3 SE at max_speed=250 vs a default outer_bedslinger=100).
+      if (limits) {
+        outerSpeed = Math.round(_clampNum(outerSpeed, null, limits.max_outer_wall_speed));
+        innerSpeed = Math.round(_clampNum(innerSpeed, null, limits.max_inner_wall_speed));
       }
 
       p.outer_wall_speed = S(`${outerSpeed} mm/s`,
@@ -1450,7 +1612,7 @@ const Engine = (() => {
 
       p.support_interface_layers  = A(support.id === 'best_underside' ? '3' : '2',
         'Interface layers are solid layers between the support and model surface — more layers = better surface finish on the supported face, but harder to remove.');
-      p.support_interface_pattern = A(support.id === 'best_underside' ? 'Grid' : 'Rectilinear',
+      p.support_interface_pattern = A(patternFor(support.id === 'best_underside' ? 'Grid' : 'Rectilinear', 'support_interface_pattern'),
         'Grid interface provides stronger contact with the model surface. Rectilinear is easier to peel off after printing.');
     }
 
@@ -1516,11 +1678,43 @@ const Engine = (() => {
     // ─── RETRACTION & PRESSURE ADVANCE (from material data) ───────────────────
     const mbs = material.base_settings;
 
+    // Resolve effective extruder type — user override via state.extruder_type takes
+    // precedence, else fall back to the printer's built-in type (so MINI+ / other
+    // bowden-native printers automatically get bowden retraction without the user
+    // having to tick the optional filter).
+    const effectiveExtruder = state.extruder_type || printer.extruder_type || 'direct_drive';
+
+    // Retraction emission — nozzle-scaled (base value assumes 0.4mm direct-drive).
+    // Small nozzles need less retraction (less melt in the nozzle path); large nozzles
+    // need more. Scaling factor: sqrt(nozzleSize / 0.4), clamped to material.retraction_max.
+    // Bowden extruders multiply further (×1.5–3.5) on top. Final value is also clamped
+    // against retraction_max to keep flexibles safe.
+    const _scaleRetraction = (base) => {
+      if (base == null) return null;
+      const nzFactor = Math.sqrt(Math.max(0.2, nozzleSize) / 0.4);
+      let rd = Math.round(base * nzFactor * 10) / 10;
+      if (effectiveExtruder === 'bowden') {
+        const mult = material.flexible ? 1.5 : 3.5;
+        rd = Math.round(rd * mult * 10) / 10;
+      }
+      if (material.retraction_max != null) rd = Math.min(rd, material.retraction_max);
+      return rd;
+    };
+
     if (mbs.retraction_distance != null) {
-      p.retraction_distance = S(`${mbs.retraction_distance} mm`,
-        isTPU ? 'Very short retraction for flexible filament — longer retractions cause jams in the extruder.' :
-        mbs.retraction_distance >= 1.0 ? 'Longer retraction to prevent ooze with this high-temp material.' :
-        'Standard retraction distance for this material.');
+      const rd = _scaleRetraction(mbs.retraction_distance);
+      const isBowden = effectiveExtruder === 'bowden';
+      const isScaled = Math.abs(rd - mbs.retraction_distance) > 1e-6;
+      p.retraction_distance = S(`${rd} mm`,
+        isBowden
+          ? (material.flexible
+              ? `Bowden retraction for flexible filament — modest increase to avoid grinding. Scaled for ${nozzleSize}mm nozzle. Fine-tune based on tube length.`
+              : `Bowden retraction increased to compensate for the longer PTFE tube path. Scaled for ${nozzleSize}mm nozzle. Fine-tune based on tube length.`)
+          : (isTPU
+              ? 'Very short retraction for flexible filament — longer retractions cause jams in the extruder.'
+              : (isScaled
+                  ? `Retraction scaled for ${nozzleSize}mm nozzle (base ${mbs.retraction_distance}mm for 0.4mm) — small nozzles need less, large nozzles need more.`
+                  : (rd >= 1.0 ? 'Longer retraction to prevent ooze with this high-temp material.' : 'Standard retraction distance for this material.'))));
     }
 
     if (mbs.retraction_speed != null) {
@@ -1533,26 +1727,6 @@ const Engine = (() => {
     if (paVal != null) {
       p.pressure_advance = A(`${paVal}`,
         `Pressure advance (K-factor) calibrated for ${nozzleSize}mm nozzle. Fine-tune with a PA calibration test print.`);
-    }
-
-    // B3. Flexible retraction bounds — clamp retraction distance to retraction_max
-    if (material.flexible && material.retraction_max != null && mbs.retraction_distance != null) {
-      const rd = mbs.retraction_distance;
-      if (rd > material.retraction_max) {
-        p.retraction_distance = S(`${material.retraction_max} mm`,
-          `Retraction clamped to ${material.retraction_max} mm — longer retractions cause grinding and jams with flexible filament.`);
-      }
-    }
-
-    // C5. Bowden extruder retraction adjustment
-    if (state.extruder_type === 'bowden' && mbs.retraction_distance != null) {
-      const mult = material.flexible ? 1.5 : 3.5;
-      let bowdenRD = Math.round(mbs.retraction_distance * mult * 10) / 10;
-      if (material.retraction_max != null) bowdenRD = Math.min(bowdenRD, material.retraction_max);
-      p.retraction_distance = S(`${bowdenRD} mm`,
-        material.flexible
-          ? `Bowden retraction for flexible filament — modest increase (×${mult}) to avoid grinding. Fine-tune based on tube length.`
-          : `Bowden retraction increased (×${mult}) to compensate for the longer PTFE tube path. Fine-tune based on tube length.`);
     }
 
     // B1. Fan policy output — base fan speed recommendation from material data
@@ -1886,9 +2060,16 @@ const Engine = (() => {
         process[bsKey] = /enabled|1|true/i.test(String(raw)) ? '1' : '0';
         return;
       }
-      // Seam: normalize to BS values
+      // Seam: normalize to Bambu values. Accept both UI-form ("Sharpest corner")
+      // and pre-substituted slicer-form ("nearest") since patternFor() may have
+      // already translated the UI label to the target-slicer canonical form.
       if (engineKey === 'seam_position') {
-        const seamMap = { 'aligned': 'aligned', 'aligned (or back)': 'aligned', 'sharpest corner': 'nearest', 'random': 'random', 'back': 'back' };
+        const seamMap = {
+          'aligned': 'aligned', 'aligned (or back)': 'aligned',
+          'sharpest corner': 'nearest', 'nearest': 'nearest',
+          'random': 'random',
+          'back': 'back', 'rear': 'back',
+        };
         process[bsKey] = seamMap[String(raw).toLowerCase()] || 'aligned';
         return;
       }
@@ -1919,9 +2100,12 @@ const Engine = (() => {
         process[bsKey] = /tree hybrid/i.test(String(raw)) ? 'tree_hybrid' : 'default';
         return;
       }
-      // Support interface pattern: BS only uses "auto", "rectilinear", or "grid"
+      // Support interface pattern: Bambu's modern presets use 'rectilinear_interlaced'
+      // (grep of this repo's bambu configs shows that's the only value Bambu itself writes).
+      // Legacy 'rectilinear' is still accepted by the parser but saved presets always
+      // upgrade to the interlaced variant — match the vendor format for lossless import.
       if (engineKey === 'support_interface_pattern') {
-        const sipMap = { 'rectilinear': 'rectilinear', 'grid': 'grid', 'auto': 'auto' };
+        const sipMap = { 'rectilinear': 'rectilinear_interlaced', 'grid': 'grid', 'auto': 'auto' };
         process[bsKey] = sipMap[String(raw).toLowerCase()] || 'auto';
         return;
       }
