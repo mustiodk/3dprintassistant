@@ -294,7 +294,7 @@ The iOS app is the top priority. Everything below is ordered to get to a public 
 | # | Feature | Scope | Notes |
 |---|---------|-------|-------|
 | **v1.1 candidate** | Light mode / system appearance support (iOS — close the gap with web) | Large (~half day to full day) | **Web already has both** (`html[data-theme="light"]` since initial release + `☀` toggle in header). iOS is dark-only because `ColorTheme.swift` was hardcoded dark during MVP. Spec: (1) add `light` variants for all 10–15 `ColorTheme` tokens, (2) switch hardcoded `Color(hex:)` to environment-aware (`Color(light:dark:)` or asset catalog), (3) remove the 4 `.preferredColorScheme(.dark)` calls (ContentView, WarningsSheet, ChecklistSheet, FeedbackView), (4) sweep all screens for contrast + readability in light, (5) decide UX — system-follow (default) vs explicit toggle (would need a Settings screen). Test on iPhone + iPad in dynamic switching. |
-| ~~#039~~ | ~~Printer-capability clamping + slicer-aware values~~ | **✅ Shipped 2026-04-20** — web `2852cc2`, iOS `851143f` (full details in Completed phases). |
+| ~~#039~~ | ~~Printer-capability clamping + slicer-aware values~~ | **✅ Shipped 2026-04-20** — web `2852cc2` (live on 3dprintassistant.com), iOS `851143f` + version bump `433411f` (v1.0.1 pre-release train on TestFlight). Full details in Completed phases. |
 |---|---------|-------|-------|
 | #001 | AMS Purge Volume Calculator | Medium | Previously shipped on web, needs restore |
 | #026 | Smart Simple/Advanced Configurator Mode | Medium | Input-side simple/advanced split |

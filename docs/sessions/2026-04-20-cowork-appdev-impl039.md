@@ -126,3 +126,9 @@ Tested via preview-engine eval across 5 canonical combos + 4 edge cases:
 - **Rollback plan:** web is revertable by `git revert <sha>`. iOS rollback is App Store Connect "expire build" if a released build turns out broken (TestFlight only, not production).
 - **Test coverage:** engine-level tests via preview eval (9 combos passed); iOS build compiles; Bambu export byte-verified against vendor preset format.
 - **Known limitations documented above under "not done".**
+
+## Post-push outcome
+
+- **Web `2852cc2`** — pushed, Cloudflare deploy verified via curl (`engine.js` now exposes `getPrinterLimits`; `slicer_capabilities.json` serves at `/data/rules/slicer_capabilities.json`).
+- **iOS `851143f` (IMPL-039 sync) + `433411f` (v1.0.0 → v1.0.1 version bump)** — first push hit an App Store Connect upload validation error: *"Invalid Pre-Release Train. The train version '1.0.0' is closed for new build submissions."* Because v1.0.0 had already been released publicly, Apple closes the 1.0.0 pre-release train and requires a version bump for further TestFlight builds. Self-identified and self-fixed: updated `MARKETING_VERSION` in `project.yml` → 1.0.1, regenerated pbxproj, pushed. Second CI run completed successfully — TestFlight build uploaded and processing. No code changes required; this was purely a release-management gate.
+- **Final iOS commits on main:** `ad5c7da` (yesterday's drift reconciliation, pushed alongside today's commits) → `851143f` (IMPL-039) → `433411f` (v1.0.1 bump). User will see the TestFlight build in App Store Connect in the morning for review + Submit for Review when ready.
