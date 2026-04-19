@@ -137,9 +137,9 @@
         {
           "rank": 5,
           "title": "Layer height too tall for nozzle",
-          "detail": "Layers exceeding ~75% of nozzle diameter lack enough pressure to bond to the layer below.",
+          "detail": "Layers exceeding ~70% of nozzle diameter lack enough pressure to bond to the layer below.",
           "setting": "Layer height",
-          "fix": "Keep layer height at 25–75% of nozzle diameter. 0.4mm nozzle → max 0.30mm layers.",
+          "fix": "Keep layer height at 25–70% of nozzle diameter. 0.4mm nozzle → max 0.28mm layers.",
           "materials": null
         }
       ]

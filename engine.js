@@ -1128,15 +1128,17 @@ const Engine = (() => {
         `This material is moisture-sensitive — if you haven't dried it recently, print quality may suffer.${dryInfo}`));
     }
 
-    // C3. Layer height constraint — layer height > 75% of nozzle diameter
+    // C3. Layer height constraint — layer height > 70% of nozzle diameter
+    // Matches Bambu Studio's printer-level ceiling (max_layer_height = 0.28 for
+    // 0.4mm nozzle, 0.42 for 0.6mm, etc). Prusa/Orca accept the same range.
     if (nozzle && state.surface) {
       const surface = getSurface(state.surface);
       if (surface) {
-        const maxLayer = nozzle.size * 0.75;
-        if (surface.layer_height > maxLayer) {
+        const maxLayer = nozzle.size * 0.70;
+        if (surface.layer_height > maxLayer + 1e-6) {
           warnings.push(w('layer_height_exceeded',
             `Layer height too tall for ${nozzle.name}.`,
-            `${surface.layer_height} mm exceeds 75% of nozzle diameter (${maxLayer.toFixed(2)} mm). This causes poor layer adhesion and extrusion issues. Select a finer surface quality or larger nozzle.`));
+            `${surface.layer_height} mm exceeds 70% of nozzle diameter (${maxLayer.toFixed(2)} mm). This causes poor layer adhesion and extrusion issues. Select a finer surface quality or larger nozzle.`));
         }
       }
     }

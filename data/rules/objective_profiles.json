@@ -3,8 +3,8 @@
     {
       "id": "draft",
       "name": "Draft",
-      "desc": "0.30mm layers — fast prints, visible layer lines. Good for prototypes.",
-      "layer_height": 0.30,
+      "desc": "0.28mm layers — fast prints, visible layer lines. Good for prototypes.",
+      "layer_height": 0.28,
       "ironing": false,
       "wall_generator": "Classic",
       "seam_aligned": false
