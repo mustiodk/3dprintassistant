@@ -1,9 +1,12 @@
 {
+  "_meta": {
+    "desc_convention": "Desc strings are qualitative only — never contain numbers that depend on state (nozzle, printer, material). Numeric prefixes are generated at render time by engine.getFilters(state) from the numeric fields below, so UI always reflects the value that resolveProfile(state) will actually emit. See IMPL-040 in docs/specs."
+  },
   "surface_quality": [
     {
       "id": "draft",
       "name": "Draft",
-      "desc": "0.28mm layers — fast prints, visible layer lines. Good for prototypes.",
+      "desc": "Fast prints, visible layer lines. Good for prototypes.",
       "layer_height": 0.28,
       "ironing": false,
       "wall_generator": "Classic",
@@ -12,7 +15,7 @@
     {
       "id": "standard",
       "name": "Standard",
-      "desc": "0.20mm layers — balanced speed and quality for everyday prints.",
+      "desc": "Balanced speed and quality for everyday prints.",
       "layer_height": 0.20,
       "ironing": false,
       "wall_generator": "Classic",
@@ -21,7 +24,7 @@
     {
       "id": "fine",
       "name": "Fine",
-      "desc": "0.15mm layers — smooth surfaces, noticeably slower.",
+      "desc": "Smooth surfaces, noticeably slower.",
       "layer_height": 0.15,
       "ironing": false,
       "wall_generator": "Arachne",
@@ -30,7 +33,7 @@
     {
       "id": "very_fine",
       "name": "Very Fine",
-      "desc": "0.12mm layers — extremely fine detail for display pieces.",
+      "desc": "Extremely fine detail for display pieces.",
       "layer_height": 0.12,
       "ironing": false,
       "wall_generator": "Arachne",
@@ -39,7 +42,7 @@
     {
       "id": "ultra",
       "name": "Ultra",
-      "desc": "0.08mm layers — maximum resolution, very slow. Miniatures and precision parts.",
+      "desc": "Maximum resolution, very slow. Miniatures and precision parts.",
       "layer_height": 0.08,
       "ironing": false,
       "wall_generator": "Arachne",
@@ -48,7 +51,7 @@
     {
       "id": "maximum",
       "name": "Maximum",
-      "desc": "0.12mm + ironing — near-invisible layers with glossy top surface.",
+      "desc": "Ironing enabled for a near-invisible, glossy top surface.",
       "layer_height": 0.12,
       "ironing": true,
       "wall_generator": "Arachne",
@@ -59,7 +62,7 @@
     {
       "id": "minimal",
       "name": "Minimal",
-      "desc": "2 walls · 8% — lightweight, fast, not load-bearing.",
+      "desc": "Lightweight, fast, not load-bearing.",
       "wall_loops": 2,
       "infill_density": 8,
       "infill_pattern": "Cross Hatch",
@@ -70,7 +73,7 @@
     {
       "id": "standard",
       "name": "Standard",
-      "desc": "3 walls · 15% — good for most prints.",
+      "desc": "Good for most prints.",
       "wall_loops": 3,
       "infill_density": 15,
       "infill_pattern": "Grid",
@@ -81,7 +84,7 @@
     {
       "id": "strong",
       "name": "Strong",
-      "desc": "4 walls · 35% Gyroid — handles moderate loads and stress.",
+      "desc": "Handles moderate loads and stress.",
       "wall_loops": 4,
       "infill_density": 35,
       "infill_pattern": "Gyroid",
@@ -92,7 +95,7 @@
     {
       "id": "maximum",
       "name": "Maximum",
-      "desc": "6 walls · 60% — maximum durability, heavy and slow.",
+      "desc": "Maximum durability, heavy and slow.",
       "wall_loops": 6,
       "infill_density": 60,
       "infill_pattern": "Gyroid",

@@ -510,13 +510,15 @@ function handlePrinterSearch(query) {
   resultsWrap.classList.add('open');
 }
 
-// ── Build filter sections from Engine.FILTERS ─────────────────────────────────
+// ── Build filter sections from Engine.getFilters(state) ──────────────────────
+// Pass state in so state-dependent chip descs (e.g. Draft layer height for the
+// current nozzle) always reflect what resolveProfile() will actually emit.
 function buildFilters() {
   const filtersContainer = document.getElementById('filtersContainer');
   filtersContainer.innerHTML = '';
   const isMobile = window.innerWidth <= 768;
 
-  Engine.FILTERS.forEach(filter => {
+  Engine.getFilters(state).forEach(filter => {
     // ── Printer filter gets a custom picker UI ──────────────────────────────
     if (filter.key === 'printer') {
       buildPrinterPicker(filtersContainer, filter);
@@ -611,7 +613,7 @@ function buildFilters() {
 
 // ── Restore chip selections from state after rebuilding filters ───────────────
 function restoreChipSelections() {
-  Engine.FILTERS.forEach(filter => {
+  Engine.getFilters(state).forEach(filter => {
     const val      = state[filter.key];
     const selected = Array.isArray(val) ? val : (val ? [val] : []);
     document.querySelectorAll(`#chips_${filter.key} .chip`).forEach(chip => {
@@ -622,7 +624,7 @@ function restoreChipSelections() {
 
 // ── Update selected-count badge on collapsed filter labels ───────────────────
 function updateCollapseBadges() {
-  Engine.FILTERS.forEach(filter => {
+  Engine.getFilters(state).forEach(filter => {
     const labelEl = document.querySelector(`#chips_${filter.key}`)
       ?.closest('.filter-section')
       ?.querySelector('.filter-section-label');
@@ -630,6 +632,25 @@ function updateCollapseBadges() {
     const val = state[filter.key];
     const count = Array.isArray(val) ? val.length : (val ? 1 : 0);
     labelEl.dataset.count = count > 0 ? String(count) : '';
+  });
+}
+
+// ── Refresh state-dependent chip descs in place (IMPL-040) ───────────────────
+// Chip descs for surface/strength/support now contain numbers computed from
+// current state (e.g. Draft layer height clamped for the selected nozzle).
+// Rather than rebuild the entire DOM on every nozzle change, we patch just
+// the `.chip-desc` text so selection state + focus are preserved.
+function updateDynamicChipDescs() {
+  Engine.getFilters(state).forEach(filter => {
+    if (!['surface', 'strength', 'support'].includes(filter.key)) return;
+    const chipsEl = document.getElementById(`chips_${filter.key}`);
+    if (!chipsEl) return;
+    filter.items.forEach(item => {
+      const chip = chipsEl.querySelector(`.chip[data-value="${item.id}"]`);
+      if (!chip) return;
+      const descEl = chip.querySelector('.chip-desc');
+      if (descEl && item.desc) descEl.textContent = item.desc;
+    });
   });
 }
 
@@ -905,6 +926,7 @@ function handleChipClick(container, clicked, key, value, isMulti) {
 // ── Main render ───────────────────────────────────────────────────────────────
 function render() {
   updateCollapseBadges();
+  updateDynamicChipDescs();
   renderPrinterSummary();
   updateNozzleChips();
   // Update panel sub-titles based on active slicer
