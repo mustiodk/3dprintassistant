@@ -866,9 +866,10 @@ const Engine = (() => {
 
   // ── Advanced filament settings ────────────────────────────────────────────────
   function getAdvancedFilamentSettings(state) {
-    const mat    = getMaterial(state.material);
-    const env    = getEnv(state.environment);
-    const nozzle = getNozzle(state.nozzle);
+    const mat     = getMaterial(state.material);
+    const env     = getEnv(state.environment);
+    const nozzle  = getNozzle(state.nozzle);
+    const printer = getPrinter(state.printer);
     if (!mat) return null;
 
     const bs           = mat.base_settings;
@@ -878,8 +879,18 @@ const Engine = (() => {
 
     const initNozzle  = bs.nozzle_temp_base + nozzleAdj + (bs.initial_layer_nozzle_offset || 5);
     const otherNozzle = bs.nozzle_temp_base + nozzleAdj;
-    const initBed     = bs.bed_temp_base + bedAdj + (bs.initial_layer_bed_offset || 0) + (isPETG ? 5 : 0);
-    const otherBed    = bs.bed_temp_base + bedAdj;
+    let   initBed     = bs.bed_temp_base + bedAdj + (bs.initial_layer_bed_offset || 0) + (isPETG ? 5 : 0);
+    let   otherBed    = bs.bed_temp_base + bedAdj;
+
+    // Clamp bed targets to min(material.bed_temp_max, printer.max_bed_temp). A
+    // bed that can't reach the target silently produces warped or failed prints.
+    // See [CRITICAL-002]. Warnings are emitted from getWarnings (same invariant
+    // as _clampNum — clamp here, warn there).
+    const bedCap = printer && printer.max_bed_temp != null
+      ? Math.min(bs.bed_temp_max, printer.max_bed_temp)
+      : bs.bed_temp_max;
+    initBed  = Math.min(initBed,  bedCap);
+    otherBed = Math.min(otherBed, bedCap);
 
     return {
       initial_layer_temp:     `${initNozzle} °C`,
@@ -1147,6 +1158,34 @@ const Engine = (() => {
       warnings.push(w('printer_max_nozzle_temp',
         `${printer.name} max nozzle temp is ${printer.max_nozzle_temp}°C.`,
         `${material.name} requires ${material.base_settings.nozzle_temp_base}°C minimum. An all-metal hot end upgrade is required.`));
+    }
+
+    // 14b. Printer max bed temp vs material requirements — symmetric twin of #14.
+    // Soft clamp: emitted bed target gets capped by getAdvancedFilamentSettings.
+    // Hard incompat: printer can't even reach the material's safe minimum bed.
+    // See [CRITICAL-002].
+    if (printer && printer.max_bed_temp != null && material.base_settings) {
+      const bs          = material.base_settings;
+      const bedAdj      = env ? (env.bed_adj || 0) : 0;
+      const isPETG      = material.group === 'PETG';
+      const initTarget  = bs.bed_temp_base + bedAdj + (bs.initial_layer_bed_offset || 0) + (isPETG ? 5 : 0);
+      const otherTarget = bs.bed_temp_base + bedAdj;
+      const highestTarget = Math.max(initTarget, otherTarget);
+
+      if (printer.max_bed_temp < bs.bed_temp_min) {
+        warnings.push(w('printer_bed_temp_incompatible',
+          `${printer.name} cannot reach ${material.name}'s minimum bed temperature.`,
+          `${printer.name} bed maxes at ${printer.max_bed_temp}°C, but ${material.name} requires at least ${bs.bed_temp_min}°C. This combination will not produce a usable print — choose a different material or printer.`));
+      } else if (highestTarget > printer.max_bed_temp) {
+        const initClamped  = initTarget  > printer.max_bed_temp;
+        const otherClamped = otherTarget > printer.max_bed_temp;
+        const targetNote = initClamped && !otherClamped
+          ? `${bs.bed_temp_base}°C nominal (${initTarget}°C on the initial layer)`
+          : `${bs.bed_temp_base}°C nominal`;
+        warnings.push(w('printer_max_bed_temp_clamped',
+          `${printer.name} bed temperature capped at ${printer.max_bed_temp}°C.`,
+          `${material.name} typically prints best at ${targetNote}. Your printer's bed maxes at ${printer.max_bed_temp}°C, so the emitted profile clamps the bed target. Prints may warp or fail layer adhesion — consider switching to a material with a lower bed requirement.`));
+      }
     }
 
     // 15. PA / PC + active chamber heating tip

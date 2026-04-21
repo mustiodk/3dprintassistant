@@ -42,7 +42,7 @@ Each actionable item links to its finding in the review. One finding = one commi
 Target: 1–2 half-days of focused work.
 
 **Correctness / domain (all surfaced by Phase 1 walkthrough):**
-- [ ] **[CRITICAL-002]** Clamp `initial_layer_bed_temp` + `other_layers_bed_temp` to `min(material.bed_temp_max, printer.max_bed_temp)`. Add structured `printer_max_bed_temp_clamped` warning with printer-specific text. Escalate to hard-incompatibility warning if `printer.max_bed_temp < material.bed_temp_min`. Regression test via the walkthrough harness. `[Web+iOS]`
+- [x] **[CRITICAL-002]** Clamp `initial_layer_bed_temp` + `other_layers_bed_temp` to `min(material.bed_temp_max, printer.max_bed_temp)`. Structured `printer_max_bed_temp_clamped` warning with printer-specific text + hard-incompat `printer_bed_temp_incompatible` when `printer.max_bed_temp < material.bed_temp_min`. Combos 6 + 10 flipped ❌→✓ on walkthrough harness. New XCTest `testBedTempClampedWhenPrinterBedTooLow` (21/21 EngineServiceTests pass, 35/35 total). Shipped 2026-04-21. `[Web+iOS]`
 - [ ] **[CRITICAL-003]** Validate `state.surface` / `state.strength` / `state.speed` against valid preset IDs in `resolveProfile`. Unknown → coerce to default + warn `invalid_preset`. Matching assertion in iOS tests. `[Web+iOS]`
 - [ ] **[HIGH-012]** Fix "A1/A1 Mini have a 10,000 mm/s² acceleration limit…" why-text on `outer_wall_speed` — currently fires for every bedslinger with `max_accel ≤ 10000` (MK4, MK4S, Ender-3 V3, Kobra, Mini+, etc.). Template against `printer.name` + `printer.max_acceleration`. `[Web+iOS]`
 - [ ] **[HIGH-014]** Owner: verify A1 mini real `max_bed_temp` vs Bambu spec page (data says 100, Bambu says 80). If 80, update `data/printers.json`. `[You]`
