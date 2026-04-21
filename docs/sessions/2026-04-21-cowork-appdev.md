@@ -1,5 +1,15 @@
 # 2026-04-21 — Cowork (appdev): IR-0 [CRITICAL-002] bed-temp clamp
 
+## Durable context
+
+What a future session needs to know that ROADMAP doesn't capture:
+
+- **Engine bed-temp clamp pattern (decision)**: clamping happens in `getAdvancedFilamentSettings`; warning emission happens in `getWarnings`. The two functions re-compute the same `initTarget / otherTarget / highestTarget` expression (~3 duplicated lines). This was deliberate, not missed — matches the existing `_clampNum` contract that keeps `getWarnings` pure of state and lets `resolveProfile` / `getAdvancedFilamentSettings` remain pure of each other. If a future session wants to DRY this up, they'll need to break the invariant or introduce an output-carrying helper. Don't "refactor" the duplication without reading this first.
+- **Hard-incompat warning ID (decision)**: `printer_bed_temp_incompatible` is a separate ID from `enclosure_required`, not a reuse. Review language said "same severity class" — I read that as styling, not identity. If analytics / UI / filters ever want to treat them as one class, group by a `severity: 'incompat'` tag rather than by ID.
+- **iOS test strategy for `getAdvancedFilamentSettings` (alternative considered)**: the existing bridge does not expose `getAdvancedFilamentSettings`. The new `testBedTempClampedWhenPrinterBedTooLow` asserts via `getWarnings` (warning text contains the cap value). If MEDIUM-011 expands to cover 5–10 combos with hardcoded clamped values, add a minimal `getAdvancedFilamentSettings` bridge to `EngineService.swift` rather than parsing warning text.
+- **Working-tree was dirty before this session**: the repo had accumulated unrelated drift (stubs, untracked specs, personal artefacts). Cleanup pass was split into two tracks — `[CRITICAL-002]` landed clean via surgical staging; the broader doc-hygiene work is tracked separately and partially completed in the same session (BACKLOG.md retired, IMPL-036 promoted, Legacy ID index added to ROADMAP). Remaining drift flagged in this log's "Follow-up" section below.
+- **GitHub PAT leak (infrastructure note)**: the `claude-projects` (Projects root) repo has a GitHub personal access token embedded in its `git remote` URL — visible via `git remote -v`. Rotate + reconfigure to use `gh auth` or a credential helper. Not a committed-content leak, but a filesystem-readable one.
+
 ## Context
 
 First triage session post-consolidation (see [2026-04-21-cowork-appdev-consolidation.md](2026-04-21-cowork-appdev-consolidation.md)). Goal: walk IR-0 ship-blockers in CRITICAL → HIGH order, one finding = one commit. First item: **[CRITICAL-002]** bed-temperature clamp + printer-specific warning.
