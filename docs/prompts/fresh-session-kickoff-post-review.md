@@ -1,66 +1,85 @@
-# Fresh session kickoff — post 3rd-party review
+# Fresh session kickoff — post-internal-review
 
-Paste this as the first message of a new Cowork session after the 3rd-party review has been dispatched (or returned).
+Paste this as the first message of a new Cowork session. Internal review + Phase 1 domain walkthrough are done (2026-04-20). External 3rd-party review is still out.
 
 ---
 
 ## Context for this session
 
-A complete 3rd-party code & data review starter kit was prepared on 2026-04-20 and lives in:
+State as of 2026-04-21:
 
-**`/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/3rd-party-review/`**
-
-Reviewed revisions were:
-- Web: `c4c5071` (IMPL-040 shipped, live on 3dprintassistant.com)
-- iOS: `24aef66` (IMPL-040 sync + CI-enforced parity guards, TestFlight build `202604200952`)
+- **Web app** live at [3dprintassistant.com](https://3dprintassistant.com) — commit `c4c5071` (IMPL-040 shipped).
+- **iOS app** live on the App Store in ~121 non-EU countries — commit `24aef66`, v1.0.1 build `202604200952` on TestFlight. EU distribution still blocked on DSA Trader Status verification.
+- **Internal review** completed 2026-04-20 via `/code-reviewer`. Full deliverable at [`docs/reviews/2026-04-20-internal/`](../reviews/2026-04-20-internal/) (9 files). **59 findings: 3 CRITICAL / 14 HIGH / 22 MEDIUM / 10 LOW / 10 OBS.**
+- **Phase 1 domain walkthrough** ran 10 real combos through the live engine and surfaced 2 additional CRITICAL + 3 HIGH findings (already merged into the review deliverable). Harness at [`scripts/walkthrough-harness.js`](../../scripts/walkthrough-harness.js), raw output at [`docs/reviews/2026-04-20-internal/domain-walkthrough.md`](../reviews/2026-04-20-internal/domain-walkthrough.md).
+- **External 3rd-party review** is still out. Starter kit at [`docs/3rd-party-review/`](../3rd-party-review/). When findings return, merge into [`ROADMAP.md`](../planning/ROADMAP.md) IR-0.
+- **Export** is disabled (engine + iOS UI) pending [IMPL-036] rewrite. Export-path findings are deferred (see IR-deferred in ROADMAP).
 
 ## Before doing anything this session
 
 Read, in order:
 
-1. `/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md` — my standing rules, memory hot cache, shorthand glossary, and most-recent project status summary.
-2. `3dprintassistant/docs/planning/ROADMAP.md` — the single source of truth for all planning. Check the "Last updated" line first; that tells you what the most recent state is.
-3. The most recent file in `3dprintassistant/docs/sessions/` (latest `YYYY-MM-DD-cowork-*.md`). This tells you what the last session actually did, which often disagrees with what the ROADMAP claimed.
-4. `3dprintassistant/docs/3rd-party-review/README.md` + `REVIEW-BRIEF.md` — the review scope + deliverable format we sent out.
-5. If the review has come back: read the reviewer's `00-executive-summary.md` first, then scan the CRITICAL + HIGH findings before the MEDIUM / LOW ones.
+1. [`/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md`](../../../CLAUDE.md) — standing rules, memory hot cache, shorthand glossary, most-recent project status.
+2. [`3dprintassistant/docs/planning/ROADMAP.md`](../planning/ROADMAP.md) — single source of truth for all planning. Check the "Last updated" line first. The **IR-\*** section (near the top) is the current priority queue.
+3. The most recent file in [`3dprintassistant/docs/sessions/`](../sessions/) (latest `YYYY-MM-DD-cowork-*.md`). Tells you what the last session actually did.
+4. [`3dprintassistant/docs/3rd-party-review/README.md`](../3rd-party-review/README.md) + [`REVIEW-BRIEF.md`](../3rd-party-review/REVIEW-BRIEF.md) — external review scope + deliverable format.
+5. If the external review has returned: the reviewer's `00-executive-summary.md`, then CRITICAL + HIGH findings.
 
-## How to pick what to work on
+## Default behavior if I don't give a brief
 
-### If the review is still out
-Default to small, additive work that doesn't touch the architecture the reviewer is evaluating. Good candidates, ordered by value:
-- Write a new material to `data/materials.json` (requests tracked in Discord `#web-app-feedback`, `#ios-app-feedback`, and `#feature-requests`).
-- Add a new printer to `data/printers.json` similarly.
-- macOS companion app (#037 in ROADMAP — spec already locked at Path 3 / SwiftUI + WKWebView with bundled offline assets). The kickoff prompt lives at `docs/prompts/macos-app-kickoff.md`.
-- Wait for EU DSA Trader Status verification (nothing to do until Apple responds).
+### If the external 3rd-party review is still out (current state)
 
-Do **not** rewrite `engine.js`, `getFilters`, `resolveProfile`, or any of the IMPL-039/040 machinery while the review is out. Those are the things the reviewer is looking at; changing them mid-review would waste their time.
+Start triaging **IR-0** in ROADMAP.md — CRITICAL → HIGH order, one finding per commit, sign-off per fix. **Do not batch.**
 
-### If the review has come back
-1. Create a new session log at `docs/sessions/YYYY-MM-DD-cowork-appdev.md` noting the review arrived + your initial triage pass.
-2. Walk the reviewer's findings in this order:
-   - CRITICAL (fix before touching anything else — these block a release)
-   - HIGH (schedule for this week)
-   - MEDIUM + LOW (triage into ROADMAP backlog)
-   - OBSERVATIONS (update ROADMAP if a pattern emerges; otherwise record + move on)
-3. For each actionable finding, propose a fix in plain English first. Get my sign-off before implementing. Reviewer opinions are valuable but not always right — I want to validate each one individually.
-4. Update [CLAUDE.md](CLAUDE.md) if the review surfaced a new "Critical Rule" class concern (like IMPL-040 did).
-5. Don't batch multiple reviewer findings into one commit. One finding = one commit = one push, so each is independently revertable.
+IR-0 queue (full list in ROADMAP, short form here):
+
+1. **[CRITICAL-002]** Bed-temp clamp to `printer.max_bed_temp` + warning. `[Web+iOS]`
+2. **[CRITICAL-003]** Validate preset IDs in `resolveProfile`; warn on unknown. `[Web+iOS]`
+3. **[CRITICAL-001]** Route iOS feedback through `/api/feedback` Worker. `[iOS+Worker]` (ship as v1.0.2)
+4. **[HIGH-012]** Fix wrong-printer "A1/A1 Mini" why-text for non-A1 bedslingers. `[Web+iOS]`
+5. **[HIGH-014]** Verify A1 mini real `max_bed_temp` — data says 100, Bambu says 80. `[You]`
+6. **[HIGH-010]** Rate-limit + sanitise `/api/feedback`. `[Worker]`
+7. **[HIGH-002]** Tighten IMPL-040 parity test (exact-count + no silent skips). `[iOS]`
+8. **[LOW-001]** Rotate Sentry DSN. `[iOS]` (10 min)
+9. **[MEDIUM-015/016]** Slicer capabilities: add lightning to Prusa, adaptivecubic to Bambu+Orca. `[Web+iOS]`
+10. **[LOW-002]** Rewrite HIPS enclosure reason (ABS copy-paste). `[You]` text, `[Code]` apply.
+
+Propose the fix plan in plain English first — get sign-off before implementing.
+
+### If the external 3rd-party review has returned
+
+1. Create session log at `docs/sessions/YYYY-MM-DD-cowork-appdev.md` noting review arrived + initial triage pass.
+2. Merge external findings into [`ROADMAP.md`](../planning/ROADMAP.md) IR-0 (or new IR-6). Cross-reference against existing 59 findings — de-dupe.
+3. Walk findings in CRITICAL → HIGH → MEDIUM → LOW → OBSERVATION order. **One finding = one commit. Get sign-off per fix. Do not batch.**
+4. Trust the external reviewer on domain-correctness findings (if they print regularly and say "this is wrong", believe them over any formula).
+5. Update `CLAUDE.md` if a new "Critical Rule" class concern emerges.
+
+### If I want something non-architecture instead
+
+Good candidates (do not touch `engine.js` / IMPL-039 / IMPL-040 while external review is out):
+- Add a material to `data/materials.json` (requests in Discord `#web-app-feedback`, `#ios-app-feedback`, `#feature-requests`).
+- Add a printer to `data/printers.json` (same sources).
+- macOS companion app (#037 in ROADMAP — spec locked at SwiftUI + WKWebView with bundled offline assets). Kickoff prompt: [`macos-app-kickoff.md`](macos-app-kickoff.md).
 
 ## Workflow rules (standing — do not drift)
 
-- **Progress bar on every multi-step task.** Format: `[🟩🟩🟩🟩⬜⬜⬜⬜⬜⬜ 40%] Step description`. User wants this always visible in Cowork sessions.
-- **ROADMAP is truth.** Read it before reporting any status. Claude Code updates it directly; it's always more current than my memory.
-- **Quality over speed.** MVP phase is over. Web + iOS are both live.
-- **Right thing, not easy thing.** We're live now — no band-aid fixes. Full correct solution across web + iOS always. Do not narrow scope to "the minimal diff" — the rule is in `memory/feedback_right_thing_not_easy_thing.md`.
-- **Session logs.** Every Cowork session ends with a log at `docs/sessions/YYYY-MM-DD-cowork-{type}.md` (e.g. `appdev`, `uiux`, `review-response`).
+- **Progress bar on every multi-step task.** Format: `[🟩🟩🟩🟩⬜⬜⬜⬜⬜⬜ 40%] Step description`. Always visible in Cowork.
+- **ROADMAP is truth.** Read [`ROADMAP.md`](../planning/ROADMAP.md) before reporting status. Claude Code updates it directly — always more current than memory.
+- **No doc sprawl.** Don't create standalone `PLAN.md` / `FINDINGS.md` / `NOTES.md` files. Merge into ROADMAP (planning) or existing review deliverable files (findings). The only exception is machine-generated output (e.g. `domain-walkthrough.md` — regeneratable by a script).
+- **Right thing, not easy thing.** Web + iOS are live. No band-aid fixes. Full correct solution across both platforms every time. Rule documented in `memory/feedback_right_thing_not_easy_thing.md`.
+- **Quality over speed.** MVP phase is over.
+- **One finding = one commit.** Don't batch review findings. Each should be independently revertable.
+- **Session log.** End every Cowork session with a log at `docs/sessions/YYYY-MM-DD-cowork-{type}.md` (`appdev`, `uiux`, `review-response`).
 - **Don't push to iOS `main` without explicit sign-off.** It triggers TestFlight.
 
 ## What I want out of this session
 
-(Fill this in when you start the session. Examples below — replace with your actual ask.)
+(Fill in when you start the session — examples below, replace with your ask.)
 
-- [ ] "Triage the review findings."
-- [ ] "Add Material XYZ."
+- [ ] "Start IR-0 triage — first item."
+- [ ] "Work on [specific finding code]."
+- [ ] "External review returned — walk the findings."
+- [ ] "Add material/printer XYZ."
 - [ ] "Start macOS app scaffolding."
 - [ ] "Something else entirely."
 
@@ -74,10 +93,14 @@ Do **not** rewrite `engine.js`, `getFilters`, `resolveProfile`, or any of the IM
 | iOS repo | https://github.com/mustiodk/3dprintassistant-ios |
 | Web live URL | https://3dprintassistant.com |
 | iOS App Store link | https://apps.apple.com/app/3d-print-assistant/id6761634761 |
-| iOS current version | 1.0.1 (build 202604200952 — in TestFlight as of 2026-04-20) |
+| iOS current version | 1.0.1 (build 202604200952, TestFlight as of 2026-04-20) |
 | EU distribution | Blocked on DSA Trader Status verification (submitted 2026-04-16) |
-| Discord server | Private. Inbox channels: `#ios-app-feedback`, `#web-app-feedback` |
+| Discord server | Private. Inbox channels: `#ios-app-feedback`, `#web-app-feedback`, `#3dpa-ios-feedback`, `#feature-requests` |
 | Primary dev | Musti (solo, Copenhagen, mustiodk@gmail.com) |
-| Review starter kit | `docs/3rd-party-review/` — 5 docs + references |
+| Reviewed commits | web `c4c5071`, iOS `24aef66` |
+| Internal review deliverable | [`docs/reviews/2026-04-20-internal/`](../reviews/2026-04-20-internal/) |
+| Walkthrough harness | [`scripts/walkthrough-harness.js`](../../scripts/walkthrough-harness.js) |
+| External review kit | [`docs/3rd-party-review/`](../3rd-party-review/) |
+| Findings tally | 3 CRITICAL / 14 HIGH / 22 MEDIUM / 10 LOW / 10 OBS (59 total, 2026-04-20) |
 
 Ready.

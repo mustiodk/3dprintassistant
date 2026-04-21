@@ -2,7 +2,7 @@
 
 **Single source of truth for all planning.** Replaces IMPLEMENTATION_PLAN.md, TASKS.md, and web BACKLOG.md.
 
-**Last updated:** 2026-04-20 — **IMPL-039 + IMPL-040 shipped + 3rd-party code review dispatched.** Full review package at `docs/3rd-party-review/` (5 docs + reference index). Reviewed revisions: web `c4c5071`, iOS `24aef66`. Pending review turnaround — default to non-architecture work until findings return.
+**Last updated:** 2026-04-21 — **Internal review completed + Phase 1 domain walkthrough.** External review kit still out for third-party feedback. Full internal deliverable at [`docs/reviews/2026-04-20-internal/`](../reviews/2026-04-20-internal/) — **59 findings: 3 CRITICAL / 14 HIGH / 22 MEDIUM / 10 LOW / 10 OBS.** The IR-* section below supersedes the previous "default to non-architecture work" guidance — there is now a prioritised action list. Reviewed revisions: web `c4c5071`, iOS `24aef66`.
 
 **Earlier status:** **IMPL-039 shipped.** Full printer-capability clamping + slicer-aware values refactor landed on web + iOS in one pass. Engine helpers (`getPrinterLimits`, `_clampNum`, `mapForSlicer`, `patternFor`) plus new `data/rules/slicer_capabilities.json` replace every scattered `Math.min` and hardcoded pattern name. 2 HIGH bugs fixed (`support_interface_pattern` now emits Bambu's canonical `rectilinear_interlaced`; `initial_layer_height` scales with nozzle so 0.2mm setups don't emit illegal 0.20mm). Retraction now nozzle-scaled and auto-bowden for MINI+/other bowden printers. 32/32 iOS tests pass. Bambu export byte-matches vendor preset format across all 5 canonical combos. iOS EU distribution still blocked on DSA Trader Status verification.
 **Owner:** Musti (solo dev)
@@ -23,9 +23,139 @@
 
 ---
 
-## Current priority: iOS App Store release
+## Current priority: Internal review follow-up (Phase 0 / IR-0)
 
-The iOS app is the top priority. Everything below is ordered to get to a public release as fast as possible without cutting corners on quality. The ChatGPT code/release review identified 21 items grouped into three tiers. These are merged below with the existing phase plan.
+The iOS App Store release is behind us (shipped 2026-04-16, live in ~121 countries). Current priority is the ship-blocker items surfaced by the 2026-04-20 internal review + Phase 1 domain walkthrough. IR-0 ships this week; IR-2–IR-4 over the following weeks. External 3rd-party review is still out.
+
+---
+
+## Internal review follow-up (IR-*)
+
+Internal review via `/code-reviewer` completed 2026-04-20 against web `c4c5071`, iOS `24aef66`. Deliverable at [`docs/reviews/2026-04-20-internal/`](../reviews/2026-04-20-internal/) (9 files). Phase 1 domain walkthrough (10 real combos through the live engine) ran 2026-04-20; harness at [`scripts/walkthrough-harness.js`](../../scripts/walkthrough-harness.js), raw output at [`docs/reviews/2026-04-20-internal/domain-walkthrough.md`](../reviews/2026-04-20-internal/domain-walkthrough.md).
+
+**Export-path work is dropped from IR scope** per owner decision — export UI is currently disabled; revisit before re-enabling. Findings tagged with `(export)` below are deferred.
+
+Each actionable item links to its finding in the review. One finding = one commit. Don't batch.
+
+### IR-0 — Ship this week (ship-blockers + free wins)
+
+Target: 1–2 half-days of focused work.
+
+**Correctness / domain (all surfaced by Phase 1 walkthrough):**
+- [ ] **[CRITICAL-002]** Clamp `initial_layer_bed_temp` + `other_layers_bed_temp` to `min(material.bed_temp_max, printer.max_bed_temp)`. Add structured `printer_max_bed_temp_clamped` warning with printer-specific text. Escalate to hard-incompatibility warning if `printer.max_bed_temp < material.bed_temp_min`. Regression test via the walkthrough harness. `[Web+iOS]`
+- [ ] **[CRITICAL-003]** Validate `state.surface` / `state.strength` / `state.speed` against valid preset IDs in `resolveProfile`. Unknown → coerce to default + warn `invalid_preset`. Matching assertion in iOS tests. `[Web+iOS]`
+- [ ] **[HIGH-012]** Fix "A1/A1 Mini have a 10,000 mm/s² acceleration limit…" why-text on `outer_wall_speed` — currently fires for every bedslinger with `max_accel ≤ 10000` (MK4, MK4S, Ender-3 V3, Kobra, Mini+, etc.). Template against `printer.name` + `printer.max_acceleration`. `[Web+iOS]`
+- [ ] **[HIGH-014]** Owner: verify A1 mini real `max_bed_temp` vs Bambu spec page (data says 100, Bambu says 80). If 80, update `data/printers.json`. `[You]`
+
+**Security / infra:**
+- [ ] **[CRITICAL-001]** Route iOS feedback through `/api/feedback` Cloudflare Worker (currently posts direct to Discord webhook, URL extractable from binary). Ship as v1.0.2. Auth via `X-App-Source: ios` + HMAC/shared-secret. Worker sanitises `@everyone`/`@here` + rebuilds embed. Rotate old webhook after cutover. `[iOS+Worker]`
+- [ ] **[LOW-001]** Rotate Sentry DSN (hardcoded in commit `e707df4` history). Sentry dashboard → revoke + create new → update `Config.xcconfig` → ship next build. `[iOS]`
+- [ ] **[HIGH-010]** Add IP-bucket rate limit to `/api/feedback` (Cloudflare Rate Limiting or Workers KV). 10 req/min per IP, 100 req/min global. Strip `@everyone`/`@here` + markdown link syntax before building embed. `[Worker]`
+
+**Data hygiene (fixes take minutes):**
+- [ ] **[MEDIUM-015]** Add `"lightning"` to `prusaslicer.sparse_infill_patterns` in `slicer_capabilities.json`. Remove the `lightning → rectilinear` Prusa fallback entry. `[Web+iOS]`
+- [ ] **[MEDIUM-016]** Add `"adaptivecubic"` to Bambu + Orca `sparse_infill_patterns`. `[Web+iOS]`
+- [ ] **[LOW-002]** Rewrite HIPS `enclosure_behavior.reason` (currently copy-pasted from ABS). `[You]` for text, `[Code]` to apply.
+
+**Test quality:**
+- [ ] **[HIGH-002]** Tighten IMPL-040 surface-parity test: compute `expectedCount = 7×6 = 42`, replace silent `continue`s with `XCTFail`, end with `XCTAssertEqual(checked, expectedCount)`. `[iOS]`
+- [ ] Run XCTest suite locally; record baseline runtime. `[iOS]`
+
+### IR-1 — Data suggestion logic verification ✅ 2026-04-20
+
+- [x] Harness built at [`scripts/walkthrough-harness.js`](../../scripts/walkthrough-harness.js) — reusable, Node-based, loads `engine.js` via `vm` with `fetch` + `localStorage` polyfills.
+- [x] 10 representative combos run; raw output at [`domain-walkthrough.md`](../reviews/2026-04-20-internal/domain-walkthrough.md); analysis integrated into [`01-critical.md`](../reviews/2026-04-20-internal/01-critical.md) + [`02-high.md`](../reviews/2026-04-20-internal/02-high.md).
+- [x] Surfaced 5 new findings: CRITICAL-002, CRITICAL-003, HIGH-012, HIGH-013, HIGH-014.
+- [x] Confirmed positives: IMPL-040 chip-desc parity holds on all combos; abrasive/flex/enclosure warnings fire correctly; layer-height + speed clamping narrates correctly via `_clamped` warnings; checklists are material-aware.
+
+Second-pass coverage (when needed — add combos to `COMBOS[]` and re-run):
+- [ ] Environment presets (cold / hot / damp).
+- [ ] Non-`none` support presets.
+- [ ] Multi-color / AMS combos.
+- [ ] `calcPrintTime` accuracy.
+- [ ] `calcPurgeVolumes`.
+- [ ] `getTroubleshootingTips` output.
+
+### IR-2 — Engine correctness hardening
+
+Target: 1 session. The remaining HIGH/MEDIUM items that aren't IR-0 priority.
+
+- [ ] **[HIGH-008]** Extend C6 warning loop to cover every `patternFor` field (top/bottom/internal/seam) — currently only `sparse_infill` + `support_interface`. Drive from module-level field list so new `patternFor` fields auto-get coverage. `[Web+iOS]`
+- [ ] **[HIGH-009]** Fix `_clampNum` non-finite fallback — return `min` (or caller default), never `undefined` / `null`. Eliminates `.toFixed()` crash path on missing fields. `[Web+iOS]`
+- [ ] **[MEDIUM-001]** Numeric-compare `limits_override.nozzles` keys (currently string lookup — `"0.40"` silently fails). `[Web+iOS]`
+- [ ] **[MEDIUM-002]** Add `if (!nozzle) return {};` guard to `resolveProfile`. `[Web+iOS]`
+- [ ] **[MEDIUM-007]** Init-time validation of `printer.series` enum. Case-sensitive string compare currently misclassifies typo'd entries. `[Web+iOS]`
+- [ ] **[MEDIUM-018]** Clean `nozzles.json.not_suitable_for` orphan references (`abs_cf`, `pla_wood`, `pla_glow` don't exist in materials.json). Unify IDs vs groups. `[You]` to decide, `[Code]` to apply.
+
+### IR-3 — Failure-mode rehearsal (live-product readiness)
+
+Target: 1 session. "What happens when this breaks" work.
+
+- [ ] Force `engine.init()` to throw on iOS (corrupt or remove a bundled data file locally). Verify error UI + Sentry event. `[iOS]`
+- [ ] Force `/api/feedback` 500. Verify web modal error, iOS error (after IR-0 CRITICAL-001 lands). `[Web+iOS]`
+- [ ] Simulate malformed `printers.json` deploy on a preview branch; verify site doesn't brick. Ties into [LOW-008] — wrap non-critical `.json()` reads in `.catch()` with documented defaults. `[Web]`
+- [ ] Rollback rehearsal: web `git revert` + push → verify auto-deploy serves old; iOS TestFlight expire-build → verify testers blocked. Document in new runbook. `[Both]`
+- [ ] Pull production Sentry + Cloudflare Analytics 14-day baselines (event rate, error types, region distribution, feedback volume, any 429s). `[You]`
+- [ ] Create `docs/runbooks/incident-response.md` with rollback procedures, Sentry + CF links, current baseline. `[Code]`
+
+### IR-4 — Drift prevention (structural)
+
+Target: 1–2 sessions. Not urgent, but closes the silent-drift surface.
+
+- [ ] **[HIGH-003]** Replace `actor EngineService` with `final class` + dedicated serial `DispatchQueue(label: "engine.js", qos: .userInitiated)`. Genuine single-thread JSContext affinity. See [R4](../reviews/2026-04-20-internal/07-recommendations.md). `[iOS]`
+- [ ] **[HIGH-006]** Bridge `Engine.SLICER_TABS` + `Engine.SLICER_PARAM_LABELS` from engine via JSCore. Delete `SlicerLayout.swift` static data. Add snapshot XCTest. See [R2](../reviews/2026-04-20-internal/07-recommendations.md). `[iOS]`
+- [ ] **[HIGH-007]** Bridge `Engine.getNozzleSize(id)`. Drop `OutputView.nozzleSizeKey` string split. `[iOS]`
+- [ ] **[HIGH-004]** Re-read `_engineError` in post-loop block before throwing the timeout. Currently real JS errors mask as "timed out". `[iOS]`
+- [ ] **[HIGH-005]** Replace `_engineError != "null"` string-compare with `typeof !== 'undefined'` or structured sentinel. `[iOS]`
+- [ ] **[HIGH-011]** Engine returns structured numeric field per chip alongside `desc`. Test asserts on the field directly (not regex over desc text). `[Web+iOS]`
+- [ ] **[MEDIUM-020]** Bridge `getFilamentTabs(mode)` from engine. Drop the hardcoded tab list in `OutputView`. `[iOS]`
+- [ ] **[MEDIUM-021]** Bridge `getSlicerDisplayName(id)` from engine. Drop the hardcoded switch in `OutputViewModel.slicerName`. `[iOS]`
+- [ ] **[R8]** Introduce `_validateSchema()` at engine init (catches MEDIUM-001 / -007 / -018 / -019 / HIGH-009 all at once). See [R8](../reviews/2026-04-20-internal/07-recommendations.md). `[Web+iOS]`
+
+### IR-5 — Backlog (touch when nearby)
+
+Not session-scheduled. Tick off as nearby edits touch the files.
+
+- [ ] [LOW-003] Consolidate `retraction_length` + `retraction_distance` in materials.json — pick one. (Hard prereq before re-enabling export; HIGH-013.)
+- [ ] [LOW-004] TPU drying `display` vs numeric `heatbed_temp` mismatch.
+- [ ] [LOW-005] `prc_0.2` — keep + add siblings, or drop.
+- [ ] [LOW-006] `flexible` field duplication.
+- [ ] [LOW-007] Hoist Bambu preset `version: '2.5.0.14'` to module constant. (Lower priority; export disabled.)
+- [ ] [LOW-008] Wrap per-file `init()` `.json()` in `.catch()` for non-critical files.
+- [ ] [LOW-009] Add `da.json` to `testAllBundledResourcesPresent`.
+- [ ] [LOW-010] Unify `_SUPPORT_TYPES` + `_SUPPORT_GEOMETRY` (or throw on missing).
+- [ ] [MEDIUM-003] Document `limits_override` null vs undefined contract.
+- [ ] [MEDIUM-004] Single `_fmtLayer(lh)` helper shared by chip desc + profile emit.
+- [ ] [MEDIUM-005] Route strength-chip pattern through `mapForSlicer`.
+- [ ] [MEDIUM-009] Typed `Codable` decode for `resolveProfile` output. See [R7](../reviews/2026-04-20-internal/07-recommendations.md).
+- [ ] [MEDIUM-010] Reset `isReady = false` at top of `EngineService.initialize()`.
+- [ ] [MEDIUM-011] Correctness-tier test (hardcoded expected clamped values for 5–10 combos).
+- [ ] [MEDIUM-012] `JSON.stringify`-style escaping for ID embeds in JS calls.
+- [ ] [MEDIUM-013] Throw/log on `getFilters(state:)` serialisation failure instead of silent fallback.
+- [ ] [MEDIUM-014] See CRITICAL-002 — partial finding now covered there.
+- [ ] [MEDIUM-017] Decide: wire engine to `warnings.json.condition_warnings` or delete the dead data.
+- [ ] [MEDIUM-019] Align `max_mvs` key coverage with `k_factor_matrix`.
+- [ ] [MEDIUM-022] Route `innerHTML` call sites through `escHtml` (or switch to `textContent`).
+- [ ] [OBS-006] Add minimal `console` polyfill to iOS JSContext.
+
+### IR-deferred — export path (re-activate when export is re-enabled)
+
+- [ ] [HIGH-001] `exportBambuStudioJSON` writes unscaled retraction (reads `bs.retraction_length` instead of scaled value). Depends on [LOW-003 / HIGH-013] collapse first.
+- [ ] [MEDIUM-006] `_extractValue` lowercase-strip fallback.
+- [ ] [MEDIUM-008] Export-path pattern map duplication — collapse via `mapForSlicer`.
+- [ ] [LOW-007] Bambu preset `version` string hardcoded.
+- [ ] Live Bambu Studio import test (5 combos).
+
+### IR tracking
+
+| Phase | Status | Owner-time | Code-time |
+|---|---|---|---|
+| IR-0 — Ship this week | ⏳ | 1–1.5 h | 2–3 h |
+| IR-1 — Data logic verification | ✅ 2026-04-20 | — | — |
+| IR-2 — Engine correctness | ⏳ | 0 | 2–3 h |
+| IR-3 — Failure rehearsal | ⏳ | 30 min | 2 h |
+| IR-4 — Drift prevention | ⏳ | 0 | 1–2 days |
+| IR-5 — Backlog | ongoing | — | — |
 
 ---
 
