@@ -418,6 +418,37 @@ Not session-scheduled. Tick off as nearby edits touch the files.
 
 ---
 
+## Legacy backlog ID index (`#001–#036`)
+
+Preserved for traceability of historical references. The pre-ROADMAP `BACKLOG.md` (last real content: web commit `103ab84`, 2026-04-03, 309 lines) is archived at [`_archive/3dprintassistant-BACKLOG-legacy-2026-04-03.md`](../../../_archive/3dprintassistant-BACKLOG-legacy-2026-04-03.md). Every ID is either shipped, active in this ROADMAP, or explicitly dropped.
+
+**Shipped (see Completed phases for phase-level context):**
+| # | What | Shipped |
+|---|---|---|
+| #002 | Match Bambu Studio process-tab structure | 2026-04-02 |
+| #008 | Expanded warning explanations (now structured `{id, text, detail, fix}` — shipped as RB-1) | 2026-04-08 |
+| #009 | Orca slicer layout support | 2026-04-03 |
+| #013 | Pre-print checklist panel | 2026-04-03 |
+| #014 | Mobile layout improvements | 2026-04-03 |
+| #023 | Analytics — Cloudflare Web Analytics | 2026-04-01 |
+| #024 | SEO optimization | 2026-04-01 |
+| #025 | Roadmap modal in footer | 2026-04-01 |
+| #027 | Slicer-aware tab structure (Bambu + Prusa) | 2026-04-02 |
+| #028 | TPU 85A / 90A print + support guidance | 2026-04-02 |
+| #030 | i18n locale extraction to `locales/*.json` | 2026-04-03 |
+| #031 | JSON schema validation script | 2026-04-03 |
+| #017 | Profile export to Bambu Studio `.json` — tracked under **Phase 2.7a** above (engine done; UI hidden pending BS import fix). |
+
+**Active in this ROADMAP:** `#001, #005, #006, #010, #011, #012, #015, #016, #018, #019, #020, #022, #026, #029, #032, #033, #034, #035, #036, #037, #038, #039` — see "Future features — Backlog" + "Post-release — Refactoring & polish" sections below.
+
+**Dropped / superseded:**
+- `#003` Copy individual setting value — superseded by full profile share/export flow.
+- `#004` Copy all settings as formatted text — superseded by `formatProfileAsText` + iOS share sheet.
+- `#007` Auto dark mode — superseded by the existing web theme toggle (`☀`) + the iOS v1.1 light-mode backlog item below.
+- `#021` HTML print sheet — superseded by `formatProfileAsText` + share/export flow on both platforms.
+
+---
+
 ## Future features — Backlog
 
 > Not scheduled. Pick from here when the release is done and the iOS app is stable.
