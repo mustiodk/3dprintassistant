@@ -49,7 +49,7 @@ Target: 1–2 half-days of focused work.
 
 **Security / infra:**
 - [ ] **[CRITICAL-001]** Route iOS feedback through `/api/feedback` Cloudflare Worker (currently posts direct to Discord webhook, URL extractable from binary). Ship as v1.0.2. Auth via `X-App-Source: ios` + HMAC/shared-secret. Worker sanitises `@everyone`/`@here` + rebuilds embed. Rotate old webhook after cutover. `[iOS+Worker]`
-- [ ] **[LOW-001]** Rotate Sentry DSN (hardcoded in commit `e707df4` history). Sentry dashboard → revoke + create new → update `Config.xcconfig` → ship next build. `[iOS]`
+- [x] **[LOW-001]** Rotate Sentry DSN (hardcoded in commit `e707df4` history). Sentry dashboard → revoke + create new → update `Config.xcconfig` → ship next build. `[iOS]` — Shipped 2026-04-22. New DSN live in local Config.xcconfig + `SENTRY_DSN` GitHub secret; old DSN (hash `0aa31ac865f8…`) disabled on Sentry.
 - [ ] **[HIGH-010]** Add IP-bucket rate limit to `/api/feedback` (Cloudflare Rate Limiting or Workers KV). 10 req/min per IP, 100 req/min global. Strip `@everyone`/`@here` + markdown link syntax before building embed. `[Worker]`
 
 **Data hygiene (fixes take minutes):**
