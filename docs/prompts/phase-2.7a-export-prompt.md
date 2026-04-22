@@ -11,8 +11,8 @@
 - iOS module name: `PrintAssistant`.
 
 ## Reference files (READ THESE FIRST)
-- `3dprintassistant-ios/research/bambu-studio-export-spec-gemini.md` — **PRIMARY REFERENCE.** Complete Bambu Studio JSON schema analysis from actual exported files. Contains field mapping table, metadata requirements, value format rules, minimum viable export examples, and known gotchas.
-- `3dprintassistant-ios/research/bambu-studio-json-schema.md` — Additional field reference from Bambu Studio GitHub source code.
+- `3dprintassistant/docs/research/bambu-studio-export-spec-gemini.md` — **PRIMARY REFERENCE.** Complete Bambu Studio JSON schema analysis from actual exported files. Contains field mapping table, metadata requirements, value format rules, minimum viable export examples, and known gotchas.
+- `3dprintassistant/docs/research/bambu-studio-json-schema.md` — Additional field reference from Bambu Studio GitHub source code.
 
 ## Goal
 Three export tiers, in priority order:
