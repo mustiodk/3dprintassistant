@@ -1,72 +1,53 @@
 # Next session — copy-paste prompt
 
-**Last updated:** 2026-04-21 (end of [`2026-04-21-cowork-appdev.md`](2026-04-21-cowork-appdev.md), after the md-hygiene sweep).
+**Last updated:** 2026-04-22 (end of [`2026-04-22-cowork-appdev-housekeeping.md`](2026-04-22-cowork-appdev-housekeeping.md), after the security rotation + md-hygiene pass).
 
 Copy everything between the `>>> START >>>` and `<<< END <<<` markers below into a fresh Cowork session to kick off the next one.
 
-**Queue note:** IR-0 `[CRITICAL-003]` (unknown preset-ID silent fallback) is **deferred by one session** to land this security + cleanup pass first. After this session, regenerate `NEXT-SESSION.md` with the CRITICAL-003 prompt (the handoff for that task is preserved in the end of `2026-04-21-cowork-appdev.md`).
+**Queue note:** IR-0 `[CRITICAL-003]` is now first in the queue — it was deferred by one session so the security + cleanup pass could land first. Remaining IR-0 after CRITICAL-003: `[CRITICAL-001]` (iOS feedback through Worker), `[HIGH-012]` (A1 why-text on wrong printers), `[HIGH-014]` (A1 mini bed-temp data verification), then the MEDIUM-015/016/018 + LOW-002 data-hygiene wins.
 
 ---
 
 >>> START >>>
 
-Start a new appdev-housekeeping session.
-
-This session interrupts the IR-0 engine queue for one focused security + cleanup pass. CRITICAL-003 resumes next session.
+Start a new appdev-IR0 session. Resume the IR-0 ship-blocker queue.
 
 Read, in order:
-1. `/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md` — standing rules (always). Pay attention to the new "Md-hygiene evaluation" standing rule and the Session-log protocol.
-2. `3dprintassistant/docs/planning/ROADMAP.md` — check "Last updated" and the IR-0 section. `[LOW-001]` (Sentry DSN rotation) is on that list — this session closes it.
+1. `/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md` — standing rules (always). Pay attention to the Session-log protocol and the Md-hygiene evaluation standing rule.
+2. `3dprintassistant/docs/planning/ROADMAP.md` — check "Last updated" and the IR-0 section. Confirm `[CRITICAL-003]` is still the first unchecked CRITICAL item.
 3. `3dprintassistant/docs/sessions/INDEX.md` — skim the top 5 entries.
 4. The last 3 session logs (in full — not just the INDEX one-liner). Newest first:
-   - `docs/sessions/2026-04-21-cowork-appdev.md` — today's CRITICAL-002 fix + the md-hygiene sweep findings at the end (the "Follow-up" section is effectively this session's scope sheet).
+   - `docs/sessions/2026-04-22-cowork-appdev-housekeeping.md` — yesterday's security rotations. Open questions at the bottom may still need owner answers; if so, knock them out before code work.
+   - `docs/sessions/2026-04-21-cowork-appdev.md` — CRITICAL-002 fix. The "Next session" section at the bottom has the CRITICAL-003 handoff specifics — reuse it.
    - `docs/sessions/2026-04-21-cowork-appdev-consolidation.md`
-   - `docs/sessions/2026-04-20-cowork-appdev-review-package.md`
+5. The CRITICAL-003 finding entry in `3dprintassistant/docs/reviews/2026-04-20-internal/01-critical.md` (search for `CRITICAL-003`).
 
-Today: batch secrets rotation + iOS root stub cleanup + web untracked-doc promotion. Zero source-code changes; filesystem + git + external-console work only.
+Today's task: ship IR-0 `[CRITICAL-003]` — preset-ID validation in `resolveProfile`.
 
-Scope (four chunks, one commit per chunk — don't batch):
+**Plain English:** today `resolveProfile(state)` silently coerces unknown `state.surface` / `state.strength` / `state.speed` values by falling back to defaults without telling anyone. The Phase 1 domain walkthrough flagged this as a CRITICAL — if the iOS app state ever drifts (new enum value, typo, stale localStorage), the profile output is wrong and the user never knows. Fix: validate against the known preset ID set per field, coerce unknowns to the documented default, and emit a structured warning `invalid_preset` with the offending field + received value. Mirror assertion in iOS XCTest.
 
-**Chunk 1 — iOS `.gitignore` tightening (BEFORE touching any secret).** On `3dprintassistant-ios`:
-- Append to `.gitignore`: `*.p8`, `*.mobileprovision`, `*.certSigningRequest`, `AuthKey_*`, `_test/` (contains test JSON outputs, not source).
-- Verify no currently-tracked file matches the new patterns: `git ls-files | grep -E '\.(p8|mobileprovision|certSigningRequest)$|^AuthKey_'`. Must return empty.
-- Commit: `iOS: gitignore Apple keys + provisioning + test artefacts`.
-
-**Chunk 2 — Rotate + revoke the four secrets (owner-driven, Claude assists).** Done via web consoles — Claude should NOT run any command that touches the rotated values.
-- **Sentry DSN** (IR-0 `[LOW-001]`): owner revokes old DSN on sentry.io + creates new → Claude helps update `Config.xcconfig` locally + confirms `.gitignore` keeps it out → owner triggers next TestFlight build via CI secret update. Commit: `iOS: rotate Sentry DSN [LOW-001]` (Config.xcconfig is gitignored so commit is for the build / CI side).
-- **App Store Connect API key** (`AuthKey_MHDMJN32AP.p8`): owner revokes the key on App Store Connect → generates new → downloads new `.p8` to local machine → `rm` the old `.p8` from the working tree → verify Fastlane / CI references the new key id. No git commit (file was never tracked; only `.gitignore` guards it).
-- **Provisioning profile + CSR**: owner regenerates `3DPrintAssistant_AppStore.mobileprovision` from Apple Developer + downloads to keychain. Delete the local copies from the working tree (`rm` — single-use, no value in keeping). `CertificateSigningRequest.certSigningRequest` is likewise single-use; `rm`.
-- **GitHub PAT** in the `claude-projects` Projects-root repo's remote URL: owner revokes the PAT at github.com/settings/tokens → runs `gh auth login` (or `git remote set-url origin https://github.com/mustiodk/claude-projects.git` after configuring a credential helper or SSH) → verify with `git remote -v` that the URL no longer contains `ghp_*`.
-
-**Chunk 3 — iOS root stub removal.** On `3dprintassistant-ios`:
-- `git rm` nine root files (all 5–7 line deprecated redirects, targets verified to exist):
-  - `IMPLEMENTATION_PLAN.md`, `TASKS.md`, `UI-CRITIQUE.md`, `UI-V2-SPEC.md`, `ROADMAP.md`, `fresh-session-prompt.md`, `phase-2.5b-code-prompt.md`, `phase-2.7a-export-prompt.md`, `phase-2.7b-descriptions-prompt.md`.
-- Commit: `iOS: retire 9 deprecated root stubs (targets live under web docs/)`.
-- Push iOS main (no source changes → no TestFlight build triggered; still confirm CI state after push).
-
-**Chunk 4 — Web untracked promotion + archive.** On `3dprintassistant`:
-- `git add docs/prompts/phase-2.5b-code-prompt.md phase-2.7a-export-prompt.md phase-2.7b-descriptions-prompt.md`.
-- `git add docs/research/` (5 files: ChatGPT review, UI-CRITIQUE, Bambu spec, JSON schema, Gemini prompt).
-- `git add docs/sessions/2026-04-10-cowork-appdev.md docs/sessions/2026-04-13-cowork-appdev.md` (listed in INDEX — otherwise links are broken on github.com).
-- `rm docs/planning/fresh-session-prompt.md` (25 lines, superseded by NEXT-SESSION.md).
-- Archive `docs/planning/iOS-RELEASE-PLAN.md` (161 lines, pre-ship plan — iOS shipped 2026-04-16) → `_archive/3dprintassistant-iOS-RELEASE-PLAN-pre-ship-2026-04-08.md` with a small provenance header matching the BACKLOG archive format. Then `rm` the original.
-- Decide on `bambu configs/`, `research md/`, `slicer data img/`, `discord_admin_logo.png`, `logo.png`, `icon-raw.png_1.png`: these look like personal scratch / source material. Default action: add each top-level folder/file to `.gitignore` (don't commit, don't delete — owner keeps them locally).
-- Commit: `docs: track referenced prompts + research + session logs; archive iOS-RELEASE-PLAN`.
+Scope bullets:
+- Engine: add a validation block at the top of `resolveProfile` for the 3 preset fields. Use the existing preset lookup tables (`SURFACE_PRESETS`, `STRENGTH_PRESETS`, `SPEED_PRESETS` — confirm exact names from engine.js) as the canonical sets. If `state.<field>` isn't in the set, coerce to the documented default (same defaults used when the field is empty/undefined) and push an `invalid_preset` warning with `{ field, received, coerced_to }`.
+- Engine: confirm the `getWarnings` block emits the same warning when `resolveProfile` was called with an invalid preset, so the UI warning panel shows it. If `getWarnings` is pure of `resolveProfile` state (same pattern as CRITICAL-002), replicate the minimal validation there. Document the duplication in the session log's Durable context (same rationale as CRITICAL-002).
+- Data: none. This is a code-only fix.
+- iOS sync: `engine.js` byte-identical copy to `3DPrintAssistant/Engine/engine.js`.
+- Tests: XCTest `testInvalidPresetCoercedAndWarned` — 3 assertions, one per field. Bridge calls `resolveProfile` with a bogus preset, asserts the output uses the documented default and the `invalid_preset` warning fires with the right `field` value.
+- Walkthrough harness: no new combos needed; existing combos all use valid presets, so they should continue to pass unchanged. Run it as a regression check at the end.
 
 Process:
-1. Propose each chunk in plain English before executing. Chunks 2a/2b/2c/2d (the four rotations) MUST wait for owner confirmation between each — the owner is operating external web consoles in parallel.
-2. Don't push iOS main until chunks 1 + 3 are green locally and owner has confirmed the new Sentry DSN is in `Config.xcconfig`.
-3. Write the session log to `docs/sessions/2026-04-22-cowork-appdev-housekeeping.md` (or whatever the date is). Durable context section MUST call out: (a) which keys were rotated (IDs only, never values), (b) any CI secret names that changed, (c) anything left undone.
-4. Update INDEX.md with a new top bullet.
-5. Regenerate `NEXT-SESSION.md` pointing at CRITICAL-003 — the handoff text already exists at the end of `2026-04-21-cowork-appdev.md`, reuse it.
+1. Propose the full diff in plain English before touching files. Wait for owner sign-off.
+2. Edit web engine.js → sync to iOS → add XCTest → run XCTest suite locally → run walkthrough harness. All must pass before committing.
+3. One commit per platform (web, iOS), matching commit message `engine: validate preset IDs + emit invalid_preset warning [CRITICAL-003]`.
+4. Push both.
+5. Tick `[CRITICAL-003]` in ROADMAP IR-0.
+6. Standard session-log + INDEX + NEXT-SESSION regeneration at end.
 
 Standing rules (don't drift):
 - Progress bar on every multi-step task: `[🟩🟩⬜⬜⬜⬜ 40%] step`.
-- Md-hygiene sweep at session end (new standing rule — see `CLAUDE.md`).
-- ROADMAP is truth. Tick `[LOW-001]` when the Sentry DSN rotation lands.
-- Right thing not easy thing. Rotate, don't "just update the .gitignore and hope."
-- Don't push iOS main without owner sign-off for the rotation-adjacent commit (Chunk 2a).
-- One finding = one commit. Four chunks = at least four commits.
+- Md-hygiene sweep at session end.
+- ROADMAP is truth. Tick `[CRITICAL-003]` when it lands.
+- Right thing not easy thing. Don't batch CRITICAL-003 with another IR-0 item — one finding = one commit.
+- Don't push iOS main without confirming the test suite is green.
 
 <<< END <<<
 

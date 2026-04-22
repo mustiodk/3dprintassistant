@@ -8,6 +8,7 @@ Each entry is a single line: `date — topic — one-line outcome`. Read the ful
 
 ---
 
+- **2026-04-22** — Security rotations + md hygiene ([log](2026-04-22-cowork-appdev-housekeeping.md)) — rotated 4 credentials (Sentry DSN, ASC API key `MHDMJN32AP`→`SF8C66YLJY`, provisioning+CSR deleted, GitHub PAT stripped → `gh` OAuth via keychain); tightened iOS `.gitignore`; retired 9 iOS root stubs; promoted 10 untracked web docs + archived iOS-RELEASE-PLAN. 4 commits across web+iOS, both pushed. `[LOW-001]` ✅.
 - **2026-04-21** — IR-0 [CRITICAL-002] bed-temp clamp ([log](2026-04-21-cowork-appdev.md)) — engine clamps `initial_layer_bed_temp` / `other_layers_bed_temp` to `min(material.bed_temp_max, printer.max_bed_temp)`; new `printer_max_bed_temp_clamped` + `printer_bed_temp_incompatible` warnings; Combos 6 + 10 ❌→✓; 35/35 iOS tests; web `dc87961`, iOS `378861a`.
 - **2026-04-21** — Review consolidation + fresh-session prep ([log](2026-04-21-cowork-appdev-consolidation.md)) — merged domain-findings + PLAN.md into 8 review files + IR-* ROADMAP section; deleted 2 redundant docs; 59 findings triaged.
 - **2026-04-20** — 3rd-party review package ([log](2026-04-20-cowork-appdev-review-package.md)) — starter kit (6 docs) dispatched against web `c4c5071`, iOS `24aef66`; `fresh-session-kickoff-post-review.md` prepared.
