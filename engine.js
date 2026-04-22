@@ -1035,6 +1035,25 @@ const Engine = (() => {
       return { id, text, detail: detail || '', fix: fix || '' };
     }
 
+    // 0. CRITICAL-003 — invalid preset IDs. Mirrors the validation in
+    // resolveProfile so the UI warning panel surfaces the coercion. One
+    // warning per invalid field; empty/undefined is silent (matches historical
+    // behavior — picker fills in defaults on first load).
+    [
+      ['surface',  state.surface,  _objectives.surface_quality, 'standard'],
+      ['strength', state.strength, _objectives.strength_levels, 'standard'],
+      ['speed',    state.speed,    _objectives.speed_priority,  'balanced'],
+    ].forEach(([field, received, list, fallback]) => {
+      if (!received) return;
+      const valid = (list || []).some(item => item.id === received);
+      if (!valid) {
+        warnings.push(w('invalid_preset',
+          `Unknown ${field} preset "${received}".`,
+          `Using default "${fallback}" instead. Usually this means a stored setting from an older app version or a typo in a shared-URL payload.`,
+          `Clear this field or pick one of the valid options in the picker.`));
+      }
+    });
+
     // 1. Material-level warnings from JSON data (plain strings)
     (material.warnings || []).forEach((msg, i) => {
       warnings.push(w(`mat_${material.id}_${i}`, msg, '', ''));
@@ -1375,9 +1394,20 @@ const Engine = (() => {
     const nozzle    = getNozzle(state.nozzle);
     if (!printer || !material) return {};
 
-    const surface   = getSurface(state.surface);
-    const strength  = getStrength(state.strength);
-    const speedMode = getSpeedMode(state.speed);
+    // CRITICAL-003 — validate preset IDs against canonical sets. Empty/undefined
+    // passes through unchanged (historical behavior). Truthy-but-unknown IDs
+    // (stale localStorage, typo'd share-URL, legacy client) coerce to the
+    // documented default instead of silently emitting `undefined` downstream.
+    // getWarnings replicates this validation to emit `invalid_preset` — the two
+    // functions stay pure of each other, same pattern as CRITICAL-002 bed-temp.
+    const _hasPresetId = (list, id) => !id || (list || []).some(item => item.id === id);
+    const surfaceId  = _hasPresetId(_objectives.surface_quality, state.surface)  ? state.surface  : 'standard';
+    const strengthId = _hasPresetId(_objectives.strength_levels, state.strength) ? state.strength : 'standard';
+    const speedId    = _hasPresetId(_objectives.speed_priority,  state.speed)    ? state.speed    : 'balanced';
+
+    const surface   = getSurface(surfaceId);
+    const strength  = getStrength(strengthId);
+    const speedMode = getSpeedMode(speedId);
     const env       = getEnv(state.environment);
 
     const useCase  = state.useCase  || [];
