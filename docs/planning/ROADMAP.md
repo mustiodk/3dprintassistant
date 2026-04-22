@@ -2,7 +2,7 @@
 
 **Single source of truth for all planning.** Replaces IMPLEMENTATION_PLAN.md, TASKS.md, and web BACKLOG.md.
 
-**Last updated:** 2026-04-21 — **Internal review completed + Phase 1 domain walkthrough.** External review kit still out for third-party feedback. Full internal deliverable at [`docs/reviews/2026-04-20-internal/`](../reviews/2026-04-20-internal/) — **59 findings: 3 CRITICAL / 14 HIGH / 22 MEDIUM / 10 LOW / 10 OBS.** The IR-* section below supersedes the previous "default to non-architecture work" guidance — there is now a prioritised action list. Reviewed revisions: web `c4c5071`, iOS `24aef66`.
+**Last updated:** 2026-04-22 — **IR-0 code/data sweep landed overnight.** Five findings shipped (one = one commit per platform, 9 commits total): `[CRITICAL-003]` preset-ID validation, `[HIGH-002]` IMPL-040 coverage tightening, `[HIGH-012]` A1 why-text template, `[MEDIUM-015]` lightning fallback drop, `[MEDIUM-016]` adaptivecubic addition. 37/37 iOS tests pass, walkthrough harness 9 clean + 1 pre-existing warn (Combo 3). **Four IR-0 items remain**, each needing owner or coordinated infra work — see IR-0 section below. **Next phase queued: IR-2a v1.0.2 ship pass** (new section below). External review kit still out for third-party feedback. Full internal deliverable at [`docs/reviews/2026-04-20-internal/`](../reviews/2026-04-20-internal/) — **59 findings: 3 CRITICAL / 14 HIGH / 22 MEDIUM / 10 LOW / 10 OBS.** Reviewed revisions: web `c4c5071`, iOS `24aef66`.
 
 **Earlier status:** **IMPL-039 shipped.** Full printer-capability clamping + slicer-aware values refactor landed on web + iOS in one pass. Engine helpers (`getPrinterLimits`, `_clampNum`, `mapForSlicer`, `patternFor`) plus new `data/rules/slicer_capabilities.json` replace every scattered `Math.min` and hardcoded pattern name. 2 HIGH bugs fixed (`support_interface_pattern` now emits Bambu's canonical `rectilinear_interlaced`; `initial_layer_height` scales with nozzle so 0.2mm setups don't emit illegal 0.20mm). Retraction now nozzle-scaled and auto-bowden for MINI+/other bowden printers. 32/32 iOS tests pass. Bambu export byte-matches vendor preset format across all 5 canonical combos. iOS EU distribution still blocked on DSA Trader Status verification.
 **Owner:** Musti (solo dev)
@@ -43,23 +43,69 @@ Target: 1–2 half-days of focused work.
 
 **Correctness / domain (all surfaced by Phase 1 walkthrough):**
 - [x] **[CRITICAL-002]** Clamp `initial_layer_bed_temp` + `other_layers_bed_temp` to `min(material.bed_temp_max, printer.max_bed_temp)`. Structured `printer_max_bed_temp_clamped` warning with printer-specific text + hard-incompat `printer_bed_temp_incompatible` when `printer.max_bed_temp < material.bed_temp_min`. Combos 6 + 10 flipped ❌→✓ on walkthrough harness. New XCTest `testBedTempClampedWhenPrinterBedTooLow` (21/21 EngineServiceTests pass, 35/35 total). Shipped 2026-04-21. `[Web+iOS]`
-- [ ] **[CRITICAL-003]** Validate `state.surface` / `state.strength` / `state.speed` against valid preset IDs in `resolveProfile`. Unknown → coerce to default + warn `invalid_preset`. Matching assertion in iOS tests. `[Web+iOS]`
-- [ ] **[HIGH-012]** Fix "A1/A1 Mini have a 10,000 mm/s² acceleration limit…" why-text on `outer_wall_speed` — currently fires for every bedslinger with `max_accel ≤ 10000` (MK4, MK4S, Ender-3 V3, Kobra, Mini+, etc.). Template against `printer.name` + `printer.max_acceleration`. `[Web+iOS]`
+- [x] **[CRITICAL-003]** Validate `state.surface` / `state.strength` / `state.speed` against valid preset IDs in `resolveProfile`. Unknown → coerce to default + warn `invalid_preset`. Matching assertion in iOS tests. `[Web+iOS]` — Shipped 2026-04-22. Web `6173839`, iOS `2cbf5c7`. New XCTest `testInvalidPresetCoercedAndWarned` (36/36 pass). Validation mirrored across `resolveProfile` + `getWarnings` (same purity pattern as `_clampNum` / CRITICAL-002 — documented in code).
+- [x] **[HIGH-012]** Fix "A1/A1 Mini have a 10,000 mm/s² acceleration limit…" why-text on `outer_wall_speed` — currently fires for every bedslinger with `max_accel ≤ 10000` (MK4, MK4S, Ender-3 V3, Kobra, Mini+, etc.). Template against `printer.name` + `printer.max_acceleration`. `[Web+iOS]` — Shipped 2026-04-22. Web `5797738`, iOS `6e9d2be`. New XCTest `testOuterWallWhyTextNamesActualPrinter`. **Observation (filed as IR-5 backlog):** two more A1-hardcoded strings remain on `outer_wall_acceleration.why` and `slow_down_tall.why` — same bug class, separate code paths.
 - [ ] **[HIGH-014]** Owner: verify A1 mini real `max_bed_temp` vs Bambu spec page (data says 100, Bambu says 80). If 80, update `data/printers.json`. `[You]`
 
-**Security / infra:**
-- [ ] **[CRITICAL-001]** Route iOS feedback through `/api/feedback` Cloudflare Worker (currently posts direct to Discord webhook, URL extractable from binary). Ship as v1.0.2. Auth via `X-App-Source: ios` + HMAC/shared-secret. Worker sanitises `@everyone`/`@here` + rebuilds embed. Rotate old webhook after cutover. `[iOS+Worker]`
+**Security / infra (deferred to v1.0.2 — see IR-2a):**
+- [ ] **[CRITICAL-001]** Route iOS feedback through `/api/feedback` Cloudflare Worker (currently posts direct to Discord webhook, URL extractable from binary). Ship as v1.0.2. Auth via `X-App-Source: ios` + HMAC/shared-secret. Worker sanitises `@everyone`/`@here` + rebuilds embed. Rotate old webhook after cutover. `[iOS+Worker]` — **Deferred from IR-0 overnight sweep** (needs coordinated Worker + iOS v1.0.2 build + secret gen + supervised production deploy). Primary feature of IR-2a ship pass.
 - [x] **[LOW-001]** Rotate Sentry DSN (hardcoded in commit `e707df4` history). Sentry dashboard → revoke + create new → update `Config.xcconfig` → ship next build. `[iOS]` — Shipped 2026-04-22. New DSN live in local Config.xcconfig + `SENTRY_DSN` GitHub secret; old DSN (hash `0aa31ac865f8…`) disabled on Sentry.
-- [ ] **[HIGH-010]** Add IP-bucket rate limit to `/api/feedback` (Cloudflare Rate Limiting or Workers KV). 10 req/min per IP, 100 req/min global. Strip `@everyone`/`@here` + markdown link syntax before building embed. `[Worker]`
+- [ ] **[HIGH-010]** Add IP-bucket rate limit to `/api/feedback` (Cloudflare Rate Limiting or Workers KV). 10 req/min per IP, 100 req/min global. Strip `@everyone`/`@here` + markdown link syntax before building embed. `[Worker]` — **Deferred from IR-0** (production Worker config; prefer owner-supervised). Carried into IR-2a.
 
 **Data hygiene (fixes take minutes):**
-- [ ] **[MEDIUM-015]** Add `"lightning"` to `prusaslicer.sparse_infill_patterns` in `slicer_capabilities.json`. Remove the `lightning → rectilinear` Prusa fallback entry. `[Web+iOS]`
-- [ ] **[MEDIUM-016]** Add `"adaptivecubic"` to Bambu + Orca `sparse_infill_patterns`. `[Web+iOS]`
+- [x] **[MEDIUM-015]** Add `"lightning"` to `prusaslicer.sparse_infill_patterns` in `slicer_capabilities.json`. Remove the `lightning → rectilinear` Prusa fallback entry. `[Web+iOS]` — Shipped 2026-04-22. Web `e58d0ed`, iOS `aca26f1`. "lightning" was already in the valid set; the fallback entry was the actual silent downgrade vector. Walkthrough unchanged.
+- [x] **[MEDIUM-016]** Add `"adaptivecubic"` to Bambu + Orca `sparse_infill_patterns`. `[Web+iOS]` — Shipped 2026-04-22. Web `2ddff99`, iOS `34fba25`. Latent-gap fix (no current code path emits "adaptive cubic" — future preset additions won't silently fail validation).
 - [ ] **[LOW-002]** Rewrite HIPS `enclosure_behavior.reason` (currently copy-pasted from ABS). `[You]` for text, `[Code]` to apply.
 
 **Test quality:**
-- [ ] **[HIGH-002]** Tighten IMPL-040 surface-parity test: compute `expectedCount = 7×6 = 42`, replace silent `continue`s with `XCTFail`, end with `XCTAssertEqual(checked, expectedCount)`. `[iOS]`
-- [ ] Run XCTest suite locally; record baseline runtime. `[iOS]`
+- [x] **[HIGH-002]** Tighten IMPL-040 surface-parity test: compute `expectedCount = 7×6 = 42`, replace silent `continue`s with `XCTFail`, end with `XCTAssertEqual(checked, expectedCount)`. `[iOS]` — Shipped 2026-04-22. iOS `cb0b73d`. All 42 cells asserted; test still green.
+- [x] Run XCTest suite locally; record baseline runtime. `[iOS]` — Recorded 2026-04-22. Test-execution-only: **0.62s** for 37 tests. Total wall time including simulator scaffolding: **2m06s** (iPhone 17 Pro Max simulator, cold first-run of the session).
+
+### IR-2a — iOS v1.0.2 ship pass ⭐ NEXT UP
+
+Target: 1–2 sessions. Goal: ship **iOS v1.0.2** to the App Store with CRITICAL-001 (feedback privacy) as the headline user-visible change and a bundle of engine-correctness fixes that already landed since v1.0.1. Version bump + TestFlight → Review → Manual release.
+
+**Sequencing rationale:** CRITICAL-001 is the only true user-visible change in the queue — everything else is silent-correctness. Shipping them together under one version number keeps App Review narrative clean ("improved privacy and reliability") and means one TestFlight cycle instead of two.
+
+**Headline feature:**
+- [ ] **[CRITICAL-001]** Route iOS feedback through `/api/feedback` Cloudflare Worker. iOS `FeedbackService.swift` POSTs to `https://3dprintassistant.com/api/feedback` with `X-App-Source: ios` + HMAC/shared-secret header. Worker enhanced to accept iOS path, sanitise `@everyone`/`@here` + markdown link syntax, rebuild embed server-side. Rotate old Discord webhook after cutover. Test end-to-end via TestFlight build before prod push. `[iOS+Worker]`
+- [ ] **[HIGH-010]** Add IP-bucket rate limit to `/api/feedback` Worker. Cloudflare Rate Limiting (preferred) or Workers KV counter. 10 req/min per IP, 100 req/min global. Strip `@everyone`/`@here` + markdown link syntax before building embed. Deploy alongside CRITICAL-001 so iOS + web are both protected at cutover. `[Worker]`
+
+**Engine correctness (silent-fail fixes):**
+- [ ] **[HIGH-008]** Extend C6 warning loop to cover every `patternFor` field (top/bottom/internal/seam) — currently only `sparse_infill` + `support_interface`. Drive from module-level field list so new `patternFor` fields auto-get coverage. `[Web+iOS]`
+- [ ] **[HIGH-009]** Fix `_clampNum` non-finite fallback — return `min` (or caller default), never `undefined` / `null`. Eliminates `.toFixed()` crash path on missing fields. `[Web+iOS]`
+- [ ] **[MEDIUM-001]** Numeric-compare `limits_override.nozzles` keys (currently string lookup — `"0.40"` silently fails). `[Web+iOS]`
+- [ ] **[MEDIUM-002]** Add `if (!nozzle) return {};` guard to `resolveProfile`. `[Web+iOS]`
+- [ ] **[MEDIUM-007]** Init-time validation of `printer.series` enum. Case-sensitive string compare currently misclassifies typo'd entries. `[Web+iOS]`
+
+**iOS reliability (bridge error path — real errors stop masking as timeouts):**
+- [ ] **[HIGH-004]** Re-read `_engineError` in post-loop block before throwing the timeout. Currently real JS errors mask as "timed out". `[iOS]`
+- [ ] **[HIGH-005]** Replace `_engineError != "null"` string-compare with `typeof !== 'undefined'` or structured sentinel. `[iOS]`
+
+**Data hygiene (if owner closes open asks):**
+- [ ] **[HIGH-014]** Owner: verify A1 mini `max_bed_temp` vs Bambu spec page. If 80, apply. `[You]` + `[Code]`
+- [ ] **[LOW-002]** HIPS `enclosure_behavior.reason` — owner provides text, code applies. `[You]` + `[Code]`
+- [ ] **[MEDIUM-018]** Clean `nozzles.json.not_suitable_for` orphan references (`abs_cf`, `pla_wood`, `pla_glow`). Owner decides: unify via IDs or groups. `[You]` + `[Code]`
+
+**Release mechanics:**
+- [ ] Bump CFBundleShortVersionString to `1.0.2` in Xcode (project.yml + Info.plist). Auto build number bumps on CI push. `[iOS]`
+- [ ] Write "What's New" for App Store Connect — focus on privacy (feedback routing) + reliability (silent-error fixes). ≤ 4000 chars. `[You]` for tone, `[Code]` to draft.
+- [ ] TestFlight internal test round. Verify: feedback submit still lands in Discord; no crash on engine init; `invalid_preset` warnings surface when stale state fed in; MK4 profile no longer names A1. `[You]`
+- [ ] Submit to App Review. **EU DSA status** — if still blocked, v1.0.2 releases only to the ~121 non-EU countries (same pattern as v1.0.0). If unblocked, EU rollout rides along. `[You]`
+- [ ] Screenshots: reuse v1.0.0 set (no UI changes planned). `[Code]` to confirm no new visible surfaces; `[You]` if any visible surface shifted.
+
+**Acceptance:**
+- iOS v1.0.2 live in Apple's "Ready for Sale" state (same reach as v1.0.0).
+- Old Discord webhook URL rotated; iOS binary no longer contains it.
+- Rate limit live on `/api/feedback` Worker — curl-flood test confirms 429 at threshold.
+- Full iOS XCTest suite green + 3 new regression tests: worker round-trip (mocked), HIGH-008 pattern coverage, HIGH-009 fallback sanity.
+
+**Out of scope for v1.0.2** (deferred to v1.1 — see IR-4 + IR-5):
+- `actor EngineService` → `final class` refactor (HIGH-003). High risk, no user benefit; save for a dedicated architecture pass.
+- Bridging `SLICER_TABS` / `SLICER_PARAM_LABELS` / `getNozzleSize` / `getFilamentTabs` / `getSlicerDisplayName` (HIGH-006/007, MEDIUM-020/021). Nice-to-have drift prevention; no user-visible benefit.
+- Structured-numeric-per-chip refactor (HIGH-011). IMPL-040 tests are already tight post-HIGH-002 — no urgent gap.
+- Light mode (v1.1 candidate).
+- Export path items (export still disabled — IR-deferred).
 
 ### IR-1 — Data suggestion logic verification ✅ 2026-04-20
 
@@ -116,6 +162,7 @@ Target: 1–2 sessions. Not urgent, but closes the silent-drift surface.
 
 Not session-scheduled. Tick off as nearby edits touch the files.
 
+- [ ] **[HIGH-012-followup]** Apply the same printer-name templating to the other two "A1/A1 Mini"-hardcoded strings — `engine.js` `p.outer_wall_acceleration.why` (non-CoreXY, non-TPU, non-ABS branch) and `p.slow_down_tall.why` (non-CoreXY + isLarge branch). Same bug class as HIGH-012, separate code paths. Trivial once in the vicinity. `[Web+iOS]`
 - [ ] [LOW-003] Consolidate `retraction_length` + `retraction_distance` in materials.json — pick one. (Hard prereq before re-enabling export; HIGH-013.)
 - [ ] [LOW-004] TPU drying `display` vs numeric `heatbed_temp` mismatch.
 - [ ] [LOW-005] `prc_0.2` — keep + add siblings, or drop.
@@ -150,9 +197,10 @@ Not session-scheduled. Tick off as nearby edits touch the files.
 
 | Phase | Status | Owner-time | Code-time |
 |---|---|---|---|
-| IR-0 — Ship this week | ⏳ | 1–1.5 h | 2–3 h |
+| IR-0 — Ship this week | 🟩 5/10 shipped; 4 deferred to IR-2a, 1 pending owner (HIGH-014) | — | — |
 | IR-1 — Data logic verification | ✅ 2026-04-20 | — | — |
-| IR-2 — Engine correctness | ⏳ | 0 | 2–3 h |
+| IR-2a — iOS v1.0.2 ship pass ⭐ | ⏳ NEXT | 1–2 h (open-asks + TestFlight verify) | 3–4 h + 1 Worker deploy |
+| IR-2 — Engine correctness (remainder after v1.0.2 folds) | ⏳ | 0 | 1–2 h |
 | IR-3 — Failure rehearsal | ⏳ | 30 min | 2 h |
 | IR-4 — Drift prevention | ⏳ | 0 | 1–2 days |
 | IR-5 — Backlog | ongoing | — | — |
