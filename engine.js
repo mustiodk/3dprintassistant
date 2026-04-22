@@ -1650,7 +1650,9 @@ const Engine = (() => {
       p.outer_wall_speed = S(`${outerSpeed} mm/s`,
         isTPU      ? 'TPU must print slowly — flexible filament stretches during fast moves causing under-extrusion and jams.' :
         isABSlike  ? 'Slower outer walls reduce warping risk by allowing each layer more time to cool gradually.' :
-        !isCoreXY  ? 'A1/A1 Mini have a 10,000 mm/s² acceleration limit — higher speeds cause ringing on tall prints.' :
+        // HIGH-012 — template against printer.name + printer.max_acceleration so
+        // MK4 / MK4S / Ender-3 V3 / Kobra / Mini+ don't see text naming "A1/A1 Mini".
+        !isCoreXY  ? `${printer.name} tops out at ${(printer.max_acceleration || 0).toLocaleString('en-US')} mm/s² acceleration — higher outer-wall speeds cause ringing on tall prints.` :
         petgCapped ? 'PETG surface quality degrades noticeably above 80 mm/s outer wall speed — capped for this material.' :
         sm.id === 'quality' ? 'Slow outer walls reduce vibration artifacts and give each layer more time to solidify uniformly.' :
         'Outer wall speed balanced for your printer type — CoreXY handles higher speeds without ringing.');
