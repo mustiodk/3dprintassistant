@@ -37,8 +37,7 @@
       "crosshatch":  { "prusaslicer": "rectilinear" },
       "cross hatch": { "prusaslicer": "rectilinear" },
       "zig-zag":     { "prusaslicer": "rectilinear" },
-      "line":        { "prusaslicer": "rectilinear" },
-      "lightning":   { "prusaslicer": "rectilinear" }
+      "line":        { "prusaslicer": "rectilinear" }
     },
     "internal_solid_infill_pattern": {
       "zig-zag":  { "prusaslicer": "rectilinear" },
