@@ -5,7 +5,7 @@
   },
   "slicers": {
     "bambu_studio": {
-      "sparse_infill_patterns":     ["gyroid", "grid", "line", "crosshatch", "lightning", "zig-zag", "honeycomb", "cubic", "3dhoneycomb", "concentric"],
+      "sparse_infill_patterns":     ["gyroid", "grid", "line", "crosshatch", "lightning", "zig-zag", "honeycomb", "cubic", "adaptivecubic", "3dhoneycomb", "concentric"],
       "top_surface_patterns":       ["monotonic", "monotonicline", "rectilinear", "concentric"],
       "bottom_surface_patterns":    ["monotonic", "monotonicline", "rectilinear", "concentric"],
       "internal_solid_infill_patterns": ["zig-zag", "rectilinear", "concentric"],
@@ -23,7 +23,7 @@
       "seam_positions":             ["aligned", "nearest", "rear", "random"]
     },
     "orcaslicer": {
-      "sparse_infill_patterns":     ["gyroid", "grid", "line", "crosshatch", "lightning", "zig-zag", "honeycomb", "cubic", "3dhoneycomb", "concentric", "rectilinear"],
+      "sparse_infill_patterns":     ["gyroid", "grid", "line", "crosshatch", "lightning", "zig-zag", "honeycomb", "cubic", "adaptivecubic", "3dhoneycomb", "concentric", "rectilinear"],
       "top_surface_patterns":       ["monotonic", "monotonicline", "rectilinear", "concentric"],
       "bottom_surface_patterns":    ["monotonic", "monotonicline", "rectilinear", "concentric"],
       "internal_solid_infill_patterns": ["zig-zag", "rectilinear", "monotonic", "concentric"],
