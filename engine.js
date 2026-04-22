@@ -692,7 +692,16 @@ const Engine = (() => {
   // resolveProfile + getWarnings stay pure functions of state.
   function _clampNum(value, min, max) {
     const n = typeof value === 'number' ? value : parseFloat(String(value));
-    if (!isFinite(n)) return value;
+    if (!isFinite(n)) {
+      // [HIGH-009] Non-finite fallback: return a finite bound so callers never
+      // receive undefined/null/NaN and crash on .toFixed() or emit "undefined mm"
+      // via template literals. Prefer min (safer lower-bound default); fall back
+      // to max for call sites that pass null for min (wall-speed, line-width);
+      // final 0 is defensive — unreachable for current call sites.
+      if (typeof min === 'number' && isFinite(min)) return +(+min).toFixed(3);
+      if (typeof max === 'number' && isFinite(max)) return +(+max).toFixed(3);
+      return 0;
+    }
     if (max != null && n > max + 1e-6) return +(+max).toFixed(3);
     if (min != null && n < min - 1e-6) return +(+min).toFixed(3);
     return n;
