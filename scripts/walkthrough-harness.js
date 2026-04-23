@@ -293,6 +293,47 @@ function automatedChecks(r) {
     }
   });
 
+  // 0c. [IMPL-041 / DQ-1] Provenance coverage — every numeric or numeric-derived
+  //     emission must carry a non-null `prov` tag so pros can audit the numbers
+  //     we emit. String-only qualitative emissions (pattern names, generator
+  //     type, seam position) are exempt — no digit, no claim to audit.
+  //
+  //     Shape: prov === null  → qualitative, exempt
+  //            prov === { source: 'vendor'|'rule'|'default'|'calculated', ref? }
+  //                             → tagged, valid
+  //
+  //     This check lands in DQ-1 commit 2 and FAILS initially by design. DQ-1
+  //     commit 3 fills baseline tags on every numeric emission in resolveProfile
+  //     to satisfy it. Once green, it prevents future untagged emissions from
+  //     slipping through review.
+  const _hasDigit = (v) => v != null && /\d/.test(String(v));
+  const _isNumericEmission = (entry) => {
+    if (!entry || entry.value == null) return false;
+    return typeof entry.value === 'number' || _hasDigit(entry.value);
+  };
+  const _validProvShape = (p) => {
+    if (p == null) return true; // null is explicitly allowed for qualitative fields
+    if (typeof p !== 'object') return false;
+    const okSources = ['vendor', 'rule', 'default', 'calculated'];
+    return okSources.includes(p.source);
+  };
+  const _untagged = Object.entries(profile).filter(([, v]) => _isNumericEmission(v) && v.prov == null);
+  if (_untagged.length > 0) {
+    checks.push({
+      severity: 'fail',
+      label: 'numeric emissions missing provenance (DQ-1)',
+      message: `${_untagged.length} numeric field(s) without prov tag: ${_untagged.map(([k]) => k).join(', ')}`
+    });
+  }
+  const _malformed = Object.entries(profile).filter(([, v]) => v && v.prov != null && !_validProvShape(v.prov));
+  if (_malformed.length > 0) {
+    checks.push({
+      severity: 'fail',
+      label: 'malformed prov on profile emissions (DQ-1)',
+      message: `${_malformed.length} field(s) with invalid prov shape: ${_malformed.map(([k]) => k).join(', ')} — expected { source: 'vendor'|'rule'|'default'|'calculated', ref? }`
+    });
+  }
+
   // 1. layer_height within nozzle × 0.25 … nozzle × 0.70 (or override if present)
   const lh = getNum('layer_height');
   if (lh != null && nozzle) {
