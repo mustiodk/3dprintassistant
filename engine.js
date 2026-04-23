@@ -56,12 +56,43 @@ const Engine = (() => {
         fetch('./locales/da.json'),
       ]);
 
-    const [pd, md, nd, ed, od, wd, td, scd, enLocale, daLocale] = await Promise.all(
-      [printersRes, materialsRes, nozzlesRes, envRes, objRes, warnRes, tsRes, scRes, locEnRes, locDaRes].map(r => {
-        if (!r.ok) throw new Error(`Failed to load ${r.url} (HTTP ${r.status})`);
-        return r.json();
-      })
-    );
+    // [LOW-008] Per-file parse strategy. Critical files (printers, materials,
+    // nozzles, environment, objective_profiles, warnings, en locale, da locale)
+    // hard-fail — engine output is nonsensical without them. Non-critical files
+    // (troubleshooter, slicer_capabilities) fall back to documented defaults so
+    // a single malformed JSON doesn't brick the whole engine; the consequences
+    // are surfaced as warnings so dev builds notice:
+    //   • troubleshooter → { symptoms: [] } (empty troubleshooter UI)
+    //   • slicer_capabilities → null (mapForSlicer fails open per OBS-007)
+    const _critical = async (res) => {
+      if (!res.ok) throw new Error(`Failed to load ${res.url} (HTTP ${res.status})`);
+      return res.json();
+    };
+    const _soft = async (res, defaultValue, label) => {
+      if (!res.ok) {
+        console.warn(`[Engine init] Failed to load ${res.url} (HTTP ${res.status}) — using ${label} default`);
+        return defaultValue;
+      }
+      try {
+        return await res.json();
+      } catch (e) {
+        console.warn(`[Engine init] Failed to parse ${res.url}: ${e?.message || e} — using ${label} default`);
+        return defaultValue;
+      }
+    };
+
+    const [pd, md, nd, ed, od, wd, td, scd, enLocale, daLocale] = await Promise.all([
+      _critical(printersRes),
+      _critical(materialsRes),
+      _critical(nozzlesRes),
+      _critical(envRes),
+      _critical(objRes),
+      _critical(warnRes),
+      _soft(tsRes, { symptoms: [] },        'troubleshooter'),
+      _soft(scRes, null,                    'slicer_capabilities'),
+      _critical(locEnRes),
+      _critical(locDaRes),
+    ]);
 
     _printers       = pd.printers;
     _brands         = pd.brands || [];
