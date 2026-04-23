@@ -789,6 +789,13 @@ const Engine = (() => {
     const mOverride = override.motion || {};
     const maxSpeed = printer.max_speed || 500;
 
+    // [MEDIUM-003] Override merge contract: `?? formula` treats **missing keys**
+    // as "use formula" and preserves **explicit null** as "fall through to formula"
+    // (same as undefined). `null` is NOT a valid override value — it can't express
+    // "unbounded max" or "zero". If a future printer needs "disable this limit
+    // entirely," add an explicit sentinel (e.g. `max_layer_height: "unbounded"`)
+    // and branch on it here; do NOT rely on null as a valid numeric override.
+
     // Nozzle-driven geometry limits (universal — same across major slicers)
     const max_layer_height = nzOverride.max_layer_height ?? +(nozzleSize * 0.70).toFixed(3);
     const min_layer_height = nzOverride.min_layer_height ?? +(nozzleSize * 0.20).toFixed(3);
