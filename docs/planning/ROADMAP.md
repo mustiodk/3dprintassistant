@@ -2,7 +2,7 @@
 
 **Single source of truth for all planning.** Replaces IMPLEMENTATION_PLAN.md, TASKS.md, and web BACKLOG.md.
 
-**Last updated:** 2026-04-23 — **IR-2a engine + iOS sweep + CRITICAL-001 code landed overnight.** 13 findings shipped (20 commits across both repos): `[HIGH-009]` `_clampNum` finite fallback, `[MEDIUM-002]` nozzle guard, `[MEDIUM-001]` numeric nozzle-size compare, `[MEDIUM-007]` `printer.series` init-validate, `[HIGH-012-followup A+B]` remaining A1 why-text templating, `[HIGH-008]` C6 warning loop full `patternFor` coverage (surfaced one real silent substitution: Prusa fine-quality "Monotonic line" → "monotonic"), `[HIGH-004]` `_engineError` post-loop re-read, `[HIGH-005]` structured error sentinel, `[CRITICAL-001]` iOS→Worker HMAC routing (code complete, awaits secret config), `[HIGH-010 part A]` Worker sanitisation, `[MEDIUM-018 part A]` orphan nozzle refs cleanup. 37/37 iOS tests + 9/9 walkthrough clean after every commit. **Remaining for v1.0.2 ship: owner dashboard + secret config + version bump + TestFlight + App Review submit** (see IR-2a section for checklist). External review kit still out. Full internal deliverable at [`docs/reviews/2026-04-20-internal/`](../reviews/2026-04-20-internal/) — **59 findings: 3 CRITICAL / 14 HIGH / 22 MEDIUM / 10 LOW / 10 OBS.** Reviewed revisions: web `c4c5071`, iOS `24aef66`.
+**Last updated:** 2026-04-23 (late) — **IR-2 / IR-5 cleanup sweep + CI quota fix.** 10 findings shipped this session (21 commits across both repos): `[MEDIUM-017]` delete dead condition_warnings, `[MEDIUM-010]` reset isReady at EngineService init entry, `[LOW-009]` require da.json in presence test, `[OBS-006]` console polyfill on iOS JSContext, `[MEDIUM-022]` escHtml on 5 innerHTML sites in app.js, `[LOW-008]` soft-fail non-critical init files, `[MEDIUM-004]` shared `_fmtLayer` helper, `[LOW-010]` unify `_SUPPORT_TYPES`+`_SUPPORT_GEOMETRY` (drop `|| '0.10'` silent fallback), `[MEDIUM-019]` partial (explicit null for CF/PA/PC ×0.2 incompat; 0.8 gaps filed IR-5 followup), `[R8]` two-tier `_validateSchema()` at init (critical→throw / soft→warn, idempotent). Mid-session **TestFlight workflow switched to `workflow_dispatch`-only + concurrency cancel** after GitHub quota hit 100% — owner ship workflow now requires `gh workflow run testflight.yml --ref main` after version bump. Earlier today: `[HIGH-009]`, `[MEDIUM-001/002/007]`, `[HIGH-012-followup A+B]`, `[HIGH-008]`, `[HIGH-004/005]`, `[CRITICAL-001]` code (awaits secret config), `[HIGH-010 part A]`, `[MEDIUM-018 part A]`. 37/37 iOS tests + walkthrough clean after every commit. **Remaining for v1.0.2 ship: owner dashboard + secret config + version bump + manual CI dispatch + App Review submit** (see IR-2a section). External review kit still out. Full internal deliverable at [`docs/reviews/2026-04-20-internal/`](../reviews/2026-04-20-internal/) — **59 findings: 3 CRITICAL / 14 HIGH / 22 MEDIUM / 10 LOW / 10 OBS.** Reviewed revisions: web `c4c5071`, iOS `24aef66`.
 
 **Earlier status:** **IMPL-039 shipped.** Full printer-capability clamping + slicer-aware values refactor landed on web + iOS in one pass. Engine helpers (`getPrinterLimits`, `_clampNum`, `mapForSlicer`, `patternFor`) plus new `data/rules/slicer_capabilities.json` replace every scattered `Math.min` and hardcoded pattern name. 2 HIGH bugs fixed (`support_interface_pattern` now emits Bambu's canonical `rectilinear_interlaced`; `initial_layer_height` scales with nozzle so 0.2mm setups don't emit illegal 0.20mm). Retraction now nozzle-scaled and auto-bowden for MINI+/other bowden printers. 32/32 iOS tests pass. Bambu export byte-matches vendor preset format across all 5 canonical combos. iOS EU distribution still blocked on DSA Trader Status verification.
 **Owner:** Musti (solo dev)
@@ -92,7 +92,8 @@ Target: 1–2 sessions. Goal: ship **iOS v1.0.2** to the App Store with CRITICAL
 - [x] **[HIGH-012-followup B]** `slow_down_tall.why` printer-name template. Shipped 2026-04-23. Web `4efc122`, iOS `cf98878`.
 
 **Release mechanics (owner execution):**
-- [ ] Bump CFBundleShortVersionString to `1.0.2` in `project.yml` + run `xcodegen generate`. Auto build number bumps on CI push. `[iOS]`
+- [ ] Bump CFBundleShortVersionString to `1.0.2` in `project.yml` + run `xcodegen generate`. `[iOS]`
+- [ ] **NEW (2026-04-23):** After push, manually dispatch the TestFlight workflow — `gh workflow run testflight.yml --ref main` or click **Run workflow** in the Actions tab. TestFlight no longer auto-runs on push (CI quota fix; see `.github/workflows/testflight.yml`). `[You]`
 - [x] "What's New" draft locked at [`docs/app-store-whats-new-v1.0.2.md`](../app-store-whats-new-v1.0.2.md). Awaits owner tone pass, then paste into App Store Connect. `[Code]` drafted + `[You]` tone.
 - [ ] TestFlight internal test round. Verify: feedback submit lands in Discord via Worker (not direct); no crash on engine init; `invalid_preset` warnings surface when stale state fed in; MK4 profile no longer names A1. `[You]`
 - [ ] Rotate old Discord webhook URL **after** TestFlight confirms new Worker path. `[You]`
@@ -127,16 +128,16 @@ Second-pass coverage (when needed — add combos to `COMBOS[]` and re-run):
 - [ ] `calcPurgeVolumes`.
 - [ ] `getTroubleshootingTips` output.
 
-### IR-2 — Engine correctness hardening
+### IR-2 — Engine correctness hardening ✅ 2026-04-23
 
-Target: 1 session. The remaining HIGH/MEDIUM items that aren't IR-0 priority.
+All IR-2 items shipped via IR-2a + the 2026-04-23 cleanup sweep. Kept here for traceability; see IR-2a + IR-5 sections for commit references.
 
-- [ ] **[HIGH-008]** Extend C6 warning loop to cover every `patternFor` field (top/bottom/internal/seam) — currently only `sparse_infill` + `support_interface`. Drive from module-level field list so new `patternFor` fields auto-get coverage. `[Web+iOS]`
-- [ ] **[HIGH-009]** Fix `_clampNum` non-finite fallback — return `min` (or caller default), never `undefined` / `null`. Eliminates `.toFixed()` crash path on missing fields. `[Web+iOS]`
-- [ ] **[MEDIUM-001]** Numeric-compare `limits_override.nozzles` keys (currently string lookup — `"0.40"` silently fails). `[Web+iOS]`
-- [ ] **[MEDIUM-002]** Add `if (!nozzle) return {};` guard to `resolveProfile`. `[Web+iOS]`
-- [ ] **[MEDIUM-007]** Init-time validation of `printer.series` enum. Case-sensitive string compare currently misclassifies typo'd entries. `[Web+iOS]`
-- [ ] **[MEDIUM-018]** Clean `nozzles.json.not_suitable_for` orphan references (`abs_cf`, `pla_wood`, `pla_glow` don't exist in materials.json). Unify IDs vs groups. `[You]` to decide, `[Code]` to apply.
+- [x] **[HIGH-008]** Extend C6 warning loop to cover every `patternFor` field — shipped IR-2a.
+- [x] **[HIGH-009]** `_clampNum` non-finite fallback returns a finite bound — shipped IR-2a.
+- [x] **[MEDIUM-001]** Numeric-compare `limits_override.nozzles` keys — shipped IR-2a.
+- [x] **[MEDIUM-002]** `resolveProfile` `!nozzle` early-return guard — shipped IR-2a.
+- [x] **[MEDIUM-007]** Init-time validation of `printer.series` enum — shipped IR-2a (subsumed by R8 `_validateSchema` on 2026-04-23).
+- [~] **[MEDIUM-018]** Part A (orphan refs) shipped IR-2a. Part B (ID-vs-group convention) remains an owner decision.
 
 ### IR-3 — Failure-mode rehearsal (live-product readiness)
 
@@ -161,34 +162,34 @@ Target: 1–2 sessions. Not urgent, but closes the silent-drift surface.
 - [ ] **[HIGH-011]** Engine returns structured numeric field per chip alongside `desc`. Test asserts on the field directly (not regex over desc text). `[Web+iOS]`
 - [ ] **[MEDIUM-020]** Bridge `getFilamentTabs(mode)` from engine. Drop the hardcoded tab list in `OutputView`. `[iOS]`
 - [ ] **[MEDIUM-021]** Bridge `getSlicerDisplayName(id)` from engine. Drop the hardcoded switch in `OutputViewModel.slicerName`. `[iOS]`
-- [ ] **[R8]** Introduce `_validateSchema()` at engine init (catches MEDIUM-001 / -007 / -018 / -019 / HIGH-009 all at once). See [R8](../reviews/2026-04-20-internal/07-recommendations.md). `[Web+iOS]`
+- [x] **[R8]** `_validateSchema()` at engine init — shipped 2026-04-23. Web `7601c72`, iOS `88047ec`. Two-tiered (critical→throw / soft→warn), idempotent via `_schemaValidated` flag. Current data: 0 critical, 16 soft warnings documenting `[MEDIUM-019-followup]` (max_mvs 0.8 gaps). Subsumes the MEDIUM-007 inline check.
 
 ### IR-5 — Backlog (touch when nearby)
 
 Not session-scheduled. Tick off as nearby edits touch the files.
 
-- [ ] **[HIGH-012-followup]** Apply the same printer-name templating to the other two "A1/A1 Mini"-hardcoded strings — `engine.js` `p.outer_wall_acceleration.why` (non-CoreXY, non-TPU, non-ABS branch) and `p.slow_down_tall.why` (non-CoreXY + isLarge branch). Same bug class as HIGH-012, separate code paths. Trivial once in the vicinity. `[Web+iOS]`
+- [x] **[HIGH-012-followup A+B]** A1 why-text templating on `outer_wall_acceleration.why` + `slow_down_tall.why` — shipped 2026-04-23 (IR-2a).
 - [ ] [LOW-003] Consolidate `retraction_length` + `retraction_distance` in materials.json — pick one. (Hard prereq before re-enabling export; HIGH-013.)
 - [ ] [LOW-004] TPU drying `display` vs numeric `heatbed_temp` mismatch.
 - [ ] [LOW-005] `prc_0.2` — keep + add siblings, or drop.
 - [ ] [LOW-006] `flexible` field duplication.
 - [ ] [LOW-007] Hoist Bambu preset `version: '2.5.0.14'` to module constant. (Lower priority; export disabled.)
-- [ ] [LOW-008] Wrap per-file `init()` `.json()` in `.catch()` for non-critical files.
-- [ ] [LOW-009] Add `da.json` to `testAllBundledResourcesPresent`.
-- [ ] [LOW-010] Unify `_SUPPORT_TYPES` + `_SUPPORT_GEOMETRY` (or throw on missing).
+- [x] [LOW-008] Wrap per-file `init()` `.json()` in `.catch()` for non-critical files — shipped 2026-04-23. Web `250d456`, iOS `dea0eab`. Critical files (printers/materials/nozzles/env/obj/warnings/locales) still hard-fail; troubleshooter + slicer_capabilities soft-fail with documented defaults.
+- [x] [LOW-009] Add `da.json` to `testAllBundledResourcesPresent` — shipped 2026-04-23. iOS `63c3a5d`.
+- [x] [LOW-010] Unify `_SUPPORT_TYPES` + `_SUPPORT_GEOMETRY` — shipped 2026-04-23. Web `d91bb6a`, iOS `228a600`. Merged table; `|| '0.10'` silent fallback deleted (new support ids without geometry now throw at emission).
 - [ ] [MEDIUM-003] Document `limits_override` null vs undefined contract.
-- [ ] [MEDIUM-004] Single `_fmtLayer(lh)` helper shared by chip desc + profile emit.
+- [x] [MEDIUM-004] Single `_fmtLayer(lh)` helper shared by chip desc + profile emit — shipped 2026-04-23. Web `a1b187a`, iOS `fcb56f1`. Scope: `layer_height` only; `initial_layer_height` keeps its own toFixed(2) (different display convention).
 - [ ] [MEDIUM-005] Route strength-chip pattern through `mapForSlicer`.
 - [ ] [MEDIUM-009] Typed `Codable` decode for `resolveProfile` output. See [R7](../reviews/2026-04-20-internal/07-recommendations.md).
-- [ ] [MEDIUM-010] Reset `isReady = false` at top of `EngineService.initialize()`.
+- [x] [MEDIUM-010] Reset `isReady = false` at top of `EngineService.initialize()` — shipped 2026-04-23. iOS `65899ef`.
 - [ ] [MEDIUM-011] Correctness-tier test (hardcoded expected clamped values for 5–10 combos).
 - [ ] [MEDIUM-012] `JSON.stringify`-style escaping for ID embeds in JS calls.
 - [ ] [MEDIUM-013] Throw/log on `getFilters(state:)` serialisation failure instead of silent fallback.
 - [ ] [MEDIUM-014] See CRITICAL-002 — partial finding now covered there.
-- [ ] [MEDIUM-017] Decide: wire engine to `warnings.json.condition_warnings` or delete the dead data.
-- [ ] [MEDIUM-019] Align `max_mvs` key coverage with `k_factor_matrix`.
-- [ ] [MEDIUM-022] Route `innerHTML` call sites through `escHtml` (or switch to `textContent`).
-- [ ] [OBS-006] Add minimal `console` polyfill to iOS JSContext.
+- [x] [MEDIUM-017] Deleted dead `condition_warnings` block + validate-data.js schema support — shipped 2026-04-23. Web `358591d`, iOS `a797f2f`. Observation: `material_warnings` is also dead data (engine reads `_warnings` but never references `.material_warnings`); not actioned this session, retire nearby when revisited.
+- [~] [MEDIUM-019] Align `max_mvs` key coverage with `k_factor_matrix`. **Part A shipped 2026-04-23** — explicit `null` for CF/PA/PC/pa_cf/pet_cf ×0.2 (already incompatible via `min_diameter=0.4`). Web `f6d11f6`, iOS `ad655ed`. **`[MEDIUM-019-followup]`** — 0.8mm entries for 16 mainstream materials + HIPS 0.2mm still need domain-sourced volumetric numbers; R8 surfaces these as 16 soft warnings at init.
+- [x] [MEDIUM-022] Route `innerHTML` call sites through `escHtml` — shipped 2026-04-23. Web `1eb9ffa`. 5 sites: warnings bar (m.text/m.detail), filament notes, compare banner (comparisonProfile.label), profile-panel rows.
+- [x] [OBS-006] Minimal `console` polyfill to iOS JSContext — shipped 2026-04-23. iOS `c2fa85c`. Defuses latent ReferenceError from MEDIUM-007 inline `console.warn`.
 
 ### IR-deferred — export path (re-activate when export is re-enabled)
 
@@ -204,8 +205,8 @@ Not session-scheduled. Tick off as nearby edits touch the files.
 |---|---|---|---|
 | IR-0 — Ship this week | 🟩 5/10 shipped; 4 deferred to IR-2a, 1 pending owner (HIGH-014) | — | — |
 | IR-1 — Data logic verification | ✅ 2026-04-20 | — | — |
-| IR-2a — iOS v1.0.2 ship pass ⭐ | ⏳ NEXT | 1–2 h (open-asks + TestFlight verify) | 3–4 h + 1 Worker deploy |
-| IR-2 — Engine correctness (remainder after v1.0.2 folds) | ⏳ | 0 | 1–2 h |
+| IR-2a — iOS v1.0.2 ship pass ⭐ | ⏳ NEXT | 1–2 h (open-asks + TestFlight verify + manual dispatch) | 3–4 h + 1 Worker deploy |
+| IR-2 — Engine correctness | ✅ 2026-04-23 | — | — |
 | IR-3 — Failure rehearsal | ⏳ | 30 min | 2 h |
 | IR-4 — Drift prevention | ⏳ | 0 | 1–2 days |
 | IR-5 — Backlog | ongoing | — | — |
