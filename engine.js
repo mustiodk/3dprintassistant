@@ -783,6 +783,14 @@ const Engine = (() => {
          : slicer === 'prusaslicer'  ? 'PrusaSlicer'
          :                             'OrcaSlicer';
   }
+  // [HIGH-007] Resolve a nozzle id to its size (as a string — the canonical
+  // key shape used across max_mvs / k_factor_matrix lookups). Replaces the
+  // iOS `appState.nozzle.split("_").last` pattern, which broke any future
+  // nozzle id that doesn't encode the size after an underscore.
+  function getNozzleSize(id) {
+    const n = getNozzle(id);
+    return n ? String(n.size) : null;
+  }
   function setActiveSlicer(id) { _activeSlicer = SLICER_TABS[id] ? id : 'bambu_studio'; }
   function getActiveSlicer()   { return _activeSlicer; }
 
@@ -2831,6 +2839,7 @@ const Engine = (() => {
     searchPrinters,
     getSlicerForPrinter,
     getSlicerDisplayName,
+    getNozzleSize,
     setActiveSlicer,
     getActiveSlicer,
     isNozzleCompatibleWithMaterial,
