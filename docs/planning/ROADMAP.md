@@ -2,7 +2,7 @@
 
 **Single source of truth for all planning.** Replaces IMPLEMENTATION_PLAN.md, TASKS.md, and web BACKLOG.md.
 
-**Last updated:** 2026-04-23 evening — **v1.0.2 SUBMITTED TO APP REVIEW.** Full ship-sequence executed in a single session: tone-pass What's New, MARKETING_VERSION 1.0.1 → 1.0.2 + xcodegen + push (web iOS `11b9c8d`), mid-session scope expansion added Home-screen version-display footer (iOS `15c1002`), TestFlight dispatched via `gh workflow run testflight.yml --ref main` (run [24848532846](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/24848532846), SUCCESS), on-device smoke tests 4a–4e all green, old `#ios-app-feedback` webhook deleted (attack surface from v1.0.0/v1.0.1 binaries closed), v1.0.2 submitted to App Review with **Manual release toggle** + Promotional Text "Generate optimized 3D print profiles for 64 printers across 12 brands. Bambu, Prusa, Creality, and more." Casual-tone What's New at `docs/app-store-whats-new-v1.0.2.md` (final). **Routing finding surfaced mid-step-5:** Worker `/api/feedback` routes all iOS + web feedback to single `DISCORD_WEBHOOK_URL` → `#web-app-feedback` (intended split into `#ios-app-feedback` never landed); filed as `[CRITICAL-001-followup]` in IR-5 backlog for v1.0.3 (~15 LoC + new CF secret, no iOS binary change). Now awaiting Apple review (24–48h typical). **Earlier today: IR-4 bundle + IR-5 remainder shipped into v1.0.2.** 10 findings + HIGH-003 actor→class refactor (3-pass external Codex review, VERDICT: merge). Test count 37 → 40. Bundle: MEDIUM-021 slicer-display-name bridge, HIGH-007 getNozzleSize bridge, MEDIUM-020 getFilamentTabs bridge, LOW-004 TPU drying alignment, LOW-006 flexible dedup, HIGH-006 SLICER_TABS bridge + 270 lines of SlicerLayout.swift static data deleted + snapshot test, LOW-003 retraction naming collapse (unblocks export re-enable), HIGH-011 structured numeric per chip + desc-independent assertion test, MEDIUM-009 Codable decode for resolveProfile, HIGH-003 actor → final class + serial DispatchQueue. External review: 3 Codex passes — Pass 1 flagged 4 Tier-1 concerns (description-only), Pass 2 "mostly sound, 1 Tier-1 caveat" resolved by doc-comment, Pass 3 VERDICT: merge. Review kit preserved at `3dprintassistant-ios/docs/reviews/2026-04-23-high-003-codex/`. Earlier today (IR-5 backlog sweep II): 10 findings shipped this session (21 commits across both repos): `[MEDIUM-017]` delete dead condition_warnings, `[MEDIUM-010]` reset isReady at EngineService init entry, `[LOW-009]` require da.json in presence test, `[OBS-006]` console polyfill on iOS JSContext, `[MEDIUM-022]` escHtml on 5 innerHTML sites in app.js, `[LOW-008]` soft-fail non-critical init files, `[MEDIUM-004]` shared `_fmtLayer` helper, `[LOW-010]` unify `_SUPPORT_TYPES`+`_SUPPORT_GEOMETRY` (drop `|| '0.10'` silent fallback), `[MEDIUM-019]` partial (explicit null for CF/PA/PC ×0.2 incompat; 0.8 gaps filed IR-5 followup), `[R8]` two-tier `_validateSchema()` at init (critical→throw / soft→warn, idempotent). Mid-session **TestFlight workflow switched to `workflow_dispatch`-only + concurrency cancel** after GitHub quota hit 100% — owner ship workflow now requires `gh workflow run testflight.yml --ref main` after version bump. Earlier today: `[HIGH-009]`, `[MEDIUM-001/002/007]`, `[HIGH-012-followup A+B]`, `[HIGH-008]`, `[HIGH-004/005]`, `[CRITICAL-001]` code (awaits secret config), `[HIGH-010 part A]`, `[MEDIUM-018 part A]`. 37/37 iOS tests + walkthrough clean after every commit. **Remaining for v1.0.2 ship: owner dashboard + secret config + version bump + manual CI dispatch + App Review submit** (see IR-2a section). External review kit still out. Full internal deliverable at [`docs/reviews/2026-04-20-internal/`](../reviews/2026-04-20-internal/) — **59 findings: 3 CRITICAL / 14 HIGH / 22 MEDIUM / 10 LOW / 10 OBS.** Reviewed revisions: web `c4c5071`, iOS `24aef66`.
+**Last updated:** 2026-04-23 evening — **v1.0.2 SUBMITTED TO APP REVIEW** + **Phase DQ (Data Quality & Pro-Relevance) spec signed off** — 5 sub-phases (provenance → Safe/Tuned → PA/LA → retraction deltas → cooling curves). Master spec at [`docs/specs/IMPL-041-data-quality-phase.md`](../specs/IMPL-041-data-quality-phase.md). Begins in parallel with Apple review wait. Full ship-sequence executed in a single session: tone-pass What's New, MARKETING_VERSION 1.0.1 → 1.0.2 + xcodegen + push (web iOS `11b9c8d`), mid-session scope expansion added Home-screen version-display footer (iOS `15c1002`), TestFlight dispatched via `gh workflow run testflight.yml --ref main` (run [24848532846](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/24848532846), SUCCESS), on-device smoke tests 4a–4e all green, old `#ios-app-feedback` webhook deleted (attack surface from v1.0.0/v1.0.1 binaries closed), v1.0.2 submitted to App Review with **Manual release toggle** + Promotional Text "Generate optimized 3D print profiles for 64 printers across 12 brands. Bambu, Prusa, Creality, and more." Casual-tone What's New at `docs/app-store-whats-new-v1.0.2.md` (final). **Routing finding surfaced mid-step-5:** Worker `/api/feedback` routes all iOS + web feedback to single `DISCORD_WEBHOOK_URL` → `#web-app-feedback` (intended split into `#ios-app-feedback` never landed); filed as `[CRITICAL-001-followup]` in IR-5 backlog for v1.0.3 (~15 LoC + new CF secret, no iOS binary change). Now awaiting Apple review (24–48h typical). **Earlier today: IR-4 bundle + IR-5 remainder shipped into v1.0.2.** 10 findings + HIGH-003 actor→class refactor (3-pass external Codex review, VERDICT: merge). Test count 37 → 40. Bundle: MEDIUM-021 slicer-display-name bridge, HIGH-007 getNozzleSize bridge, MEDIUM-020 getFilamentTabs bridge, LOW-004 TPU drying alignment, LOW-006 flexible dedup, HIGH-006 SLICER_TABS bridge + 270 lines of SlicerLayout.swift static data deleted + snapshot test, LOW-003 retraction naming collapse (unblocks export re-enable), HIGH-011 structured numeric per chip + desc-independent assertion test, MEDIUM-009 Codable decode for resolveProfile, HIGH-003 actor → final class + serial DispatchQueue. External review: 3 Codex passes — Pass 1 flagged 4 Tier-1 concerns (description-only), Pass 2 "mostly sound, 1 Tier-1 caveat" resolved by doc-comment, Pass 3 VERDICT: merge. Review kit preserved at `3dprintassistant-ios/docs/reviews/2026-04-23-high-003-codex/`. Earlier today (IR-5 backlog sweep II): 10 findings shipped this session (21 commits across both repos): `[MEDIUM-017]` delete dead condition_warnings, `[MEDIUM-010]` reset isReady at EngineService init entry, `[LOW-009]` require da.json in presence test, `[OBS-006]` console polyfill on iOS JSContext, `[MEDIUM-022]` escHtml on 5 innerHTML sites in app.js, `[LOW-008]` soft-fail non-critical init files, `[MEDIUM-004]` shared `_fmtLayer` helper, `[LOW-010]` unify `_SUPPORT_TYPES`+`_SUPPORT_GEOMETRY` (drop `|| '0.10'` silent fallback), `[MEDIUM-019]` partial (explicit null for CF/PA/PC ×0.2 incompat; 0.8 gaps filed IR-5 followup), `[R8]` two-tier `_validateSchema()` at init (critical→throw / soft→warn, idempotent). Mid-session **TestFlight workflow switched to `workflow_dispatch`-only + concurrency cancel** after GitHub quota hit 100% — owner ship workflow now requires `gh workflow run testflight.yml --ref main` after version bump. Earlier today: `[HIGH-009]`, `[MEDIUM-001/002/007]`, `[HIGH-012-followup A+B]`, `[HIGH-008]`, `[HIGH-004/005]`, `[CRITICAL-001]` code (awaits secret config), `[HIGH-010 part A]`, `[MEDIUM-018 part A]`. 37/37 iOS tests + walkthrough clean after every commit. **Remaining for v1.0.2 ship: owner dashboard + secret config + version bump + manual CI dispatch + App Review submit** (see IR-2a section). External review kit still out. Full internal deliverable at [`docs/reviews/2026-04-20-internal/`](../reviews/2026-04-20-internal/) — **59 findings: 3 CRITICAL / 14 HIGH / 22 MEDIUM / 10 LOW / 10 OBS.** Reviewed revisions: web `c4c5071`, iOS `24aef66`.
 
 **Earlier status:** **IMPL-039 shipped.** Full printer-capability clamping + slicer-aware values refactor landed on web + iOS in one pass. Engine helpers (`getPrinterLimits`, `_clampNum`, `mapForSlicer`, `patternFor`) plus new `data/rules/slicer_capabilities.json` replace every scattered `Math.min` and hardcoded pattern name. 2 HIGH bugs fixed (`support_interface_pattern` now emits Bambu's canonical `rectilinear_interlaced`; `initial_layer_height` scales with nozzle so 0.2mm setups don't emit illegal 0.20mm). Retraction now nozzle-scaled and auto-bowden for MINI+/other bowden printers. 32/32 iOS tests pass. Bambu export byte-matches vendor preset format across all 5 canonical combos. iOS EU distribution still blocked on DSA Trader Status verification.
 **Owner:** Musti (solo dev)
@@ -231,6 +231,86 @@ Not session-scheduled. Tick off as nearby edits touch the files.
 | IR-3 — Failure rehearsal | ⏳ deferred per owner | 30 min | 2 h |
 | IR-4 — Drift prevention | ✅ 2026-04-23 (bundled into v1.0.2) | — | — |
 | IR-5 — Backlog | ongoing | — | — |
+| **Phase DQ — Data quality & pro-relevance** | 🟩 **0/5 sub-phases shipped — spec signed off 2026-04-23** | — | 3–5 sessions |
+
+---
+
+## Phase DQ — Data Quality & Pro-Relevance
+
+**Master spec:** [`IMPL-041-data-quality-phase.md`](../specs/IMPL-041-data-quality-phase.md) — full design, acceptance criteria, scraper strategy.
+
+**Goal:** move from beginner-friendly to pro-credible. Every number has a traceable source; profiles split into **Safe** (published spec) vs **Tuned** (community-validated); pro-tier fields (PA/LA, material-specific retraction, structured cooling) land on both platforms.
+
+**Sequence is strict.** DQ-1 is load-bearing; retrofitting provenance later = rework every commit. DQ-2's Safe/Tuned shape decides where DQ-3/4/5 data lands.
+
+**Progress:** `[⬜⬜⬜⬜⬜ 0%]` — 0 of 5 sub-phases shipped.
+
+### DQ-1 — Provenance infrastructure (first — load-bearing)
+
+Tag every numeric emission with `{source: "vendor" | "rule" | "default" | "calculated", ref?}`. Advanced-view UI reveals per-field provenance on demand; beginners never see it.
+
+- [ ] `engine.js`: `_tag(value, source, ref?)` helper. `[Web]`
+- [ ] `engine.js`: every numeric emission in `resolveProfile` wrapped; return shape becomes `{params, provenance}`. `[Web]`
+- [ ] `app.js` + `index.html`: Advanced view renders muted provenance badge per numeric field. `[Web]`
+- [ ] `scripts/walkthrough-harness.js`: new invariant — fail hard on any untagged numeric emission. `[Web]`
+- [ ] iOS: `EngineService.swift` decodes provenance alongside params. `[iOS]`
+- [ ] iOS: `PrintProfileTabView.swift` renders provenance when Advanced view is on. `[iOS]`
+- [ ] iOS: new `EngineServiceTests` test — parity with harness invariant. `[iOS]`
+- [ ] Byte-identical engine + data sync web → iOS. `[Both]`
+
+### DQ-2 — Safe vs Tuned objective
+
+New state field `profileMode: "safe" | "tuned"`. Default `"safe"` — zero behavior change for existing users. `objective_profiles.json` + rules carry both tiers where they differ.
+
+- [ ] `engine.js`: accepts `state.profileMode`; emission resolves to correct tier. `[Web]`
+- [ ] `data/rules/objective_profiles.json`: dual-tier values where they differ; single value elsewhere. `[Web]`
+- [ ] `app.js`: Safe/Tuned toggle on Goals step with one-line explainer. `[Web]`
+- [ ] Walkthrough regression: with `profileMode` unset or `"safe"`, every existing combo's emission byte-equal to pre-DQ-2. `[Web]`
+- [ ] iOS: `AppState` adds `profileMode`; Goals toggle; OutputViewModel passes into bridge. `[iOS]`
+- [ ] iOS: new XCTest — Safe emission matches baseline; Tuned differs on at least 3 known fields. `[iOS]`
+
+### DQ-3 — Pressure / Linear Advance per material
+
+Biggest single pro-credibility lever. Scraper-assisted data collection.
+
+- [ ] `scripts/scrape/` — Node.js scraper for 6 sources (Bambu wiki, Prusa KB, Polymaker, Prusament, Overture, eSun). Owner runs locally. `[Code-once]`
+- [ ] `docs/research/scraped/` — raw dumps committed for reproducibility. `[You to run]`
+- [ ] Gemini pass — cross-reference + propose values with confidence tiers. `[You, external tool]`
+- [ ] `materials.json`: `pressure_advance` map per printer × nozzle, provenance-tagged. `[Web]`
+- [ ] `engine.js`: emits `pressure_advance` (Bambu/Orca) / `linear_advance_factor` (Prusa). `[Web]`
+- [ ] Walkthrough: ≥ 3 combos assert PA/LA presence + sanity range. `[Web]`
+- [ ] Coverage floor: top 10 materials × 4 mainstream printer series; `_default` for all 18 materials. `[Web]`
+- [ ] iOS sync + XCTest. `[iOS]`
+- [ ] Folds in `[MEDIUM-019-followup]` (0.8mm max_mvs gaps) — same scraper pass produces both. `[Web+iOS]`
+
+### DQ-4 — Retraction deltas per material
+
+Material-aware retraction. Current model is nozzle + bowden only.
+
+- [ ] `materials.json`: optional `retraction` override (distance_multiplier, speed, provenance). `[Web]`
+- [ ] `engine.js`: `_resolveRetraction(printer, nozzle, material)` rule. `[Web]`
+- [ ] Safe tier keeps current model; Tuned applies override. `[Web]`
+- [ ] Coverage floor: TPU 85A/90A, PETG, ASA, PC, PA, PLA-CF. `[Web]`
+- [ ] iOS sync + new XCTest (`retraction(PETG) > retraction(PLA)` on same printer/nozzle). `[iOS]`
+
+### DQ-5 — Cooling curves
+
+Replace flat fan% with structured cooling block.
+
+- [ ] `materials.json`: `cooling` block (fan min/max, slow_down_layer_time, overhang fan, close_fan_first_n_layers). `[Web]`
+- [ ] `engine.js`: emits into slicer-specific fields via `SLICER_PARAM_LABELS`. `[Web]`
+- [ ] `app.js` + iOS `PrintProfileTabView`: new "Cooling" section. `[Web+iOS]`
+- [ ] Coverage floor: cooling block for all 18 materials; Safe/Tuned differentiation for PLA, PETG, ASA, TPU minimum. `[Web+iOS]`
+
+### Phase DQ acceptance (close criteria)
+
+- 100% of emitted numeric params carry provenance tag; walkthrough + XCTest assert this.
+- Safe/Tuned toggle live on both platforms; `safe` default; pre-DQ behavior unchanged.
+- PA/LA live for top 10 materials × 4 printer series minimum.
+- Per-material retraction overrides live for 6+ named materials.
+- Cooling block live for all 18 materials; rendered on both platforms.
+- Walkthrough harness + iOS XCTest counts bumped for DQ invariants.
+- ROADMAP DQ section fully ticked.
 
 ---
 
