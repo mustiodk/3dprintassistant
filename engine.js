@@ -74,6 +74,19 @@ const Engine = (() => {
     _slicerCaps     = scd;
     _T.en           = enLocale;
     _T.da           = daLocale;
+
+    // [MEDIUM-007] Validate printer.series enum at init-time. Case-sensitive
+    // string compare elsewhere (engine.js:1367 etc.) would silently misclassify
+    // typo'd values ("CoreXY" → treated as bedslinger → wrong speed emission +
+    // misleading A1/A1 Mini why-text). Log loudly so dev builds / tests fail
+    // fast; don't throw (a single malformed entry shouldn't brick the whole app
+    // for the other 63 printers).
+    const VALID_PRINTER_SERIES = ['corexy', 'bedslinger'];
+    _printers.forEach(p => {
+      if (!VALID_PRINTER_SERIES.includes(p.series)) {
+        console.warn(`[Engine init] printer "${p.id}" has invalid series="${p.series}" — expected one of ${VALID_PRINTER_SERIES.join(', ')}. Speed emission + why-text may be wrong.`);
+      }
+    });
   }
 
   // ── Static UI filter arrays (pure UI concerns, not data-driven) ─────────────
