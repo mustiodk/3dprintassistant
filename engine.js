@@ -1800,7 +1800,8 @@ const Engine = (() => {
 
     if (isLarge && !isCoreXY) {
       p.slow_down_tall = S('Enabled (recommended)',
-        'On A1/A1 Mini the bed moves — tall prints amplify vibration as mass increases. Slowing top layers significantly reduces ringing artifacts.');
+        // [HIGH-012-followup B] Template against printer.name — was hardcoded "A1/A1 Mini" and fired for every bedslinger large-print case.
+        `On ${printer.name} the bed moves — tall prints amplify vibration as mass increases. Slowing top layers significantly reduces ringing artifacts.`);
     }
 
     // Brim logic — explicit state.brim overrides auto-detection
