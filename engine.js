@@ -1393,11 +1393,29 @@ const Engine = (() => {
     // slicer and mapForSlicer has substituted a fallback, tell the user so they
     // know what they're actually getting (e.g. Prusa users on Minimal strength
     // see "Rectilinear" instead of "Cross Hatch").
+    //
+    // [HIGH-008] Coverage extended from { sparse_infill, support_interface } to
+    // every `patternFor`-routed field. Previously top/bottom/internal/seam
+    // patterns silently substituted via mapForSlicer's `validSet[0]` fallback
+    // with no user-visible trace. Checks is now the canonical list — any new
+    // patternFor field MUST be added here to preserve coverage.
     if (printer && _slicerCaps) {
       const slicer = getSlicerForPrinter(state.printer) || 'bambu_studio';
+      // Mirror resolveProfile's preset coercion — unknown surface ID falls back
+      // to 'standard' so isFineQuality stays well-defined under CRITICAL-003 invalid input.
+      const surface = getSurface(state.surface) || getSurface('standard');
+      const isFineQuality = surface && (surface.id === 'fine' || surface.id === 'maximum');
+      const seamLabels = { aligned: 'Aligned', sharpest_corner: 'Sharpest corner', random: 'Random', back: 'Back' };
+      // Only check seam_position when the user explicitly picked one — the engine's
+      // default display "Aligned (or Back)" is a composite hint, not a slicer candidate,
+      // and always reduces to the slicer default (noise, not substitution).
       const checks = [
-        { label: 'Sparse infill pattern',   field: 'sparse_infill_pattern', value: getStrength(state.strength)?.infill_pattern },
-        { label: 'Support interface pattern', field: 'support_interface_pattern', value: state.support === 'best_underside' ? 'Grid' : (state.support && state.support !== 'none' ? 'Rectilinear' : null) },
+        { label: 'Sparse infill pattern',             field: 'sparse_infill_pattern',           value: getStrength(state.strength)?.infill_pattern },
+        { label: 'Support interface pattern',         field: 'support_interface_pattern',       value: state.support === 'best_underside' ? 'Grid' : (state.support && state.support !== 'none' ? 'Rectilinear' : null) },
+        { label: 'Top surface pattern',               field: 'top_surface_pattern',             value: isFineQuality ? 'Monotonic line' : 'Monotonic' },
+        { label: 'Bottom surface pattern',            field: 'bottom_surface_pattern',          value: 'Monotonic' },
+        { label: 'Internal solid infill pattern',     field: 'internal_solid_infill_pattern',   value: 'Rectilinear' },
+        { label: 'Seam position',                     field: 'seam_position',                   value: state.seam ? (seamLabels[state.seam] || state.seam) : null },
       ];
       checks.forEach(c => {
         if (!c.value) return;
