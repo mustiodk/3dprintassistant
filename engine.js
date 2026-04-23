@@ -1730,7 +1730,8 @@ const Engine = (() => {
 
       p.outer_wall_acceleration    = A(`${outerAccel} mm/s²`,
         isTPU     ? 'Very low acceleration for TPU — prevents filament stretching and under-extrusion.' :
-        !isCoreXY ? 'Lower acceleration on A1/A1 Mini prevents ringing from the moving print bed mass.' :
+        // [HIGH-012-followup A] Template against printer.name — was hardcoded "A1/A1 Mini" and fired for every bedslinger.
+        !isCoreXY ? `Lower acceleration on ${printer.name} prevents ringing from the moving print bed mass.` :
         isABSlike ? 'Reduced acceleration helps ABS/ASA cool more uniformly, reducing warping.' :
         'Outer wall acceleration tuned for your printer — balances speed with surface quality.');
       p.inner_wall_acceleration    = A(`${innerAccel} mm/s²`,
