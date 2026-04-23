@@ -1307,6 +1307,7 @@
         "cooling_fan_overhang": "70%",
         "slow_layer_time": "15 s",
         "max_mvs": {
+          "0.2": null,
           "0.4": "14 mm³/s",
           "0.6": "18 mm³/s"
         },
@@ -1411,6 +1412,7 @@
         "cooling_fan_overhang": "50%",
         "slow_layer_time": "15 s",
         "max_mvs": {
+          "0.2": null,
           "0.4": "12 mm³/s",
           "0.6": "15 mm³/s"
         },
@@ -1515,6 +1517,7 @@
         "cooling_fan_overhang": "20%",
         "slow_layer_time": "15 s",
         "max_mvs": {
+          "0.2": null,
           "0.4": "10 mm³/s",
           "0.6": "13 mm³/s"
         },
@@ -1619,6 +1622,7 @@
         "cooling_fan_overhang": "50%",
         "slow_layer_time": "15 s",
         "max_mvs": {
+          "0.2": null,
           "0.4": "8 mm³/s",
           "0.6": "12 mm³/s"
         },
@@ -1721,6 +1725,7 @@
         "cooling_fan_overhang": "70%",
         "slow_layer_time": "15 s",
         "max_mvs": {
+          "0.2": null,
           "0.4": "6 mm³/s",
           "0.6": "8 mm³/s"
         },
