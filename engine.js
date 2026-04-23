@@ -791,6 +791,22 @@ const Engine = (() => {
     const n = getNozzle(id);
     return n ? String(n.size) : null;
   }
+
+  // [MEDIUM-020] Filament-tab registry — single source of truth for the tabs
+  // shown on the iOS filament pane. `mode` mirrors the resolveProfile param
+  // mode convention: "simple" items always visible; "advanced" items appear
+  // only when the user toggles Advanced. iOS drops its hardcoded tab list +
+  // filters by current mode. Labels are English — if Danish localisation of
+  // tab names is added, route through t('tabTemperatures') etc.
+  const _FILAMENT_TABS = [
+    { id: 'temps',   label: 'Temperatures', mode: 'simple'   },
+    { id: 'cooling', label: 'Cooling',      mode: 'advanced' },
+    { id: 'speed',   label: 'Speed Limit',  mode: 'advanced' },
+    { id: 'setup',   label: 'Setup',        mode: 'simple'   },
+  ];
+  function getFilamentTabs() {
+    return _FILAMENT_TABS.map(t => ({ ...t }));
+  }
   function setActiveSlicer(id) { _activeSlicer = SLICER_TABS[id] ? id : 'bambu_studio'; }
   function getActiveSlicer()   { return _activeSlicer; }
 
@@ -2840,6 +2856,7 @@ const Engine = (() => {
     getSlicerForPrinter,
     getSlicerDisplayName,
     getNozzleSize,
+    getFilamentTabs,
     setActiveSlicer,
     getActiveSlicer,
     isNozzleCompatibleWithMaterial,
