@@ -17,10 +17,7 @@
       "not_suitable_for": [
         "pla_cf",
         "petg_cf",
-        "pa_cf",
-        "abs_cf",
-        "pla_wood",
-        "pla_glow"
+        "pa_cf"
       ],
       "notes": "Fine detail nozzle. Good for miniatures and detailed prints. Not suitable for abrasive or composite filaments."
     },
@@ -41,10 +38,7 @@
       "not_suitable_for": [
         "pla_cf",
         "petg_cf",
-        "pa_cf",
-        "abs_cf",
-        "pla_wood",
-        "pla_glow"
+        "pa_cf"
       ],
       "notes": "Ultra-fine detail for miniatures and precision parts. NEVER use with CF/GF or composite filaments \u2014 immediate clogging."
     },
@@ -86,7 +80,6 @@
       "not_suitable_for": [
         "pla_cf",
         "petg_cf",
-        "abs_cf",
         "pa_cf"
       ],
       "notes": "Default nozzle on most Bambu Lab printers. Excellent thermal conductivity. Wears with abrasive filaments.",
@@ -135,8 +128,7 @@
       "not_suitable_for": [
         "pla_cf",
         "petg_cf",
-        "pa_cf",
-        "abs_cf"
+        "pa_cf"
       ],
       "notes": "Larger nozzle for faster prints. Good balance of speed and quality. Wears with abrasive filaments."
     },
@@ -183,8 +175,7 @@
       "not_suitable_for": [
         "pla_cf",
         "petg_cf",
-        "pa_cf",
-        "abs_cf"
+        "pa_cf"
       ],
       "notes": "High-flow nozzle for rapid prototyping and large prints. Sacrifices fine detail for significant speed gains."
     },
