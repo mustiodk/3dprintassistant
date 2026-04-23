@@ -774,6 +774,15 @@ const Engine = (() => {
     const brand = _brands.find(b => b.id === printer.manufacturer);
     return brand?.default_slicer || 'bambu_studio';
   }
+  // [MEDIUM-021] Single source of truth for slicer display names. Used by
+  // formatProfileAsText and exposed via the public API so iOS (and future web
+  // callers) don't re-encode a parallel switch. Unknown slicer ids fall back
+  // to the Orca default — matching resolveProfile / getFilters convention.
+  function getSlicerDisplayName(slicer) {
+    return slicer === 'bambu_studio' ? 'Bambu Studio'
+         : slicer === 'prusaslicer'  ? 'PrusaSlicer'
+         :                             'OrcaSlicer';
+  }
   function setActiveSlicer(id) { _activeSlicer = SLICER_TABS[id] ? id : 'bambu_studio'; }
   function getActiveSlicer()   { return _activeSlicer; }
 
@@ -2507,9 +2516,7 @@ const Engine = (() => {
     const warnings   = getWarnings(state);
     const env        = getEnv(state.environment);
 
-    const slicerName = slicer === 'bambu_studio' ? 'Bambu Studio'
-                     : slicer === 'prusaslicer'  ? 'PrusaSlicer'
-                     :                             'OrcaSlicer';
+    const slicerName = getSlicerDisplayName(slicer);
 
     const processTabName = slicer === 'prusaslicer' ? 'Print Settings tab'
                          :                            'Process tab';
@@ -2823,6 +2830,7 @@ const Engine = (() => {
     getPrintersByBrand,
     searchPrinters,
     getSlicerForPrinter,
+    getSlicerDisplayName,
     setActiveSlicer,
     getActiveSlicer,
     isNozzleCompatibleWithMaterial,
