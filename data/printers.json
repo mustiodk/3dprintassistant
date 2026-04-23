@@ -142,7 +142,7 @@
       "active_chamber_heating": false,
       "extruder_type": "direct_drive",
       "max_nozzle_temp": 300,
-      "max_bed_temp": 100,
+      "max_bed_temp": 80,
       "max_speed": 500,
       "max_acceleration": 10000,
       "has_lidar": false,
