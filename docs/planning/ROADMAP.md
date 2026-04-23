@@ -61,7 +61,7 @@ Target: 1–2 half-days of focused work.
 - [x] **[HIGH-002]** Tighten IMPL-040 surface-parity test: compute `expectedCount = 7×6 = 42`, replace silent `continue`s with `XCTFail`, end with `XCTAssertEqual(checked, expectedCount)`. `[iOS]` — Shipped 2026-04-22. iOS `cb0b73d`. All 42 cells asserted; test still green.
 - [x] Run XCTest suite locally; record baseline runtime. `[iOS]` — Recorded 2026-04-22. Test-execution-only: **0.62s** for 37 tests. Total wall time including simulator scaffolding: **2m06s** (iPhone 17 Pro Max simulator, cold first-run of the session).
 
-### IR-2a — iOS v1.0.2 ship pass ⭐ IN PROGRESS (code complete, awaits activation)
+### IR-2a — iOS v1.0.2 ship pass ⭐ IN PROGRESS (Phase 0 closed 2026-04-23; IR-4/IR-5 bundle next before version bump)
 
 Target: 1–2 sessions. Goal: ship **iOS v1.0.2** to the App Store with CRITICAL-001 (feedback privacy) as the headline user-visible change and a bundle of engine-correctness fixes that already landed since v1.0.1. Version bump + TestFlight → Review → Manual release.
 
@@ -82,10 +82,14 @@ Target: 1–2 sessions. Goal: ship **iOS v1.0.2** to the App Store with CRITICAL
 - [x] **[HIGH-004]** Re-read `_engineError` in post-loop block before throwing timeout. Shipped 2026-04-23. iOS `83edae6`. `[iOS]`
 - [x] **[HIGH-005]** Structured `{set, value}` sentinel replaces null string-compare. Shipped 2026-04-23. iOS `d2957da`. Uses `_engineError.set` / `.value`. `[iOS]`
 
-**Data hygiene (if owner closes open asks):**
-- [ ] **[HIGH-014]** Owner: verify A1 mini `max_bed_temp` vs Bambu spec page. If 80, apply. `[You]` + `[Code]`
-- [ ] **[LOW-002]** HIPS `enclosure_behavior.reason` — owner provides text, code applies. `[You]` + `[Code]`
-- [~] **[MEDIUM-018]** Clean `nozzles.json.not_suitable_for`. **Part A shipped 2026-04-23** (web `597499b`, iOS `5a360dc`) — removed orphan refs `abs_cf`/`pla_wood`/`pla_glow` that never existed in materials.json. **Part B awaits owner decision:** unify remaining refs via material IDs (`pla_cf`, `petg_cf`…) or group strings (`pla`, `petg`…)? Currently mixed. `[You]` + `[Code]`
+**Data hygiene (Phase 0 closed 2026-04-23):**
+- [x] **[HIGH-014]** A1 Mini `max_bed_temp` 100 → 80 per Bambu spec. Shipped 2026-04-23. Web `af3b24d`, iOS `cfe8a6c`. CRITICAL-002 bed-clamp warning now fires correctly on A1 Mini + PETG (85°C initial-layer clamps to 80).
+- [x] **[LOW-002]** HIPS `enclosure_behavior.reason` rewritten (no longer ABS copy-paste). Shipped 2026-04-23. Web `822a2d0`, iOS `1d58991`.
+- [x] **[MEDIUM-018]** `nozzles.json.not_suitable_for` + `suitable_for` both normalized to material IDs. Part A shipped 2026-04-23 (web `597499b`, iOS `5a360dc` — orphan refs cleanup). Part B shipped 2026-04-23 (web `bc76345`, iOS `f27591e` — suitable_for normalized, large hardened nozzles now list pa/pc/pet_cf explicitly).
+
+**Infrastructure activation (Phase 0 closed 2026-04-23):**
+- [x] **HMAC secret deployed to 3 places** — local `Config.xcconfig`, GitHub repo secret `FEEDBACK_HMAC_SECRET` (stamped `2026-04-23T10:43:13Z`), Cloudflare Worker env (Secret type). Round-trip verified: signed curl POST → 200 OK; negative tests (no sig / bad sig / skew) all return 401. CRITICAL-001 activation now complete.
+- [x] **[HIGH-010 part B]** Cloudflare rate-limit rule `feedback-per-ip` deployed 2026-04-23. Free plan: 2 requests / 10 seconds per IP (≈12 req/min), Block 10s. Verified via 15-request curl flood — 429s fire at request 3+.
 
 **IR-5 followups that landed this phase:**
 - [x] **[HIGH-012-followup A]** `outer_wall_acceleration.why` printer-name template. Shipped 2026-04-23. Web `e1ca1a0`, iOS `543a51c`.
@@ -106,12 +110,23 @@ Target: 1–2 sessions. Goal: ship **iOS v1.0.2** to the App Store with CRITICAL
 - Rate limit live on `/api/feedback` Worker — curl-flood test confirms 429 at threshold.
 - Full iOS XCTest suite green + 3 new regression tests: worker round-trip (mocked), HIGH-008 pattern coverage, HIGH-009 fallback sanity.
 
-**Out of scope for v1.0.2** (deferred to v1.1 — see IR-4 + IR-5):
-- `actor EngineService` → `final class` refactor (HIGH-003). High risk, no user benefit; save for a dedicated architecture pass.
-- Bridging `SLICER_TABS` / `SLICER_PARAM_LABELS` / `getNozzleSize` / `getFilamentTabs` / `getSlicerDisplayName` (HIGH-006/007, MEDIUM-020/021). Nice-to-have drift prevention; no user-visible benefit.
-- Structured-numeric-per-chip refactor (HIGH-011). IMPL-040 tests are already tight post-HIGH-002 — no urgent gap.
-- Light mode (v1.1 candidate).
-- Export path items (export still disabled — IR-deferred).
+**Bundled into v1.0.2 on 2026-04-23** (revised scope — owner chose to fold IR-4 + remaining IR-5 into this release rather than defer):
+- `[HIGH-003]` actor → final class refactor (IR-4)
+- `[HIGH-006]` bridge SLICER_TABS / SLICER_PARAM_LABELS (IR-4)
+- `[HIGH-007]` bridge getNozzleSize (IR-4)
+- `[HIGH-011]` structured numeric per chip (IR-4)
+- `[MEDIUM-009]` Codable decode for resolveProfile output (IR-5)
+- `[MEDIUM-020]` bridge getFilamentTabs (IR-4)
+- `[MEDIUM-021]` bridge getSlicerDisplayName (IR-4)
+- `[LOW-003]` consolidate retraction_length vs retraction_distance (IR-5 — unblocks export re-enable)
+- `[LOW-004]` TPU drying display vs numeric mismatch (IR-5)
+- `[LOW-006]` flexible field duplication (IR-5)
+
+**Still out of scope for v1.0.2:**
+- `[LOW-005]` prc_0.2 siblings — product-taste decision, filed as IR-5 followup.
+- `[LOW-007]` Bambu preset version hoist — export-deferred (export UI still disabled).
+- Light mode — v1.1 candidate.
+- IR-deferred export path items — wait until export is re-enabled.
 
 ### IR-1 — Data suggestion logic verification ✅ 2026-04-20
 
@@ -150,15 +165,15 @@ Target: 1 session. "What happens when this breaks" work.
 - [ ] Pull production Sentry + Cloudflare Analytics 14-day baselines (event rate, error types, region distribution, feedback volume, any 429s). `[You]`
 - [ ] Create `docs/runbooks/incident-response.md` with rollback procedures, Sentry + CF links, current baseline. `[Code]`
 
-### IR-4 — Drift prevention (structural)
+### IR-4 — Drift prevention (structural) — BUNDLED INTO v1.0.2
 
-Target: 1–2 sessions. Not urgent, but closes the silent-drift surface.
+Target: 1–2 sessions. Owner decision 2026-04-23 to bundle into v1.0.2 rather than defer. HIGH-003 is the riskiest item — scheduled last so any regression is attributable.
 
 - [ ] **[HIGH-003]** Replace `actor EngineService` with `final class` + dedicated serial `DispatchQueue(label: "engine.js", qos: .userInitiated)`. Genuine single-thread JSContext affinity. See [R4](../reviews/2026-04-20-internal/07-recommendations.md). `[iOS]`
 - [ ] **[HIGH-006]** Bridge `Engine.SLICER_TABS` + `Engine.SLICER_PARAM_LABELS` from engine via JSCore. Delete `SlicerLayout.swift` static data. Add snapshot XCTest. See [R2](../reviews/2026-04-20-internal/07-recommendations.md). `[iOS]`
 - [ ] **[HIGH-007]** Bridge `Engine.getNozzleSize(id)`. Drop `OutputView.nozzleSizeKey` string split. `[iOS]`
-- [ ] **[HIGH-004]** Re-read `_engineError` in post-loop block before throwing the timeout. Currently real JS errors mask as "timed out". `[iOS]`
-- [ ] **[HIGH-005]** Replace `_engineError != "null"` string-compare with `typeof !== 'undefined'` or structured sentinel. `[iOS]`
+- [x] **[HIGH-004]** Re-read `_engineError` in post-loop block before throwing the timeout — shipped 2026-04-23 (IR-2a). iOS `83edae6`. `[iOS]`
+- [x] **[HIGH-005]** Structured `_engineError` sentinel replaces null string-compare — shipped 2026-04-23 (IR-2a). iOS `d2957da`. `[iOS]`
 - [ ] **[HIGH-011]** Engine returns structured numeric field per chip alongside `desc`. Test asserts on the field directly (not regex over desc text). `[Web+iOS]`
 - [ ] **[MEDIUM-020]** Bridge `getFilamentTabs(mode)` from engine. Drop the hardcoded tab list in `OutputView`. `[iOS]`
 - [ ] **[MEDIUM-021]** Bridge `getSlicerDisplayName(id)` from engine. Drop the hardcoded switch in `OutputViewModel.slicerName`. `[iOS]`
@@ -205,7 +220,7 @@ Not session-scheduled. Tick off as nearby edits touch the files.
 |---|---|---|---|
 | IR-0 — Ship this week | 🟩 5/10 shipped; 4 deferred to IR-2a, 1 pending owner (HIGH-014) | — | — |
 | IR-1 — Data logic verification | ✅ 2026-04-20 | — | — |
-| IR-2a — iOS v1.0.2 ship pass ⭐ | ⏳ NEXT | 1–2 h (open-asks + TestFlight verify + manual dispatch) | 3–4 h + 1 Worker deploy |
+| IR-2a — iOS v1.0.2 ship pass ⭐ | ⏳ Phase 0 ✅; IR-4/IR-5 bundle in progress | 30 min (tone-pass + dispatch + ASC submit) | 3–4 h (IR-4 + remaining IR-5) |
 | IR-2 — Engine correctness | ✅ 2026-04-23 | — | — |
 | IR-3 — Failure rehearsal | ⏳ | 30 min | 2 h |
 | IR-4 — Drift prevention | ⏳ | 0 | 1–2 days |
