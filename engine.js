@@ -32,8 +32,27 @@ const Engine = (() => {
   function getLang() { return _lang; }
 
   // ── Mode helpers — tag each profile param with simple/advanced ──────────────
-  const S = (value, why = '') => ({ value, why, mode: 'simple' });
-  const A = (value, why = '') => ({ value, why, mode: 'advanced' });
+  //
+  // [IMPL-041 / DQ-1] Optional `prov` arg carries provenance for numeric
+  // emissions — what pros need to audit the numbers we emit.
+  //
+  //   prov: null                                        // qualitative/string-only field
+  //       | { source, ref? }                            // numeric or numeric-derived field
+  //
+  //   source: 'vendor'     — pulled from vendor spec / TDS / wiki
+  //         | 'rule'       — derived via an engine rule (patternFor, slicer map)
+  //         | 'default'    — curated default from data/*.json; no better attribution yet
+  //         | 'calculated' — computed from other values (nozzle-scaled, clamped)
+  //
+  //   ref: free-form pointer (e.g. 'bambu-wiki-a1', 'rule:_clampNum',
+  //        'objective_profiles.json#draft'). Optional.
+  //
+  // Consumers that don't care about provenance ignore the field; it's purely
+  // additive. DQ-1 lands the plumbing only (prov=null everywhere); DQ-1 commit 3
+  // fills baseline tags on every numeric emission. DQ-3/4/5 later upgrade
+  // individual fields from 'default'/'rule' → 'vendor' as scraper data lands.
+  const S = (value, why = '', prov = null) => ({ value, why, mode: 'simple',   prov });
+  const A = (value, why = '', prov = null) => ({ value, why, mode: 'advanced', prov });
 
   // ── Init — load all JSON data files + locale files ──────────────────────────
   async function init() {
