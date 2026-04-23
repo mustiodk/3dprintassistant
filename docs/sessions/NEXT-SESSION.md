@@ -86,7 +86,7 @@ This file is regenerated every session end. It contains everything needed to sta
 - **patternFor + mapForSlicer:** engine emits canonical names ("Monotonic line"), `mapForSlicer` translates to slicer-specific valid values using `slicer_capabilities.json`. Falls back to `validSet[0]` when no match — C6 warning loop (extended via HIGH-008) surfaces those substitutions.
 - **JSCore thread-affinity:** `EngineService` is `actor` — known hazard flagged in HIGH-003 (deferred to v1.1). Don't worry for v1.0.2; do worry if you touch the init path.
 - **Info.plist → AppConstants.swift pattern:** all config (Sentry DSN, feedback URLs, secrets) flows `Config.xcconfig` → `Info.plist` `$(VAR)` → `AppConstants.swift` Bundle lookup → consumer code. Keeps secrets out of binary source.
-- **TestFlight CI is now manual-dispatch-only.** `push: branches: [main]` was removed 2026-04-23 after GitHub Actions quota hit 100%. To build: `gh workflow run testflight.yml --ref main` or click Run workflow in Actions tab. Added `concurrency: cancel-in-progress` so repeat dispatches don't stack.
+- **TestFlight CI is now manual-dispatch-only.** `push: branches: [main]` was removed 2026-04-23 after GitHub Actions quota hit 100%. Owner asks Claude to trigger ("build it" / "dispatch the build") and Claude confirms once before firing `gh workflow run testflight.yml --ref main`. Claude must never auto-trigger during sweeps. Added `concurrency: cancel-in-progress` so repeat dispatches don't stack.
 
 ## Standing rules (from CLAUDE.md — binding every session)
 
@@ -153,7 +153,7 @@ This file is regenerated every session end. It contains everything needed to sta
 
 1. Tone-pass on `docs/app-store-whats-new-v1.0.2.md` — edit in place, commit.
 2. Bump `CFBundleShortVersionString` → `1.0.2` in `3dprintassistant-ios/project.yml`, run `xcodegen generate`, commit + push.
-3. **Manually dispatch TestFlight build** — `gh workflow run testflight.yml --ref main` or click **Run workflow** in GitHub Actions tab. Workflow no longer auto-runs on push (2026-04-23 CI-quota fix). Build takes ~10 min.
+3. **Ask Claude to trigger the TestFlight build.** Claude confirms once, runs `gh workflow run testflight.yml --ref main`, and reports the run URL. Workflow no longer auto-runs on push (2026-04-23 CI-quota fix). Build takes ~10 min. Claude must NEVER trigger a build during an autonomous sweep — only on explicit owner ask in a foreground turn.
 4. Install the TestFlight build, submit one feedback through the app, confirm it lands in Discord via the Worker (not direct).
 5. **Rotate old Discord webhook URL** (the one in GitHub secret `DISCORD_FEEDBACK_WEBHOOK` + Cloudflare env var). Create a new webhook on the same Discord channel, update both env var locations. The old URL hardcoded in v1.0.0/v1.0.1 binaries becomes dead — those binaries stop sending feedback until users update to v1.0.2.
 6. Submit v1.0.2 to App Review with **Manual release** toggle.
@@ -178,7 +178,7 @@ This file is regenerated every session end. It contains everything needed to sta
 - After every web `engine.js` or `data/*.json` edit: `cp` to iOS byte-identical → `node scripts/walkthrough-harness.js` → iOS XCTest (`xcodebuild test -project 3DPrintAssistant.xcodeproj -scheme 3DPrintAssistant -destination "platform=iOS Simulator,id=59B628C6-C142-42ED-8CFC-E671FCB4C077" -only-testing:3DPrintAssistantTests CODE_SIGNING_ALLOWED=NO`).
 - Commit trailer: `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`. Never skip hooks.
 - **Batch mechanical tool calls** — don't stop after every Edit. Chain 5–10 calls per turn on doc-close / sync-then-commit / multi-file rewrite loops.
-- **iOS `main` pushes no longer auto-trigger TestFlight.** You can push freely during dev without burning Actions minutes. Only dispatch the workflow when you actually want a TestFlight build.
+- **iOS `main` pushes no longer auto-trigger TestFlight.** You can push freely during dev without burning Actions minutes. When you want a TestFlight build, ask Claude ("trigger the build"); Claude confirms once and fires the dispatch. Never during autonomous sweeps.
 
 ## Acceptance for IR-2a phase close
 

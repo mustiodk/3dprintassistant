@@ -93,7 +93,7 @@ Target: 1–2 sessions. Goal: ship **iOS v1.0.2** to the App Store with CRITICAL
 
 **Release mechanics (owner execution):**
 - [ ] Bump CFBundleShortVersionString to `1.0.2` in `project.yml` + run `xcodegen generate`. `[iOS]`
-- [ ] **NEW (2026-04-23):** After push, manually dispatch the TestFlight workflow — `gh workflow run testflight.yml --ref main` or click **Run workflow** in the Actions tab. TestFlight no longer auto-runs on push (CI quota fix; see `.github/workflows/testflight.yml`). `[You]`
+- [ ] **NEW (2026-04-23):** After push, ask Claude to trigger the TestFlight build — Claude will confirm once then run `gh workflow run testflight.yml --ref main` and report the run URL. TestFlight no longer auto-runs on push (CI quota fix; see `.github/workflows/testflight.yml`). Autonomous sweeps must never trigger a build. `[Code on ask]`
 - [x] "What's New" draft locked at [`docs/app-store-whats-new-v1.0.2.md`](../app-store-whats-new-v1.0.2.md). Awaits owner tone pass, then paste into App Store Connect. `[Code]` drafted + `[You]` tone.
 - [ ] TestFlight internal test round. Verify: feedback submit lands in Discord via Worker (not direct); no crash on engine init; `invalid_preset` warnings surface when stale state fed in; MK4 profile no longer names A1. `[You]`
 - [ ] Rotate old Discord webhook URL **after** TestFlight confirms new Worker path. `[You]`
