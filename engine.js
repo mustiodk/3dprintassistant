@@ -389,7 +389,16 @@ const Engine = (() => {
       _materials.map(m => ({ id: m.id, name: m.name, core: _CORE_MATERIALS.has(m.id) })),
       _MATERIAL_ORDER
     );
-    const surfaceChips  = (_objectives.surface_quality || []).map(s => ({ id: s.id, name: s.name, desc: surfaceDesc(s),  core: _CORE_SURFACE.has(s.id) }));
+    // [HIGH-011] `value` is the numeric the chip's desc describes — here
+    // the effective (clamped) layer_height for the current printer+nozzle,
+    // same number resolveProfile emits for p.layer_height. Tests assert on
+    // this field directly instead of regex-parsing desc text; renamed desc
+    // formatting never hides a clamping regression again.
+    const surfaceChips  = (_objectives.surface_quality || []).map(s => ({
+      id: s.id, name: s.name, desc: surfaceDesc(s),
+      value: effectiveLayerHeight(s),
+      core: _CORE_SURFACE.has(s.id),
+    }));
     const strengthChips = (_objectives.strength_levels || []).map(s => ({ id: s.id, name: s.name, desc: strengthDesc(s) }));
     const speedChips    = (_objectives.speed_priority  || []).map(s => ({ id: s.id, name: s.name, desc: s.desc }));
     const envChips      = _envRules.map(e => ({ id: e.id, name: e.name, desc: e.desc }));
@@ -409,11 +418,13 @@ const Engine = (() => {
       { key: 'strength',    label: t('filterStrength'),  multi: false, required: false, items: strengthChips },
       { key: 'speed',       label: t('filterSpeed'),     multi: false, required: false, items: speedChips    },
       { key: 'environment', label: t('filterEnv'),       multi: false, required: false, items: envChips      },
+      // [HIGH-011] Support chips also carry `value` (the Z gap) so tests can
+      // assert on the numeric directly. `none` has no gap (value omitted).
       { key: 'support',     label: t('filterSupport'),   multi: false, required: false, items: [
         { id: 'none',           name: t('supNone'),          desc: 'No support material generated.' },
-        { id: 'easy',           name: t('supEasy'),          desc: `${supportById.easy.type} · Z ${supportById.easy.z_gap} mm — supports snap off easily, rougher underside.` },
-        { id: 'balanced',       name: t('supBalanced'),      desc: `${supportById.balanced.type} · Z ${supportById.balanced.z_gap} mm — reasonable removal with decent underside.` },
-        { id: 'best_underside', name: t('supBestUnderside'), desc: `${supportById.best_underside.type} · Z ${supportById.best_underside.z_gap} mm — smooth underside, supports harder to remove.` },
+        { id: 'easy',           name: t('supEasy'),          desc: `${supportById.easy.type} · Z ${supportById.easy.z_gap} mm — supports snap off easily, rougher underside.`,                  value: parseFloat(supportById.easy.z_gap)           },
+        { id: 'balanced',       name: t('supBalanced'),      desc: `${supportById.balanced.type} · Z ${supportById.balanced.z_gap} mm — reasonable removal with decent underside.`,             value: parseFloat(supportById.balanced.z_gap)       },
+        { id: 'best_underside', name: t('supBestUnderside'), desc: `${supportById.best_underside.type} · Z ${supportById.best_underside.z_gap} mm — smooth underside, supports harder to remove.`, value: parseFloat(supportById.best_underside.z_gap) },
       ]},
       { key: 'colors',      label: t('filterColors'),   multi: false, required: false, items: [
         { id: 'single',    name: t('colSingle'),  desc: 'Single filament — no prime tower needed.' },
