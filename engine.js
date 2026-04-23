@@ -106,18 +106,86 @@ const Engine = (() => {
     _T.en           = enLocale;
     _T.da           = daLocale;
 
-    // [MEDIUM-007] Validate printer.series enum at init-time. Case-sensitive
-    // string compare elsewhere (engine.js:1367 etc.) would silently misclassify
-    // typo'd values ("CoreXY" → treated as bedslinger → wrong speed emission +
-    // misleading A1/A1 Mini why-text). Log loudly so dev builds / tests fail
-    // fast; don't throw (a single malformed entry shouldn't brick the whole app
-    // for the other 63 printers).
-    const VALID_PRINTER_SERIES = ['corexy', 'bedslinger'];
+    _validateSchema();
+  }
+
+  // [R8] Schema validation. Runs after data loads — catches the data-integrity
+  // gaps that MEDIUM-001, MEDIUM-007, MEDIUM-018, MEDIUM-019 and HIGH-009 were
+  // symptoms of. Two tiers:
+  //
+  //   • Critical violations (unknown printer.series, non-numeric
+  //     limits_override.nozzles key, missing required material fields) —
+  //     throw, preventing a half-initialised engine from serving bad profiles.
+  //   • Soft violations (max_mvs key gaps, unknown not_suitable_for refs) —
+  //     console.warn so dev builds notice while production keeps serving.
+  //
+  // Soft-vs-critical classification reflects "does this silently change
+  // emission for real users". Subsumes the MEDIUM-007 inline check.
+  let _schemaValidated = false;
+  function _validateSchema() {
+    if (_schemaValidated) return;
+    _schemaValidated = true;
+    const errors = [];
+    const warnings = [];
+
+    // Critical: printer.series enum (MEDIUM-007)
+    const VALID_PRINTER_SERIES = new Set(['corexy', 'bedslinger']);
     _printers.forEach(p => {
-      if (!VALID_PRINTER_SERIES.includes(p.series)) {
-        console.warn(`[Engine init] printer "${p.id}" has invalid series="${p.series}" — expected one of ${VALID_PRINTER_SERIES.join(', ')}. Speed emission + why-text may be wrong.`);
+      if (!VALID_PRINTER_SERIES.has(p.series)) {
+        errors.push(`printer "${p.id}" has invalid series="${p.series}" — expected corexy|bedslinger`);
       }
     });
+
+    // Critical: limits_override.nozzles keys must be finite numbers (MEDIUM-001)
+    _printers.forEach(p => {
+      const override = p.limits_override;
+      if (!override || !override.nozzles) return;
+      Object.keys(override.nozzles).forEach(k => {
+        if (!Number.isFinite(Number(k))) {
+          errors.push(`printer "${p.id}" limits_override.nozzles has non-numeric key "${k}"`);
+        }
+      });
+    });
+
+    // Critical: every material has required base_settings fields
+    _materials.forEach(m => {
+      if (!m.id)   errors.push(`material missing id`);
+      if (!m.name) errors.push(`material "${m.id}" missing name`);
+      const bs = m.base_settings || {};
+      ['nozzle_temp_base', 'bed_temp_base', 'retraction_distance'].forEach(f => {
+        if (bs[f] == null) errors.push(`material "${m.id}" missing base_settings.${f}`);
+      });
+    });
+
+    // Soft: nozzle.not_suitable_for refs (MEDIUM-018). Accept either a
+    // material id or a case-insensitive material.group name.
+    const materialIds = new Set(_materials.map(m => m.id));
+    const materialGroups = new Set(_materials.map(m => m.group && m.group.toLowerCase()).filter(Boolean));
+    _nozzles.forEach(n => {
+      (n.not_suitable_for || []).forEach(ref => {
+        if (!materialIds.has(ref) && !materialGroups.has(String(ref).toLowerCase())) {
+          warnings.push(`nozzle "${n.id}" not_suitable_for references unknown material/group "${ref}"`);
+        }
+      });
+    });
+
+    // Soft: max_mvs / k_factor_matrix key alignment (MEDIUM-019 — partial fix)
+    _materials.forEach(m => {
+      const bs = m.base_settings || {};
+      const mk = Object.keys(bs.max_mvs || {});
+      const km = Object.keys(bs.k_factor_matrix || {});
+      const missingInMax = km.filter(k => !mk.includes(k));
+      if (missingInMax.length > 0) {
+        warnings.push(`material "${m.id}" max_mvs missing keys present in k_factor_matrix: ${missingInMax.join(', ')}`);
+      }
+    });
+
+    if (warnings.length > 0) {
+      console.warn(`[Engine schema] ${warnings.length} soft warning(s):\n  • ${warnings.join('\n  • ')}`);
+    }
+    if (errors.length > 0) {
+      throw new Error(`Engine schema validation failed:\n  • ${errors.join('\n  • ')}`);
+    }
   }
 
   // ── Static UI filter arrays (pure UI concerns, not data-driven) ─────────────
