@@ -1849,7 +1849,7 @@
       "enclosure_required": true,
       "enclosure_behavior": {
         "enclosure_required": true,
-        "reason": "ABS warps severely without enclosure heat. Enclosed chamber holds 45–55°C for reliable layer adhesion."
+        "reason": "HIPS warps readily without enclosure heat. Enclosed chamber at 40–50°C prevents corner lift and keeps layer adhesion consistent."
       },
       "compatible_plates": [
         {
