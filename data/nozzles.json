@@ -8,10 +8,10 @@
       "material": "stainless_steel",
       "temp_offset": 0,
       "suitable_for": [
-        "pla",
-        "petg",
+        "pla_basic",
         "pla_silk",
         "pla_matte",
+        "petg_basic",
         "pva"
       ],
       "not_suitable_for": [
@@ -29,10 +29,10 @@
       "material": "stainless_steel",
       "temp_offset": 0,
       "suitable_for": [
-        "pla",
-        "petg",
+        "pla_basic",
         "pla_silk",
         "pla_matte",
+        "petg_basic",
         "pva"
       ],
       "not_suitable_for": [
@@ -50,15 +50,15 @@
       "material": "hardened_steel",
       "temp_offset": 7,
       "suitable_for": [
-        "pla",
-        "petg",
+        "pla_basic",
+        "pla_silk",
+        "pla_matte",
+        "pla_cf",
+        "petg_basic",
+        "petg_cf",
         "abs",
         "asa",
-        "pla_cf",
-        "petg_cf",
-        "pa_cf",
-        "pla_silk",
-        "pla_matte"
+        "pa_cf"
       ],
       "not_suitable_for": [],
       "notes": "Fine detail hardened nozzle. Can handle CF/GF filaments at small diameter. Lower thermal conductivity \u2014 temp offset applied."
@@ -70,12 +70,15 @@
       "material": "stainless_steel",
       "temp_offset": 0,
       "suitable_for": [
-        "pla",
-        "petg",
-        "tpu",
-        "pva",
+        "pla_basic",
         "pla_silk",
-        "pla_matte"
+        "pla_matte",
+        "petg_basic",
+        "petg_hf",
+        "tpu_95a",
+        "tpu_90a",
+        "tpu_85a",
+        "pva"
       ],
       "not_suitable_for": [
         "pla_cf",
@@ -93,16 +96,19 @@
       "material": "hardened_steel",
       "temp_offset": 7,
       "suitable_for": [
-        "pla",
-        "petg",
+        "pla_basic",
+        "pla_silk",
+        "pla_matte",
+        "pla_cf",
+        "petg_basic",
+        "petg_hf",
+        "petg_cf",
         "abs",
         "asa",
-        "tpu",
-        "pla_cf",
-        "petg_cf",
-        "pa_cf",
-        "pla_silk",
-        "pla_matte"
+        "tpu_95a",
+        "tpu_90a",
+        "tpu_85a",
+        "pa_cf"
       ],
       "not_suitable_for": [],
       "notes": "Required for CF/GF filaments. Lower thermal conductivity than brass \u2014 +5-10\u00b0C temp offset applied automatically."
@@ -115,14 +121,17 @@
       "material": "stainless_steel",
       "temp_offset": 0,
       "suitable_for": [
-        "pla",
-        "petg",
-        "abs",
-        "asa",
-        "tpu",
-        "pva",
+        "pla_basic",
         "pla_silk",
         "pla_matte",
+        "petg_basic",
+        "petg_hf",
+        "abs",
+        "asa",
+        "tpu_95a",
+        "tpu_90a",
+        "tpu_85a",
+        "pva",
         "hips"
       ],
       "not_suitable_for": [
@@ -140,16 +149,23 @@
       "material": "hardened_steel",
       "temp_offset": 7,
       "suitable_for": [
-        "pla",
-        "petg",
+        "pla_basic",
+        "pla_silk",
+        "pla_matte",
+        "pla_cf",
+        "petg_basic",
+        "petg_hf",
+        "petg_cf",
         "abs",
         "asa",
-        "tpu",
-        "pla_cf",
-        "petg_cf",
+        "tpu_95a",
+        "tpu_90a",
+        "tpu_85a",
+        "pa",
         "pa_cf",
-        "pla_silk",
-        "pla_matte"
+        "pc",
+        "pet_cf",
+        "hips"
       ],
       "not_suitable_for": [],
       "notes": "Recommended for CF/GF filaments \u2014 larger opening reduces clogging risk from fibers. Significantly faster print speeds possible."
@@ -162,14 +178,17 @@
       "material": "stainless_steel",
       "temp_offset": 0,
       "suitable_for": [
-        "pla",
-        "petg",
-        "abs",
-        "asa",
-        "tpu",
-        "pva",
+        "pla_basic",
         "pla_silk",
         "pla_matte",
+        "petg_basic",
+        "petg_hf",
+        "abs",
+        "asa",
+        "tpu_95a",
+        "tpu_90a",
+        "tpu_85a",
+        "pva",
         "hips"
       ],
       "not_suitable_for": [
@@ -187,16 +206,23 @@
       "material": "hardened_steel",
       "temp_offset": 7,
       "suitable_for": [
-        "pla",
-        "petg",
+        "pla_basic",
+        "pla_silk",
+        "pla_matte",
+        "pla_cf",
+        "petg_basic",
+        "petg_hf",
+        "petg_cf",
         "abs",
         "asa",
-        "tpu",
-        "pla_cf",
-        "petg_cf",
+        "tpu_95a",
+        "tpu_90a",
+        "tpu_85a",
+        "pa",
         "pa_cf",
-        "pla_silk",
-        "pla_matte"
+        "pc",
+        "pet_cf",
+        "hips"
       ],
       "not_suitable_for": [],
       "notes": "High-flow hardened nozzle. Ideal for fast printing with abrasive filaments. Lower thermal conductivity \u2014 temp offset applied."
