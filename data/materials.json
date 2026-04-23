@@ -1012,7 +1012,7 @@
       "drying": {
         "required": true,
         "recommended": true,
-        "display": "Required — 70 °C / 8h blast oven or 75–85 °C / 8h heatbed (wet TPU 90A = hissing, stringing, weak layers)",
+        "display": "Required — 70 °C / 8h blast oven or 80 °C / 8h heatbed (wet TPU 90A = hissing, stringing, weak layers)",
         "oven_temp": 70,
         "oven_duration_hours": 8,
         "heatbed_temp": 80,
@@ -1144,7 +1144,7 @@
       "drying": {
         "required": true,
         "recommended": true,
-        "display": "Required — 70 °C / 8h blast oven or 75–85 °C / 8h heatbed. Wet 85A = hissing, spiderweb strings, print failure.",
+        "display": "Required — 70 °C / 8h blast oven or 80 °C / 8h heatbed. Wet 85A = hissing, spiderweb strings, print failure.",
         "oven_temp": 70,
         "oven_duration_hours": 8,
         "heatbed_temp": 80,
