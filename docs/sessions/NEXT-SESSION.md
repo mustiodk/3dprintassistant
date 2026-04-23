@@ -1,54 +1,89 @@
 # Next session — cold-start prompt
 
-**Last updated:** 2026-04-24 (early) — post HIGH-003 squash-merge + session close of [`2026-04-23-cowork-appdev-ir4-ir5-bundle.md`](2026-04-23-cowork-appdev-ir4-ir5-bundle.md).
+**Last updated:** 2026-04-23 evening — post v1.0.2 App Review submission. Regenerated on explicit owner ask per the owner-triggered-only rule locked 2026-04-23.
 
-**Phase:** IR-2a v1.0.2 **ship-execution pass** — all code is merged on both repos. Remaining work is exclusively owner-executed steps (tone-pass, version bump, TestFlight dispatch, webhook rotate, App Review submit).
+**Phase:** IR-2a v1.0.2 **awaiting Apple review** (submitted 2026-04-23, typical 24–48h). No Claude-executable code work pending. Remaining owner steps: release on approval + day-1 monitoring.
 
-This file is regenerated **only on owner ask** per rule locked 2026-04-23. A stale file between sessions is acceptable.
+A stale file between sessions is acceptable. Regenerate only on explicit owner ask.
 
 ---
 
 >>> START >>>
 
-# Cold-start: 3D Print Assistant — v1.0.2 ship execution
+# Cold-start: 3D Print Assistant — post v1.0.2 submission
 
 ## Project at a glance
 
 **3D Print Assistant** generates optimized 3D printing profiles based on printer + material + nozzle + user goals. Two apps, one shared engine:
 
 - **Web app** (`3dprintassistant.com`, repo `3dprintassistant/`) — live, Cloudflare Pages, auto-deploys from `main`. 64 printers, 12 brands, 18 materials, 9 nozzles, 3 slicers.
-- **iOS app** (repo `3dprintassistant-ios/`) — **v1.0 live** in ~121 non-EU countries since 2026-04-16. EU distribution still blocked by DSA Trader Status (submitted 2026-04-16). Dark-only. **v1.0.2 fully merged on `main` but not yet dispatched to TestFlight.**
+- **iOS app** (repo `3dprintassistant-ios/`) — **v1.0 live** in ~121 non-EU countries since 2026-04-16. EU distribution still blocked by DSA Trader Status (submitted 2026-04-16). Dark-only. **v1.0.2 submitted to App Review 2026-04-23** — awaiting Apple approval; then Manual release.
 - **Engine** (`engine.js`) — single JS module, master in the web repo. Byte-identical to iOS via `cp` + committed on both sides after every engine edit. Runs on iOS through JavaScriptCore via `EngineService.swift` (since 2026-04-23: `final class` + serial `DispatchQueue`, per HIGH-003).
-- **Owner:** Musti (solo hobbyist dev, mustiodk@gmail.com). MacBook Air, Claude Max plan, token-conscious. GitHub Actions on 2000 min/month (TestFlight workflow is manual-dispatch-only as of 2026-04-23).
+- **Owner:** Musti (solo hobbyist dev, mustiodk@gmail.com). MacBook Air, Claude Max plan, token-conscious. GitHub Actions on 2000 min/month (TestFlight workflow is manual-dispatch-only).
 
-**Hard external deadline:** April 28, 2026 — Apple's iOS 26 SDK cutoff for App Store submissions. CI runner already on `macos-26` + Xcode 26.2; builds will satisfy TMS-90725 automatically.
+**Hard external deadline:** April 28, 2026 — Apple's iOS 26 SDK cutoff for App Store submissions. v1.0.2 was built on macos-26 + Xcode 26.2, so the compliance requirement is already satisfied for this submission.
 
-## What's in v1.0.2 (already shipped to `main`)
+## State right now (2026-04-23 evening)
 
-v1.0.2 is a large release. ~40+ findings from a 2026-04-20 internal review, plus the scope-expansion the owner chose to bundle in on 2026-04-23. Grouped by effect:
+**iOS v1.0 (current live):** ~121 non-EU countries. EU blocked by DSA. Announcement held until DK/EU unlocks.
 
-**User-visible:**
-- `[CRITICAL-001]` iOS feedback now routes through `/api/feedback` Cloudflare Worker (HMAC-signed). Discord webhook URL no longer extractable from the iOS binary. HMAC secret is already deployed to all 3 places; round-trip verified.
-- Warning messages name the actual printer instead of the generic "A1/A1 Mini" string (HIGH-012 + followups).
-- New bed-temperature clamp + warning when printer capability is below material requirement (CRITICAL-002).
-- Recovers gracefully from stale / invalid saved state instead of rendering empty output (CRITICAL-003).
-- Surfaces silent slicer-pattern substitutions (HIGH-008, e.g. Prusa fine-quality Monotonic line → monotonic).
+**iOS v1.0.2 (in review):**
+- Submitted to App Review 2026-04-23 with **Manual release toggle**.
+- Build: TestFlight upload from `gh workflow run testflight.yml --ref main` (run [24848532846](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/24848532846), SUCCESS).
+- On-device smoke tests 4a–4e all green on real hardware.
+- What's New: final casual English version locked at [`docs/app-store-whats-new-v1.0.2.md`](../app-store-whats-new-v1.0.2.md).
+- Promotional Text: "Generate optimized 3D print profiles for 64 printers across 12 brands. Bambu, Prusa, Creality, and more."
+- Expected Apple decision: 24–48h from submit (owner will get push + email).
 
-**Silent-correctness / drift prevention (IR-4 bundle, shipped via HIGH-003 external Codex review):**
-- `EngineService` is now a `final class` + serial `DispatchQueue` instead of an `actor`, matching JSCore's mutual-exclusion contract. `assertOnEngineQueue()` debug guards catch off-queue misuse. Public API unchanged (still `async throws`; callers still `await`).
-- Engine owns the slicer-layout tabs (`getSlicerTabs` / `getSlicerParamLabels`), display names (`getSlicerDisplayName`), filament tabs (`getFilamentTabs`), and nozzle-size resolution (`getNozzleSize`). 270+ lines of Swift static data deleted. Snapshot test locks the structure.
-- `resolveProfile` output now has typed Codable decode on iOS (MEDIUM-009).
-- Chips carry structured numeric `value` alongside `desc` (HIGH-011) — tests assert on the field, not via regex.
-- `_validateSchema()` runs at engine init: critical→throw, soft→warn. Surfaces 16 soft warnings documenting `max_mvs[0.8]` data-entry gaps across 16 materials.
+**Web app:** live at 3dprintassistant.com. No pending code work. Worker + rate-limit + HMAC all live on `/api/feedback`.
 
-**Infrastructure:**
-- `/api/feedback` Worker accepts iOS HMAC path + sanitises `@everyone`/`@here`/mention tags/markdown links.
-- Cloudflare rate-limit rule `feedback-per-ip`: 2 req/10s per IP → Block 10s. Verified with curl flood.
-- TestFlight GitHub Action switched from push-triggered to manual dispatch (was burning the Actions quota on every silent-correctness commit).
+**Post-v1.0.2 known issue (tracked, not blocking):**
+- **`[CRITICAL-001-followup]`** — Worker routes iOS + web feedback to a single `DISCORD_WEBHOOK_URL` → `#web-app-feedback`. Original intent per 2026-04-16 session was iOS → `#ios-app-feedback`. Filed in IR-5 backlog. v1.0.3 scope: ~15 LoC branch on `payload.context.appSource === "ios"` + new Cloudflare secret `DISCORD_WEBHOOK_URL_IOS` + redeploy. Backend-only, no iOS binary change, no App Review re-submit.
 
-**External review kit preserved:** [`3dprintassistant-ios/docs/reviews/2026-04-23-high-003-codex/`](../../3dprintassistant-ios/docs/reviews/2026-04-23-high-003-codex/) — the full before/after/diff/prompt kit Codex reviewed across 3 passes before HIGH-003 merged.
+## Branching on Apple's decision
 
-**Test counts at merge:** web walkthrough 9/9 clean + 1 pre-existing (Combo 3), iOS XCTest **40/40 green**.
+The next session has three possible entry states. Ask the owner which one applies before deciding a first action:
+
+### State A — Apple APPROVED v1.0.2
+
+**First action:** confirm release timing and EU inclusion.
+
+1. Ask owner: "Ready to release right now?" and "EU DSA cleared yet?"
+2. If release now, EU-decision yes/no:
+   - Owner opens ASC → iOS App → 1.0.2 → **Release This Version**.
+   - If EU cleared: before releasing, check the **Pricing and Availability** tab — EU countries should be toggle-on. If not, toggle them on first, save, then release.
+   - If EU still blocked: release as-is — v1.0.2 ships to the same ~121 non-EU countries as v1.0.0.
+3. Immediately after release: open **day-1 monitoring** posture.
+   - Keep Sentry Issues tab open for 24h. Watchlist: any new issue with `count > 1` in the first hour.
+   - Keep `#web-app-feedback` Discord channel open for 24h. Note that iOS v1.0.2 feedback currently pools here (see `[CRITICAL-001-followup]`) — expect both iOS and web submissions in one lane.
+   - Rate-limit rule + HMAC sanitisation should keep noise down. If abuse spikes, tighten the Cloudflare rule.
+4. Optional: announcement pipeline (Discord general / Twitter / LinkedIn) — held until DK/EU unlocks per current owner policy, regardless of whether this release itself ships to EU.
+
+### State B — Apple REJECTED v1.0.2
+
+**First action:** triage the rejection.
+
+1. Open the rejection notice in App Store Connect → Resolution Center. Read it in full before proposing fixes.
+2. Classify:
+   - **Metadata-only** (wording, screenshots, category, privacy policy) → fix in ASC, resubmit. No build change.
+   - **Binary-level** (crash, permission missing, policy violation) → code change needed. Scope the fix as one finding, one commit per platform, run full `walkthrough-harness.js` + iOS XCTest before re-dispatching TestFlight.
+3. Report back to owner with recommended path before executing.
+4. Never resubmit on the same build number — re-dispatch TestFlight to get a fresh build.
+
+### State C — Apple STILL PENDING (>48h)
+
+**First action:** confirm with owner, then pick an unrelated task.
+
+Pending >48h is normal on weekends. Don't panic.
+
+Backlog options to pick from (ordered by payoff):
+
+- **`[CRITICAL-001-followup]`** — iOS feedback routing fix (see above). Can be shipped any time; v1.0.3-safe but could be bundled with next release. ~1 h including Worker + CF secret + curl verification.
+- **`[MEDIUM-019-followup]`** — domain-sourced `max_mvs` 0.8mm volumetric numbers for 16 mainstream materials + HIPS 0.2mm. Data-entry task, needs vendor spec lookups. ~2–3 h.
+- **`[LOW-005]`** — product decision on whether `prc_0.2` Precision-nozzle variants should exist across all sizes. Owner needs to decide, then code is straightforward.
+- **Prusa `wall_loops` Strength-tab gap** — pre-existing engine data gap surfaced by HIGH-006's snapshot test. Low priority but tracked.
+- **IR-3 failure-mode rehearsal** — 6 items: force engine.init throw on iOS, force `/api/feedback` 500, malformed-data preview deploy, rollback rehearsal, Sentry+CF baseline pull, runbook update. Deferred per owner but can be picked up.
+- **Export path re-enable** — HIGH-001, MEDIUM-006/008, LOW-007 + live Bambu Studio import test. LOW-003 retraction naming collapse already unblocked HIGH-001.
 
 ## Repo layout (paths you'll need)
 
@@ -60,10 +95,8 @@ v1.0.2 is a large release. ~40+ findings from a 2026-04-20 internal review, plus
 │   ├── index.html, style.css
 │   ├── data/
 │   │   ├── printers.json  materials.json  nozzles.json
-│   │   ├── rules/environment.json  rules/objective_profiles.json
-│   │   ├── rules/troubleshooter.json
-│   │   └── rules/slicer_capabilities.json
-│   ├── functions/api/feedback.js              ← /api/feedback Worker
+│   │   └── rules/                             ← environment, objective_profiles, troubleshooter, slicer_capabilities
+│   ├── functions/api/feedback.js              ← /api/feedback Worker (CRITICAL-001-followup lives here)
 │   ├── worker.js  wrangler.toml               ← Worker entrypoint + config
 │   ├── scripts/walkthrough-harness.js         ← 10-combo regression harness
 │   ├── scripts/extract-correctness-tuples.js  ← MEDIUM-011 regen script
@@ -74,8 +107,7 @@ v1.0.2 is a large release. ~40+ findings from a 2026-04-20 internal review, plus
 │       ├── sessions/                          ← session logs + INDEX + this file
 │       ├── reviews/2026-04-20-internal/       ← 59-finding internal review
 │       ├── runbooks/incident-response.md
-│       ├── app-store-whats-new-v1.0.2.md      ← locked What's New draft (awaits tone pass)
-│       └── 3rd-party-review/
+│       └── app-store-whats-new-v1.0.2.md      ← final casual version
 │
 ├── 3dprintassistant-ios/                      ← iOS REPO
 │   ├── 3DPrintAssistant/
@@ -86,15 +118,14 @@ v1.0.2 is a large release. ~40+ findings from a 2026-04-20 internal review, plus
 │   │   ├── Services/{DataService,FeedbackService}.swift
 │   │   ├── Data/*.json                        ← byte-identical sync from web
 │   │   ├── Models/
-│   │   ├── Views/
-│   │   └── Utils/AppConstants.swift
+│   │   ├── Views/Home/HomeView.swift          ← has v1.0.2 (build) version footer
+│   │   └── Utils/AppConstants.swift           ← appVersion + appBuildNumber computed props
 │   ├── 3DPrintAssistantTests/                 ← 40 XCTests
 │   ├── 3DPrintAssistantUITests/
 │   ├── Config.xcconfig                        ← gitignored — SENTRY_DSN, DISCORD_FEEDBACK_WEBHOOK, FEEDBACK_HMAC_SECRET
-│   ├── Config.xcconfig.template               ← tracked, empty values
-│   ├── project.yml                            ← XcodeGen spec (bump CFBundleShortVersionString here)
+│   ├── project.yml                            ← XcodeGen spec (MARKETING_VERSION: "1.0.2")
 │   ├── fastlane/Fastfile
-│   ├── .github/workflows/testflight.yml       ← workflow_dispatch ONLY (2026-04-23 quota fix)
+│   ├── .github/workflows/testflight.yml       ← workflow_dispatch ONLY
 │   └── docs/
 │       └── reviews/2026-04-23-high-003-codex/ ← HIGH-003 external review kit
 │
@@ -109,6 +140,7 @@ v1.0.2 is a large release. ~40+ findings from a 2026-04-20 internal review, plus
 - **IMPL-040 single-source-of-truth:** UI chip numbers must be computed at render time from the same source `resolveProfile` reads. Never hardcode numbers in data `desc` fields. `getFilters(state)` returns chips with both `desc` (prose + number) and `value` (raw numeric) — tests prefer `value`. See `docs/specs/IMPL-040-chip-desc-parity.md`.
 - **Slicer-aware output:** Bambu/Prusa/Orca each have different tab structures + param labels. Engine owns `SLICER_TABS` + `SLICER_PARAM_LABELS`; iOS receives them via bridge. PARAM_LABELS stay in English (they match the slicer UI exactly).
 - **TestFlight is manual-dispatch only.** Pushing to iOS `main` does NOT build. When you want a build, either click **Run workflow** in the GitHub Actions tab or **ask Claude** ("trigger the build") — Claude confirms once then runs `gh workflow run testflight.yml --ref main`. Autonomous sweeps must never trigger a build.
+- **Home-screen version footer (new 2026-04-23):** small muted `v1.0.2 (<build>)` line at the bottom of HomeView. Reads from `Bundle.main.infoDictionary`. Auto-updates with future version bumps via `$(MARKETING_VERSION)`.
 
 ## Standing rules (from CLAUDE.md — binding every session)
 
@@ -125,84 +157,38 @@ v1.0.2 is a large release. ~40+ findings from a 2026-04-20 internal review, plus
 11. **Md-hygiene sweep at session end** — checklist at bottom of CLAUDE.md.
 12. **Right thing, not easy thing, post-live** — apply fixes to web + iOS both, never narrowed scope.
 13. **NEXT-SESSION.md is owner-triggered only.** Session log + INDEX + ROADMAP still update every session end.
+14. **Give Musti step-by-step guides for anything he needs to do manually.** Explicit, numbered, zero-jargon — established 2026-04-23.
 
 ## Files to read in order before answering
 
 1. `/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md` — top-level rules.
-2. `3dprintassistant/docs/planning/ROADMAP.md` — **full file.** Pay attention to IR-2a section (the only one still in progress).
+2. `3dprintassistant/docs/planning/ROADMAP.md` — **full file.** Pay attention to IR-2a section (submitted to App Review).
 3. `3dprintassistant/docs/sessions/INDEX.md` — top 5 entries.
-4. `3dprintassistant/docs/sessions/2026-04-23-cowork-appdev-ir4-ir5-bundle.md` — most recent session (HIGH-003 merge).
-5. `3dprintassistant/docs/sessions/2026-04-23-cowork-appdev-ir5-backlog-sweep.md` — two sessions ago.
-6. `3dprintassistant/docs/sessions/2026-04-23-cowork-appdev-ir2-cleanup-sweep.md` — three sessions ago.
-7. `3dprintassistant/docs/app-store-whats-new-v1.0.2.md` — locked What's New draft (awaiting tone pass).
-
-## Current state right now (2026-04-24)
-
-**iOS app:** v1.0 live in ~121 non-EU countries. EU blocked by DSA. Announcement held until DK/EU unlocks.
-
-**Web app:** live. All engine changes through IR-4 (incl. HIGH-003 refactor) landed on main.
-
-**v1.0.2 code status:** **100% merged.** All Phase 0 + IR-4 + remaining IR-5 findings shipped. Worker HMAC live. Cloudflare rate-limit live. No pending code work.
-
-**What remains to ship v1.0.2** (all owner-executed or Claude-on-ask):
-
-### Ship sequence (owner execution, ~30 min total)
-
-1. **Tone-pass on `docs/app-store-whats-new-v1.0.2.md`.** The current draft is generic-professional voice. Edit in place in your voice (Musti / Danish-style / casual / whatever feels right). Commit when done. Content is factual-locked; only voice changes. Alternatively: ask Claude to rewrite in a specific style.
-2. **Bump `CFBundleShortVersionString`** → `1.0.2` in `3dprintassistant-ios/project.yml`, run `xcodegen generate`, commit + push to iOS main. Pushing alone does NOT trigger a build.
-3. **Ask Claude to trigger TestFlight** (e.g. "trigger the build"). Claude confirms once then runs `gh workflow run testflight.yml --ref main` and reports the run URL + estimated 10-min wait. Autonomous sweeps NEVER trigger builds.
-4. **TestFlight internal test round.** Install the uploaded build on a test device. Verify:
-   - Send a feedback through the app → lands in Discord via the Worker path (not direct-to-Discord). Check Discord channel for the new-format footer ("via /api/feedback").
-   - No crash on engine init (with/without a printer pre-selected).
-   - `invalid_preset` warning surfaces if you feed stale saved state.
-   - MK4 + Standard output no longer says "A1/A1 Mini" in the acceleration why-text.
-5. **Rotate the old Discord webhook URL** *after* TestFlight confirms the Worker path. In Cloudflare Worker env: update `DISCORD_WEBHOOK_URL` to a freshly-created webhook on the same Discord channel. This invalidates the URL that's hardcoded in v1.0.0/v1.0.1 binaries — those users' in-app feedback will stop sending until they update to v1.0.2. Acceptable since v1.0.2 ships within days.
-6. **Submit v1.0.2 to App Review** from App Store Connect with **Manual release** toggle. Paste tone-passed What's New. Screenshots: reuse v1.0.0 set (no UI changes in this release).
-7. **On approval:** release manually. If EU DSA Trader Status has cleared by then, enable EU in rollout; otherwise ships to the same ~121 non-EU countries as v1.0.0.
-8. **Day-1 monitoring:** Sentry Issues tab + Discord `#web-app-feedback` for first 24 h. The rate-limit rule + HMAC sanitisation should keep noise down.
-
-### What to do if anything breaks at step 3 or 4
-
-- **TestFlight build fails:** check the GitHub Actions run log for the dispatched workflow. Most-likely culprits: `FEEDBACK_HMAC_SECRET` missing from repo secrets (I verified it's there 2026-04-23 but spot-check), CI cert expired, Config.xcconfig template mismatch. Paste the log tail to Claude.
-- **Build succeeds but feedback doesn't reach Discord:** compare the Worker's `FEEDBACK_HMAC_SECRET` env var to the GitHub repo secret — they must match. Run the curl round-trip test Claude used on 2026-04-23 to verify the Worker side works.
-
-## After v1.0.2 ships — what's next
-
-v1.0.2 is the last "internal-review-follow-up" release. Post-ship priorities are owner-driven and unscheduled:
-
-- **IR-3 failure-mode rehearsal** (6 items) — incident drills: force engine.init throw on iOS, force `/api/feedback` 500, malformed-data preview deploy, rollback rehearsal, Sentry+CF baseline pull, runbook update. Owner deferred in favour of bundling IR-4+IR-5 into v1.0.2.
-- **`[MEDIUM-019-followup]`** — domain-sourced `max_mvs` 0.8mm volumetric numbers for 16 mainstream materials + HIPS 0.2mm. Data-entry task; needs you to source from Bambu/Prusa/vendor specs.
-- **`[LOW-005]` prc_0.2 siblings** — product-taste decision on whether Precision-nozzle variants should exist across all sizes.
-- **Prusa Strength tab gap** — `wall_loops` isn't exposed in the Prusa layout despite having a label mapping. Pre-existing engine data gap surfaced by HIGH-006's snapshot test.
-- **Light mode** — v1.1 candidate.
-- **Export path re-enable** — HIGH-001, MEDIUM-006/008, LOW-007 + live Bambu Studio import test. LOW-003 (retraction naming collapse) unblocked HIGH-001 this session.
+4. `3dprintassistant/docs/sessions/2026-04-23-cowork-appdev-ship-v1.0.2.md` — most recent session (this one).
+5. `3dprintassistant/docs/sessions/2026-04-23-cowork-appdev-ir4-ir5-bundle.md` — two sessions ago (HIGH-003 merge).
+6. `3dprintassistant/docs/sessions/2026-04-23-cowork-appdev-ir5-backlog-sweep.md` — three sessions ago.
 
 ## First action in the next session
 
 1. Read the files listed above, in order.
-2. Confirm understanding. Report the current state (v1.0.2 100% code-merged, owner ship-sequence pending).
-3. Ask the owner: which step of the ship sequence do you want to start with?
-   - **Step 1: tone-pass What's New** (owner does, or ask Claude to rewrite in a specified voice)
-   - **Step 2: version bump + push** (Claude can propose the edits; you approve)
-   - **Step 3: dispatch TestFlight build** (Claude runs `gh workflow run ...` on explicit ask)
-   - **Step 4+: testing + webhook rotate + submit** (owner-driven)
-4. Execute per owner's pick. Don't drift — every action has a clear owner (`[You]` vs `[Claude on ask]`).
+2. Ask the owner which of the three branching states applies (A: Apple approved, B: Apple rejected, C: Apple still pending).
+3. Execute per the matching branch in "Branching on Apple's decision" above.
+4. Progress-bar anything with 3+ steps.
 
 ## Session process (don't drift)
 
-- Propose diff in plain English before each edit. Wait for owner sign-off. Exception: session-scoped autonomous execution when owner authorises it (common for sweep patterns).
+- Propose diff in plain English before each edit. Wait for owner sign-off. Exception: session-scoped autonomous execution when owner authorises it.
 - One finding = one commit per platform. Web + iOS, matching subject.
 - After every web `engine.js` or `data/*.json` edit: `cp` to iOS byte-identical → `node scripts/walkthrough-harness.js` → iOS XCTest (`xcodebuild test -project 3DPrintAssistant.xcodeproj -scheme 3DPrintAssistant -destination "platform=iOS Simulator,id=59B628C6-C142-42ED-8CFC-E671FCB4C077" -only-testing:3DPrintAssistantTests CODE_SIGNING_ALLOWED=NO`).
 - Commit trailer: `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`. Never skip hooks.
 - TestFlight CI is manual-dispatch-only — ask Claude to fire it at the right moment in the ship sequence.
 
-## Acceptance for IR-2a phase close (v1.0.2 shipped)
+## Acceptance for IR-2a phase close (v1.0.2 shipped to users)
 
 - iOS v1.0.2 in Apple's "Ready for Sale" state (same reach as v1.0.0 at minimum).
-- Old Discord webhook URL rotated; iOS binary no longer contains it (Worker path is the channel now).
-- Cloudflare Rate Limiting rule + HMAC active on `/api/feedback`.
-- Full iOS XCTest suite green (40/40 at merge, should remain 40/40 after any ship-time edits).
-- ROADMAP IR-2a section fully ticked (will auto-tick once the submit is complete).
+- Day-1 monitoring window completed (24h clean Sentry + Discord).
+- ROADMAP IR-2a section fully ticked including Release + Day-1 boxes.
+- IR-2a moved to ✅ status in the IR-tracking table.
 
 <<< END <<<
 

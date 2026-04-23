@@ -1,38 +1,26 @@
 # v1.0.2 — "What's New" (App Store Connect)
 
-**Status:** LOCKED DRAFT — paste into ASC after your tone pass. Under 4000 chars.
-**Last updated:** 2026-04-23 (IR-2a session).
+**Status:** FINAL — paste into ASC. Under 4000 chars.
+**Last updated:** 2026-04-24 (post IR-4/IR-5 bundle, casual tone pass).
 
 ---
 
 ## Paste this into App Store Connect → What's New
 
 ```
-Engine correctness + reliability pass — and a privacy improvement for how feedback reaches us.
+Mostly a behind-the-scenes tune-up, but a few things you'll notice:
 
-Smarter warnings
-• New safety check: if your printer can't reach the recommended bed temperature, the profile now clamps it and tells you why.
-• Catches stale or corrupted saved profiles (from an old link or cached state) and recovers gracefully with a clear notice.
-• Surfaces pattern substitutions: if your slicer doesn't support a specific infill or surface pattern, the app now shows what it's actually using.
+• Warnings now name your actual printer instead of guessing "A1/A1 Mini" for every bedslinger.
+• New heads-up if your printer can't reach the recommended bed temp — it clamps safely and tells you why.
+• Stale or broken saved profiles no longer leave you with an empty screen.
+• If your slicer swaps an infill or surface pattern, you'll see what it actually used.
+• Retraction length in Advanced Filament Settings now shows the real value the profile applies.
+• Feedback from the app now goes through our own server before hitting Discord — better privacy.
 
-Clearer rationale
-• Why-text for speed and acceleration now names your actual printer (previously "A1/A1 Mini" showed up for every bedslinger — Prusa, Creality, etc.).
-
-Reliability
-• Engine init failures now report the real error instead of masking as a timeout.
-• Safer numeric handling — the app no longer crashes on malformed preset data.
-
-Privacy
-• Feedback submissions now route through our own server before reaching Discord. Your messages are no longer sent directly from your phone to a third party.
-
-Data
-• Lightning infill recognized on PrusaSlicer.
-• Adaptive Cubic recognized on Bambu Studio and OrcaSlicer.
-
-Thanks for the feedback that drove this release.
+Thanks for sending in bugs. Keep them coming.
 ```
 
-Character count: ~1100. Well under the 4000 cap.
+Character count: ~530. Well under the 4000 cap.
 
 ---
 
