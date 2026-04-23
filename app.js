@@ -1071,10 +1071,16 @@ function updatePTState(key, val) {
 }
 
 // ── Warnings ──────────────────────────────────────────────────────────────────
+// [MEDIUM-022] Escape engine-sourced strings before interpolation. Today m.text
+// and m.detail come from bundled engine output (some now include printer.name
+// via HIGH-012 templating) — safe in-tree, but shareable-profile-URL work or a
+// future user-editable printer import would make this live XSS without escHtml.
 function renderWarnings(warnings) {
   document.getElementById('warningsBar').innerHTML = warnings
     .map(m => {
-      const body = m.detail ? `<strong>${m.text}</strong> ${m.detail}` : m.text;
+      const body = m.detail
+        ? `<strong>${escHtml(m.text)}</strong> ${escHtml(m.detail)}`
+        : escHtml(m.text);
       return `<div class="warning-item"><span class="warn-icon">⚠</span><span>${body}</span></div>`;
     })
     .join('');
@@ -1183,7 +1189,9 @@ function renderFilamentPanel(filament, nozzle) {
   }
 
   if (filament.notes.length) {
-    html += `<div class="filament-notes">${filament.notes.map(n => `<div class="filament-note">${n}</div>`).join('')}</div>`;
+    // [MEDIUM-022] Notes come from materials.json — bundled, safe today, but
+    // escape for defence-in-depth in case a future import path feeds user text.
+    html += `<div class="filament-notes">${filament.notes.map(n => `<div class="filament-note">${escHtml(n)}</div>`).join('')}</div>`;
   }
 
   document.getElementById('filamentSettings').innerHTML = html;
@@ -1204,10 +1212,13 @@ function renderProfilePanel(profile) {
   const T = Engine.t;
 
   // Render comparison banner
+  // [MEDIUM-022] comparisonProfile.label is the highest-risk XSS sink here —
+  // it reflects the printer/material selection at compare-lock time, today
+  // engine-sourced but a shareable-URL feature would make it user-writable.
   if (comparisonProfile) {
     banner.innerHTML = `
       <div class="compare-banner">
-        <span>${T('compareLocked')} <strong>${comparisonProfile.label}</strong></span>
+        <span>${T('compareLocked')} <strong>${escHtml(comparisonProfile.label)}</strong></span>
         <div class="compare-col-tags">
           <span class="col-tag-a">${T('compareColA')}</span>
           <span class="col-tag-b">${T('compareColB')}</span>
@@ -1234,21 +1245,24 @@ function renderProfilePanel(profile) {
         const same  = aVal === bVal;
         const aCls  = (same || aVal === '—') ? 'same' : '';
         const bCls  = (same || bVal === '—') ? 'same' : '';
+        // [MEDIUM-022] Escape engine-sourced values + why text. PARAM_LABELS
+        // are bundled English constants — safe as-is.
         return `
           <div class="setting-row comparing">
             <span class="setting-name">${Engine.PARAM_LABELS[p]}</span>
-            <span class="setting-value val-cmp-a ${aCls}">${aVal}</span>
-            <span class="setting-value val-cmp-b ${bCls}">${bVal}</span>
+            <span class="setting-value val-cmp-a ${aCls}">${escHtml(aVal)}</span>
+            <span class="setting-value val-cmp-b ${bCls}">${escHtml(bVal)}</span>
           </div>
-          ${item?.why ? `<div class="setting-why">${item.why}</div>` : ''}`;
+          ${item?.why ? `<div class="setting-why">${escHtml(item.why)}</div>` : ''}`;
       }
 
+      // [MEDIUM-022] Same as above for the non-compared view.
       return `
         <div class="setting-row">
           <span class="setting-name">${Engine.PARAM_LABELS[p]}</span>
-          <span class="setting-value val-ok">${item.value}</span>
+          <span class="setting-value val-ok">${escHtml(item.value)}</span>
         </div>
-        ${item.why ? `<div class="setting-why">${item.why}</div>` : ''}`;
+        ${item.why ? `<div class="setting-why">${escHtml(item.why)}</div>` : ''}`;
     };
 
     let body = '';
