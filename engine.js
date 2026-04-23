@@ -668,8 +668,13 @@ const Engine = (() => {
   function getPrinterLimits(printer, nozzleSize) {
     if (!printer || !nozzleSize) return null;
     const override = printer.limits_override || {};
-    const nz = String(nozzleSize);
-    const nzOverride = (override.nozzles && override.nozzles[nz]) || {};
+    // [MEDIUM-001] Numeric-compare override keys so "0.40"/"0.4 "/0.4 all resolve.
+    // Previously String(0.4) === "0.4" string-matched a "0.4" key only; a data entry
+    // keyed "0.40" or with a trailing space silently fell through to formula defaults.
+    const nzTarget = Number(nozzleSize);
+    const nzOverrideEntry = Object.entries(override.nozzles || {})
+      .find(([k]) => Number(k) === nzTarget);
+    const nzOverride = (nzOverrideEntry && nzOverrideEntry[1]) || {};
     const mOverride = override.motion || {};
     const maxSpeed = printer.max_speed || 500;
 
