@@ -335,6 +335,11 @@ const Engine = (() => {
     const nozzle     = state.nozzle  ? getNozzle(state.nozzle)   : null;
     const nozzleSize = nozzle ? nozzle.size : null;
     const limits     = (printer && nozzleSize) ? getPrinterLimits(printer, nozzleSize) : null;
+    // [MEDIUM-005] Slicer context for routing chip-desc pattern names through
+    // mapForSlicer — so the strength chip shows "rectilinear" on Prusa instead
+    // of "Grid" (which is what emission + export write). Falls back to Bambu
+    // when no printer picked yet, matching resolveProfile's default.
+    const filtersSlicer = state.printer ? (getSlicerForPrinter(state.printer) || 'bambu_studio') : 'bambu_studio';
 
     // Given a surface preset, return the actual layer height the engine would
     // emit for the current printer+nozzle (i.e. the raw value clamped to the
@@ -356,10 +361,22 @@ const Engine = (() => {
       const prefix = s.ironing ? `${lhFmt} mm + ironing` : `${lhFmt} mm layers`;
       return `${prefix} — ${s.desc}`;
     };
+    // [MEDIUM-005] Route the infill pattern through mapForSlicer so the chip
+    // shows what actually ships. Previously hardcoded "Grid"/"Cross Hatch"
+    // suppression meant a Prusa user would see "4 walls · 20% Grid" in the
+    // chip while the profile emission wrote "rectilinear" (Prusa's equivalent).
+    // Now the chip shows the slicer's real name (or hides the suffix when the
+    // slicer's canonical is "Rectilinear"/"Grid"-class default).
     const strengthDesc = (s) => {
-      const prefix = s.infill_pattern && s.infill_pattern !== 'Grid' && s.infill_pattern !== 'Cross Hatch'
-        ? `${s.wall_loops} walls · ${s.infill_density}% ${s.infill_pattern}`
-        : `${s.wall_loops} walls · ${s.infill_density}%`;
+      if (!s.infill_pattern) return `${s.wall_loops} walls · ${s.infill_density}% — ${s.desc}`;
+      const mapped = mapForSlicer(s.infill_pattern, 'sparse_infill_pattern', filtersSlicer);
+      // Suppress the pattern suffix when it's a slicer-default-ish pattern;
+      // the generic "Grid"/"Rectilinear"/"Cross Hatch" says nothing the user cares about.
+      const genericDefaults = new Set(['grid', 'rectilinear', 'cross hatch', 'crosshatch']);
+      const hideSuffix = genericDefaults.has(String(mapped).toLowerCase());
+      const prefix = hideSuffix
+        ? `${s.wall_loops} walls · ${s.infill_density}%`
+        : `${s.wall_loops} walls · ${s.infill_density}% ${mapped}`;
       return `${prefix} — ${s.desc}`;
     };
     // [LOW-010] Support chip descs pull from the unified _SUPPORT_TYPES table
