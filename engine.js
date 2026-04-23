@@ -249,6 +249,14 @@ const Engine = (() => {
     best_underside: { type: 'Normal', z_gap: '0.10' },
   };
 
+  // [MEDIUM-004] Shared layer-height formatter. Both the surface chip desc
+  // (getFilters.surfaceDesc) and the profile emission site (resolveProfile's
+  // layer_height) normalise through the same 2-decimal + trailing-zero-strip
+  // rule so unusual floats (e.g. 0.200000001 from a future _clampNum edge)
+  // can't diverge visually between "0.2 mm layers" (chip) and "0.200000001 mm"
+  // (emission). IMPL-040 parity invariant.
+  const _fmtLayer = lh => Number(lh).toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+
   function _sortByOrder(items, order) {
     const idx = new Map(order.map((id, i) => [id, i]));
     return [...items].sort((a, b) => (idx.get(a.id) ?? 999) - (idx.get(b.id) ?? 999));
@@ -284,7 +292,7 @@ const Engine = (() => {
     const surfaceDesc = (s) => {
       const lh = effectiveLayerHeight(s);
       if (lh == null) return s.desc;
-      const lhFmt = lh.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+      const lhFmt = _fmtLayer(lh);
       const prefix = s.ironing ? `${lhFmt} mm + ironing` : `${lhFmt} mm layers`;
       return `${prefix} — ${s.desc}`;
     };
@@ -1526,8 +1534,9 @@ const Engine = (() => {
     // ─── QUALITY TAB ──────────────────────────────────────────────────────────
     if (surface) {
       // Clamp layer_height to printer max (e.g. 0.4mm nozzle → Bambu max 0.28)
+      // [MEDIUM-004] _fmtLayer keeps this in lockstep with the chip desc on edge floats.
       const lh = limits ? _clampNum(surface.layer_height, limits.min_layer_height, limits.max_layer_height) : surface.layer_height;
-      p.layer_height = S(`${lh} mm`,
+      p.layer_height = S(`${_fmtLayer(lh)} mm`,
         surface.id === 'draft'   ? 'Thick layers reduce total layer count significantly. Ideal for prototypes where surface finish is secondary.' :
         surface.id === 'maximum' ? 'Finest layer height. Combined with ironing produces a near-smooth top surface.' :
         surface.id === 'fine'    ? 'Fine layers visibly reduce the staircase effect on curved and angled surfaces.' :
