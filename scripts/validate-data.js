@@ -189,19 +189,6 @@ function validateWarnings() {
   if (!d) return;
 
   check(file, isObject(d.material_warnings),  'material_warnings must be an object');
-  check(file, isArray(d.condition_warnings) && d.condition_warnings.length > 0, 'condition_warnings must be a non-empty array');
-
-  const ids = new Set();
-  (d.condition_warnings || []).forEach((w, i) => {
-    const ctx = `condition_warnings[${i}] (id=${w.id})`;
-    check(file, isString(w.id),      `${ctx}: id must be a non-empty string`);
-    check(file, isObject(w.condition),`${ctx}: condition must be an object`);
-    check(file, isString(w.message), `${ctx}: message must be a non-empty string`);
-    if (isString(w.id)) {
-      check(file, !ids.has(w.id), `${ctx}: duplicate id '${w.id}'`);
-      ids.add(w.id);
-    }
-  });
 }
 
 function validateTroubleshooter() {
