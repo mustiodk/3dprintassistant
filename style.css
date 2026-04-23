@@ -541,6 +541,21 @@ body, header, .top-nav, .filters, .panel, .chip,
 .setting-row + .setting-row { border-top: 1px solid var(--border); }
 
 .setting-name  { font-size: 13px; color: var(--text2); flex-shrink: 0; }
+/* [IMPL-041 / DQ-1 commit 4] Provenance icon — small ⓘ after the param label
+   in Advanced view when the emission carries a prov tag. Native `title` on
+   the icon supplies the hover tooltip (source — ref). Visible enough to
+   discover without being loud. */
+.prov-icon {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 11px;
+  color: var(--text2);
+  opacity: 0.55;
+  cursor: help;
+  vertical-align: baseline;
+  transition: opacity 0.15s ease;
+}
+.prov-icon:hover { opacity: 1; color: var(--info, #a68fff); }
 .setting-value {
   font-family: 'DM Mono', monospace;
   font-size: 13px;

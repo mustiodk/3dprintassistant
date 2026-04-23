@@ -1257,9 +1257,21 @@ function renderProfilePanel(profile) {
       }
 
       // [MEDIUM-022] Same as above for the non-compared view.
+      // [IMPL-041 / DQ-1 commit 4] Provenance indicator — small ⓘ icon after
+      // the param label when we're in Advanced view AND the emission has a
+      // non-null prov tag. Native `title` on the icon gives a no-JS hover
+      // tooltip with "source — ref". Pros can inspect every number's origin;
+      // beginners in Simple view never see the icon.
+      const showProv = currentMode === 'advanced' && item && item.prov;
+      const provTitle = showProv
+        ? `Source: ${item.prov.source}${item.prov.ref ? ` — ${item.prov.ref}` : ''}`
+        : '';
+      const provIcon = showProv
+        ? ` <span class="prov-icon" title="${escHtml(provTitle)}">ⓘ</span>`
+        : '';
       return `
         <div class="setting-row">
-          <span class="setting-name">${Engine.PARAM_LABELS[p]}</span>
+          <span class="setting-name">${Engine.PARAM_LABELS[p]}${provIcon}</span>
           <span class="setting-value val-ok">${escHtml(item.value)}</span>
         </div>
         ${item.why ? `<div class="setting-why">${escHtml(item.why)}</div>` : ''}`;
