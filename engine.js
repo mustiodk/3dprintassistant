@@ -1705,7 +1705,8 @@ const Engine = (() => {
         surface.id === 'draft'   ? 'Thick layers reduce total layer count significantly. Ideal for prototypes where surface finish is secondary.' :
         surface.id === 'maximum' ? 'Finest layer height. Combined with ironing produces a near-smooth top surface.' :
         surface.id === 'fine'    ? 'Fine layers visibly reduce the staircase effect on curved and angled surfaces.' :
-                                   'Standard balance of print time and surface quality for everyday parts.');
+                                   'Standard balance of print time and surface quality for everyday parts.',
+        { source: 'calculated', ref: 'rule:_clampNum(objective.surface.layer_height)' });
 
       const useArachne = surface.wall_generator === 'Arachne' || isMiniature;
       p.wall_generator = S(
@@ -1736,7 +1737,8 @@ const Engine = (() => {
       let initLayerH = Math.max(0.12, Math.min(nozzleSize * 0.5, 0.32));
       if (limits) initLayerH = _clampNum(initLayerH, limits.min_layer_height, limits.max_layer_height);
       p.initial_layer_height = A(`${initLayerH.toFixed(2)} mm`,
-        'A slightly thicker initial layer improves bed adhesion. Scales with nozzle size — small nozzles use thinner first layers, large nozzles use thicker ones.');
+        'A slightly thicker initial layer improves bed adhesion. Scales with nozzle size — small nozzles use thinner first layers, large nozzles use thicker ones.',
+        { source: 'calculated', ref: 'rule:nozzle_scaled+_clampNum' });
 
       // Line widths: nozzle × 1.05/1.10, clamped against printer's max_line_width
       // (protects users of 0.8mm+ nozzles whose printers may cap line width tighter).
@@ -1746,9 +1748,9 @@ const Engine = (() => {
         ow = _clampNum(ow, null, limits.max_line_width);
         iw = _clampNum(iw, null, limits.max_line_width);
       }
-      p.outer_wall_line_width  = A(`${ow.toFixed(2)} mm`, 'Slightly wider than nozzle diameter — improves surface quality and wall strength with minimal speed penalty.');
-      p.inner_wall_line_width  = A(`${iw.toFixed(2)} mm`, 'Wider inner walls print faster while maintaining structural integrity.');
-      p.top_surface_line_width = A(`${ow.toFixed(2)} mm`, 'Matching the outer wall width gives a consistent, uniform top surface appearance.');
+      p.outer_wall_line_width  = A(`${ow.toFixed(2)} mm`, 'Slightly wider than nozzle diameter — improves surface quality and wall strength with minimal speed penalty.', { source: 'calculated', ref: 'rule:nozzle×1.05+_clampNum' });
+      p.inner_wall_line_width  = A(`${iw.toFixed(2)} mm`, 'Wider inner walls print faster while maintaining structural integrity.', { source: 'calculated', ref: 'rule:nozzle×1.10+_clampNum' });
+      p.top_surface_line_width = A(`${ow.toFixed(2)} mm`, 'Matching the outer wall width gives a consistent, uniform top surface appearance.', { source: 'calculated', ref: 'rule:nozzle×1.05+_clampNum' });
 
       p.arc_fitting = A('Enabled',
         'Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features.');
@@ -1763,7 +1765,8 @@ const Engine = (() => {
 
       if (isPETG) {
         p.bridge_flow = A('0.90',
-          'Slight under-extrusion on bridges reduces sagging — PETG is particularly prone to bridge droop at full flow.');
+          'Slight under-extrusion on bridges reduces sagging — PETG is particularly prone to bridge droop at full flow.',
+          { source: 'rule', ref: 'rule:petg_bridge_flow' });
       }
     }
 
@@ -1771,9 +1774,11 @@ const Engine = (() => {
       p.order_of_walls = S('Inner / Outer',
         'Inner walls are placed first, establishing the reference geometry. The outer wall is then placed precisely against them — improving hole and feature accuracy.');
       p.xy_hole_compensation = S('0.05–0.1 mm',
-        'Compensates for material expansion that makes holes slightly smaller than designed. Start at 0.05 mm and adjust with a test print.');
+        'Compensates for material expansion that makes holes slightly smaller than designed. Start at 0.05 mm and adjust with a test print.',
+        { source: 'default', ref: 'engine:functional_use_case' });
       p.elephant_foot_compensation = S('0.15 mm',
-        'Prevents the over-squeezed first layer from widening the base and affecting dimensional accuracy of features close to the bed.');
+        'Prevents the over-squeezed first layer from widening the base and affecting dimensional accuracy of features close to the bed.',
+        { source: 'default', ref: 'engine:functional_use_case' });
     }
 
     // ─── STRENGTH TAB ─────────────────────────────────────────────────────────
@@ -1783,7 +1788,8 @@ const Engine = (() => {
           ? 'Walls contribute more to strength than infill. Going from 2 to 4 walls often doubles part strength at lower cost than raising infill.'
           : strength.wall_loops <= 2
             ? 'Minimum walls for structural integrity. Suitable for prototypes and non-load-bearing parts.'
-            : 'Standard wall count — good balance of strength, weight, and print time.');
+            : 'Standard wall count — good balance of strength, weight, and print time.',
+        { source: 'default', ref: 'objective_profiles.json#strength.wall_loops' });
 
       const infillPat = patternFor(strength.infill_pattern, 'sparse_infill_pattern');
       p.sparse_infill_pattern = S(infillPat,
@@ -1798,7 +1804,8 @@ const Engine = (() => {
           ? 'High infill for maximum rigidity — significantly increases weight and print time.'
           : strength.infill_density <= 10
             ? 'Low infill keeps the part lightweight and fast to print. Adequate for non-structural use.'
-            : 'Balanced infill — enough internal structure for everyday parts without excessive material use.');
+            : 'Balanced infill — enough internal structure for everyday parts without excessive material use.',
+        { source: 'default', ref: 'objective_profiles.json#strength.infill_density' });
 
       const lowInfill  = strength.infill_density <= 15;
       const fineLayers = surface && surface.layer_height <= 0.15;
@@ -1806,11 +1813,13 @@ const Engine = (() => {
       p.top_shell_layers = S(`${topShells}`,
         topShells >= 5
           ? 'More top shells prevent pillowing (small holes in the top face) — common at low infill densities or with fine layer heights.'
-          : 'Standard top shell count — enough layers to produce a solid, closed top surface.');
+          : 'Standard top shell count — enough layers to produce a solid, closed top surface.',
+        { source: 'calculated', ref: 'rule:top_shells_from_strength+layer_height' });
 
       const bottomShells = strength.bottom_shell_layers_base || Math.max(3, topShells - 1);
       p.bottom_shell_layers = A(`${bottomShells}`,
-        'Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside.');
+        'Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside.',
+        { source: 'calculated', ref: 'rule:bottom_shells_from_strength' });
 
       const isFineQuality = surface && (surface.id === 'fine' || surface.id === 'maximum');
       p.top_surface_pattern = A(
@@ -1909,13 +1918,15 @@ const Engine = (() => {
         !isCoreXY  ? `${printer.name} tops out at ${(printer.max_acceleration || 0).toLocaleString('en-US')} mm/s² acceleration — higher outer-wall speeds cause ringing on tall prints.` :
         petgCapped ? 'PETG surface quality degrades noticeably above 80 mm/s outer wall speed — capped for this material.' :
         sm.id === 'quality' ? 'Slow outer walls reduce vibration artifacts and give each layer more time to solidify uniformly.' :
-        'Outer wall speed balanced for your printer type — CoreXY handles higher speeds without ringing.');
+        'Outer wall speed balanced for your printer type — CoreXY handles higher speeds without ringing.',
+        { source: 'calculated', ref: 'rule:material_caps+printer_limits' });
 
       p.inner_wall_speed = S(`${innerSpeed} mm/s`,
         isTPU     ? 'Inner walls also capped for flexible filament — consistent flow matters more than speed.' :
         isABSlike ? 'Moderate inner wall speed helps ABS/ASA cool uniformly between layers.' :
         !isCoreXY ? 'Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints.' :
-        'Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints.');
+        'Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints.',
+        { source: 'calculated', ref: 'rule:material_caps+printer_limits' });
 
       // Advanced speed settings
       let initSpeed = isCoreXY ? sm.initial_layer : (sm.initial_layer - 5);
@@ -1924,16 +1935,19 @@ const Engine = (() => {
       const initSpeedFinal = env ? Math.round(initSpeed * (env.first_layer_speed_multiplier || 1.0)) : initSpeed;
 
       p.initial_layer_speed = A(`${initSpeedFinal} mm/s`,
-        'Slow initial layer speed gives the filament more time to bond with the bed surface and build a solid foundation.');
+        'Slow initial layer speed gives the filament more time to bond with the bed surface and build a solid foundation.',
+        { source: 'calculated', ref: 'rule:initial_layer_speed+env_multiplier' });
 
       const topSpeed = isCoreXY ? sm.top_surface_corexy : sm.top_surface_bedslinger;
       p.top_surface_speed = A(`${topSpeed} mm/s`,
         sm.id === 'quality' ? 'Slow top surface speed produces the most uniform and flat top layer — critical when ironing is enabled.' :
-        'Top surface speed tuned for your printer — slower than inner walls since this layer is visible.');
+        'Top surface speed tuned for your printer — slower than inner walls since this layer is visible.',
+        { source: 'default', ref: 'objective_profiles.json#speed.top_surface' });
 
       const gapSpeed = isCoreXY ? sm.gap_fill_corexy : sm.gap_fill_bedslinger;
       p.gap_fill_speed = A(`${gapSpeed} mm/s`,
-        'Gap fill handles small spaces between walls. Moderate speed prevents pressure buildup and ooze in tight gaps.');
+        'Gap fill handles small spaces between walls. Moderate speed prevents pressure buildup and ooze in tight gaps.',
+        { source: 'default', ref: 'objective_profiles.json#speed.gap_fill' });
 
       // Accelerations
       let outerAccel = isCoreXY
@@ -1956,14 +1970,17 @@ const Engine = (() => {
         // [HIGH-012-followup A] Template against printer.name — was hardcoded "A1/A1 Mini" and fired for every bedslinger.
         !isCoreXY ? `Lower acceleration on ${printer.name} prevents ringing from the moving print bed mass.` :
         isABSlike ? 'Reduced acceleration helps ABS/ASA cool more uniformly, reducing warping.' :
-        'Outer wall acceleration tuned for your printer — balances speed with surface quality.');
+        'Outer wall acceleration tuned for your printer — balances speed with surface quality.',
+        { source: 'calculated', ref: 'rule:accel_with_material_caps' });
       p.inner_wall_acceleration    = A(`${innerAccel} mm/s²`,
         isTPU     ? 'Low acceleration for flexible filament — matches outer wall limits to prevent jams.' :
         !isCoreXY ? 'Reduced acceleration for bedslinger — inner walls still contribute to visible ringing.' :
         isABSlike ? 'Lower acceleration helps ABS/ASA maintain consistent layer bonding.' :
-        'Higher than outer wall — inner walls are hidden so acceleration artifacts are not visible.');
+        'Higher than outer wall — inner walls are hidden so acceleration artifacts are not visible.',
+        { source: 'calculated', ref: 'rule:accel_with_material_caps' });
       p.initial_layer_acceleration = A(`${initAccel} mm/s²`,
-        'Very low acceleration ensures the nozzle moves smoothly at slow speed — prevents the first layer from being dragged or lifting at corners.');
+        'Very low acceleration ensures the nozzle moves smoothly at slow speed — prevents the first layer from being dragged or lifting at corners.',
+        { source: 'default', ref: 'objective_profiles.json#speed.initial_accel' });
     }
 
     // ─── SUPPORT TAB ──────────────────────────────────────────────────────────
@@ -1987,16 +2004,19 @@ const Engine = (() => {
           ? 'Hybrid combines tree and normal support — tree branches where possible, normal on flat overhangs.'
           : 'Default support style — grid pattern provides reliable support for all overhang types.');
       p.support_threshold_angle = S(support.id === 'best_underside' ? '30°' : '40°',
-        'Only generate support where overhangs exceed this angle. Lower values generate more support — use 30° for quality-critical surfaces.');
+        'Only generate support where overhangs exceed this angle. Lower values generate more support — use 30° for quality-critical surfaces.',
+        { source: 'default', ref: 'engine:support_type_id' });
       p.support_z_distance      = S(`${zGap} mm`,
         support.id === 'easy'
           ? 'Large Z gap makes support very easy to snap off. Minimal surface marks.'
           : support.id === 'balanced'
           ? 'Moderate Z gap balances ease of removal with reasonable underside quality.'
-          : 'Tight Z distance produces the cleanest supported surfaces at the cost of harder removal.');
+          : 'Tight Z distance produces the cleanest supported surfaces at the cost of harder removal.',
+        { source: 'default', ref: 'engine:_SUPPORT_TYPES' });
 
       p.support_interface_layers  = A(support.id === 'best_underside' ? '3' : '2',
-        'Interface layers are solid layers between the support and model surface — more layers = better surface finish on the supported face, but harder to remove.');
+        'Interface layers are solid layers between the support and model surface — more layers = better surface finish on the supported face, but harder to remove.',
+        { source: 'default', ref: 'engine:support_type_id' });
       p.support_interface_pattern = A(patternFor(support.id === 'best_underside' ? 'Grid' : 'Rectilinear', 'support_interface_pattern'),
         'Grid interface provides stronger contact with the model surface. Rectilinear is easier to peel off after printing.');
     }
@@ -2057,7 +2077,7 @@ const Engine = (() => {
         brimWhy = 'Brim applied only to corners — prevents lifting while minimizing cleanup.';
       }
       if (brimValue) {
-        p.brim_width = A(brimValue, brimWhy);
+        p.brim_width = A(brimValue, brimWhy, { source: 'rule', ref: 'rule:brim_auto_policy' });
       }
     }
 
@@ -2100,19 +2120,22 @@ const Engine = (() => {
               ? 'Very short retraction for flexible filament — longer retractions cause jams in the extruder.'
               : (isScaled
                   ? `Retraction scaled for ${nozzleSize}mm nozzle (base ${mbs.retraction_distance}mm for 0.4mm) — small nozzles need less, large nozzles need more.`
-                  : (rd >= 1.0 ? 'Longer retraction to prevent ooze with this high-temp material.' : 'Standard retraction distance for this material.'))));
+                  : (rd >= 1.0 ? 'Longer retraction to prevent ooze with this high-temp material.' : 'Standard retraction distance for this material.'))),
+        { source: 'calculated', ref: 'rule:_scaleRetraction' });
     }
 
     if (mbs.retraction_speed != null) {
       p.retraction_speed = S(`${mbs.retraction_speed} mm/s`,
         isTPU ? 'Slow retraction prevents stretching and grinding of flexible filament.' :
-        'Retraction speed tuned for this material\'s melt characteristics.');
+        'Retraction speed tuned for this material\'s melt characteristics.',
+        { source: 'default', ref: 'materials.json#retraction_speed' });
     }
 
     const paVal = _resolvePA(mbs, nozzle);
     if (paVal != null) {
       p.pressure_advance = A(`${paVal}`,
-        `Pressure advance (K-factor) calibrated for ${nozzleSize}mm nozzle. Fine-tune with a PA calibration test print.`);
+        `Pressure advance (K-factor) calibrated for ${nozzleSize}mm nozzle. Fine-tune with a PA calibration test print.`,
+        { source: 'default', ref: 'materials.json#k_factor_matrix' });
     }
 
     // B1. Fan policy output — base fan speed recommendation from material data
@@ -2122,7 +2145,8 @@ const Engine = (() => {
         material.fan_policy === 'off'      ? 'Fan off — this material needs slow, even cooling to prevent warping and layer cracking.' :
         material.fan_policy === 'moderate'  ? 'Moderate fan — balances cooling for dimensional accuracy without causing adhesion issues.' :
         material.fan_policy === 'high'      ? 'Full fan speed — rapid cooling locks in detail and prevents sagging on overhangs.' :
-        'Low fan speed — minimal cooling to maintain layer adhesion.');
+        'Low fan speed — minimal cooling to maintain layer adhesion.',
+        { source: 'default', ref: 'materials.json#fan_policy' });
     }
 
     return p;
