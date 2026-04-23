@@ -792,6 +792,25 @@ const Engine = (() => {
     return n ? String(n.size) : null;
   }
 
+  // [HIGH-006] Public accessors for slicer layout — tabs and param labels
+  // per slicer. Replaces iOS `SlicerLayout.swift` static data. Unknown
+  // slicer ids fall back to Bambu Studio to match existing behaviour. The
+  // returned structures are deep-cloned so iOS can't accidentally mutate
+  // the engine's internal state via the JSCore proxy.
+  function getSlicerTabs(slicer) {
+    const src = SLICER_TABS[slicer] || SLICER_TABS.bambu_studio;
+    return src.map(tab => ({
+      id:       tab.id,
+      label:    tab.label,
+      desc:     tab.desc,
+      sections: tab.sections.map(s => ({ label: s.label, params: [...s.params] })),
+    }));
+  }
+  function getSlicerParamLabels(slicer) {
+    const src = SLICER_PARAM_LABELS[slicer] || SLICER_PARAM_LABELS.bambu_studio;
+    return { ...src };
+  }
+
   // [MEDIUM-020] Filament-tab registry — single source of truth for the tabs
   // shown on the iOS filament pane. `mode` mirrors the resolveProfile param
   // mode convention: "simple" items always visible; "advanced" items appear
@@ -2857,6 +2876,8 @@ const Engine = (() => {
     getSlicerDisplayName,
     getNozzleSize,
     getFilamentTabs,
+    getSlicerTabs,
+    getSlicerParamLabels,
     setActiveSlicer,
     getActiveSlicer,
     isNozzleCompatibleWithMaterial,
