@@ -2,7 +2,7 @@
 
 **Single source of truth for all planning.** Replaces IMPLEMENTATION_PLAN.md, TASKS.md, and web BACKLOG.md.
 
-**Last updated:** 2026-04-22 — **IR-0 code/data sweep landed overnight.** Five findings shipped (one = one commit per platform, 9 commits total): `[CRITICAL-003]` preset-ID validation, `[HIGH-002]` IMPL-040 coverage tightening, `[HIGH-012]` A1 why-text template, `[MEDIUM-015]` lightning fallback drop, `[MEDIUM-016]` adaptivecubic addition. 37/37 iOS tests pass, walkthrough harness 9 clean + 1 pre-existing warn (Combo 3). **Four IR-0 items remain**, each needing owner or coordinated infra work — see IR-0 section below. **Next phase queued: IR-2a v1.0.2 ship pass** (new section below). External review kit still out for third-party feedback. Full internal deliverable at [`docs/reviews/2026-04-20-internal/`](../reviews/2026-04-20-internal/) — **59 findings: 3 CRITICAL / 14 HIGH / 22 MEDIUM / 10 LOW / 10 OBS.** Reviewed revisions: web `c4c5071`, iOS `24aef66`.
+**Last updated:** 2026-04-23 — **IR-2a engine + iOS sweep + CRITICAL-001 code landed overnight.** 13 findings shipped (20 commits across both repos): `[HIGH-009]` `_clampNum` finite fallback, `[MEDIUM-002]` nozzle guard, `[MEDIUM-001]` numeric nozzle-size compare, `[MEDIUM-007]` `printer.series` init-validate, `[HIGH-012-followup A+B]` remaining A1 why-text templating, `[HIGH-008]` C6 warning loop full `patternFor` coverage (surfaced one real silent substitution: Prusa fine-quality "Monotonic line" → "monotonic"), `[HIGH-004]` `_engineError` post-loop re-read, `[HIGH-005]` structured error sentinel, `[CRITICAL-001]` iOS→Worker HMAC routing (code complete, awaits secret config), `[HIGH-010 part A]` Worker sanitisation, `[MEDIUM-018 part A]` orphan nozzle refs cleanup. 37/37 iOS tests + 9/9 walkthrough clean after every commit. **Remaining for v1.0.2 ship: owner dashboard + secret config + version bump + TestFlight + App Review submit** (see IR-2a section for checklist). External review kit still out. Full internal deliverable at [`docs/reviews/2026-04-20-internal/`](../reviews/2026-04-20-internal/) — **59 findings: 3 CRITICAL / 14 HIGH / 22 MEDIUM / 10 LOW / 10 OBS.** Reviewed revisions: web `c4c5071`, iOS `24aef66`.
 
 **Earlier status:** **IMPL-039 shipped.** Full printer-capability clamping + slicer-aware values refactor landed on web + iOS in one pass. Engine helpers (`getPrinterLimits`, `_clampNum`, `mapForSlicer`, `patternFor`) plus new `data/rules/slicer_capabilities.json` replace every scattered `Math.min` and hardcoded pattern name. 2 HIGH bugs fixed (`support_interface_pattern` now emits Bambu's canonical `rectilinear_interlaced`; `initial_layer_height` scales with nozzle so 0.2mm setups don't emit illegal 0.20mm). Retraction now nozzle-scaled and auto-bowden for MINI+/other bowden printers. 32/32 iOS tests pass. Bambu export byte-matches vendor preset format across all 5 canonical combos. iOS EU distribution still blocked on DSA Trader Status verification.
 **Owner:** Musti (solo dev)
@@ -61,38 +61,43 @@ Target: 1–2 half-days of focused work.
 - [x] **[HIGH-002]** Tighten IMPL-040 surface-parity test: compute `expectedCount = 7×6 = 42`, replace silent `continue`s with `XCTFail`, end with `XCTAssertEqual(checked, expectedCount)`. `[iOS]` — Shipped 2026-04-22. iOS `cb0b73d`. All 42 cells asserted; test still green.
 - [x] Run XCTest suite locally; record baseline runtime. `[iOS]` — Recorded 2026-04-22. Test-execution-only: **0.62s** for 37 tests. Total wall time including simulator scaffolding: **2m06s** (iPhone 17 Pro Max simulator, cold first-run of the session).
 
-### IR-2a — iOS v1.0.2 ship pass ⭐ NEXT UP
+### IR-2a — iOS v1.0.2 ship pass ⭐ IN PROGRESS (code complete, awaits activation)
 
 Target: 1–2 sessions. Goal: ship **iOS v1.0.2** to the App Store with CRITICAL-001 (feedback privacy) as the headline user-visible change and a bundle of engine-correctness fixes that already landed since v1.0.1. Version bump + TestFlight → Review → Manual release.
 
 **Sequencing rationale:** CRITICAL-001 is the only true user-visible change in the queue — everything else is silent-correctness. Shipping them together under one version number keeps App Review narrative clean ("improved privacy and reliability") and means one TestFlight cycle instead of two.
 
 **Headline feature:**
-- [ ] **[CRITICAL-001]** Route iOS feedback through `/api/feedback` Cloudflare Worker. iOS `FeedbackService.swift` POSTs to `https://3dprintassistant.com/api/feedback` with `X-App-Source: ios` + HMAC/shared-secret header. Worker enhanced to accept iOS path, sanitise `@everyone`/`@here` + markdown link syntax, rebuild embed server-side. Rotate old Discord webhook after cutover. Test end-to-end via TestFlight build before prod push. `[iOS+Worker]`
-- [ ] **[HIGH-010]** Add IP-bucket rate limit to `/api/feedback` Worker. Cloudflare Rate Limiting (preferred) or Workers KV counter. 10 req/min per IP, 100 req/min global. Strip `@everyone`/`@here` + markdown link syntax before building embed. Deploy alongside CRITICAL-001 so iOS + web are both protected at cutover. `[Worker]`
+- [x] **[CRITICAL-001]** Route iOS feedback through `/api/feedback` Cloudflare Worker. Shipped 2026-04-23. Worker `76b8bfa` (web) accepts `X-App-Source: ios` + HMAC-SHA256 signature over `${timestamp}\n${rawBody}`; ±5 min replay window. iOS `af3b8b7` POSTs to the Worker with `FEEDBACK_HMAC_SECRET` from `Config.xcconfig`; falls back to direct-Discord when secret empty (local dev). Footer formatting branches on `context.appSource`. **Activation pending:** owner sets `FEEDBACK_HMAC_SECRET` in 3 places (Cloudflare Worker env, GitHub repo secret, local Config.xcconfig — `openssl rand -hex 32`), then rotates Discord webhook after TestFlight verifies the new path. `[iOS+Worker]`
+- [~] **[HIGH-010]** IP rate limit + sanitisation on `/api/feedback`. **Part A shipped 2026-04-23** (web `76b8bfa`) — sanitises `@everyone`/`@here`/role+user mention tags/markdown link syntax before building the Discord embed. **Part B deferred to owner:** create Cloudflare native Rate Limiting rule on `/api/feedback` (Security → WAF → Rate Limiting Rules) — 10 req/min per IP, 100 req/min global. Dashboard action, ~5 min. Code-based KV rate-limiter skipped because KV binding also needs dashboard config; native rule is reversible one-click. `[Worker]`
 
 **Engine correctness (silent-fail fixes):**
-- [ ] **[HIGH-008]** Extend C6 warning loop to cover every `patternFor` field (top/bottom/internal/seam) — currently only `sparse_infill` + `support_interface`. Drive from module-level field list so new `patternFor` fields auto-get coverage. `[Web+iOS]`
-- [ ] **[HIGH-009]** Fix `_clampNum` non-finite fallback — return `min` (or caller default), never `undefined` / `null`. Eliminates `.toFixed()` crash path on missing fields. `[Web+iOS]`
-- [ ] **[MEDIUM-001]** Numeric-compare `limits_override.nozzles` keys (currently string lookup — `"0.40"` silently fails). `[Web+iOS]`
-- [ ] **[MEDIUM-002]** Add `if (!nozzle) return {};` guard to `resolveProfile`. `[Web+iOS]`
-- [ ] **[MEDIUM-007]** Init-time validation of `printer.series` enum. Case-sensitive string compare currently misclassifies typo'd entries. `[Web+iOS]`
+- [x] **[HIGH-008]** Extend C6 warning loop to cover every `patternFor` field (top/bottom/internal/seam). Shipped 2026-04-23. Web `4f35b3b`, iOS `e7ef228`. Surfaced one real previously-silent substitution: Prusa fine-quality `"Monotonic line"` → `"monotonic"`. Seam_position only checked when `state.seam` explicitly set (default display string would fire noisy warning). `[Web+iOS]`
+- [x] **[HIGH-009]** `_clampNum` non-finite fallback returns a finite bound (min → max → 0). Shipped 2026-04-23. Web `62d7ae9`, iOS `250f187`. `[Web+iOS]`
+- [x] **[MEDIUM-001]** Numeric-compare `limits_override.nozzles` keys. Shipped 2026-04-23. Web `d211d89`, iOS `677e623`. `[Web+iOS]`
+- [x] **[MEDIUM-002]** `resolveProfile` `!nozzle` early-return guard. Shipped 2026-04-23. Web `c2479db`, iOS `9fe5127`. `[Web+iOS]`
+- [x] **[MEDIUM-007]** Init-time `printer.series` enum validation — loud `console.warn` on typo'd values. Shipped 2026-04-23. Web `1b0c4aa`, iOS `6296ec4`. All 64 bundled printers pass. `[Web+iOS]`
 
 **iOS reliability (bridge error path — real errors stop masking as timeouts):**
-- [ ] **[HIGH-004]** Re-read `_engineError` in post-loop block before throwing the timeout. Currently real JS errors mask as "timed out". `[iOS]`
-- [ ] **[HIGH-005]** Replace `_engineError != "null"` string-compare with `typeof !== 'undefined'` or structured sentinel. `[iOS]`
+- [x] **[HIGH-004]** Re-read `_engineError` in post-loop block before throwing timeout. Shipped 2026-04-23. iOS `83edae6`. `[iOS]`
+- [x] **[HIGH-005]** Structured `{set, value}` sentinel replaces null string-compare. Shipped 2026-04-23. iOS `d2957da`. Uses `_engineError.set` / `.value`. `[iOS]`
 
 **Data hygiene (if owner closes open asks):**
 - [ ] **[HIGH-014]** Owner: verify A1 mini `max_bed_temp` vs Bambu spec page. If 80, apply. `[You]` + `[Code]`
 - [ ] **[LOW-002]** HIPS `enclosure_behavior.reason` — owner provides text, code applies. `[You]` + `[Code]`
-- [ ] **[MEDIUM-018]** Clean `nozzles.json.not_suitable_for` orphan references (`abs_cf`, `pla_wood`, `pla_glow`). Owner decides: unify via IDs or groups. `[You]` + `[Code]`
+- [~] **[MEDIUM-018]** Clean `nozzles.json.not_suitable_for`. **Part A shipped 2026-04-23** (web `597499b`, iOS `5a360dc`) — removed orphan refs `abs_cf`/`pla_wood`/`pla_glow` that never existed in materials.json. **Part B awaits owner decision:** unify remaining refs via material IDs (`pla_cf`, `petg_cf`…) or group strings (`pla`, `petg`…)? Currently mixed. `[You]` + `[Code]`
 
-**Release mechanics:**
-- [ ] Bump CFBundleShortVersionString to `1.0.2` in Xcode (project.yml + Info.plist). Auto build number bumps on CI push. `[iOS]`
-- [ ] Write "What's New" for App Store Connect — focus on privacy (feedback routing) + reliability (silent-error fixes). ≤ 4000 chars. `[You]` for tone, `[Code]` to draft.
-- [ ] TestFlight internal test round. Verify: feedback submit still lands in Discord; no crash on engine init; `invalid_preset` warnings surface when stale state fed in; MK4 profile no longer names A1. `[You]`
-- [ ] Submit to App Review. **EU DSA status** — if still blocked, v1.0.2 releases only to the ~121 non-EU countries (same pattern as v1.0.0). If unblocked, EU rollout rides along. `[You]`
-- [ ] Screenshots: reuse v1.0.0 set (no UI changes planned). `[Code]` to confirm no new visible surfaces; `[You]` if any visible surface shifted.
+**IR-5 followups that landed this phase:**
+- [x] **[HIGH-012-followup A]** `outer_wall_acceleration.why` printer-name template. Shipped 2026-04-23. Web `e1ca1a0`, iOS `543a51c`.
+- [x] **[HIGH-012-followup B]** `slow_down_tall.why` printer-name template. Shipped 2026-04-23. Web `4efc122`, iOS `cf98878`.
+
+**Release mechanics (owner execution):**
+- [ ] Bump CFBundleShortVersionString to `1.0.2` in `project.yml` + run `xcodegen generate`. Auto build number bumps on CI push. `[iOS]`
+- [x] "What's New" draft locked at [`docs/app-store-whats-new-v1.0.2.md`](../app-store-whats-new-v1.0.2.md). Awaits owner tone pass, then paste into App Store Connect. `[Code]` drafted + `[You]` tone.
+- [ ] TestFlight internal test round. Verify: feedback submit lands in Discord via Worker (not direct); no crash on engine init; `invalid_preset` warnings surface when stale state fed in; MK4 profile no longer names A1. `[You]`
+- [ ] Rotate old Discord webhook URL **after** TestFlight confirms new Worker path. `[You]`
+- [ ] Submit to App Review with manual release toggle. **EU DSA status** — if still blocked, v1.0.2 releases only to ~121 non-EU countries (same pattern as v1.0.0). If unblocked, EU rollout rides along. `[You]`
+- [ ] Screenshots: reuse v1.0.0 set — no UI changes in this release. `[Code]` confirmed; `[You]` verify at submit time.
 
 **Acceptance:**
 - iOS v1.0.2 live in Apple's "Ready for Sale" state (same reach as v1.0.0).

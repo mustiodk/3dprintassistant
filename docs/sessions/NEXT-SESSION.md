@@ -1,81 +1,179 @@
-# Next session — copy-paste prompt
+# Next session — cold-start prompt
 
-**Last updated:** 2026-04-22 (end of [`2026-04-22-cowork-appdev-ir0-sweep.md`](2026-04-22-cowork-appdev-ir0-sweep.md), after the overnight IR-0 sweep landed 5 findings).
+**Last updated:** 2026-04-23 (end of [`2026-04-23-cowork-appdev-ir2a-engine-sweep.md`](2026-04-23-cowork-appdev-ir2a-engine-sweep.md)). 13 findings shipped tonight + CRITICAL-001 code landed.
 
-Copy everything between the `>>> START >>>` and `<<< END <<<` markers below into a fresh Cowork session to kick off the next one.
+**Phase:** IR-2a v1.0.2 ship pass — code is COMPLETE, owner-activation + TestFlight + App Review pending. See section below.
 
-**Phase:** IR-2a — iOS v1.0.2 ship pass. Goal: ship v1.0.2 to the App Store with `[CRITICAL-001]` feedback-routing as the user-visible headline, bundled with engine-correctness + iOS reliability fixes. See ROADMAP `IR-2a` section for the full scope breakdown.
+This file is regenerated every session end. It contains everything needed to start a cold Cowork session without reading the rest of the docs first. The copy-paste block is between the `>>> START >>>` / `<<< END <<<` markers.
 
 ---
 
 >>> START >>>
 
-Start a new appdev session. Phase: **IR-2a — iOS v1.0.2 ship pass.**
+# Cold-start: 3D Print Assistant — IR-2a v1.0.2 ship pass
 
-Read, in order:
-1. `/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md` — standing rules (always). Pay particular attention to Session-log protocol + Md-hygiene evaluation + "one finding = one commit" rule.
-2. `3dprintassistant/docs/planning/ROADMAP.md` — **full file.** Check "Last updated" + the **IR-2a iOS v1.0.2 ship pass** section.
+## Project at a glance
+
+**3D Print Assistant** generates optimized 3D printing profiles based on printer + material + nozzle + user goals. Two apps, one shared engine:
+
+- **Web app** (`3dprintassistant.com`, repo `3dprintassistant/`) — live, Cloudflare Pages, auto-deploys from `main`. 64 printers, 12 brands, 18 materials, 9 nozzles, 3 slicers.
+- **iOS app** (repo `3dprintassistant-ios/`) — **v1.0 live** in ~121 non-EU countries as of 2026-04-16. EU distribution blocked by DSA Trader Status (submitted 2026-04-16, awaiting Apple verification). Dark-only for now.
+- **Engine** (`engine.js`) — single JS module, master copy in the web repo. Byte-identical to iOS via `cp` + committed on both sides after every engine edit. Runs on iOS through JavaScriptCore (JSCore) via `EngineService.swift`.
+- **Owner:** Musti (solo hobbyist dev, mustiodk@gmail.com). MacBook Air, Claude Max plan, token-conscious.
+
+**Hard deadline:** April 28, 2026 for all v1.0.2 release work.
+
+## Repo layout (everything you need to know about paths)
+
+```
+/Users/mragile.io/Documents/Claude/Projects/
+├── 3dprintassistant/                          ← WEB REPO (master)
+│   ├── engine.js                              ← ALL business logic
+│   ├── app.js                                 ← UI only, no logic
+│   ├── index.html, style.css
+│   ├── data/                                  ← source of truth for both apps
+│   │   ├── printers.json  materials.json  nozzles.json
+│   │   ├── environment.json  objective_profiles.json
+│   │   ├── warnings.json  troubleshooter.json
+│   │   └── rules/slicer_capabilities.json
+│   ├── functions/api/feedback.js              ← /api/feedback Cloudflare Worker
+│   ├── worker.js  wrangler.toml               ← Worker entrypoint + config
+│   ├── scripts/walkthrough-harness.js         ← Node regression harness (10 combos)
+│   ├── locales/en.json  da.json
+│   └── docs/
+│       ├── planning/ROADMAP.md                ← single source of truth for planning
+│       ├── sessions/                          ← session logs + INDEX + this file
+│       ├── reviews/2026-04-20-internal/       ← 59-finding internal review package
+│       ├── runbooks/incident-response.md      ← solo-dev incident runbook
+│       ├── app-store-whats-new-v1.0.2.md      ← locked "What's New" draft
+│       ├── research/  specs/  prompts/
+│       └── 3rd-party-review/                  ← external review kit (sent 2026-04-20)
+│
+├── 3dprintassistant-ios/                      ← iOS REPO (synced from web for engine + data)
+│   ├── 3DPrintAssistant/
+│   │   ├── App/Info.plist                     ← SentryDSN, DiscordFeedbackWebhook, FeedbackAPIURL, FeedbackHMACSecret
+│   │   ├── Engine/
+│   │   │   ├── engine.js                      ← byte-identical sync from web
+│   │   │   └── EngineService.swift            ← JSCore bridge (actor)
+│   │   ├── Services/
+│   │   │   ├── DataService.swift
+│   │   │   └── FeedbackService.swift          ← routes to Worker (HMAC) or Discord fallback
+│   │   ├── Data/*.json                        ← byte-identical sync from web
+│   │   ├── Models/                            ← AppState, FeedbackCategory, etc.
+│   │   ├── Views/                             ← SwiftUI screens
+│   │   └── Utils/AppConstants.swift           ← URL config, feeds from Info.plist
+│   ├── 3DPrintAssistantTests/                 ← 37 XCTests
+│   ├── 3DPrintAssistantUITests/               ← screenshot capture UITest
+│   ├── Config.xcconfig                        ← gitignored — SENTRY_DSN, DISCORD_FEEDBACK_WEBHOOK, FEEDBACK_HMAC_SECRET
+│   ├── Config.xcconfig.template               ← tracked, empty values
+│   ├── project.yml                            ← XcodeGen spec (CFBundleShortVersionString lives here)
+│   ├── fastlane/Fastfile                      ← beta upload via ASC API key
+│   ├── .github/workflows/testflight.yml       ← CI builds + TestFlight upload on push to main
+│   └── docs/                                  ← App Store metadata, screenshots (iphone/ + ipad/)
+│
+└── CLAUDE.md                                  ← TOP-LEVEL rules — read this first every session
+```
+
+## Architecture notes you'll actually need
+
+- **engine.js is the brain.** `resolveProfile(state)` returns `{ paramId: { value, why, mode } }`. `getWarnings(state)` returns `[{ id, text, detail, fix }]` (structured, not HTML — see RB-1). Other public functions: `getFilters`, `getChecklist`, `getAdvancedFilamentSettings`, `getAdjustedTemps`, `getFilamentProfile`, `getCompatibleNozzles`, `getSymptoms`, `getTroubleshootingTips`, `calcPurgeVolumes`, `calcPrintTime`, `exportBambuStudioJSON`, `formatProfileAsText`.
+- **Web is master, iOS mirrors.** Edit `engine.js` or `data/*.json` on web first, `cp` to iOS (byte-identical), run walkthrough harness, run iOS XCTest, commit both sides with matching finding IDs in the subject.
+- **Purity invariants:** `resolveProfile` + `getWarnings` both stay pure of each other. The warning-emission logic sometimes duplicates the clamping math that `resolveProfile` uses — that's intentional (e.g. CRITICAL-002 bed-temp, CRITICAL-003 preset IDs). Don't "DRY up" without reading the session log for why.
+- **IMPL-040 single-source-of-truth:** UI chip numbers MUST be computed at render time from the same source `resolveProfile` reads. Never hardcode numbers in data `desc` fields. See `docs/specs/IMPL-040-chip-desc-parity.md`.
+- **Slicer-aware output:** Bambu/Prusa/Orca each have different tab structures + param labels. `SLICER_TABS` + `SLICER_PARAM_LABELS` in engine.js. PARAM_LABELS stay in English (they match the slicer UI exactly).
+- **patternFor + mapForSlicer:** engine emits canonical names ("Monotonic line"), `mapForSlicer` translates to slicer-specific valid values using `slicer_capabilities.json`. Falls back to `validSet[0]` when no match — C6 warning loop (now extended in HIGH-008) surfaces those substitutions.
+- **JSCore thread-affinity:** `EngineService` is `actor` — known hazard flagged in HIGH-003 (deferred to v1.1). Don't worry about it for v1.0.2 work; do worry if you touch the init path.
+- **Info.plist → AppConstants.swift pattern:** all config (Sentry DSN, feedback URLs, secrets) flows `Config.xcconfig` → `Info.plist` `$(VAR)` → `AppConstants.swift` Bundle lookup → consumer code. Keeps secrets out of binary source.
+
+## Standing rules (from CLAUDE.md — binding every session)
+
+1. **Progress bar on every multi-step task:** `[🟩🟩⬜⬜⬜⬜ 40%] Step`. Owner wants this visible.
+2. **Direct recommendations** — no endless options lists.
+3. **ROADMAP is truth** — read it in full before reporting any project status. Tick checkboxes directly as items land.
+4. **One finding = one commit per platform.** Never batch. Web commit + iOS commit per finding.
+5. **Propose diff in plain English before each edit. Wait for owner sign-off per finding** — unless the owner explicitly authorises a session-scoped autonomous sweep (common pattern for overnight work; see 2026-04-22 + 2026-04-23 session logs for examples).
+6. **Chain mechanical tool calls.** For doc-close / sync-then-commit / multi-file rewrite loops, fire 5–10 tool calls in a single message then summarise. Don't stop after every single tool call — that looks broken and slows things down. Break turns only at meaningful checkpoints (finding proposals, test-result pauses, user-decision prompts).
+7. **Test after every engine or data edit:** `cp` to iOS byte-identical → `node scripts/walkthrough-harness.js` (from web repo root) → iOS XCTest.
+8. **Never push iOS main if XCTest is red.**
+9. **Commit message format:** `engine: <summary> [<FINDING-ID>]` / `iOS: …` / `data: …` / `worker: …`. Trailer must be `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`. Never skip hooks (`--no-verify`), never amend published commits.
+10. **Data/logic change evaluation (MANDATORY):** every change must mention whether web + iOS UI need updates to best use the improvement.
+11. **Md-hygiene sweep at session end** — see checklist at bottom of CLAUDE.md.
+12. **Right thing, not easy thing, post-live** — apply fixes to web + iOS both, never narrowed scope.
+
+## Files to read in order before answering
+
+1. `/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md` — standing rules (always read first).
+2. `3dprintassistant/docs/planning/ROADMAP.md` — **full file.** Pay attention to IR-2a section.
 3. `3dprintassistant/docs/sessions/INDEX.md` — skim top 5 entries.
-4. Last 3 session logs in full (newest first):
-   - `docs/sessions/2026-04-22-cowork-appdev-ir0-sweep.md` — yesterday's IR-0 sweep (5 findings shipped, **4 deferred to this phase**). "Open questions" section has three owner asks and one hook-verification step. Read carefully.
-   - `docs/sessions/2026-04-22-cowork-appdev-housekeeping.md` — security rotations. Reference for Sentry DSN / ASC API key / CI secret names if you touch deploy paths.
-   - `docs/sessions/2026-04-21-cowork-appdev.md` — CRITICAL-002 bed-temp clamp. Reference for the `_clampNum` / `getWarnings` purity pattern used in the CRITICAL-002 + CRITICAL-003 implementations.
-5. `3dprintassistant/docs/reviews/2026-04-20-internal/01-critical.md` — re-read `[CRITICAL-001]` in full (iOS feedback through Worker; this is the headline feature of v1.0.2).
-6. `3dprintassistant/docs/reviews/2026-04-20-internal/02-high.md` — re-read `[HIGH-004]`, `[HIGH-005]`, `[HIGH-008]`, `[HIGH-009]`, `[HIGH-010]`, `[HIGH-014]`.
-7. `3dprintassistant/docs/reviews/2026-04-20-internal/03-medium.md` — re-read `[MEDIUM-001]`, `[MEDIUM-002]`, `[MEDIUM-007]`, `[MEDIUM-018]`.
+4. `3dprintassistant/docs/sessions/2026-04-23-cowork-appdev-ir2a-engine-sweep.md` — last session log (most recent).
+5. `3dprintassistant/docs/sessions/2026-04-22-cowork-appdev-ir0-sweep.md` — two-sessions-ago (IR-0 context).
+6. `3dprintassistant/docs/reviews/2026-04-20-internal/01-critical.md` — re-read `[CRITICAL-001]` specifically.
+7. Any review file the task-at-hand references.
 
-**First action — verify partner-reviewer hook is live.**
-Before any code work, make ONE trivial edit (e.g. a whitespace change in engine.js, then revert it). If the PostToolUse hook fires, you'll see `additionalContext` from the `simplify` skill surface on the next turn. If silent, the settings-watcher didn't pick up the newly-installed hook — tell me to open `/hooks` once, or restart the session. The hook is user-level at `~/.claude/settings.json`; it scopes to `3dprintassistant/**` + `3dprintassistant-ios/**` excluding `docs/**`, and invokes the `simplify` skill via an agent (Haiku).
+## Current state right now (2026-04-23)
 
-**Session scope (in proposed order — one finding = one commit per platform):**
+**iOS app:** v1.0 live in ~121 non-EU countries. EU blocked by DSA. Announcement held until DK/EU unlocks.
 
-### Track 1 — Open-ask data fixes (minutes each, if owner answers ready)
-1. `[HIGH-014]` — owner confirms A1 mini `max_bed_temp` spec. If 80°C (not 100°C), patch `data/printers.json`; CRITICAL-002 bed-temp clamp now makes the downstream warning automatic. `[You]` + `[Code]`
-2. `[LOW-002]` — owner provides HIPS `enclosure_behavior.reason` text; I apply to `data/materials.json`. `[You]` + `[Code]`
-3. `[MEDIUM-018]` — owner decides: unify `nozzles.json.not_suitable_for` via material IDs or group names? Then clean orphan refs (`abs_cf`, `pla_wood`, `pla_glow`). `[You]` + `[Code]`
+**Web app:** live. All engine correctness through IR-0 + IR-2a code is landed.
 
-### Track 2 — Engine correctness (code-only; run walkthrough + XCTest per commit)
-4. `[HIGH-008]` — extend C6 warning loop to cover every `patternFor` field. Module-level field list so new patterns auto-get coverage. `[Web+iOS]`
-5. `[HIGH-009]` — `_clampNum` non-finite fallback returns `min`, not `undefined`/`null`. Eliminates `.toFixed()` crash path. `[Web+iOS]`
-6. `[MEDIUM-001]` — Numeric-compare `limits_override.nozzles` keys (currently `"0.40"` string lookup silently fails). `[Web+iOS]`
-7. `[MEDIUM-002]` — Add `if (!nozzle) return {};` guard to `resolveProfile`. `[Web+iOS]`
-8. `[MEDIUM-007]` — Init-time validation of `printer.series` enum. Typo'd entries currently misclassify. `[Web+iOS]`
+**v1.0.2 code status:** **COMPLETE.** 13 findings shipped + `[CRITICAL-001]` (iOS feedback via Worker + HMAC) + `[HIGH-010 part A]` (sanitisation). All pushed to `main` on both repos. 37/37 iOS XCTest pass. Walkthrough harness 9 clean + 1 pre-existing warn (Combo 3, unchanged since IR-0).
 
-### Track 3 — iOS reliability (bridge error path)
-9. `[HIGH-004]` — Re-read `_engineError` in post-loop block before throwing the timeout. Real JS errors stop masking as "timed out". `[iOS]`
-10. `[HIGH-005]` — Replace `_engineError != "null"` string-compare with `typeof !== 'undefined'` or structured sentinel. `[iOS]`
+**What's left for v1.0.2 to actually ship** (the entire task for the next session):
 
-### Track 4 — Headline feature: CRITICAL-001 + HIGH-010 (the actual v1.0.2 story)
-11. `[CRITICAL-001]` — iOS `FeedbackService.swift` POSTs to `https://3dprintassistant.com/api/feedback` with `X-App-Source: ios` + HMAC header. Worker accepts iOS path, sanitises, rebuilds embed. Rotate old Discord webhook after cutover verified. `[iOS+Worker]`
-12. `[HIGH-010]` — IP rate limit on `/api/feedback` Worker — 10 req/min per IP, 100 req/min global. Cloudflare Rate Limiting preferred. Deploy alongside CRITICAL-001. `[Worker]`
+### Owner secret config (5 min)
 
-### Track 5 — Ship mechanics
-13. Bump `CFBundleShortVersionString` to `1.0.2` in `project.yml` + regenerate pbxproj via `xcodegen generate`. CI auto-bumps build number on push.
-14. Draft "What's New" (≤ 4000 chars). Focus: privacy (feedback routing) + reliability (silent-error fixes). Owner tone pass.
-15. TestFlight internal round. Verify: feedback submit lands in Discord; engine init doesn't crash; `invalid_preset` warning fires on stale state; MK4 profile no longer names A1 in rationale.
-16. Submit to App Review with manual release toggle. If EU DSA status still blocked, v1.0.2 ships to the ~121 non-EU countries only (same as v1.0.0).
+- Generate HMAC secret: `openssl rand -hex 32`. Save this value in 3 places:
+  1. Cloudflare dashboard → Workers & Pages → `3dprintassistant` → Settings → Environment Variables → add `FEEDBACK_HMAC_SECRET` (Production).
+  2. GitHub → `mustiodk/3dprintassistant-ios` → Settings → Secrets and variables → Actions → add `FEEDBACK_HMAC_SECRET`.
+  3. Local: edit `3dprintassistant-ios/Config.xcconfig` — fill in `FEEDBACK_HMAC_SECRET = <value>`.
 
-**Process (don't drift):**
-- Propose diff in plain English before each edit. Wait for owner sign-off per finding. (Overnight blanket-auth from 2026-04-22 was session-scoped — default is back to propose-and-wait.)
-- One finding = one commit per platform.
-- After every web `engine.js` or `data/rules/` edit: sync iOS byte-identical (`cp`), run walkthrough harness (`node scripts/walkthrough-harness.js`), run iOS XCTest on the affected test file.
-- Commit message format: `engine: <summary> [<FINDING-ID>]` or `data: <summary> [<FINDING-ID>]` or `iOS: <summary> [<FINDING-ID>]`. Trailer must be `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`.
-- Don't push iOS main if any XCTest is red.
-- Rotate Discord webhook URL **only after** CRITICAL-001 is verified end-to-end on TestFlight. Before rotation is a window where both old (direct from old binary) and new (Worker from v1.0.2 binary) paths are live — that's expected.
+### Owner dashboard config (5 min)
 
-**Standing rules:**
-- Progress bar on every multi-step step: `[🟩🟩⬜⬜⬜⬜ 40%] step`.
-- Md-hygiene sweep at session end.
-- ROADMAP is truth — tick IR-2a items as they land.
-- Right thing not easy thing — don't batch CRITICAL-001 with engine correctness work; distinct commits per finding even if the session is long.
-- Data/logic change evaluation — every change, mention whether web + iOS UI need updates to best use the improvement.
+- `[HIGH-010 part B]` — Cloudflare dashboard → Security → WAF → Rate Limiting Rules → new rule targeting `/api/feedback`: 10 requests per minute per IP, plus a second global rule at 100 req/min. Action: block for 1 min.
 
-**Acceptance for IR-2a:**
-- iOS v1.0.2 live in Apple's "Ready for Sale" state (same country reach as v1.0.0).
-- Old Discord webhook URL no longer present in any app binary; new Worker-routed path verified on TestFlight.
-- Rate limit live on `/api/feedback` — curl-flood test confirms 429 at threshold.
-- Full iOS XCTest suite green (≥ 37/37 + whatever new regression tests this session adds).
-- ROADMAP IR-2a section fully ticked; session log written; INDEX updated; this file regenerated for the next phase.
+### Owner decisions (Track 1)
+
+- `[HIGH-014]` — Bambu A1 mini product page lists `max_bed_temp` as? (80 or 100°C). If 80, I'll patch `data/printers.json` + the CRITICAL-002 bed-clamp auto-fires on Combo 5 (A1 mini + PETG).
+- `[LOW-002]` — HIPS `enclosure_behavior.reason` text. Currently copy-pasted from ABS. Give me one sentence for HIPS specifically and I'll commit it.
+- `[MEDIUM-018 part B]` — unify `nozzles.json` `not_suitable_for` via material **IDs** (e.g. `pla_cf`, `petg_cf`) or **group strings** (e.g. `pla`, `petg`)? Currently mixed.
+
+### Ship sequence (owner execution, ~30 min total)
+
+1. Tone-pass on `docs/app-store-whats-new-v1.0.2.md` — edit in place, commit.
+2. Bump `CFBundleShortVersionString` → `1.0.2` in `3dprintassistant-ios/project.yml`, run `xcodegen generate`, commit + push. CI auto-triggers TestFlight upload (~10 min).
+3. Install the TestFlight build, submit one feedback through the app, confirm it lands in Discord via the Worker (not direct).
+4. **Rotate old Discord webhook URL** (the one in GitHub secret `DISCORD_FEEDBACK_WEBHOOK` + Cloudflare env var). Create a new webhook on the same Discord channel, update both env var locations. The old URL hardcoded in v1.0.0/v1.0.1 binaries becomes dead — those binaries stop sending feedback until users update to v1.0.2.
+5. Submit v1.0.2 to App Review with **Manual release** toggle.
+6. If EU DSA Trader Status has cleared by then, enable EU in rollout. Otherwise ships to ~121 non-EU countries (same as v1.0.0).
+7. Day-1 monitoring: Sentry Issues tab + Discord feedback channel for first 24 h.
+
+## First action in the next session
+
+1. Read the files listed above, in order.
+2. Confirm understanding of current state + what's pending.
+3. Ask the owner: which track do you want first?
+   - **Track A:** secret config + rate limit rule (unblocks v1.0.2 ship).
+   - **Track B:** Track 1 owner-asks (HIGH-014 / LOW-002 / MEDIUM-018-B) — cleanup before submit.
+   - **Track C:** version bump + TestFlight + App Review submit.
+   - **Track D:** something else (post-v1.0.2 Phase 2 polish, feedback responses, etc.).
+4. Execute per owner's pick.
+
+## Session process (don't drift)
+
+- Propose diff in plain English before each edit. Wait for owner sign-off per finding. Exception: owner may grant session-scoped autonomous execution (overnight-sweep pattern); if so, execute end-to-end with progress updates.
+- One finding = one commit per platform. Web commit + iOS commit, matching subject.
+- After every web `engine.js` or `data/*.json` edit: `cp` to iOS byte-identical → `node scripts/walkthrough-harness.js` → iOS XCTest (`xcodebuild test -project 3DPrintAssistant.xcodeproj -scheme 3DPrintAssistant -destination "platform=iOS Simulator,id=59B628C6-C142-42ED-8CFC-E671FCB4C077" -only-testing:3DPrintAssistantTests CODE_SIGNING_ALLOWED=NO`).
+- Commit trailer: `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`. Never skip hooks.
+- **Batch mechanical tool calls** — don't stop after every Edit. Chain 5–10 calls per turn on doc-close / sync-then-commit / multi-file rewrite loops.
+
+## Acceptance for IR-2a phase close
+
+- iOS v1.0.2 in Apple's "Ready for Sale" state (same country reach as v1.0.0 at minimum).
+- Cloudflare Worker env `FEEDBACK_HMAC_SECRET` is set; TestFlight confirms iOS feedback routes through it.
+- Old Discord webhook URL rotated (new URL known only to Worker env, never in a binary).
+- Cloudflare Rate Limiting rule active on `/api/feedback` — curl-flood test confirms 429 at threshold.
+- Full iOS XCTest suite still green (≥ 37/37).
+- ROADMAP IR-2a section fully ticked; this file regenerated.
 
 <<< END <<<
 
@@ -83,7 +181,7 @@ Before any code work, make ONE trivial edit (e.g. a whitespace change in engine.
 
 ## How to maintain this file
 
-- **Every session end**, I rewrite this file with the prompt for the next session — populated from the "Next session" / "Open questions" sections of the session log I just wrote, plus any md-hygiene findings surfaced in that session.
-- **No other file** serves this role. If this file is stale (last-updated > 7 days), ask me to regenerate from the most recent session log.
-- **Owner action**: just copy-paste the block between the markers. Nothing else to do.
-- **Phase pointer** at the top tracks which IR-* phase is active so nothing falls off.
+- **Every session end**, this file is rewritten. It should contain everything needed to start a cold Cowork session without reading the rest of the docs first.
+- **The copy-paste block between the markers is the prompt to start the next session** — it includes project overview, architecture, repo layout, standing rules, and task-specific context.
+- **Update the "Last updated" date + the "Current state right now" section** every session.
+- **Owner action: paste the block between markers into a new Cowork session.** That's it.
