@@ -1022,7 +1022,7 @@ const Engine = (() => {
       max_mvs:          bs.max_mvs,
       pressure_advance: bs.pressure_advance,
       flow_ratio:       bs.flow_ratio,
-      retraction:       bs.retraction_length,
+      retraction:       bs.retraction_distance,
       notes:            mat.notes,
       warnings:         mat.warnings,
     };
@@ -1103,7 +1103,7 @@ const Engine = (() => {
       slow_layer_time:        bs.slow_layer_time,
       pressure_advance:       String(_resolvePA(bs, nozzle) ?? '—'),
       flow_ratio:             String(bs.flow_ratio       ?? '—'),
-      retraction_length:      `${bs.retraction_length} mm`,
+      retraction_distance:    `${bs.retraction_distance} mm`,
       retraction_speed:       `${bs.retraction_speed} mm/s`,
     };
   }
@@ -2519,7 +2519,11 @@ const Engine = (() => {
     // Flow / extrusion
     if (bs.flow_ratio != null)         filament.filament_flow_ratio       = [String(bs.flow_ratio)];
     if (pa != null)                    filament.pressure_advance          = [String(pa)];
-    if (bs.retraction_length != null)  filament.filament_retraction_length = [String(bs.retraction_length)];
+    // Bambu's preset field name stays `filament_retraction_length` — that's
+    // the canonical name in Bambu Studio's JSON. Our source field is now
+    // `retraction_distance` (LOW-003). HIGH-001 separately wants this to use
+    // the SCALED retraction from resolveProfile — still deferred.
+    if (bs.retraction_distance != null) filament.filament_retraction_length = [String(bs.retraction_distance)];
     if (bs.retraction_speed != null)   filament.filament_retraction_speed  = [String(bs.retraction_speed)];
 
     // MVS
@@ -2642,7 +2646,7 @@ const Engine = (() => {
       lines.push('  EXTRUSION');
       if (adv.pressure_advance !== '—') lines.push(`    Pressure advance:        ${adv.pressure_advance}`);
       if (adv.flow_ratio !== '—')       lines.push(`    Flow ratio:              ${adv.flow_ratio}`);
-      lines.push(`    Retraction length:       ${adv.retraction_length}`);
+      lines.push(`    Retraction length:       ${adv.retraction_distance}`);
       lines.push(`    Retraction speed:        ${adv.retraction_speed}`);
       lines.push('');
     }
@@ -2715,7 +2719,7 @@ const Engine = (() => {
         bed_temperature_other_layers:    adv?.other_layers_bed_temp  ?? null,
         pressure_advance:                _resolvePA(material.base_settings, nozzle),
         flow_ratio:                      material.base_settings.flow_ratio,
-        retraction_length:               `${material.base_settings.retraction_length} mm`,
+        retraction_length:               `${material.base_settings.retraction_distance} mm`,
         retraction_speed:                `${material.base_settings.retraction_speed} mm/s`,
       },
       process: flat,
