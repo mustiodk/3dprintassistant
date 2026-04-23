@@ -11,7 +11,6 @@ const Engine = (() => {
   let _nozzles       = [];
   let _envRules      = [];
   let _objectives    = {};
-  let _warnings      = {};
   let _troubleshooter = {};
   let _slicerCaps    = null;  // loaded from data/rules/slicer_capabilities.json
 
@@ -42,14 +41,13 @@ const Engine = (() => {
     try { const stored = localStorage.getItem('3dpa_lang'); if (stored && _T[stored] !== undefined) _lang = stored; } catch (_) {}
 
     const base = './data/';
-    const [printersRes, materialsRes, nozzlesRes, envRes, objRes, warnRes, tsRes, scRes, locEnRes, locDaRes] =
+    const [printersRes, materialsRes, nozzlesRes, envRes, objRes, tsRes, scRes, locEnRes, locDaRes] =
       await Promise.all([
         fetch(base + 'printers.json'),
         fetch(base + 'materials.json'),
         fetch(base + 'nozzles.json'),
         fetch(base + 'rules/environment.json'),
         fetch(base + 'rules/objective_profiles.json'),
-        fetch(base + 'rules/warnings.json'),
         fetch(base + 'rules/troubleshooter.json'),
         fetch(base + 'rules/slicer_capabilities.json'),
         fetch('./locales/en.json'),
@@ -81,13 +79,12 @@ const Engine = (() => {
       }
     };
 
-    const [pd, md, nd, ed, od, wd, td, scd, enLocale, daLocale] = await Promise.all([
+    const [pd, md, nd, ed, od, td, scd, enLocale, daLocale] = await Promise.all([
       _critical(printersRes),
       _critical(materialsRes),
       _critical(nozzlesRes),
       _critical(envRes),
       _critical(objRes),
-      _critical(warnRes),
       _soft(tsRes, { symptoms: [] },        'troubleshooter'),
       _soft(scRes, null,                    'slicer_capabilities'),
       _critical(locEnRes),
@@ -100,7 +97,6 @@ const Engine = (() => {
     _nozzles        = nd.nozzles;
     _envRules       = ed.environment_options;
     _objectives     = od;
-    _warnings       = wd;
     _troubleshooter = td;
     _slicerCaps     = scd;
     _T.en           = enLocale;

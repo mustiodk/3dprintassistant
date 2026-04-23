@@ -183,14 +183,6 @@ function validateObjectiveProfiles() {
   });
 }
 
-function validateWarnings() {
-  const file = 'data/rules/warnings.json';
-  const d = load(path.join(RULES, 'warnings.json'));
-  if (!d) return;
-
-  check(file, isObject(d.material_warnings),  'material_warnings must be an object');
-}
-
 function validateTroubleshooter() {
   const file = 'data/rules/troubleshooter.json';
   const d = load(path.join(RULES, 'troubleshooter.json'));
@@ -221,7 +213,6 @@ const validators = [
   ['nozzles.json',                   validateNozzles],
   ['rules/environment.json',         validateEnvironment],
   ['rules/objective_profiles.json',  validateObjectiveProfiles],
-  ['rules/warnings.json',            validateWarnings],
   ['rules/troubleshooter.json',      validateTroubleshooter],
 ];
 

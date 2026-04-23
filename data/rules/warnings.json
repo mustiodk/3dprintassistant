@@ -1,7 +1,0 @@
-{
-  "material_warnings": {
-    "petg_hf": [
-      "Set Max Volumetric Speed to the value shown — Bambu Studio's default is too high for this material and causes stringing."
-    ]
-  }
-}
