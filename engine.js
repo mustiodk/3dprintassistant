@@ -1401,7 +1401,11 @@ const Engine = (() => {
     const printer   = getPrinter(state.printer);
     const material  = getMaterial(state.material);
     const nozzle    = getNozzle(state.nozzle);
-    if (!printer || !material) return {};
+    // [MEDIUM-002] Require all three inputs — nozzle was previously allowed to
+    // fall through and silently defaulted nozzleSize to 0.4, producing a profile
+    // for a hypothetical 0.4mm setup. Inconsistent with exportBambuStudioJSON
+    // which already rejects on missing nozzle.
+    if (!printer || !material || !nozzle) return {};
 
     // CRITICAL-003 — validate preset IDs against canonical sets. Empty/undefined
     // passes through unchanged (historical behavior). Truthy-but-unknown IDs
