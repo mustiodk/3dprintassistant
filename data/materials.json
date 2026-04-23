@@ -91,8 +91,7 @@
         "uv_resistant": false,
         "moisture_resistant": false,
         "outdoor_suitable": false,
-        "food_safe_possible": true,
-        "flexible": false
+        "food_safe_possible": true
       },
       "shrinkage_factor": 0.003,
       "ventilation_required": false,
@@ -190,8 +189,7 @@
         "uv_resistant": false,
         "moisture_resistant": false,
         "outdoor_suitable": false,
-        "food_safe_possible": true,
-        "flexible": false
+        "food_safe_possible": true
       },
       "shrinkage_factor": 0.003,
       "ventilation_required": false,
@@ -290,8 +288,7 @@
         "uv_resistant": false,
         "moisture_resistant": false,
         "outdoor_suitable": false,
-        "food_safe_possible": false,
-        "flexible": false
+        "food_safe_possible": false
       },
       "shrinkage_factor": 0.003,
       "ventilation_required": false,
@@ -391,8 +388,7 @@
         "uv_resistant": false,
         "moisture_resistant": false,
         "outdoor_suitable": false,
-        "food_safe_possible": false,
-        "flexible": false
+        "food_safe_possible": false
       },
       "shrinkage_factor": 0.003,
       "ventilation_required": false,
@@ -503,8 +499,7 @@
         "uv_resistant": false,
         "moisture_resistant": true,
         "outdoor_suitable": true,
-        "food_safe_possible": true,
-        "flexible": false
+        "food_safe_possible": true
       },
       "shrinkage_factor": 0.004,
       "ventilation_required": false,
@@ -596,8 +591,7 @@
         "uv_resistant": false,
         "moisture_resistant": true,
         "outdoor_suitable": true,
-        "food_safe_possible": true,
-        "flexible": false
+        "food_safe_possible": true
       },
       "shrinkage_factor": 0.004,
       "ventilation_required": false,
@@ -697,8 +691,7 @@
         "uv_resistant": false,
         "moisture_resistant": false,
         "outdoor_suitable": false,
-        "food_safe_possible": false,
-        "flexible": false
+        "food_safe_possible": false
       },
       "shrinkage_factor": 0.008,
       "ventilation_required": true,
@@ -800,8 +793,7 @@
         "uv_resistant": true,
         "moisture_resistant": true,
         "outdoor_suitable": true,
-        "food_safe_possible": false,
-        "flexible": false
+        "food_safe_possible": false
       },
       "shrinkage_factor": 0.008,
       "ventilation_required": true,
@@ -903,8 +895,7 @@
         "uv_resistant": false,
         "moisture_resistant": true,
         "outdoor_suitable": false,
-        "food_safe_possible": false,
-        "flexible": true
+        "food_safe_possible": false
       },
       "shrinkage_factor": 0.008,
       "ventilation_required": false,
@@ -1024,8 +1015,7 @@
         "uv_resistant": false,
         "moisture_resistant": true,
         "outdoor_suitable": true,
-        "food_safe_possible": false,
-        "flexible": true
+        "food_safe_possible": false
       },
       "shrinkage_factor": 0.01,
       "ventilation_required": false,
@@ -1156,8 +1146,7 @@
         "uv_resistant": false,
         "moisture_resistant": true,
         "outdoor_suitable": true,
-        "food_safe_possible": false,
-        "flexible": true
+        "food_safe_possible": false
       },
       "shrinkage_factor": 0.015,
       "ventilation_required": false,
@@ -1267,8 +1256,7 @@
         "uv_resistant": false,
         "moisture_resistant": false,
         "outdoor_suitable": false,
-        "food_safe_possible": false,
-        "flexible": false
+        "food_safe_possible": false
       },
       "shrinkage_factor": 0.003,
       "ventilation_required": false,
@@ -1372,8 +1360,7 @@
         "uv_resistant": false,
         "moisture_resistant": true,
         "outdoor_suitable": false,
-        "food_safe_possible": false,
-        "flexible": false
+        "food_safe_possible": false
       },
       "shrinkage_factor": 0.004,
       "ventilation_required": false,
@@ -1477,8 +1464,7 @@
         "uv_resistant": false,
         "moisture_resistant": false,
         "outdoor_suitable": false,
-        "food_safe_possible": false,
-        "flexible": false
+        "food_safe_possible": false
       },
       "shrinkage_factor": 0.015,
       "ventilation_required": false,
@@ -1582,8 +1568,7 @@
         "uv_resistant": true,
         "moisture_resistant": false,
         "outdoor_suitable": false,
-        "food_safe_possible": false,
-        "flexible": false
+        "food_safe_possible": false
       },
       "shrinkage_factor": 0.007,
       "ventilation_required": true,
@@ -1687,8 +1672,7 @@
         "uv_resistant": false,
         "moisture_resistant": false,
         "outdoor_suitable": false,
-        "food_safe_possible": false,
-        "flexible": false
+        "food_safe_possible": false
       },
       "shrinkage_factor": 0.015,
       "ventilation_required": false,
@@ -1790,8 +1774,7 @@
         "uv_resistant": false,
         "moisture_resistant": true,
         "outdoor_suitable": false,
-        "food_safe_possible": false,
-        "flexible": false
+        "food_safe_possible": false
       },
       "shrinkage_factor": 0.004,
       "ventilation_required": false,
@@ -1891,8 +1874,7 @@
         "uv_resistant": false,
         "moisture_resistant": false,
         "outdoor_suitable": false,
-        "food_safe_possible": false,
-        "flexible": false
+        "food_safe_possible": false
       },
       "shrinkage_factor": 0.006,
       "ventilation_required": true,
