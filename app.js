@@ -18,6 +18,10 @@ const state = {
   userLevel: null, special: [],
   seam: null, brim: null, build_plate: null,
   extruder_type: null, filament_condition: null, ironing: null,
+  // [IMPL-041 / DQ-2] Safe vs Tuned profile tier. null → engine coerces to
+  // 'safe' — zero behavior change for users who never open the Profile Mode
+  // section. 'tuned' opts into community-validated aggressive values.
+  profileMode: null,
 };
 
 let currentMode       = 'simple';        // 'simple' | 'advanced'

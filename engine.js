@@ -481,6 +481,14 @@ const Engine = (() => {
         { id: 'intermediate', name: t('lvlInter'),    desc: t('lvlInterDesc')    },
         { id: 'advanced',     name: t('lvlAdvanced'), desc: t('lvlAdvancedDesc') },
       ]},
+      // [IMPL-041 / DQ-2] Safe vs Tuned profile tier. Default 'safe' applies
+      // when no chip is selected (state.profileMode === undefined). Selecting
+      // 'tuned' opts in to the aggressive community-validated speed/accel/
+      // infill values wired through _tier() in resolveProfile.
+      { key: 'profileMode', label: t('filterProfileMode'), multi: false, required: false, items: [
+        { id: 'safe',  name: t('pmSafe'),  desc: t('pmSafeDesc')  },
+        { id: 'tuned', name: t('pmTuned'), desc: t('pmTunedDesc') },
+      ]},
       { key: 'seam',             label: t('filterSeam'),             multi: false, required: false, advanced: true, items: [
         { id: 'aligned',         name: t('seamAligned'),   desc: 'Seams line up vertically — visible line but predictable placement.' },
         { id: 'sharpest_corner', name: t('seamSharpest'),  desc: 'Hides seams at sharp corners — best for geometric models.' },
