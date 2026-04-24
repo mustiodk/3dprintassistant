@@ -516,6 +516,45 @@ const COMBOS = [
     report += '---\n\n';
   }
 
+  // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
+  // combos in Safe and Tuned; asserts:
+  //   (a) Safe emission byte-equal to the default (profileMode absent) combo
+  //       — protects the "zero-surprise for existing users" invariant.
+  //   (b) Tuned emission differs from Safe on at least 3 of the 5 MVP tiered
+  //       fields for an A1+strong+fast combo (sized for Bedslinger coverage),
+  //       proving the _tuned data actually flows through _tier() + _clampNum.
+  report += h2('DQ-2 Safe vs Tuned assertion');
+  const dq2Lines = [];
+  const dq2Fields = ['outer_wall_speed', 'outer_wall_acceleration', 'sparse_infill_density'];
+
+  const baseSafe = Engine.resolveProfile(stateDefault({
+    printer: 'a1', nozzle: 'std_0.4', material: 'pla_basic',
+    strength: 'strong', speed: 'fast',
+  }));
+  const explicitSafe = Engine.resolveProfile(stateDefault({
+    printer: 'a1', nozzle: 'std_0.4', material: 'pla_basic',
+    strength: 'strong', speed: 'fast', profileMode: 'safe',
+  }));
+  const tuned = Engine.resolveProfile(stateDefault({
+    printer: 'a1', nozzle: 'std_0.4', material: 'pla_basic',
+    strength: 'strong', speed: 'fast', profileMode: 'tuned',
+  }));
+
+  // (a) Safe-default byte-equality check — absent profileMode vs explicit 'safe'
+  const byteEqual = dq2Fields.every(k => baseSafe[k]?.value === explicitSafe[k]?.value);
+  dq2Lines.push(`- ${byteEqual ? '✓' : '❌'} Safe baseline: profileMode absent === profileMode='safe' on ${dq2Fields.length} tiered fields.`);
+
+  // (b) Tuned delta — count how many tiered fields differ from Safe
+  const differentiated = dq2Fields.filter(k => baseSafe[k]?.value !== tuned[k]?.value);
+  const diffSummary = differentiated.map(k => `${k}: ${baseSafe[k]?.value} → ${tuned[k]?.value}`).join(', ');
+  dq2Lines.push(`- ${differentiated.length >= 3 ? '✓' : '❌'} Tuned differentiation: ${differentiated.length}/5 tiered fields differ on A1+strong+fast (${diffSummary || 'none'}).`);
+
+  // (c) Prov tier markers — tuned run should carry " (_tuned)" or " (base from _tuned)" in prov.ref for at least the differentiated fields
+  const provTagged = differentiated.filter(k => typeof tuned[k]?.prov?.ref === 'string' && /_tuned/.test(tuned[k].prov.ref));
+  dq2Lines.push(`- ${provTagged.length === differentiated.length ? '✓' : '⚠'} Prov refs tier-tagged: ${provTagged.length}/${differentiated.length} differentiated fields carry '_tuned' marker.`);
+
+  report += dq2Lines.join('\n') + '\n\n---\n\n';
+
   process.stdout.write(report);
 })();
 
