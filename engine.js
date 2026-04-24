@@ -54,6 +54,32 @@ const Engine = (() => {
   const S = (value, why = '', prov = null) => ({ value, why, mode: 'simple',   prov });
   const A = (value, why = '', prov = null) => ({ value, why, mode: 'advanced', prov });
 
+  // ── [IMPL-041 / DQ-2] Safe vs Tuned tier resolution ─────────────────────────
+  //
+  // `profileMode` threads through state as 'safe' | 'tuned'. Default 'safe'
+  // preserves pre-DQ-2 output byte-for-byte for existing users.
+  //
+  // Data convention: a preset in objective_profiles.json may optionally carry
+  // a `_tuned` overrides object. Only keys that differ Safe → Tuned need to
+  // appear there; everything else falls through to the top-level (Safe) value.
+  //
+  //   {
+  //     "id": "fast",
+  //     "outer_corexy": 150,                  // Safe
+  //     "_tuned": { "outer_corexy": 200 }     // Tuned override (sparse)
+  //   }
+  //
+  // Consumers call `_tier(preset, 'outer_corexy', profileMode)` — returns the
+  // Tuned override when mode==='tuned' AND the field exists in `_tuned`, else
+  // the Safe value. Non-differentiated fields return the same value in both
+  // tiers, so a Safe-default run is byte-equal to Tuned for them.
+  const _tier = (preset, field, mode) => {
+    if (mode === 'tuned' && preset && preset._tuned && preset._tuned[field] != null) {
+      return preset._tuned[field];
+    }
+    return preset ? preset[field] : undefined;
+  };
+
   // ── Init — load all JSON data files + locale files ──────────────────────────
   async function init() {
     // Restore persisted language preference (keys are always 'en'/'da')
@@ -1695,6 +1721,10 @@ const Engine = (() => {
     const strengthId = _hasPresetId(_objectives.strength_levels, state.strength) ? state.strength : 'standard';
     const speedId    = _hasPresetId(_objectives.speed_priority,  state.speed)    ? state.speed    : 'balanced';
 
+    // [IMPL-041 / DQ-2] Safe vs Tuned profile tier. Missing/unknown → 'safe' so
+    // pre-DQ-2 localStorage and legacy clients emit the unchanged Safe profile.
+    const profileMode = state.profileMode === 'tuned' ? 'tuned' : 'safe';
+
     const surface   = getSurface(surfaceId);
     const strength  = getStrength(strengthId);
     const speedMode = getSpeedMode(speedId);
@@ -1836,15 +1866,19 @@ const Engine = (() => {
             ? 'Grid is efficient and strong in the XY plane. A solid default for most everyday parts.'
             : 'Cross Hatch is the fastest infill to print. Adequate for prototypes where strength is not the priority.');
 
-      p.sparse_infill_density = S(`${strength.infill_density}%`,
-        strength.infill_density >= 40
+      // [IMPL-041 / DQ-2] infill_density is one of the DQ-2 MVP tiered fields.
+      // Tuned reduces density where community consensus shows it's adequate.
+      const infillDensity = _tier(strength, 'infill_density', profileMode);
+      const infillTuned   = profileMode === 'tuned' && strength._tuned && strength._tuned.infill_density != null;
+      p.sparse_infill_density = S(`${infillDensity}%`,
+        infillDensity >= 40
           ? 'High infill for maximum rigidity — significantly increases weight and print time.'
-          : strength.infill_density <= 10
+          : infillDensity <= 10
             ? 'Low infill keeps the part lightweight and fast to print. Adequate for non-structural use.'
             : 'Balanced infill — enough internal structure for everyday parts without excessive material use.',
-        { source: 'default', ref: 'objective_profiles.json#strength.infill_density' });
+        { source: 'default', ref: `objective_profiles.json#strength.infill_density${infillTuned ? ' (_tuned)' : ''}` });
 
-      const lowInfill  = strength.infill_density <= 15;
+      const lowInfill  = infillDensity <= 15;
       const fineLayers = surface && surface.layer_height <= 0.15;
       const topShells  = fineLayers ? 6 : lowInfill ? 5 : (strength.top_shell_layers_base || 5);
       p.top_shell_layers = S(`${topShells}`,
@@ -1876,8 +1910,11 @@ const Engine = (() => {
     if (speedMode) {
       const sm = speedMode;
 
-      // Base speeds from objective profile
-      let outerSpeed = isCoreXY ? sm.outer_corexy : sm.outer_bedslinger;
+      // Base speeds from objective profile. [IMPL-041 / DQ-2] outer_* fields
+      // are tier-resolved; Tuned raises the caps where community-validated.
+      // inner_* stay tier-agnostic today — add `_tuned.inner_*` to the data
+      // file if DQ-2/DQ-3 want to differentiate those too.
+      let outerSpeed = isCoreXY ? _tier(sm, 'outer_corexy', profileMode) : _tier(sm, 'outer_bedslinger', profileMode);
       let innerSpeed = isCoreXY ? sm.inner_corexy : sm.inner_bedslinger;
 
       // TPU speed cap — per-material max_speed (85A=20, 90A=30, 95A=60)
@@ -1947,6 +1984,8 @@ const Engine = (() => {
         innerSpeed = Math.round(_clampNum(innerSpeed, null, limits.max_inner_wall_speed));
       }
 
+      const outerSpeedTuned = profileMode === 'tuned' && sm._tuned
+        && (isCoreXY ? sm._tuned.outer_corexy != null : sm._tuned.outer_bedslinger != null);
       p.outer_wall_speed = S(`${outerSpeed} mm/s`,
         isTPU      ? 'TPU must print slowly — flexible filament stretches during fast moves causing under-extrusion and jams.' :
         isABSlike  ? 'Slower outer walls reduce warping risk by allowing each layer more time to cool gradually.' :
@@ -1956,7 +1995,7 @@ const Engine = (() => {
         petgCapped ? 'PETG surface quality degrades noticeably above 80 mm/s outer wall speed — capped for this material.' :
         sm.id === 'quality' ? 'Slow outer walls reduce vibration artifacts and give each layer more time to solidify uniformly.' :
         'Outer wall speed balanced for your printer type — CoreXY handles higher speeds without ringing.',
-        { source: 'calculated', ref: 'rule:material_caps+printer_limits' });
+        { source: 'calculated', ref: `rule:material_caps+printer_limits${outerSpeedTuned ? ' (base from _tuned)' : ''}` });
 
       p.inner_wall_speed = S(`${innerSpeed} mm/s`,
         isTPU     ? 'Inner walls also capped for flexible filament — consistent flow matters more than speed.' :
@@ -1986,10 +2025,12 @@ const Engine = (() => {
         'Gap fill handles small spaces between walls. Moderate speed prevents pressure buildup and ooze in tight gaps.',
         { source: 'default', ref: 'objective_profiles.json#speed.gap_fill' });
 
-      // Accelerations
+      // Accelerations. [IMPL-041 / DQ-2] outer_accel_* are DQ-2 tiered.
+      const outerAccelBase_corexy     = _tier(sm, 'outer_accel_corexy', profileMode);
+      const outerAccelBase_bedslinger = _tier(sm, 'outer_accel_bedslinger', profileMode);
       let outerAccel = isCoreXY
-        ? (isPETG || isABSlike ? Math.round(sm.outer_accel_corexy * 0.6) : sm.outer_accel_corexy)
-        : sm.outer_accel_bedslinger;
+        ? (isPETG || isABSlike ? Math.round(outerAccelBase_corexy * 0.6) : outerAccelBase_corexy)
+        : outerAccelBase_bedslinger;
       let innerAccel = isCoreXY
         ? (isPETG || isABSlike ? Math.round(sm.inner_accel_corexy * 0.6) : sm.inner_accel_corexy)
         : sm.inner_accel_bedslinger;
@@ -2002,13 +2043,15 @@ const Engine = (() => {
         innerAccel = Math.min(innerAccel, Math.round(accelCap * 1.6));
       }
 
+      const outerAccelTuned = profileMode === 'tuned' && sm._tuned
+        && (isCoreXY ? sm._tuned.outer_accel_corexy != null : sm._tuned.outer_accel_bedslinger != null);
       p.outer_wall_acceleration    = A(`${outerAccel} mm/s²`,
         isTPU     ? 'Very low acceleration for TPU — prevents filament stretching and under-extrusion.' :
         // [HIGH-012-followup A] Template against printer.name — was hardcoded "A1/A1 Mini" and fired for every bedslinger.
         !isCoreXY ? `Lower acceleration on ${printer.name} prevents ringing from the moving print bed mass.` :
         isABSlike ? 'Reduced acceleration helps ABS/ASA cool more uniformly, reducing warping.' :
         'Outer wall acceleration tuned for your printer — balances speed with surface quality.',
-        { source: 'calculated', ref: 'rule:accel_with_material_caps' });
+        { source: 'calculated', ref: `rule:accel_with_material_caps${outerAccelTuned ? ' (base from _tuned)' : ''}` });
       p.inner_wall_acceleration    = A(`${innerAccel} mm/s²`,
         isTPU     ? 'Low acceleration for flexible filament — matches outer wall limits to prevent jams.' :
         !isCoreXY ? 'Reduced acceleration for bedslinger — inner walls still contribute to visible ringing.' :
