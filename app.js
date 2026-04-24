@@ -1184,7 +1184,7 @@ function renderFilamentPanel(filament, nozzle) {
       <div class="setting-section-label adv-label">${FS('secAdvExtrusion')}</div>
       ${row(T('rowPA'),          adv.pressure_advance, 'val-info')}
       ${row(T('rowFlow'),        adv.flow_ratio,        'val-info')}
-      ${row(T('rowRetractLen'),  adv.retraction_length)}
+      ${row(T('rowRetractLen'),  adv.retraction_distance)}
       ${row(T('rowRetractSpd'),  adv.retraction_speed)}`;
   }
 
