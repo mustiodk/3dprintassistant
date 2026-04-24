@@ -1134,45 +1134,50 @@ function renderFilamentPanel(filament, nozzle) {
 
   let html = '';
 
+  // [IMPL-041 / DQ-1-followup] pull prov sidecars for this render pass.
+  const aP = advTemps?._prov || {};
+  const fP = filament?._prov || {};
+
   if (advTemps) {
     // Nozzle temperature — always show initial + other (or collapsed if equal)
     html += `<div class="setting-section-label">${FS('secNozzleTemp')}</div>`;
     if (nozzleSame) {
-      html += row(T('rowNozzleTemp'), advTemps.initial_layer_temp + ' — both layers', 'val-temp');
+      html += row(T('rowNozzleTemp'), advTemps.initial_layer_temp + ' — both layers', 'val-temp', aP.initial_layer_temp);
     } else {
-      html += row(T('rowInitLayer'),   advTemps.initial_layer_temp,  'val-temp');
-      html += row(T('rowOtherLayers'), advTemps.other_layers_temp,   'val-temp');
+      html += row(T('rowInitLayer'),   advTemps.initial_layer_temp,  'val-temp', aP.initial_layer_temp);
+      html += row(T('rowOtherLayers'), advTemps.other_layers_temp,   'val-temp', aP.other_layers_temp);
     }
     // Bed temperature — always show initial + other (or collapsed if equal)
     html += `<div class="setting-section-label">${FS('secBedTemp')}</div>`;
     if (bedSame) {
-      html += row(T('rowBedTemp'), advTemps.initial_layer_bed_temp + ' — both layers', 'val-temp');
+      html += row(T('rowBedTemp'), advTemps.initial_layer_bed_temp + ' — both layers', 'val-temp', aP.initial_layer_bed_temp);
     } else {
-      html += row(T('rowInitLayer'),   advTemps.initial_layer_bed_temp, 'val-temp');
-      html += row(T('rowOtherLayers'), advTemps.other_layers_bed_temp,  'val-temp');
+      html += row(T('rowInitLayer'),   advTemps.initial_layer_bed_temp, 'val-temp', aP.initial_layer_bed_temp);
+      html += row(T('rowOtherLayers'), advTemps.other_layers_bed_temp,  'val-temp', aP.other_layers_bed_temp);
     }
   } else {
     // Fallback (no material data)
     const temps = Engine.getAdjustedTemps(state.material, state.environment, state.nozzle, state.speed);
+    const tP = temps?._prov || {};
     html += `<div class="setting-section-label">${FS('secTemps')}</div>`;
-    html += row(T('rowNozzleTemp'), temps.nozzle, 'val-temp');
-    html += row(T('rowBedTemp'),    temps.bed,    'val-temp');
+    html += row(T('rowNozzleTemp'), temps.nozzle, 'val-temp', tP.nozzle);
+    html += row(T('rowBedTemp'),    temps.bed,    'val-temp', tP.bed);
   }
 
   html += `
     <div class="setting-section-label">${FS('secCooling')}</div>
-    ${row(T('rowCoolingFan'), filament.cooling_fan)}`;
+    ${row(T('rowCoolingFan'), filament.cooling_fan, undefined, fP.cooling_fan)}`;
 
   if (adv) {
     html += `
-      ${row(T('rowFanMin'),      adv.cooling_fan_min)}
-      ${row(T('rowFanOverhang'), adv.cooling_fan_overhang)}
-      ${row(T('rowSlowLayer'),   adv.slow_layer_time)}`;
+      ${row(T('rowFanMin'),      adv.cooling_fan_min,      undefined, aP.cooling_fan_min)}
+      ${row(T('rowFanOverhang'), adv.cooling_fan_overhang, undefined, aP.cooling_fan_overhang)}
+      ${row(T('rowSlowLayer'),   adv.slow_layer_time,      undefined, aP.slow_layer_time)}`;
   }
 
   html += `
     <div class="setting-section-label">${FS('secSpeedLimit')}</div>
-    ${row(T('rowMVS'), mvs, 'val-info')}
+    ${row(T('rowMVS'), mvs, 'val-info', fP.max_mvs)}
     <div class="setting-section-label">${T('secSetup')}</div>
     ${row(T('rowBuildPlate'), filament.build_plate)}
     ${row(T('rowAMS'),        filament.ams ? T('valYes') : T('valNo'), filament.ams ? 'val-ok' : 'val-no')}
@@ -1182,10 +1187,10 @@ function renderFilamentPanel(filament, nozzle) {
   if (adv) {
     html += `
       <div class="setting-section-label adv-label">${FS('secAdvExtrusion')}</div>
-      ${row(T('rowPA'),          adv.pressure_advance, 'val-info')}
-      ${row(T('rowFlow'),        adv.flow_ratio,        'val-info')}
-      ${row(T('rowRetractLen'),  adv.retraction_distance)}
-      ${row(T('rowRetractSpd'),  adv.retraction_speed)}`;
+      ${row(T('rowPA'),          adv.pressure_advance,    'val-info', aP.pressure_advance)}
+      ${row(T('rowFlow'),        adv.flow_ratio,          'val-info', aP.flow_ratio)}
+      ${row(T('rowRetractLen'),  adv.retraction_distance, undefined, aP.retraction_distance)}
+      ${row(T('rowRetractSpd'),  adv.retraction_speed,    undefined, aP.retraction_speed)}`;
   }
 
   if (filament.notes.length) {
@@ -1197,11 +1202,23 @@ function renderFilamentPanel(filament, nozzle) {
   document.getElementById('filamentSettings').innerHTML = html;
 }
 
-const row = (label, value, cls) =>
-  `<div class="setting-row">
-     <span class="setting-name">${label}</span>
+// [IMPL-041 / DQ-1-followup] Optional `prov` 4th arg. When Advanced mode is
+// on and prov is non-null, render the same ⓘ icon + native title tooltip as
+// the profile panel (app.js:1270). Qualitative rows (build plate, AMS, drying,
+// enclosure) pass no prov and render bare.
+const row = (label, value, cls, prov) => {
+  const showProv = currentMode === 'advanced' && prov;
+  const provTitle = showProv
+    ? `Source: ${prov.source}${prov.ref ? ` — ${prov.ref}` : ''}`
+    : '';
+  const provIcon = showProv
+    ? ` <span class="prov-icon" title="${escHtml(provTitle)}">ⓘ</span>`
+    : '';
+  return `<div class="setting-row">
+     <span class="setting-name">${label}${provIcon}</span>
      <span class="setting-value${cls ? ' ' + cls : ''}">${value}</span>
    </div>`;
+};
 
 // ── Profile Panel ─────────────────────────────────────────────────────────────
 function renderProfilePanel(profile) {
