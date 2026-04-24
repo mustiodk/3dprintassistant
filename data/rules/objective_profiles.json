@@ -90,7 +90,10 @@
       "infill_pattern": "Gyroid",
       "top_shell_layers_base": 5,
       "bottom_shell_layers_base": 5,
-      "speed_multiplier": 0.9
+      "speed_multiplier": 0.9,
+      "_tuned": {
+        "infill_density": 25
+      }
     },
     {
       "id": "maximum",
@@ -122,7 +125,13 @@
       "outer_accel_bedslinger": 3000,
       "inner_accel_corexy": 10000,
       "inner_accel_bedslinger": 4000,
-      "initial_accel": 500
+      "initial_accel": 500,
+      "_tuned": {
+        "outer_corexy": 200,
+        "outer_bedslinger": 130,
+        "outer_accel_corexy": 10000,
+        "outer_accel_bedslinger": 6000
+      }
     },
     {
       "id": "balanced",
@@ -141,7 +150,12 @@
       "outer_accel_bedslinger": 2500,
       "inner_accel_corexy": 8000,
       "inner_accel_bedslinger": 3000,
-      "initial_accel": 500
+      "initial_accel": 500,
+      "_tuned": {
+        "outer_corexy": 130,
+        "outer_bedslinger": 100,
+        "outer_accel_corexy": 8000
+      }
     },
     {
       "id": "quality",
