@@ -199,6 +199,7 @@ function renderComboSection(r) {
     out += '| Key | Value |\n|---|---|\n';
     for (const [k, v] of Object.entries(advFil)) {
       if (v == null) continue;
+      if (k.startsWith('_')) continue;  // skip metadata keys (_prov sidecar)
       out += `| ${k} | ${String(v).replace(/\|/g, '\\|')} |\n`;
     }
     out += '\n';

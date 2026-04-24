@@ -1055,6 +1055,21 @@ const Engine = (() => {
       retraction:       bs.retraction_distance,
       notes:            mat.notes,
       warnings:         mat.warnings,
+      // [IMPL-041 / DQ-1-followup] provenance sidecar. Numeric fields only;
+      // qualitative fields (build_plate, ams, drying, enclosure, notes, warnings)
+      // stay unsourced per DQ-1 rule. Upgradable to 'vendor' in DQ-3/4/5.
+      _prov: {
+        nozzle_temp_base: { source: 'default', ref: 'materials.json#base_settings.nozzle_temp_base' },
+        bed_temp_base:    { source: 'default', ref: 'materials.json#base_settings.bed_temp_base' },
+        cooling_fan:      { source: 'default', ref: 'materials.json#base_settings.cooling_fan' },
+        cooling_fan_min:  { source: 'default', ref: 'materials.json#base_settings.cooling_fan_min' },
+        cooling_overhang: { source: 'default', ref: 'materials.json#base_settings.cooling_fan_overhang' },
+        slow_layer_time:  { source: 'default', ref: 'materials.json#base_settings.slow_layer_time' },
+        max_mvs:          { source: 'default', ref: 'materials.json#base_settings.max_mvs[nozzleSize]' },
+        pressure_advance: { source: 'default', ref: 'materials.json#base_settings.pressure_advance' },
+        flow_ratio:       { source: 'default', ref: 'materials.json#base_settings.flow_ratio' },
+        retraction:       { source: 'default', ref: 'materials.json#base_settings.retraction_distance (pre-scale)' },
+      },
     };
   }
 
@@ -1079,7 +1094,15 @@ const Engine = (() => {
     let bedStr = `${bs.bed_temp_base + envBedAdj} °C`;
     if (envBedAdj > 0) bedStr += `  (+${envBedAdj} for environment)`;
 
-    return { nozzle: nozzleStr, bed: bedStr };
+    // [IMPL-041 / DQ-1-followup] provenance sidecar.
+    return {
+      nozzle: nozzleStr,
+      bed:    bedStr,
+      _prov: {
+        nozzle: { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + (speed==="fast"?5:0)' },
+        bed:    { source: 'calculated', ref: 'bed_temp_base + env.bed_adj' },
+      },
+    };
   }
 
   // ── Resolve PA from k_factor_matrix (nozzle-specific) or fallback ────────────
@@ -1135,6 +1158,20 @@ const Engine = (() => {
       flow_ratio:             String(bs.flow_ratio       ?? '—'),
       retraction_distance:    `${bs.retraction_distance} mm`,
       retraction_speed:       `${bs.retraction_speed} mm/s`,
+      // [IMPL-041 / DQ-1-followup] provenance sidecar. All fields numeric.
+      _prov: {
+        initial_layer_temp:     { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + initial_layer_nozzle_offset' },
+        other_layers_temp:      { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset' },
+        initial_layer_bed_temp: { source: 'calculated', ref: 'bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0), clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
+        other_layers_bed_temp:  { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
+        cooling_fan_min:        { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_min' },
+        cooling_fan_overhang:   { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_overhang' },
+        slow_layer_time:        { source: 'default',    ref: 'materials.json#base_settings.slow_layer_time' },
+        pressure_advance:       { source: 'default',    ref: 'materials.json#base_settings.k_factor_matrix[nozzleSize] (fallback .pressure_advance)' },
+        flow_ratio:             { source: 'default',    ref: 'materials.json#base_settings.flow_ratio' },
+        retraction_distance:    { source: 'default',    ref: 'materials.json#base_settings.retraction_distance (pre-scale)' },
+        retraction_speed:       { source: 'default',    ref: 'materials.json#base_settings.retraction_speed' },
+      },
     };
   }
 
