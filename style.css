@@ -156,6 +156,19 @@ header {
 }
 .theme-btn:hover { color: var(--text); background: var(--surface2); }
 
+.app-store-link {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  width: 32px; height: 32px;
+  border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.app-store-link:hover { color: var(--green); background: var(--surface2); border-color: var(--green-border); }
+
 /* Smooth theme switch */
 body, header, .top-nav, .filters, .panel, .chip,
 .checklist, .tab-nav, .cause-card, .pt-panel, .purge-slot-card {
@@ -849,11 +862,8 @@ body, header, .top-nav, .filters, .panel, .chip,
 .nav-btn:hover         { color: var(--text); }
 .nav-btn.active        { color: var(--green); border-bottom-color: var(--green); }
 .nav-home              { text-decoration: none; margin-right: 8px; padding-right: 16px; border-right: 1px solid var(--border2); }
-.nav-beta              { color: var(--green); }
-.nav-beta:hover        { color: var(--green); opacity: 0.85; }
-.nav-beta.active       { color: var(--green); border-bottom-color: var(--green); }
-.feedback-card--beta   { border-color: var(--green-border); }
-.feedback-card--beta:hover { border-color: var(--green); background: var(--green-dim); }
+.nav-ios               { text-decoration: none; color: var(--green); }
+.nav-ios:hover         { color: var(--green); opacity: 0.85; }
 
 /* ── Troubleshooter view ── */
 .trouble-hero {

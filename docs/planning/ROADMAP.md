@@ -17,7 +17,7 @@
 | Area | Status |
 |------|--------|
 | **Web app** | Live at 3dprintassistant.com. 64 printers, 12 brands, 18 materials, 9 nozzles, 3 slicers. Feedback now flows to Discord `#web-app-feedback` via Cloudflare Worker at `/api/feedback` (Tally retired 2026-04-17). |
-| **iOS app** | ✅ **v1.0.2 APPROVED + released 2026-04-24** (same ~121 non-EU countries as v1.0.0). Live at `apps.apple.com/app/3d-print-assistant/id6761634761`. v1.0.2 headline: CRITICAL-001 feedback privacy via Cloudflare Worker + 10 engine-correctness fixes bundled from IR-4/IR-5. 🚩 **EU distribution still blocked** by EU DSA Trader Status — submitted as Business (CVR + home address public) 2026-04-16, awaiting Apple verification. Announcement **held** until DK/EU unlocks. |
+| **iOS app** | ✅ **v1.0.2 APPROVED + released 2026-04-24**. Live at `apps.apple.com/app/3d-print-assistant/id6761634761`. v1.0.2 headline: CRITICAL-001 feedback privacy via Cloudflare Worker + 10 engine-correctness fixes bundled from IR-4/IR-5. ✅ **EU DSA Trader Status approved 2026-04-27** — App Store now live worldwide. Web app links to App Store from header icon + `iOS App ↗` nav button (PR-8 retired same day). |
 | **Engine** | Shared `engine.js` via JavaScriptCore on iOS. Web is master — edit there, copy to iOS. |
 | **Export** | Engine + bridge done. iOS UI **hidden** (deferred post-release). Web UI **disabled** (Bambu Studio rejected .json). |
 
@@ -195,6 +195,7 @@ Not session-scheduled. Tick off as nearby edits touch the files.
 - [x] [LOW-006] `flexible` field duplication — shipped 2026-04-23 (IR-4 bundle). Web `2e87e1b`, iOS `101618a`. Dropped `properties.flexible` (never read by engine); top-level `flexible` is canonical.
 - [ ] [LOW-007] Hoist Bambu preset `version: '2.5.0.14'` to module constant. (Lower priority; export disabled.)
 - [ ] **[CRITICAL-001-followup]** Worker `/api/feedback` routes iOS + web to a single `DISCORD_WEBHOOK_URL` — currently all lands in `#web-app-feedback`. Branch on `payload.context.appSource === "ios"` to a separate `DISCORD_WEBHOOK_URL_IOS` env var so iOS feedback lands in `#ios-app-feedback` as originally intended. Noticed 2026-04-23 during v1.0.2 ship sequence; Option 1 chosen (pool in `#web-app-feedback` for v1.0.2, fix in v1.0.3). Scope: ~15 LoC in `functions/api/feedback.js` + new Cloudflare secret + new iOS-channel webhook + redeploy. No iOS binary change, no App Review re-submit. v1.0.3-safe.
+- [ ] **[LOW-011]** Feedback email visibility — two small reply-friction fixes. **(a) Web copy parity:** add helper text under web feedback form's email field matching iOS copy ("Leave it blank to stay anonymous. If provided, we may reply.") — currently web has only `fbEmailLabel: "Reply-to email (optional)"` with no helper line, weaker than iOS prompt. New `fbEmailHelp` key in `en.json` + `da.json` + render under input in `feedback-form.js`. **(b) Worker reorder:** move `Reply-to email` field to the top of the Discord embed (currently appended last in `functions/api/feedback.js:259`) so it's visible above the fold when scanning feedback on mobile Discord. Scope: 3 small edits, web-only, ~10 LoC total. No iOS binary change. Noticed 2026-04-27 — first iOS feedback received without email, no way to reply. `[Web]`
 - [x] [LOW-008] Wrap per-file `init()` `.json()` in `.catch()` for non-critical files — shipped 2026-04-23. Web `250d456`, iOS `dea0eab`. Critical files (printers/materials/nozzles/env/obj/warnings/locales) still hard-fail; troubleshooter + slicer_capabilities soft-fail with documented defaults.
 - [x] [LOW-009] Add `da.json` to `testAllBundledResourcesPresent` — shipped 2026-04-23. iOS `63c3a5d`.
 - [x] [LOW-010] Unify `_SUPPORT_TYPES` + `_SUPPORT_GEOMETRY` — shipped 2026-04-23. Web `d91bb6a`, iOS `228a600`. Merged table; `|| '0.10'` silent fallback deleted (new support ids without geometry now throw at emission).
@@ -576,10 +577,12 @@ Replace flat fan% with structured cooling block.
 - [ ] Advanced rows stagger reveal — cascade fade-in on mode switch `[iOS]`
 - [ ] Consistent pill animation on native segmented controls `[iOS]`
 
-### PR-8: Retire iOS Beta signup card (web)
-- [ ] Web: remove iOS Beta card + `viewBeta` in `index.html` — app is live, signup form is deprecated `[Web]`
-- [ ] Web: remove remaining Tally embed reference (q4Wgvd form) and any leftover beta-related locale strings `[Web]`
-- [ ] Web: remove `navBeta` and `setView('beta')` from `app.js` if no longer needed `[Web]`
+### PR-8: Retire iOS Beta signup card (web) ✅ 2026-04-27
+- [x] Web: remove iOS Beta card + `viewBeta` in `index.html` — replaced with live App Store link.
+- [x] Web: remove Tally embed reference (q4Wgvd form) and beta-related locale strings (`navBeta`, `betaHeroTitle`, `betaHeroSub`, `betaCardTitle`, `betaCardDesc`).
+- [x] Web: remove `navBeta` handler + `setView('beta')` from `app.js`; nav button is now an `<a>` linking to App Store.
+
+**Shipped 2026-04-27.** EU DSA Trader Status approved → App Store link now live worldwide. Two link points added: nav button (`iOS App ↗` → opens App Store in new tab) + small phone-glyph icon in header right (between theme toggle and Reset). Storefront-less URL `https://apps.apple.com/app/id6761634761` per Apple Marketing Guidelines (auto-routes to visitor's local storefront). New locale key `navIOS` (EN "iOS App", DA "iOS-app"). CSS: `.nav-beta` → `.nav-ios`, new `.app-store-link` for header icon. Generic SVG glyph (no Apple branding) — Apple-compliant. Verified in browser preview: both link points present in DOM, EN+DA locale switch correct, zero new console errors.
 
 ---
 
