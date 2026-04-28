@@ -721,6 +721,27 @@
       "notes": ["ACE V2 with active filament drying", "8-color support"]
     },
     {
+      "id": "kobra_3_max",
+      "name": "Kobra 3 Max",
+      "manufacturer": "anycubic",
+      "series": "bedslinger",
+      "series_group": "Kobra Series",
+      "enclosure": "none",
+      "active_chamber_heating": false,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 300,
+      "max_bed_temp": 90,
+      "max_speed": 300,
+      "max_acceleration": 10000,
+      "has_lidar": false,
+      "has_camera": true,
+      "multi_color_systems": ["ace"],
+      "available_plates": ["textured_pei"],
+      "available_nozzle_sizes": [0.4],
+      "open_door_threshold_bed_temp": null,
+      "notes": ["Large-format bedslinger — 420×420×500mm", "ACE Pro multi-color (up to 8 colors)", "Klipper-based with vibration compensation"]
+    },
+    {
       "id": "kobra_2",
       "name": "Kobra 2",
       "manufacturer": "anycubic",
