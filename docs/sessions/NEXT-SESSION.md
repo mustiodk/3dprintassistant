@@ -132,7 +132,7 @@ A stale file between sessions is acceptable. Regenerate only on explicit owner a
 5. **Propose diff in plain English before each edit. Wait for owner sign-off per finding** — unless the owner explicitly authorises a session-scoped autonomous sweep.
 6. **Chain mechanical tool calls.** For doc-close / sync-then-commit loops, fire 5–10 tool calls in a single message then summarise.
 7. **Test after every engine or data edit:** `cp` to iOS byte-identical → `node scripts/walkthrough-harness.js` → iOS XCTest.
-8. **Never push iOS `main` if XCTest is red.** Free to push otherwise — TestFlight is manual-dispatch only.
+8. **iOS push gate (per top-level CLAUDE.md):** do not push iOS commits to `main` until the version is fully ready for TestFlight (all planned changes landed, XCTest green, walkthrough green, `MARKETING_VERSION` bumped, owner ready to dispatch). Local commits between findings are fine; remote push is gated on ship-readiness. TestFlight is manual-dispatch only.
 9. **Commit format:** `engine: …` / `iOS: …` / `data: …` / `scripts: …` with `[IMPL-041 / DQ-3 …]` tag. Trailer: `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`. Never skip hooks.
 10. **Data/logic change evaluation (MANDATORY):** every change must mention whether web + iOS UI need updates to best use the improvement.
 11. **Md-hygiene sweep at session end** — checklist at bottom of CLAUDE.md.
