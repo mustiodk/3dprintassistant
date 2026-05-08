@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>3DPA Analytics</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #111314;
+      --panel: #191d1f;
+      --panel2: #202528;
+      --border: #30373b;
+      --text: #edf2f1;
+      --muted: #98a5a1;
+      --green: #00e5a0;
+      --red: #ff6b6b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 28px auto 56px;
+    }
+    h1 {
+      margin: 0 0 4px;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+    p {
+      margin: 0;
+      color: var(--muted);
+    }
+    .controls,
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) 120px 120px auto;
+      gap: 10px;
+      align-items: end;
+      padding: 14px;
+      margin: 22px 0;
+    }
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    input,
+    select,
+    button {
+      min-height: 38px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--text);
+      font: inherit;
+    }
+    input,
+    select {
+      padding: 0 10px;
+    }
+    button {
+      cursor: pointer;
+      padding: 0 14px;
+      font-weight: 800;
+    }
+    button.primary {
+      background: var(--green);
+      border-color: var(--green);
+      color: #041310;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .card {
+      min-height: 180px;
+      overflow: hidden;
+    }
+    .card header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel2);
+    }
+    .card h2 {
+      margin: 0;
+      font-size: 14px;
+    }
+    .status {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .status.error { color: var(--red); }
+    .table-wrap {
+      overflow: auto;
+      max-height: 360px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th,
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      text-align: left;
+      white-space: nowrap;
+    }
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      background: rgba(255,255,255,0.02);
+      position: sticky;
+      top: 0;
+    }
+    .empty {
+      padding: 18px 14px;
+      color: var(--muted);
+    }
+    .footnote {
+      margin-top: 14px;
+      font-size: 12px;
+    }
+    @media (max-width: 780px) {
+      .controls,
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>3DPA Analytics</h1>
+    <p>SQL-backed aggregate usage view for web + iOS. No user IDs, sessions, free text, or generated slicer output.</p>
+
+    <section class="controls" aria-label="Analytics controls">
+      <label>
+        Admin token
+        <input id="adminToken" type="password" autocomplete="current-password" placeholder="Dashboard token">
+      </label>
+      <label>
+        Range
+        <select id="days">
+          <option value="1">1 day</option>
+          <option value="7" selected>7 days</option>
+          <option value="30">30 days</option>
+          <option value="90">90 days</option>
+        </select>
+      </label>
+      <label>
+        Limit
+        <select id="limit">
+          <option value="10">10 rows</option>
+          <option value="25" selected>25 rows</option>
+          <option value="50">50 rows</option>
+          <option value="100">100 rows</option>
+        </select>
+      </label>
+      <button id="refresh" class="primary">Refresh</button>
+    </section>
+
+    <section class="grid" id="cards"></section>
+
+    <p class="footnote">Counts use Cloudflare Workers Analytics Engine sample weighting via <code>SUM(_sample_interval * double1)</code>.</p>
+  </main>
+
+  <script>
+    const QUERIES = [
+      ["overview", "Events by platform"],
+      ["top_printers", "Top printers"],
+      ["top_materials", "Top materials"],
+      ["environments", "Environments / support / colors"],
+      ["feedback", "Feedback opens"],
+      ["versions", "Versions / channels"],
+    ];
+
+    const tokenInput = document.getElementById("adminToken");
+    const daysInput = document.getElementById("days");
+    const limitInput = document.getElementById("limit");
+    const cards = document.getElementById("cards");
+
+    tokenInput.value = sessionStorage.getItem("3dpa_analytics_admin_token") || "";
+
+    function cardId(query) {
+      return `card-${query}`;
+    }
+
+    function setStatus(query, text, error) {
+      const el = document.querySelector(`#${cardId(query)} .status`);
+      if (!el) return;
+      el.textContent = text;
+      el.classList.toggle("error", !!error);
+    }
+
+    function rowsFromResult(result) {
+      if (Array.isArray(result?.data)) return result.data;
+      if (Array.isArray(result?.result?.data)) return result.result.data;
+      if (Array.isArray(result?.result)) return result.result;
+      return [];
+    }
+
+    function renderTable(query, rows) {
+      const body = document.querySelector(`#${cardId(query)} .table-wrap`);
+      if (!body) return;
+      if (!rows.length) {
+        body.innerHTML = '<div class="empty">No rows for this range.</div>';
+        return;
+      }
+      const columns = Object.keys(rows[0]);
+      const head = columns.map(c => `<th>${escapeHtml(c)}</th>`).join("");
+      const tableRows = rows.map(row =>
+        `<tr>${columns.map(c => `<td>${escapeHtml(String(row[c] ?? ""))}</td>`).join("")}</tr>`
+      ).join("");
+      body.innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>${tableRows}</tbody></table>`;
+    }
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    async function loadQuery(query) {
+      setStatus(query, "Loading...", false);
+      const res = await fetch("/api/analytics-query", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Analytics-Admin-Token": tokenInput.value,
+        },
+        body: JSON.stringify({
+          query,
+          days: Number(daysInput.value),
+          limit: Number(limitInput.value),
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.ok) {
+        const message = json.error || `HTTP ${res.status}`;
+        setStatus(query, message, true);
+        renderTable(query, []);
+        return;
+      }
+      const rows = rowsFromResult(json.result);
+      renderTable(query, rows);
+      setStatus(query, `${rows.length} rows`, false);
+    }
+
+    function renderCards() {
+      cards.innerHTML = QUERIES.map(([query, title]) => `
+        <article class="card" id="${cardId(query)}">
+          <header>
+            <h2>${title}</h2>
+            <span class="status">Not loaded</span>
+          </header>
+          <div class="table-wrap"><div class="empty">Press Refresh.</div></div>
+        </article>
+      `).join("");
+    }
+
+    async function refreshAll() {
+      sessionStorage.setItem("3dpa_analytics_admin_token", tokenInput.value);
+      await Promise.all(QUERIES.map(([query]) => loadQuery(query)));
+    }
+
+    document.getElementById("refresh").addEventListener("click", refreshAll);
+    renderCards();
+  </script>
+</body>
+</html>

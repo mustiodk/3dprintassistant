@@ -25,6 +25,12 @@ import {
   onRequest        as analyticsOnRequestFallback,
 } from "./functions/api/analytics.js";
 
+import {
+  onRequestPost    as analyticsQueryOnRequestPost,
+  onRequestOptions as analyticsQueryOnRequestOptions,
+  onRequest        as analyticsQueryOnRequestFallback,
+} from "./functions/api/analytics-query.js";
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -45,6 +51,14 @@ export default {
       if (request.method === "POST")    return analyticsOnRequestPost(context);
       if (request.method === "OPTIONS") return analyticsOnRequestOptions(context);
       return analyticsOnRequestFallback(context);
+    }
+
+    if (url.pathname === "/api/analytics-query") {
+      const context = { request, env, waitUntil: ctx.waitUntil.bind(ctx) };
+
+      if (request.method === "POST")    return analyticsQueryOnRequestPost(context);
+      if (request.method === "OPTIONS") return analyticsQueryOnRequestOptions(context);
+      return analyticsQueryOnRequestFallback(context);
     }
 
     // Static fallback. ASSETS resolves the request against the public site
