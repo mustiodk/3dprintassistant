@@ -1,3 +1,11 @@
+# Pre-launch ASC upload kickoff prompt (archived)
+
+> **Historical:** kickoff prompt for the 2026-04-14/15 App Store Connect upload session. App Store live worldwide since 2026-04-27 (EU DSA Trader Status approved). Preserved here for traceability of pre-launch sequencing; do not consume as a current cold-start prompt.
+>
+> Live planning now lives in [`../ROADMAP.md`](../ROADMAP.md); current cold-start prompt is at [`../../sessions/NEXT-SESSION.md`](../../sessions/NEXT-SESSION.md).
+
+---
+
 # Next Session — App Store Connect Upload
 
 > Copy everything below the line and paste as the first message in a fresh Cowork chat.
