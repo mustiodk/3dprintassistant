@@ -24,7 +24,7 @@ async function json(res) {
 test("buildQuery returns weighted overview SQL", () => {
   const sql = __test.buildQuery("overview", { days: 7, limit: 25 });
 
-  assert.match(sql, /FROM `3dpa_usage_v1`/);
+  assert.match(sql, /FROM 3dpa_usage_v1/);
   assert.match(sql, /SUM\(_sample_interval \* double1\) AS events/);
   assert.match(sql, /INTERVAL '7' DAY/);
   assert.match(sql, /LIMIT 25/);

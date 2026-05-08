@@ -74,7 +74,7 @@ SELECT
   blob3 AS platform,
   blob4 AS channel,
   SUM(_sample_interval * double1) AS events
-FROM \`${DATASET}\`
+FROM ${DATASET}
 WHERE timestamp > ${interval(days)}
 GROUP BY event, platform, channel
 ORDER BY events DESC
@@ -87,7 +87,7 @@ SELECT
   blob8 AS printer_brand,
   blob9 AS printer_model,
   SUM(_sample_interval * double1) AS profiles
-FROM \`${DATASET}\`
+FROM ${DATASET}
 WHERE timestamp > ${interval(days)}
   AND blob2 = 'profile_generated'
 GROUP BY platform, printer_brand, printer_model
@@ -101,7 +101,7 @@ SELECT
   blob11 AS material,
   blob12 AS material_group,
   SUM(_sample_interval * double1) AS profiles
-FROM \`${DATASET}\`
+FROM ${DATASET}
 WHERE timestamp > ${interval(days)}
   AND blob2 = 'profile_generated'
 GROUP BY platform, material, material_group
@@ -116,7 +116,7 @@ SELECT
   blob15 AS support,
   blob16 AS colors,
   SUM(_sample_interval * double1) AS profiles
-FROM \`${DATASET}\`
+FROM ${DATASET}
 WHERE timestamp > ${interval(days)}
   AND blob2 = 'profile_generated'
 GROUP BY platform, environment, support, colors
@@ -129,7 +129,7 @@ SELECT
   blob3 AS platform,
   blob19 AS feedback_category,
   SUM(_sample_interval * double1) AS opens
-FROM \`${DATASET}\`
+FROM ${DATASET}
 WHERE timestamp > ${interval(days)}
   AND blob2 = 'feedback_opened'
 GROUP BY platform, feedback_category
@@ -144,7 +144,7 @@ SELECT
   blob5 AS app_version,
   blob6 AS build_number,
   SUM(_sample_interval * double1) AS events
-FROM \`${DATASET}\`
+FROM ${DATASET}
 WHERE timestamp > ${interval(days)}
 GROUP BY platform, channel, app_version, build_number
 ORDER BY events DESC
