@@ -110,6 +110,23 @@ ORDER BY profiles DESC
 LIMIT ${limit}
 FORMAT JSON`,
 
+  profile_details: ({ days, limit }) => `
+SELECT
+  blob3 AS platform,
+  blob8 AS printer_brand,
+  blob9 AS printer_model,
+  blob11 AS material,
+  blob12 AS material_group,
+  blob20 AS output_mode,
+  SUM(_sample_interval * double1) AS profiles
+FROM ${DATASET_TABLE}
+WHERE timestamp > ${interval(days)}
+  AND blob2 = 'profile_generated'
+GROUP BY platform, printer_brand, printer_model, material, material_group, output_mode
+ORDER BY profiles DESC
+LIMIT ${limit}
+FORMAT JSON`,
+
   environments: ({ days, limit }) => `
 SELECT
   blob3 AS platform,

@@ -39,6 +39,7 @@ test("validatePayload accepts the v1 profile_generated contract", () => {
       support: "none",
       colors: "single",
       profileMode: "safe",
+      outputMode: "advanced",
       slicer: "bambu_studio",
     },
   });
@@ -46,6 +47,7 @@ test("validatePayload accepts the v1 profile_generated contract", () => {
   assert.equal(result.ok, true);
   assert.equal(result.event, "profile_generated");
   assert.equal(result.props.printerModel, "x1c");
+  assert.equal(result.props.outputMode, "advanced");
 });
 
 test("validatePayload rejects properties outside the event allowlist", () => {

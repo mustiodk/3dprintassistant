@@ -57,6 +57,7 @@ function analyticsSelectionProps() {
     support: state.support || 'none',
     colors: state.colors || 'single',
     profileMode: state.profileMode || 'safe',
+    outputMode: currentMode,
     slicer: state.printer ? Engine.getSlicerForPrinter(state.printer) : '',
   };
 }
@@ -1029,6 +1030,7 @@ function render() {
       filament_condition: state.filament_condition,
       ironing: state.ironing,
       profileMode: state.profileMode || 'safe',
+      outputMode: currentMode,
     });
     if (profileKey !== _lastTrackedProfileKey) {
       _lastTrackedProfileKey = profileKey;

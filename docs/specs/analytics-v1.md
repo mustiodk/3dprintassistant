@@ -70,6 +70,7 @@ Allowed properties:
 | `support` | `none` | Support preset id. |
 | `colors` | `single` | Color/multimaterial preset id. |
 | `profileMode` | `safe` | `safe` or `tuned`. |
+| `outputMode` | `simple` | Web output UI mode: `simple` or `advanced`. |
 | `slicer` | `bambu_studio` | Engine-resolved slicer id. |
 
 ### `feedback_opened`
@@ -112,7 +113,7 @@ Workers Analytics Engine stores ordered arrays, so the field order is fixed:
 | `blob17` | profile mode |
 | `blob18` | slicer |
 | `blob19` | feedback category |
-| `blob20` | reserved |
+| `blob20` | output mode |
 | `double1` | count (`1`) |
 | `index1` | coarse sampling key (`event:platform`) |
 

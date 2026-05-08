@@ -31,6 +31,16 @@ test("buildQuery returns weighted overview SQL", () => {
   assert.match(sql, /FORMAT JSON$/);
 });
 
+test("buildQuery includes profile details output mode", () => {
+  const sql = __test.buildQuery("profile_details", { days: 7, limit: 25 });
+
+  assert.match(sql, /blob8 AS printer_brand/);
+  assert.match(sql, /blob9 AS printer_model/);
+  assert.match(sql, /blob11 AS material/);
+  assert.match(sql, /blob20 AS output_mode/);
+  assert.match(sql, /AND blob2 = 'profile_generated'/);
+});
+
 test("optionsFromPayload clamps days and limit", () => {
   assert.deepEqual(__test.optionsFromPayload({ days: 999, limit: 999 }), {
     days: 90,

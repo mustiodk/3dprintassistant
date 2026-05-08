@@ -42,6 +42,7 @@ const EVENT_KEYS = {
     "support",
     "colors",
     "profileMode",
+    "outputMode",
     "slicer",
   ]),
   feedback_opened: new Set([
@@ -70,7 +71,7 @@ const BLOB_FIELDS = [
   "profileMode",
   "slicer",
   "feedbackCategory",
-  "reserved",
+  "outputMode",
 ];
 
 function isAllowedOrigin(origin) {
@@ -203,7 +204,7 @@ function toDataPoint(event, props) {
     profileMode: props.profileMode || "",
     slicer: props.slicer || "",
     feedbackCategory: props.feedbackCategory || "",
-    reserved: "",
+    outputMode: props.outputMode || "",
   };
 
   return {
