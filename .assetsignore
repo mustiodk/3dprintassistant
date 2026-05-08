@@ -1,0 +1,9 @@
+.git
+.git/**
+.claude
+.claude/**
+.wrangler
+.wrangler/**
+.DS_Store
+node_modules
+node_modules/**
