@@ -371,7 +371,6 @@
       if (res.ok && data && data.ok) {
         status = 'success';
         showSuccess();
-        try { window.track && window.track('feedback_submitted', { category: currentCategory }); } catch (_) {}
         return;
       }
 

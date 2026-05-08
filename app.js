@@ -6,8 +6,59 @@
 function track(name, props) {
   try {
     if (localStorage.getItem('3dpa_notrack') === '1') return;
-    window.cfBeacon?.pushEvent?.(name, props || {});
+    const body = JSON.stringify({
+      event: name,
+      properties: {
+        ...analyticsBaseProps(),
+        ...(props || {}),
+      },
+    });
+    if (navigator.sendBeacon) {
+      const blob = new Blob([body], { type: 'application/json' });
+      if (navigator.sendBeacon('/api/analytics', blob)) return;
+    }
+    fetch('/api/analytics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      keepalive: true,
+    }).catch(() => {});
   } catch (_) {}
+}
+
+function analyticsBaseProps() {
+  const meta = document.querySelector('meta[name="app-version"]');
+  const host = window.location.hostname;
+  let channel = 'production';
+  if (host === 'localhost' || host === '127.0.0.1' || host === '') {
+    channel = 'local';
+  } else if (host.endsWith('.pages.dev')) {
+    channel = 'preview';
+  }
+  return {
+    platform: 'web',
+    channel,
+    appVersion: (meta && meta.content) || '',
+    locale: navigator.language || '',
+  };
+}
+
+function analyticsSelectionProps() {
+  const printer = state.printer ? Engine.getPrinter(state.printer) : null;
+  const material = state.material ? Engine.getMaterial(state.material) : null;
+  return {
+    printerBrand: printer?.manufacturer || '',
+    printerModel: state.printer || '',
+    printerSeries: printer?.series_group || printer?.series || '',
+    material: state.material || '',
+    materialGroup: material?.group || '',
+    nozzle: state.nozzle || '',
+    environment: state.environment || 'normal',
+    support: state.support || 'none',
+    colors: state.colors || 'single',
+    profileMode: state.profileMode || 'safe',
+    slicer: state.printer ? Engine.getSlicerForPrinter(state.printer) : '',
+  };
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -31,7 +82,7 @@ let activeTabId       = 'quality';       // persisted across re-renders
 let currentView       = 'configure';     // 'configure' | 'troubleshoot' | 'feedback'
 let activeSymptom     = null;            // troubleshooter selected symptom id
 let comparisonProfile = null;            // { profile, label } when Profile A is locked
-let _lastTrackedCombo = null;            // deduplicates profile_generated events
+let _lastTrackedProfileKey = null;       // deduplicates profile_generated events
 let pickerBrand       = null;            // currently expanded brand in printer picker
 let pickerShowMore    = false;           // whether secondary brands are visible
 let pickerCollapsed   = false;           // auto-collapse picker after printer selected + other filter clicked
@@ -119,6 +170,7 @@ Engine.init()
     } catch (_) {}
     bindControls();
     applyLang();
+    track('app_opened');
   })
   .catch(err => {
     console.error('Engine init failed:', err);
@@ -751,6 +803,7 @@ function bindControls() {
   document.querySelectorAll('.feedback-card[data-feedback-category]').forEach(btn => {
     btn.addEventListener('click', () => {
       const category = btn.dataset.feedbackCategory;
+      track('feedback_opened', { feedbackCategory: category || '' });
       if (window.FeedbackForm && typeof window.FeedbackForm.open === 'function') {
         window.FeedbackForm.open(category);
       }
@@ -956,10 +1009,30 @@ function render() {
     exportCopyBtn.style.display = 'none';
   }
   if (hasMin) {
-    const combo = `${state.printer}|${state.nozzle}|${state.material}`;
-    if (combo !== _lastTrackedCombo) {
-      _lastTrackedCombo = combo;
-      track('profile_generated', { printer: state.printer, nozzle: state.nozzle, material: state.material });
+    const profileKey = JSON.stringify({
+      printer: state.printer,
+      nozzle: state.nozzle,
+      material: state.material,
+      useCase: [...(state.useCase || [])].sort(),
+      surface: state.surface,
+      strength: state.strength,
+      speed: state.speed,
+      environment: state.environment,
+      support: state.support,
+      colors: state.colors,
+      userLevel: state.userLevel,
+      special: [...(state.special || [])].sort(),
+      seam: state.seam,
+      brim: state.brim,
+      build_plate: state.build_plate,
+      extruder_type: state.extruder_type,
+      filament_condition: state.filament_condition,
+      ironing: state.ironing,
+      profileMode: state.profileMode || 'safe',
+    });
+    if (profileKey !== _lastTrackedProfileKey) {
+      _lastTrackedProfileKey = profileKey;
+      track('profile_generated', analyticsSelectionProps());
     }
   }
   document.getElementById('emptyState').style.display    = hasMin ? 'none' : '';

@@ -19,6 +19,12 @@ import {
   onRequest        as feedbackOnRequestFallback,
 } from "./functions/api/feedback.js";
 
+import {
+  onRequestPost    as analyticsOnRequestPost,
+  onRequestOptions as analyticsOnRequestOptions,
+  onRequest        as analyticsOnRequestFallback,
+} from "./functions/api/analytics.js";
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -31,6 +37,14 @@ export default {
       if (request.method === "OPTIONS") return feedbackOnRequestOptions(context);
       // Catch-all inside the handler — returns 405 for any other method.
       return feedbackOnRequestFallback(context);
+    }
+
+    if (url.pathname === "/api/analytics") {
+      const context = { request, env, waitUntil: ctx.waitUntil.bind(ctx) };
+
+      if (request.method === "POST")    return analyticsOnRequestPost(context);
+      if (request.method === "OPTIONS") return analyticsOnRequestOptions(context);
+      return analyticsOnRequestFallback(context);
     }
 
     // Static fallback. ASSETS resolves the request against the public site

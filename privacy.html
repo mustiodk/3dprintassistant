@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Privacy Policy — 3D Print Assistant</title>
-  <meta name="description" content="Privacy policy for 3D Print Assistant. We collect only crash and diagnostic data via Sentry to fix bugs. No personal information, no tracking."/>
+  <meta name="description" content="Privacy policy for 3D Print Assistant. We collect crash diagnostics and anonymous product usage events to improve the app. No personal information, user IDs, or tracking."/>
   <link rel="canonical" href="https://3dprintassistant.com/privacy"/>
   <meta name="robots" content="index, follow"/>
 
@@ -125,7 +125,7 @@
     <a href="/" class="privacy-back">← 3D Print Assistant</a>
 
     <h1 class="privacy-title">Privacy Policy</h1>
-    <p class="privacy-date">Last updated: April 8, 2026</p>
+    <p class="privacy-date">Last updated: May 8, 2026</p>
 
     <div class="privacy-section">
       <p>3D Print Assistant is a hobby project developed by Musti. This policy explains what data the app and website collect and why.</p>
@@ -143,7 +143,14 @@
         <li>Performance traces — collected on approximately 10% of sessions</li>
       </ul>
       <p>This data is sent to Sentry's servers and governed by <a href="https://sentry.io/privacy/" target="_blank" rel="noopener">Sentry's Privacy Policy</a>.</p>
-      <p>The website uses <strong>Cloudflare Web Analytics</strong> for anonymous, privacy-preserving traffic measurement. No cookies are used and no personal data is collected.</p>
+      <p>The website uses <strong>Cloudflare Web Analytics</strong> for anonymous, privacy-preserving traffic measurement. No cookies are used.</p>
+      <p>The app and website also collect a small set of <strong>anonymous product usage events</strong> through a first-party Cloudflare Worker. These events help understand which parts of the tool are useful:</p>
+      <ul>
+        <li>App or website opened</li>
+        <li>Profile generated, including selected printer brand/model, material, nozzle, environment, support, color mode, profile mode, and slicer</li>
+        <li>Feedback opened, including the selected feedback category when available</li>
+      </ul>
+      <p>These usage events do not include a user ID, session ID, device identifier, IP address in the analytics payload, email address, feedback message text, or generated slicer output.</p>
     </div>
 
     <div class="privacy-section">
@@ -159,7 +166,8 @@
           <tr><td>Name, email, or contact info</td><td><span class="badge-no">No</span></td></tr>
           <tr><td>Location data</td><td><span class="badge-no">No</span></td></tr>
           <tr><td>User ID or device identifier</td><td><span class="badge-no">No</span></td></tr>
-          <tr><td>Usage analytics or behavioural tracking</td><td><span class="badge-no">No</span></td></tr>
+          <tr><td>Anonymous product usage events</td><td><span class="badge-yes">Yes</span></td></tr>
+          <tr><td>User/session tracking identifiers</td><td><span class="badge-no">No</span></td></tr>
           <tr><td>Advertising identifiers</td><td><span class="badge-no">No</span></td></tr>
           <tr><td>Purchase history</td><td><span class="badge-no">No</span></td></tr>
           <tr><td>Health or financial data</td><td><span class="badge-no">No</span></td></tr>
@@ -171,7 +179,7 @@
 
     <div class="privacy-section">
       <h2>How data is used</h2>
-      <p>Crash and diagnostic data is used solely to identify and fix bugs. It is not sold, shared with advertisers, or used for tracking of any kind.</p>
+      <p>Crash and diagnostic data is used solely to identify and fix bugs. Anonymous product usage events are used to understand which printer/material selections and product surfaces are used most. Data is not sold, shared with advertisers, or used for tracking across apps or websites.</p>
     </div>
 
     <div class="privacy-section">

@@ -12,3 +12,7 @@ main = "worker.js"
 [assets]
 directory = "."
 binding = "ASSETS"
+
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
+dataset = "3dpa_usage_v1"
