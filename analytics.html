@@ -260,7 +260,8 @@
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.ok) {
-        const message = json.error || `HTTP ${res.status}`;
+        const detail = json.body ? `: ${json.body}` : "";
+        const message = `${json.error || `HTTP ${res.status}`}${detail}`;
         setStatus(query, message, true);
         renderTable(query, []);
         return;

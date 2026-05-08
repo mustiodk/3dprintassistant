@@ -242,6 +242,11 @@ export async function onRequestPost({ request, env }) {
 
   const result = await runCloudflareQuery(sql, config);
   if (!result.ok) {
+    console.log("analytics_query_failed", {
+      query: queryId,
+      status: result.status,
+      body: result.body,
+    });
     return jsonResponse(502, {
       ok: false,
       error: "cloudflare_query_failed",
