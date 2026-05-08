@@ -35,6 +35,14 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    if (
+      url.pathname === "/.git" || url.pathname.startsWith("/.git/") ||
+      url.pathname === "/.claude" || url.pathname.startsWith("/.claude/") ||
+      url.pathname === "/.wrangler" || url.pathname.startsWith("/.wrangler/")
+    ) {
+      return new Response(null, { status: 404 });
+    }
+
     if (url.pathname === "/api/feedback") {
       // Re-create the Pages `context` object that the handler expects.
       const context = { request, env, waitUntil: ctx.waitUntil.bind(ctx) };
