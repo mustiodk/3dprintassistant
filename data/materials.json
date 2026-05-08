@@ -303,6 +303,113 @@
       "retraction_max": 2
     },
     {
+      "id": "pla_metal",
+      "name": "PLA Metal",
+      "group": "PLA",
+      "difficulty": "beginner",
+      "base_settings": {
+        "nozzle_temp_base": 210,
+        "nozzle_temp_min": 190,
+        "nozzle_temp_max": 230,
+        "bed_temp_base": 45,
+        "bed_temp_min": 35,
+        "bed_temp_max": 65,
+        "initial_layer_nozzle_offset": 5,
+        "initial_layer_bed_offset": 0,
+        "cooling_fan": "100%",
+        "cooling_fan_min": "70%",
+        "cooling_fan_overhang": "100%",
+        "slow_layer_time": "10 s",
+        "max_mvs": {
+          "0.2": "12 mm³/s",
+          "0.4": "21 mm³/s",
+          "0.6": "23 mm³/s"
+        },
+        "max_speed": 300,
+        "pressure_advance": 0.02,
+        "flow_ratio": 0.98,
+        "retraction_speed": 35,
+        "max_volumetric_speed": 12,
+        "k_factor_matrix": {
+          "0.2": 0.071,
+          "0.4": 0.04,
+          "0.6": 0.025,
+          "0.8": 0.016
+        },
+        "retraction_distance": 0.8,
+        "hygroscopic": "none"
+      },
+      "enclosure_required": false,
+      "enclosure_behavior": {
+        "open_door_threshold_bed_temp": 45,
+        "reason": "PLA Metal follows PLA chamber limits — open door / remove top cover when bed is above 45°C to prevent heat creep"
+      },
+      "compatible_plates": [
+        {
+          "plate_id": "cool_plate",
+          "bed_temp_range": [
+            35,
+            45
+          ],
+          "glue": "recommended"
+        },
+        {
+          "plate_id": "textured_pei",
+          "bed_temp_range": [
+            45,
+            65
+          ],
+          "glue": "recommended"
+        },
+        {
+          "plate_id": "high_temp_plate",
+          "bed_temp_range": [
+            45,
+            65
+          ],
+          "glue": "recommended"
+        }
+      ],
+      "build_plate_display": "Cool Plate, High Temperature Plate, or Textured PEI (glue recommended)",
+      "nozzle_requirements": {
+        "min_diameter": 0.2,
+        "material": "any"
+      },
+      "ams_compatible": true,
+      "ams_lite_compatible": true,
+      "drying": {
+        "required": false,
+        "recommended": true,
+        "display": "Recommended — 55 °C / 8h",
+        "oven_temp": 55,
+        "oven_duration_hours": 8,
+        "heatbed_temp": 70,
+        "heatbed_duration_hours": 12,
+        "storage_max_humidity_pct": 20
+      },
+      "properties": {
+        "heat_resistance_celsius": 58,
+        "uv_resistant": false,
+        "moisture_resistant": false,
+        "outdoor_suitable": false,
+        "food_safe_possible": false
+      },
+      "shrinkage_factor": 0.003,
+      "ventilation_required": false,
+      "warnings": [],
+      "notes": [
+        "Metallic textured PLA for visual parts — Bambu describes near-regular PLA mechanical performance with a metallic finish.",
+        "Use glue as a release layer on supported plates; Bambu lists glue as the bed surface preparation for PLA Metal.",
+        "Keep filament sealed below 20% RH; dry before appearance-critical prints."
+      ],
+      "shrink_risk": "none",
+      "flexible": false,
+      "abrasive": false,
+      "adhesion_risk_pei": "low",
+      "fan_policy": "high",
+      "retraction_max": 2
+    },
+    {
       "id": "pla_cf",
       "name": "PLA-CF",
       "group": "PLA",

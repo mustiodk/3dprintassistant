@@ -343,7 +343,7 @@ const Engine = (() => {
 
   // ── Sort order + core item sets ─────────────────────────────────────────────
   const _MATERIAL_ORDER = [
-    'pla_basic','pla_matte','pla_silk','pla_cf',
+    'pla_basic','pla_matte','pla_silk','pla_metal','pla_cf',
     'petg_basic','petg_hf','petg_cf',
     'abs','asa',
     'tpu_95a','tpu_90a','tpu_85a',
@@ -2382,6 +2382,7 @@ const Engine = (() => {
     pla_basic:  'Bambu PLA Basic',
     pla_matte:  'Bambu PLA Matte',
     pla_silk:   'Bambu PLA Silk',
+    pla_metal:  'Bambu PLA Metal',
     pla_cf:     'Bambu PLA-CF',
     petg_basic: 'Bambu PETG Basic',
     petg_hf:    'Bambu PETG HF',
@@ -2419,6 +2420,7 @@ const Engine = (() => {
     'Bambu PLA Basic':  { p1s: 'P1S 0.4 nozzle', x1c: 'X1C', p2s: 'P2S', a1: 'A1', a1mini: 'A1M', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
     'Bambu PLA Matte':  { p1s: 'P1S 0.4 nozzle', x1c: 'X1C', p2s: 'P2S', a1: 'A1', a1mini: 'A1M', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
     'Bambu PLA Silk':   { x1c: 'X1C', p2s: 'P2S', a1: 'A1', a1mini: 'A1M', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
+    'Bambu PLA Metal':  { x1c: 'X1C', p2s: 'P2S', a1: 'A1', a1mini: 'A1M', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
     'Bambu PLA-CF':     { x1c: 'X1C', p2s: 'P2S', a1: 'A1', a1mini: 'A1M', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
     'Bambu PETG Basic': { x1c: 'X1C', p2s: 'P2S', a1: 'A1', a1mini: 'A1M', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
     'Bambu PETG HF':    { p1s: 'P1S 0.4 nozzle', x1c: 'X1C', p2s: 'P2S', a1: 'A1', a1mini: 'A1M', h2c: 'H2C', h2d: 'H2D', h2s: 'H2S' },
