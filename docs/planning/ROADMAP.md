@@ -2,7 +2,7 @@
 
 **Purpose:** Live planning surface for 3dpa web + iOS. Active release tracking, current work queue, deferred and parked work, and pointers into archive + spec + session history.
 
-**Last updated:** 2026-05-08 — v1.0.3 batch 3/5 shipped (items 1 + 3 + 4 in production / TestFlight); items 2 + 5 pending. AI Operating Model pilot workflow retired; `docs/ai-collab.md` remains as lightweight tool-routing guidance.
+**Last updated:** 2026-05-09 — v1.0.3 batch 3/5 shipped (items 1 + 3 + 4 in production / TestFlight); additive PLA Metal build in TestFlight; analytics dashboard live at `/analytics`; items 2 + 5 pending.
 
 **Evergreen project context:** [`../3dpa-context.md`](../3dpa-context.md) (architecture, engine API, app state shape, slicer routing, standing rules).
 **Session history:** [`../sessions/INDEX.md`](../sessions/INDEX.md) — reverse-chronological one-line entries; full logs in `../sessions/`.
@@ -14,8 +14,8 @@
 
 | Area | Status |
 |---|---|
-| **Web app** | Live worldwide at [3dprintassistant.com](https://3dprintassistant.com). Cloudflare Pages, auto-deploy from `main`. Feedback → Discord `#web-app-feedback` via Cloudflare Worker `/api/feedback`. |
-| **iOS app** | Live worldwide on App Store, dark mode only. v1.0.2 released 2026-04-24; v1.0.3 in TestFlight as of 2026-05-08. EU unblocked 2026-04-27. |
+| **Web app** | Live worldwide at [3dprintassistant.com](https://3dprintassistant.com). Cloudflare Workers/Assets deploys from `main`. Feedback → Discord `#web-app-feedback` via `/api/feedback`. Owner analytics dashboard live at `/analytics` (admin token required). |
+| **iOS app** | Live worldwide on App Store, dark mode only. v1.0.2 released 2026-04-24; v1.0.3 in TestFlight. Latest additive build: run [`25576365270`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25576365270), build `202605081953` (PLA Metal). EU unblocked 2026-04-27. |
 | **Engine** | Web is master — edit there, `cp` byte-identical to iOS. Walkthrough harness + iOS XCTest re-run after every engine/data edit. |
 | **Export** | Engine + bridge done. Web UI **disabled** (Bambu Studio rejected `.json`). iOS UI **hidden** (deferred post-release). Re-enabling tracked under Phase 2.7a in Deferred / Parked Work. |
 
@@ -30,7 +30,7 @@
 | 1 | Missing printers (Anycubic Kobra X correction + Elegoo Centauri Carbon) | Web + iOS | ✅ **SHIPPED 2026-05-08** — 4 commits per one-finding-one-commit-per-platform. Web auto-deployed; iOS picked up in TestFlight run [`25572470387`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25572470387). Web `0f47b44` (Kobra X) + `8de9381` (Centauri Carbon); iOS `b0d1315` + `15930c1`. |
 | 2 | Expanded environments taxonomy | Web + iOS | ⏳ Gemini handover #2 drafted at [`../research/gemini-environments-taxonomy-research.md`](../research/gemini-environments-taxonomy-research.md); not yet sent. Multi-day workstream. |
 | 3 | iOS App Store review prompt | iOS | ✅ **SHIPPED 2026-05-08** — 6 Codex passes (1 design + 4 milestone + 1 post-implementation) + 1 Gemini pass. 5 caught-before-ship bugs. `ReviewPromptService` + `StoreKitDistributionDetector` + `ProfileKeyHasher` + 18 new XCTests (46 → 64). MARKETING_VERSION 1.0.3 + TestFlight dispatched (run [25557115706](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25557115706)). Design packet at [`../../codex/ios-review-prompt/codex-2026-05-08-ios-review-prompt-packet.md`](../../codex/ios-review-prompt/codex-2026-05-08-ios-review-prompt-packet.md); post-impl review at [`../../codex/ios-review-prompt/codex-2026-05-08-ios-review-prompt-implementation-review.md`](../../codex/ios-review-prompt/codex-2026-05-08-ios-review-prompt-implementation-review.md). |
-| 4 | Analytics platform + event taxonomy | Web + iOS | ✅ **SHIPPED 2026-05-08** — privacy-preserving first-party analytics with exactly 3 events (`app_opened`, `profile_generated`, `feedback_opened`), no user/session/device IDs, no free text, no generated profile output. Web Worker + Analytics Engine binding shipped on `main` as `1171583`; iOS client + tests shipped as `303f571`; TestFlight run [`25572470387`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25572470387) succeeded. Spec: [`../specs/analytics-v1.md`](../specs/analytics-v1.md). |
+| 4 | Analytics platform + event taxonomy | Web + iOS | ✅ **SHIPPED 2026-05-08/09** — privacy-preserving first-party analytics with exactly 3 events (`app_opened`, `profile_generated`, `feedback_opened`), no user/session/device IDs, no free text, no generated profile output. Web Worker + Analytics Engine binding shipped; iOS client + tests shipped as `303f571`; TestFlight run [`25572470387`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25572470387) succeeded. Owner dashboard `/analytics` added 2026-05-09 with generated-profile breakdown by platform, brand, printer model, material, and web output mode. Spec: [`../specs/analytics-v1.md`](../specs/analytics-v1.md). |
 | 5 | Web output-panel UX deep-dive | Web | ⏳ Not started. Claude direct (no Gemini per per-tool routing). |
 
 ### Phase status
@@ -41,7 +41,7 @@
 | Phase B — Research handovers | 🟨 Partial (handover #2 drafted; #3 sent + responded; #4 intentionally implemented directly after privacy plan; item 5 doesn't need Gemini). |
 | Phase C — Codex design packets | 🟨 Partial (item 3 design + post-impl complete; item 4 implemented with focused local tests; items 2 / 5 not started). |
 | Phase D — Implementation | 🟨 Partial (items 1 + 3 + 4 implemented; items 2 / 5 not started). |
-| Phase E — Ship cycle | 🟨 Items 1 + 3 + 4 in TestFlight via run `25572470387`. Items 2 / 5 not yet built. |
+| Phase E — Ship cycle | 🟨 Items 1 + 3 + 4 in TestFlight; latest v1.0.3 build run `25576365270` includes PLA Metal. Items 2 / 5 not yet built. |
 
 ---
 
@@ -50,7 +50,8 @@
 > Live, actionable items. Pick the next one based on owner priority.
 
 - **v1.0.3 batch items 2 / 5** — see Active Release section above.
-- **TestFlight QA on the in-flight v1.0.3 build** — verify review prompt suppressed on TestFlight; verify Kobra X open-frame display; verify Centauri Carbon visible; verify analytics causes no visible UX change and feedback/profile generation still work.
+- **TestFlight QA on the in-flight v1.0.3 build** — verify review prompt suppressed on TestFlight; verify Kobra X open-frame display; verify Centauri Carbon visible; verify PLA Metal visible + sane; verify analytics causes no visible UX change and feedback/profile generation still work.
+- **Analytics dashboard observation** — after real traffic accumulates, read `/analytics` (admin token) for generated profiles by platform / brand / printer / material / web output mode. Ignore setup rows with appVersion values like `setup-test`, `setup-test-2`, `setup-output-mode` from 2026-05-09 setup.
 - **`[CRITICAL-001-followup]`** — Worker `/api/feedback` currently routes iOS + web to single `DISCORD_WEBHOOK_URL` → `#web-app-feedback`. Branch on `payload.context.appSource === "ios"` to a separate `DISCORD_WEBHOOK_URL_IOS` env var so iOS feedback lands in `#ios-app-feedback` as originally intended. Scope: ~15 LoC in `functions/api/feedback.js` + new Cloudflare secret + new iOS-channel webhook + redeploy. No iOS binary change. v1.0.3-safe. Filed 2026-04-23. `[Web/Worker]`
 - **`[LOW-011]` Feedback email visibility** — (a) web copy parity helper text under email field matching iOS copy ("Leave it blank to stay anonymous. If provided, we may reply.") + new `fbEmailHelp` key in en/da; (b) Worker reorder of `Reply-to email` to top of Discord embed (currently `functions/api/feedback.js:259`). ~10 LoC web-only. Noticed 2026-04-27 after first iOS feedback received without email. `[Web]`
 - **`[LOW-005]`** — `prc_0.2` keep + add siblings, or drop. Owner decision (product-taste).
