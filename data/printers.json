@@ -1001,6 +1001,31 @@
       "notes": ["Massive build volume \u2014 420\u00d7420\u00d7480mm", "Klipper firmware"]
     },
     {
+      "id": "centauri_carbon",
+      "name": "Centauri Carbon",
+      "manufacturer": "elegoo",
+      "series": "corexy",
+      "series_group": "Centauri Series",
+      "enclosure": "passive",
+      "active_chamber_heating": false,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 320,
+      "max_bed_temp": 110,
+      "max_speed": 500,
+      "max_acceleration": 20000,
+      "has_lidar": false,
+      "has_camera": true,
+      "multi_color_systems": [],
+      "available_plates": ["textured_pei"],
+      "available_nozzle_sizes": [0.4],
+      "open_door_threshold_bed_temp": 45,
+      "notes": [
+        "Fully enclosed CoreXY with brass-hardened steel nozzle (320\u00b0C)",
+        "256\u00d7256\u00d7256mm build, 32 mm\u00b3/s flow rate, 121-point auto-leveling",
+        "CANVAS multi-color system on Elegoo's roadmap \u2014 not shipping yet"
+      ]
+    },
+    {
       "id": "sv08",
       "name": "SV08",
       "manufacturer": "sovol",
