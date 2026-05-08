@@ -87,6 +87,7 @@ For full project context: READ FIRST → `docs/3dpa-context.md` (canonical everg
 - **TestFlight QA** — verify v1.0.3 run `25572470387` on-device.
 - **App Store privacy labels** — before public release, update App Store Connect for anonymous Product Interaction usage data.
 - **AI Operating Model project** — kept in place as paused/reference; not an active deadline.
+- **Local branch hygiene** — the old local `ai/operating-model-pilot` checkout has no remote and still has three modified session docs. Start new work from `main`; clean that branch only after deciding whether those local doc edits are superseded.
 
 <<< END <<<
 
