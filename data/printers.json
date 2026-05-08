@@ -661,22 +661,25 @@
       "id": "kobra_x",
       "name": "Kobra X",
       "manufacturer": "anycubic",
-      "series": "corexy",
-      "series_group": "Kobra S Series",
-      "enclosure": "passive",
+      "series": "bedslinger",
+      "series_group": "Kobra Series",
+      "enclosure": "none",
       "active_chamber_heating": false,
       "extruder_type": "direct_drive",
       "max_nozzle_temp": 300,
-      "max_bed_temp": 110,
+      "max_bed_temp": 100,
       "max_speed": 600,
       "max_acceleration": 20000,
       "has_lidar": false,
       "has_camera": true,
       "multi_color_systems": ["ace"],
       "available_plates": ["textured_pei"],
-      "available_nozzle_sizes": [0.4, 0.6],
-      "open_door_threshold_bed_temp": 45,
-      "notes": ["Native 4-color, expandable to 19 colors"]
+      "available_nozzle_sizes": [0.4, 0.6, 0.8],
+      "open_door_threshold_bed_temp": null,
+      "notes": [
+        "Open-frame bedslinger — 260×260×260mm",
+        "ACE GEN2 native 4-color, expandable to 19 colors with ACE 2 Pro"
+      ]
     },
     {
       "id": "kobra_3",
