@@ -1,6 +1,6 @@
 # Next session — cold-start prompt (3dpa web + iOS)
 
-**Last updated:** 2026-05-09 after PLA Metal + analytics dashboard wrap-up. v1.0.3 batch is still 3/5 shipped; additive PLA Metal build is in TestFlight; items 2 / 5 pending.
+**Last updated:** 2026-05-09 after iOS output-mode analytics parity build. v1.0.3 batch is still 3/5 shipped; latest same-version TestFlight build includes PLA Metal + iOS output-mode analytics parity; items 2 / 5 pending.
 
 A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger B / explicit owner ask.
 
@@ -15,7 +15,7 @@ A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger 
 **3D Print Assistant** generates optimised slicer profiles based on **printer × material × nozzle × user goals × environment**. Two surfaces, one engine:
 
 - **Web** (`3dprintassistant/`) — live at [3dprintassistant.com](https://3dprintassistant.com). Cloudflare Workers/Assets deploys from `main`; Worker routes `/api/feedback`, `/api/analytics`, and `/api/analytics-query`.
-- **iOS** (`3dprintassistant-ios/`) — v1.0.2 live worldwide on App Store. v1.0.3 is in TestFlight; latest additive build is run [`25576365270`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25576365270), build `202605081953`, including PLA Metal.
+- **iOS** (`3dprintassistant-ios/`) — v1.0.2 live worldwide on App Store. v1.0.3 is in TestFlight; latest same-version build is run [`25596797349`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25596797349), build `202605090842`, including PLA Metal + iOS output-mode analytics parity.
 
 Web is master; iOS mirrors. Every engine/data change → copy byte-identical to iOS → `node scripts/walkthrough-harness.js` → iOS XCTest → commit both sides.
 
@@ -28,13 +28,13 @@ For full project context: READ FIRST → `docs/3dpa-context.md` (canonical everg
 **Additional shipped work since the batch snapshot:**
 - **PLA Metal** added to web + iOS as additive v1.0.3 build. Evidence came from Bambu vault sources (`50-Wiki/raw/3dpa/bambu/filament/`). Treat Bambu PLA Metal as AMS-compatible PLA, not hardened-nozzle metal-filled composite.
 - **Analytics dashboard** live at `/analytics`, admin-token protected, querying Cloudflare Workers Analytics Engine dataset `3dpa_usage_v1`.
-- **Web profile analytics expanded** with `outputMode` (`simple` / `advanced`) and dashboard "Generated profiles" card: platform, brand, printer model, material, material group, output mode, profile count.
+- **Profile analytics expanded** with `outputMode` (`simple` / `advanced`) on web + iOS and dashboard "Generated profiles" card: platform, brand, printer model, material, material group, output mode, profile count.
 - **Workers Assets hygiene fixed:** `/.git`, `/.claude`, and `/.wrangler` hard-blocked; `.assetsignore` excludes internal paths. Live `/.git/config` verified `404`.
 
 **Branch state:**
 - Web `main` is the active branch for product and docs work.
 - Web `ai/operating-model-pilot` is retired operationally. Its useful artifacts were promoted to `main`; do not start new work there.
-- iOS `main` has v1.0.3 product code + analytics + PLA Metal and was pushed.
+- iOS `main` has v1.0.3 product code + analytics + PLA Metal + output-mode analytics parity and was pushed.
 
 **iOS push gate:** still active for future builds. Before future TestFlight dispatches, explicitly decide whether the change is a same-marketing-version build or requires `MARKETING_VERSION` bump + `xcodegen generate`.
 
@@ -56,7 +56,7 @@ For full project context: READ FIRST → `docs/3dpa-context.md` (canonical everg
 ## First action
 
 1. Read files above in order. Confirm understanding in 3-5 bullets.
-2. Recommend the next lane. Current best first lane: **TestFlight QA** on latest v1.0.3 build, because the binary is already live in TestFlight and now includes PLA Metal.
+2. Recommend the next lane. Current best first lane: **TestFlight QA** on latest v1.0.3 build, because the binary is already live in TestFlight and now includes PLA Metal + iOS output-mode analytics parity.
 3. If owner wants product work instead, likely choices:
    - **Item 2 — environments taxonomy:** hand `gemini-environments-taxonomy-research.md` to Gemini; triage response; implement web+iOS.
    - **Item 5 — web output-panel UX:** start with a quick UX audit/scope note; do not implement blindly from the vague roadmap phrase.
@@ -81,7 +81,7 @@ For full project context: READ FIRST → `docs/3dpa-context.md` (canonical everg
 
 ## Open questions to surface to owner early
 
-- **TestFlight QA** — latest run `25576365270`: PLA Metal visible + sane; review prompt suppressed; Kobra X / Centauri visible; analytics invisible.
+- **TestFlight QA** — latest run `25596797349`, build `202605090842`: PLA Metal visible + sane; review prompt suppressed; Kobra X / Centauri visible; analytics invisible; iOS generated-profile analytics includes output mode after Simple/Advanced toggles.
 - **App Store privacy labels** — before public release, update App Store Connect for anonymous Product Interaction usage data.
 - **v1.0.3 remaining items** — item 2 environments taxonomy and item 5 web output-panel UX remain.
 - **Analytics test rows** — early dashboard includes setup rows from this session (`setup-test`, `setup-test-2`, `setup-output-mode`).
