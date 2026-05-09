@@ -29,6 +29,7 @@ For full project context: READ FIRST → `docs/3dpa-context.md` (canonical everg
 - **PLA Metal** added to web + iOS as additive v1.0.3 build. Evidence came from Bambu vault sources (`50-Wiki/raw/3dpa/bambu/filament/`). Treat Bambu PLA Metal as AMS-compatible PLA, not hardened-nozzle metal-filled composite.
 - **Analytics dashboard** live at `/analytics`, admin-token protected, querying Cloudflare Workers Analytics Engine dataset `3dpa_usage_v1`.
 - **Profile analytics expanded** with `outputMode` (`simple` / `advanced`) on web + iOS and dashboard "Generated profiles" card: platform, brand, printer model, material, material group, output mode, profile count.
+- **App Store submission copy is ready** in `../3dprintassistant-ios/docs/app-store-v1.0.3-submit.md`: final What's New text, Promotional Text, App Privacy Product Interaction answers, review notes, and pre-submit checklist. Owner used the final modified What's New wording that starts "A small-but-useful update from the feedback I have received."
 - **Workers Assets hygiene fixed:** `/.git`, `/.claude`, and `/.wrangler` hard-blocked; `.assetsignore` excludes internal paths. Live `/.git/config` verified `404`.
 
 **Branch state:**
@@ -58,6 +59,7 @@ For full project context: READ FIRST → `docs/3dpa-context.md` (canonical everg
 1. Read files above in order. Confirm understanding in 3-5 bullets.
 2. Recommend the next lane. Current best first lane: **TestFlight QA** on latest v1.0.3 build, because the binary is already live in TestFlight and now includes PLA Metal + iOS output-mode analytics parity.
 3. If owner wants product work instead, likely choices:
+   - **v1.0.3 App Store follow-through:** confirm TestFlight QA / App Privacy Product Interaction label / build `202605090842` selected / Manual Release / submit or monitor review status.
    - **Item 2 — environments taxonomy:** hand `gemini-environments-taxonomy-research.md` to Gemini; triage response; implement web+iOS.
    - **Item 5 — web output-panel UX:** start with a quick UX audit/scope note; do not implement blindly from the vague roadmap phrase.
    - **Analytics observation:** open `/analytics` after traffic accumulates; ignore setup-test rows from 2026-05-09.
@@ -82,7 +84,7 @@ For full project context: READ FIRST → `docs/3dpa-context.md` (canonical everg
 ## Open questions to surface to owner early
 
 - **TestFlight QA** — latest run `25596797349`, build `202605090842`: PLA Metal visible + sane; review prompt suppressed; Kobra X / Centauri visible; analytics invisible; iOS generated-profile analytics includes output mode after Simple/Advanced toggles.
-- **App Store privacy labels** — before public release, update App Store Connect for anonymous Product Interaction usage data.
+- **App Store release status** — if v1.0.3 has not been submitted yet, use `../3dprintassistant-ios/docs/app-store-v1.0.3-submit.md`; if it has been submitted, monitor review and release manually when approved.
 - **v1.0.3 remaining items** — item 2 environments taxonomy and item 5 web output-panel UX remain.
 - **Analytics test rows** — early dashboard includes setup rows from this session (`setup-test`, `setup-test-2`, `setup-output-mode`).
 
