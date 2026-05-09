@@ -27,6 +27,8 @@ test("buildQuery returns weighted overview SQL", () => {
   assert.match(sql, /FROM "3dpa_usage_v1"/);
   assert.match(sql, /SUM\(_sample_interval \* double1\) AS events/);
   assert.match(sql, /INTERVAL '7' DAY/);
+  assert.match(sql, /blob5 AS app_version/);
+  assert.match(sql, /GROUP BY event, platform, channel, app_version/);
   assert.match(sql, /LIMIT 25/);
   assert.match(sql, /FORMAT JSON$/);
 });
@@ -36,6 +38,7 @@ test("buildQuery returns unbounded owner summary SQL", () => {
 
   assert.match(sql, /blob2 AS event/);
   assert.match(sql, /blob3 AS platform/);
+  assert.match(sql, /blob5 AS app_version/);
   assert.match(sql, /SUM\(_sample_interval \* double1\) AS events/);
   assert.match(sql, /INTERVAL '30' DAY/);
   assert.match(sql, /LIMIT 100/);
@@ -45,6 +48,7 @@ test("buildQuery includes profile details output mode", () => {
   const sql = __test.buildQuery("profile_details", { days: 7, limit: 25 });
 
   assert.match(sql, /blob8 AS printer_brand/);
+  assert.match(sql, /blob5 AS app_version/);
   assert.match(sql, /blob9 AS printer_model/);
   assert.match(sql, /blob11 AS material/);
   assert.match(sql, /blob20 AS output_mode/);
@@ -55,6 +59,7 @@ test("buildQuery includes profile mix dimensions", () => {
   const sql = __test.buildQuery("profile_mix", { days: 7, limit: 25 });
 
   assert.match(sql, /blob13 AS nozzle/);
+  assert.match(sql, /blob5 AS app_version/);
   assert.match(sql, /blob17 AS profile_mode/);
   assert.match(sql, /blob18 AS slicer/);
   assert.match(sql, /blob20 AS output_mode/);

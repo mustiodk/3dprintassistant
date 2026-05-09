@@ -598,6 +598,52 @@
         grid-column: 1 / -1;
         grid-row: 2;
       }
+
+      .table-wrap {
+        max-height: none;
+        overflow: visible;
+      }
+
+      table,
+      thead,
+      tbody,
+      tr,
+      th,
+      td {
+        display: block;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tr {
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line-soft);
+      }
+
+      td {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 7px 0;
+        border-bottom: 0;
+        white-space: normal;
+        text-align: right;
+      }
+
+      td::before {
+        content: attr(data-label);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+        text-align: left;
+        text-transform: uppercase;
+      }
+
+      td.numeric {
+        text-align: right;
+      }
     }
   </style>
 </head>
@@ -1195,24 +1241,30 @@
         body.innerHTML = '<div class="empty">No rows for this range.</div>';
         return;
       }
-      const columns = Object.keys(rows[0]);
+      const columns = Object.keys(rows[0]).filter(column => shouldShowColumn(query, column));
       const head = columns.map(column => `<th>${escapeHtml(columnLabel(column))}</th>`).join("");
       const tableRows = rows.map(row =>
-        `<tr>${columns.map(column => tableCell(column, row[column])).join("")}</tr>`
+        `<tr>${columns.map(column => tableCell(column, row[column], row)).join("")}</tr>`
       ).join("");
       body.innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>${tableRows}</tbody></table>`;
     }
 
-    function tableCell(column, value) {
-      const numeric = typeof value === "number" || ["events", "profiles", "opens"].includes(column);
-      return `<td class="${numeric ? "numeric" : ""}">${escapeHtml(formatCell(column, value))}</td>`;
+    function shouldShowColumn(query, column) {
+      if (column === "app_version" && query !== "versions") return false;
+      return true;
     }
 
-    function formatCell(column, value) {
+    function tableCell(column, value, row) {
+      const numeric = typeof value === "number" || ["events", "profiles", "opens"].includes(column);
+      const label = columnLabel(column);
+      return `<td class="${numeric ? "numeric" : ""}" data-label="${escapeHtml(label)}">${escapeHtml(formatCell(column, value, row))}</td>`;
+    }
+
+    function formatCell(column, value, row) {
       if (value == null || value === "") return "-";
       if (["events", "profiles", "opens"].includes(column)) return formatNumber(value);
       if (column === "event") return eventLabels[value] || prettyId(value);
-      if (column === "platform") return platformLabels[value] || prettyId(value);
+      if (column === "platform") return platformVersionLabel(row);
       if (column === "printer_brand") return brandName(value);
       if (column === "printer_model") return printerName(value);
       if (column === "material") return materialName(value);
@@ -1305,6 +1357,12 @@
       const build = row.build_number ? ` (${row.build_number})` : "";
       const channel = row.channel ? ` - ${prettyId(row.channel)}` : "";
       return `${platform} ${version}${build}${channel}`;
+    }
+
+    function platformVersionLabel(row) {
+      const platform = row?.platform || "";
+      if (platform === "ios" && row?.app_version) return `iOS ${row.app_version}`;
+      return platformLabels[platform] || prettyId(platform);
     }
 
     function eventTotal(summary, event) {

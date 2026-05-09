@@ -73,10 +73,11 @@ const QUERY_BUILDERS = {
 SELECT
   blob2 AS event,
   blob3 AS platform,
+  blob5 AS app_version,
   SUM(_sample_interval * double1) AS events
 FROM ${DATASET_TABLE}
 WHERE timestamp > ${interval(days)}
-GROUP BY event, platform
+GROUP BY event, platform, app_version
 ORDER BY events DESC
 LIMIT 100
 FORMAT JSON`,
@@ -86,10 +87,11 @@ SELECT
   blob2 AS event,
   blob3 AS platform,
   blob4 AS channel,
+  blob5 AS app_version,
   SUM(_sample_interval * double1) AS events
 FROM ${DATASET_TABLE}
 WHERE timestamp > ${interval(days)}
-GROUP BY event, platform, channel
+GROUP BY event, platform, channel, app_version
 ORDER BY events DESC
 LIMIT ${limit}
 FORMAT JSON`,
@@ -97,13 +99,14 @@ FORMAT JSON`,
   top_printers: ({ days, limit }) => `
 SELECT
   blob3 AS platform,
+  blob5 AS app_version,
   blob8 AS printer_brand,
   blob9 AS printer_model,
   SUM(_sample_interval * double1) AS profiles
 FROM ${DATASET_TABLE}
 WHERE timestamp > ${interval(days)}
   AND blob2 = 'profile_generated'
-GROUP BY platform, printer_brand, printer_model
+GROUP BY platform, app_version, printer_brand, printer_model
 ORDER BY profiles DESC
 LIMIT ${limit}
 FORMAT JSON`,
@@ -111,13 +114,14 @@ FORMAT JSON`,
   top_materials: ({ days, limit }) => `
 SELECT
   blob3 AS platform,
+  blob5 AS app_version,
   blob11 AS material,
   blob12 AS material_group,
   SUM(_sample_interval * double1) AS profiles
 FROM ${DATASET_TABLE}
 WHERE timestamp > ${interval(days)}
   AND blob2 = 'profile_generated'
-GROUP BY platform, material, material_group
+GROUP BY platform, app_version, material, material_group
 ORDER BY profiles DESC
 LIMIT ${limit}
 FORMAT JSON`,
@@ -125,6 +129,7 @@ FORMAT JSON`,
   profile_details: ({ days, limit }) => `
 SELECT
   blob3 AS platform,
+  blob5 AS app_version,
   blob8 AS printer_brand,
   blob9 AS printer_model,
   blob11 AS material,
@@ -134,7 +139,7 @@ SELECT
 FROM ${DATASET_TABLE}
 WHERE timestamp > ${interval(days)}
   AND blob2 = 'profile_generated'
-GROUP BY platform, printer_brand, printer_model, material, material_group, output_mode
+GROUP BY platform, app_version, printer_brand, printer_model, material, material_group, output_mode
 ORDER BY profiles DESC
 LIMIT ${limit}
 FORMAT JSON`,
@@ -142,6 +147,7 @@ FORMAT JSON`,
   profile_mix: ({ days, limit }) => `
 SELECT
   blob3 AS platform,
+  blob5 AS app_version,
   blob13 AS nozzle,
   blob17 AS profile_mode,
   blob18 AS slicer,
@@ -150,7 +156,7 @@ SELECT
 FROM ${DATASET_TABLE}
 WHERE timestamp > ${interval(days)}
   AND blob2 = 'profile_generated'
-GROUP BY platform, nozzle, profile_mode, slicer, output_mode
+GROUP BY platform, app_version, nozzle, profile_mode, slicer, output_mode
 ORDER BY profiles DESC
 LIMIT ${limit}
 FORMAT JSON`,
@@ -158,6 +164,7 @@ FORMAT JSON`,
   environments: ({ days, limit }) => `
 SELECT
   blob3 AS platform,
+  blob5 AS app_version,
   blob14 AS environment,
   blob15 AS support,
   blob16 AS colors,
@@ -165,7 +172,7 @@ SELECT
 FROM ${DATASET_TABLE}
 WHERE timestamp > ${interval(days)}
   AND blob2 = 'profile_generated'
-GROUP BY platform, environment, support, colors
+GROUP BY platform, app_version, environment, support, colors
 ORDER BY profiles DESC
 LIMIT ${limit}
 FORMAT JSON`,
@@ -173,12 +180,13 @@ FORMAT JSON`,
   feedback: ({ days, limit }) => `
 SELECT
   blob3 AS platform,
+  blob5 AS app_version,
   blob19 AS feedback_category,
   SUM(_sample_interval * double1) AS opens
 FROM ${DATASET_TABLE}
 WHERE timestamp > ${interval(days)}
   AND blob2 = 'feedback_opened'
-GROUP BY platform, feedback_category
+GROUP BY platform, app_version, feedback_category
 ORDER BY opens DESC
 LIMIT ${limit}
 FORMAT JSON`,
