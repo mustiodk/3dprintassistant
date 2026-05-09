@@ -109,7 +109,7 @@
 
     .controls {
       display: grid;
-      grid-template-columns: minmax(260px, 1.1fr) minmax(300px, 1.2fr) 150px auto;
+      grid-template-columns: minmax(220px, 1fr) minmax(270px, 1fr) minmax(270px, 0.9fr) 120px auto;
       gap: 12px;
       align-items: end;
       padding: 14px;
@@ -159,7 +159,18 @@
       background: var(--surface-2);
     }
 
+    .platform-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface-2);
+    }
+
     .range-tab,
+    .platform-tab,
     .primary {
       min-height: 40px;
       border: 0;
@@ -174,7 +185,13 @@
       color: var(--muted);
     }
 
-    .range-tab.is-active {
+    .platform-tab {
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .range-tab.is-active,
+    .platform-tab.is-active {
       background: var(--mint);
       color: #041411;
     }
@@ -401,6 +418,38 @@
       gap: 14px;
     }
 
+    .platform-columns {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .platform-block {
+      min-width: 0;
+    }
+
+    .platform-block h3 {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .platform-block .bar-row {
+      grid-template-columns: minmax(0, 1fr) 56px;
+      gap: 7px 10px;
+    }
+
+    .platform-block .bar-track {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+
+    .span-4 .platform-columns,
+    .subsection .platform-columns {
+      grid-template-columns: 1fr;
+    }
+
     .subsection h3 {
       margin-bottom: 10px;
       color: var(--muted);
@@ -493,6 +542,7 @@
       .controls,
       .readout,
       .split-grid,
+      .platform-columns,
       .raw-grid {
         grid-template-columns: 1fr;
       }
@@ -536,6 +586,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      .platform-tabs {
+        grid-template-columns: 1fr;
+      }
+
       .bar-row {
         grid-template-columns: 1fr 70px;
       }
@@ -563,6 +617,15 @@
         Access token
         <input id="adminToken" type="password" autocomplete="current-password" placeholder="Dashboard token">
       </label>
+
+      <div class="control-label">
+        Product lens
+        <div class="platform-tabs" id="platformTabs" role="group" aria-label="Product lens">
+          <button class="platform-tab is-active" type="button" data-platform="all">All</button>
+          <button class="platform-tab" type="button" data-platform="web">Web</button>
+          <button class="platform-tab" type="button" data-platform="ios">iOS</button>
+        </div>
+      </div>
 
       <div class="control-label">
         Range
@@ -737,6 +800,7 @@
 
     const state = {
       days: 7,
+      platform: "all",
       results: {},
       errors: {},
       labels: {
@@ -762,6 +826,16 @@
     function init() {
       renderEmptyDashboard();
       renderRawCards();
+      document.getElementById("platformTabs").addEventListener("click", event => {
+        const button = event.target.closest("[data-platform]");
+        if (!button) return;
+        state.platform = button.dataset.platform;
+        document.querySelectorAll(".platform-tab").forEach(tab => {
+          tab.classList.toggle("is-active", tab === button);
+        });
+        renderDashboard();
+        rerenderRawTables();
+      });
       document.getElementById("rangeTabs").addEventListener("click", event => {
         const button = event.target.closest("[data-days]");
         if (!button) return;
@@ -784,12 +858,12 @@
 
     function renderEmptyDashboard() {
       renderMetrics([
-        ["Generated profiles", "-", "Load data to see real usage."],
-        ["App opens", "-", "Web + iOS aggregate."],
-        ["Feedback opens", "-", "Interest in talking back."],
-        ["iOS share", "-", "Profile generation split."],
-        ["Top printer", "-", "Roadmap signal."],
-        ["Top material", "-", "Material demand signal."],
+        ["Web profiles", "-", "Load data to see web usage."],
+        ["iOS profiles", "-", "Load data to see iOS usage."],
+        ["Web opens", "-", "Website starts."],
+        ["iOS opens", "-", "App starts."],
+        ["Web feedback", "-", "Web feedback interest."],
+        ["iOS feedback", "-", "App feedback interest."],
       ]);
       insights.innerHTML = '<div class="empty">Load the dashboard to get a short owner readout for the selected range.</div>';
       quickFacts.innerHTML = '<div class="empty">No data loaded yet.</div>';
@@ -898,8 +972,8 @@
         }
         const rows = rowsFromResult(json.result);
         state.results[query] = rows;
-        renderTable(query, rows);
-        setCardStatus(query, `${rows.length} rows`);
+        renderTable(query, displayRows(query, rows));
+        setCardStatus(query, cardStatusText(query, rows));
       } catch (error) {
         state.errors[query] = error.message;
         state.results[query] = [];
@@ -909,41 +983,62 @@
     }
 
     function renderDashboard() {
-      const summary = state.results.summary || [];
-      const profiles = state.results.profile_details || [];
-      const printers = state.results.top_printers || [];
-      const materials = state.results.top_materials || [];
-      const versions = productionVersionRows(state.results.versions || []);
-      const feedback = state.results.feedback || [];
-      const mix = state.results.profile_mix || [];
+      const allSummary = state.results.summary || [];
+      const allProfiles = state.results.profile_details || [];
+      const allPrinters = state.results.top_printers || [];
+      const allMaterials = state.results.top_materials || [];
+      const allVersions = productionVersionRows(state.results.versions || []);
+      const allFeedback = state.results.feedback || [];
+      const allMix = state.results.profile_mix || [];
 
-      const profileCount = eventTotal(summary, "profile_generated");
-      const openCount = eventTotal(summary, "app_opened");
-      const feedbackCount = eventTotal(summary, "feedback_opened");
-      const iosProfiles = eventPlatformTotal(summary, "profile_generated", "ios");
-      const webProfiles = eventPlatformTotal(summary, "profile_generated", "web");
-      const totalPlatformProfiles = iosProfiles + webProfiles;
-      const iosShare = totalPlatformProfiles ? `${Math.round((iosProfiles / totalPlatformProfiles) * 100)}%` : "-";
-      const topPrinter = printers[0] ? printerName(printers[0].printer_model, printers[0].printer_brand) : "-";
-      const topMaterial = materials[0] ? materialName(materials[0].material) : "-";
+      const summary = filterByPlatform(allSummary);
+      const profiles = filterByPlatform(allProfiles);
+      const printers = filterByPlatform(allPrinters);
+      const materials = filterByPlatform(allMaterials);
+      const versions = filterByPlatform(allVersions);
+      const feedback = filterByPlatform(allFeedback);
+      const mix = filterByPlatform(allMix);
+
+      renderPlatformMetrics({ allSummary, summary, printers, materials, profiles });
+      renderInsights({ summary, profiles, printers, materials, versions, feedback, mix });
+      renderQuickFacts({ summary, versions, mix, profiles, feedback });
+
+      renderPlatformBarList("journey", allSummary, platformSummaryRows, row => eventLabels[row.event] || prettyId(row.event), "events", 6);
+      renderPlatformBarList("releaseHealth", allVersions, rows => rows, versionLabel, "events", 8);
+      renderPlatformBarList("profileCombos", allProfiles, rows => rows, profileComboLabel, "profiles", 8);
+      renderPlatformBarList("modeMix", allMix, rows => modeRows(rows), row => row.label, "profiles", 8);
+      renderPlatformBarList("topPrinters", allPrinters, rows => rows, row => printerName(row.printer_model, row.printer_brand), "profiles", 8);
+      renderPlatformBarList("topMaterials", allMaterials, rows => rows, row => materialName(row.material), "profiles", 8);
+    }
+
+    function renderPlatformMetrics(data) {
+      if (state.platform === "all") {
+        renderMetrics([
+          ["Web profiles", formatNumber(eventPlatformTotal(data.allSummary, "profile_generated", "web")), topLabel(filterPlatformRows(data.profiles, "web"), profileComboLabel, "No web profile rows yet.")],
+          ["iOS profiles", formatNumber(eventPlatformTotal(data.allSummary, "profile_generated", "ios")), topLabel(filterPlatformRows(data.profiles, "ios"), profileComboLabel, "No iOS profile rows yet.")],
+          ["Web opens", formatNumber(eventPlatformTotal(data.allSummary, "app_opened", "web")), "Website starts."],
+          ["iOS opens", formatNumber(eventPlatformTotal(data.allSummary, "app_opened", "ios")), "App starts."],
+          ["Web feedback", formatNumber(eventPlatformTotal(data.allSummary, "feedback_opened", "web")), feedbackRate(eventPlatformTotal(data.allSummary, "feedback_opened", "web"), eventPlatformTotal(data.allSummary, "profile_generated", "web"))],
+          ["iOS feedback", formatNumber(eventPlatformTotal(data.allSummary, "feedback_opened", "ios")), feedbackRate(eventPlatformTotal(data.allSummary, "feedback_opened", "ios"), eventPlatformTotal(data.allSummary, "profile_generated", "ios"))],
+        ]);
+        return;
+      }
+
+      const label = platformLabels[state.platform] || prettyId(state.platform);
+      const profileCount = eventTotal(data.summary, "profile_generated");
+      const openCount = eventTotal(data.summary, "app_opened");
+      const feedbackCount = eventTotal(data.summary, "feedback_opened");
+      const topPrinter = data.printers[0] ? printerName(data.printers[0].printer_model, data.printers[0].printer_brand) : "-";
+      const topMaterial = data.materials[0] ? materialName(data.materials[0].material) : "-";
 
       renderMetrics([
-        ["Generated profiles", formatNumber(profileCount), "Primary usage signal."],
-        ["App opens", formatNumber(openCount), "Web + iOS starts."],
-        ["Feedback opens", formatNumber(feedbackCount), feedbackRate(feedbackCount, profileCount)],
-        ["iOS share", iosShare, `${formatNumber(iosProfiles)} iOS / ${formatNumber(webProfiles)} web profiles.`],
-        ["Top printer", topPrinter, printers[0] ? brandName(printers[0].printer_brand) : "No printer rows yet."],
-        ["Top material", topMaterial, materials[0]?.material_group || "No material rows yet."],
+        [`${label} profiles`, formatNumber(profileCount), "Primary usage signal."],
+        [`${label} opens`, formatNumber(openCount), `${label} starts.`],
+        [`${label} feedback`, formatNumber(feedbackCount), feedbackRate(feedbackCount, profileCount)],
+        ["Profile/Open ratio", openCount ? pct(profileCount, openCount) : "-", "Rough generation rate."],
+        ["Top printer", topPrinter, data.printers[0] ? brandName(data.printers[0].printer_brand) : "No printer rows yet."],
+        ["Top material", topMaterial, data.materials[0]?.material_group || "No material rows yet."],
       ]);
-
-      renderInsights({ summary, profiles, printers, materials, versions, feedback, mix });
-      renderQuickFacts({ profileCount, openCount, feedbackCount, versions, mix, profiles });
-      renderBarList("journey", eventRows(summary), row => eventLabels[row.event] || prettyId(row.event), "events", 6);
-      renderBarList("releaseHealth", versions, versionLabel, "events", 8);
-      renderBarList("profileCombos", profiles, profileComboLabel, "profiles", 8);
-      renderBarList("modeMix", modeRows(mix), row => row.label, "profiles", 8);
-      renderBarList("topPrinters", printers, row => printerName(row.printer_model, row.printer_brand), "profiles", 8);
-      renderBarList("topMaterials", materials, row => materialName(row.material), "profiles", 8);
     }
 
     function renderInsights(data) {
@@ -955,10 +1050,21 @@
       const simple = sumBy(data.mix.filter(row => row.output_mode === "simple"), "profiles");
       const advanced = sumBy(data.mix.filter(row => row.output_mode === "advanced"), "profiles");
 
-      if (!profileCount && !Object.keys(state.errors).length) {
-        lines.push({ type: "warn", text: `No generated profiles in the last ${state.days} ${state.days === 1 ? "day" : "days"}. Try 30 or 90 days before changing product direction.` });
+      if (state.platform === "all") {
+        ["web", "ios"].forEach(platform => {
+          const scopedProfiles = filterPlatformRows(data.profiles, platform);
+          const scopedSummary = filterPlatformRows(data.summary, platform);
+          const count = eventTotal(scopedSummary, "profile_generated");
+          if (count && scopedProfiles[0]) {
+            lines.push({ text: `${platformLabels[platform]}: ${formatNumber(count)} generated profiles; top combo is ${profileComboLabel(scopedProfiles[0])}.` });
+          } else if (!Object.keys(state.errors).length) {
+            lines.push({ type: "warn", text: `${platformLabels[platform]}: no generated profiles in the last ${state.days} ${state.days === 1 ? "day" : "days"}.` });
+          }
+        });
+      } else if (!profileCount && !Object.keys(state.errors).length) {
+        lines.push({ type: "warn", text: `No ${productLabel()} generated profiles in the last ${state.days} ${state.days === 1 ? "day" : "days"}. Try 30 or 90 days before changing product direction.` });
       }
-      if (topProfile) {
+      if (state.platform !== "all" && topProfile) {
         lines.push({ text: `Most generated combination: ${profileComboLabel(topProfile)} (${formatNumber(topProfile.profiles)} profiles).` });
       }
       if (topVersion) {
@@ -987,9 +1093,31 @@
       const latestMode = modeRows(data.mix)[0];
       const topCombo = data.profiles[0] ? profileComboLabel(data.profiles[0]) : "-";
       const version = data.versions[0] ? versionLabel(data.versions[0]) : "-";
+      const profileCount = eventTotal(data.summary, "profile_generated");
+      const openCount = eventTotal(data.summary, "app_opened");
+      const feedbackCount = eventTotal(data.summary, "feedback_opened");
+      const webProfiles = eventPlatformTotal(data.summary, "profile_generated", "web");
+      const iosProfiles = eventPlatformTotal(data.summary, "profile_generated", "ios");
+      const leadingPlatform = webProfiles || iosProfiles
+        ? (webProfiles >= iosProfiles ? "Web" : "iOS")
+        : "-";
+
+      if (state.platform === "all") {
+        quickFacts.innerHTML = [
+          ["Web Profile/Open", ratioForPlatform(data.summary, "web")],
+          ["iOS Profile/Open", ratioForPlatform(data.summary, "ios")],
+          ["Leading platform", leadingPlatform],
+          ["Top web combo", topLabel(filterPlatformRows(data.profiles, "web"), profileComboLabel, "-")],
+          ["Top iOS combo", topLabel(filterPlatformRows(data.profiles, "ios"), profileComboLabel, "-")],
+        ].map(([label, value]) => `
+          <div class="quick-item"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>
+        `).join("");
+        return;
+      }
+
       quickFacts.innerHTML = [
-        ["Profile/Open ratio", data.openCount ? pct(data.profileCount, data.openCount) : "-"],
-        ["Feedback/Profile ratio", data.profileCount ? pct(data.feedbackCount, data.profileCount) : "-"],
+        ["Profile/Open ratio", openCount ? pct(profileCount, openCount) : "-"],
+        ["Feedback/Profile ratio", profileCount ? pct(feedbackCount, profileCount) : "-"],
         ["Leading mode", latestMode ? latestMode.label : "-"],
         ["Top combo", topCombo],
         ["Top version row", version],
@@ -998,15 +1126,38 @@
       `).join("");
     }
 
-    function renderBarList(targetId, rows, labelFn, valueKey, maxRows) {
+    function renderPlatformBarList(targetId, rows, transformFn, labelFn, valueKey, maxRows) {
       const target = document.getElementById(targetId);
-      const visible = rows.filter(row => Number(row[valueKey]) > 0).slice(0, maxRows);
-      if (!visible.length) {
-        target.innerHTML = `<div class="empty">No rows for this range.</div>`;
+      if (state.platform !== "all") {
+        renderBarList(targetId, transformFn(filterPlatformRows(rows, state.platform)), labelFn, valueKey, maxRows);
         return;
       }
+
+      const html = ["web", "ios"].map(platform => {
+        const scopedRows = transformFn(filterPlatformRows(rows, platform));
+        return `
+          <div class="platform-block">
+            <h3>${platformLabels[platform]}</h3>
+            <div class="bar-list">${barListHtml(scopedRows, labelFn, valueKey, maxRows)}</div>
+          </div>
+        `;
+      }).join("");
+
+      target.innerHTML = `<div class="platform-columns">${html}</div>`;
+    }
+
+    function renderBarList(targetId, rows, labelFn, valueKey, maxRows) {
+      const target = document.getElementById(targetId);
+      target.innerHTML = barListHtml(rows, labelFn, valueKey, maxRows);
+    }
+
+    function barListHtml(rows, labelFn, valueKey, maxRows) {
+      const visible = rows.filter(row => Number(row[valueKey]) > 0).slice(0, maxRows);
+      if (!visible.length) {
+        return `<div class="empty">No rows for this range.</div>`;
+      }
       const max = Math.max(...visible.map(row => Number(row[valueKey]) || 0), 1);
-      target.innerHTML = visible.map(row => {
+      return visible.map(row => {
         const value = Number(row[valueKey]) || 0;
         const width = Math.max(3, Math.round((value / max) * 100));
         return `
@@ -1017,6 +1168,24 @@
           </div>
         `;
       }).join("");
+    }
+
+    function rerenderRawTables() {
+      QUERY_DEFS.filter(query => !query.hidden).forEach(query => {
+        const rows = state.results[query.id] || [];
+        renderTable(query.id, displayRows(query.id, rows));
+        setCardStatus(query.id, state.errors[query.id] || cardStatusText(query.id, rows), !!state.errors[query.id]);
+      });
+    }
+
+    function displayRows(query, rows) {
+      return filterByPlatform(rows);
+    }
+
+    function cardStatusText(query, rows) {
+      const visible = displayRows(query, rows);
+      if (state.platform === "all") return `${rows.length} rows`;
+      return `${visible.length} ${productLabel()} rows`;
     }
 
     function renderTable(query, rows) {
@@ -1098,6 +1267,10 @@
         .sort((a, b) => b.events - a.events);
     }
 
+    function platformSummaryRows(summary) {
+      return eventRows(summary);
+    }
+
     function modeRows(mix) {
       const grouped = new Map();
       mix.forEach(row => {
@@ -1140,6 +1313,31 @@
 
     function eventPlatformTotal(summary, event, platform) {
       return sumBy(summary.filter(row => row.event === event && row.platform === platform), "events");
+    }
+
+    function ratioForPlatform(summary, platform) {
+      const profiles = eventPlatformTotal(summary, "profile_generated", platform);
+      const opens = eventPlatformTotal(summary, "app_opened", platform);
+      return opens ? pct(profiles, opens) : "-";
+    }
+
+    function filterByPlatform(rows) {
+      if (state.platform === "all") return rows;
+      return filterPlatformRows(rows, state.platform);
+    }
+
+    function filterPlatformRows(rows, platform) {
+      return rows.filter(row => row.platform === platform);
+    }
+
+    function productLabel() {
+      if (state.platform === "web") return "web";
+      if (state.platform === "ios") return "iOS";
+      return "web + iOS";
+    }
+
+    function topLabel(rows, labelFn, fallback) {
+      return rows[0] ? labelFn(rows[0]) : fallback;
     }
 
     function sumBy(rows, key) {
