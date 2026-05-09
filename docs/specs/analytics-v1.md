@@ -70,7 +70,7 @@ Allowed properties:
 | `support` | `none` | Support preset id. |
 | `colors` | `single` | Color/multimaterial preset id. |
 | `profileMode` | `safe` | `safe` or `tuned`. |
-| `outputMode` | `simple` | Web output UI mode: `simple` or `advanced`. |
+| `outputMode` | `simple` | Output UI mode: `simple` or `advanced`. |
 | `slicer` | `bambu_studio` | Engine-resolved slicer id. |
 
 ### `feedback_opened`
