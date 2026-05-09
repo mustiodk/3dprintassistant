@@ -2,7 +2,7 @@
 
 **Purpose:** Live planning surface for 3dpa web + iOS. Active release tracking, current work queue, deferred and parked work, and pointers into archive + spec + session history.
 
-**Last updated:** 2026-05-09 — v1.0.3 batch 3/5 shipped (items 1 + 3 + 4 in production / TestFlight); latest same-version TestFlight build includes PLA Metal + iOS output-mode analytics parity; analytics dashboard live at `/analytics`; items 2 + 5 pending.
+**Last updated:** 2026-05-09 — v1.0.3 batch 3/5 shipped (items 1 + 3 + 4 in production / App Review); latest same-version build includes PLA Metal + iOS output-mode analytics parity and was submitted to App Review; analytics dashboard live at `/analytics`; items 2 + 5 pending.
 
 **Evergreen project context:** [`../3dpa-context.md`](../3dpa-context.md) (architecture, engine API, app state shape, slicer routing, standing rules).
 **Session history:** [`../sessions/INDEX.md`](../sessions/INDEX.md) — reverse-chronological one-line entries; full logs in `../sessions/`.
@@ -15,7 +15,7 @@
 | Area | Status |
 |---|---|
 | **Web app** | Live worldwide at [3dprintassistant.com](https://3dprintassistant.com). Cloudflare Workers/Assets deploys from `main`. Feedback → Discord `#web-app-feedback` via `/api/feedback`. Owner analytics dashboard live at `/analytics` (admin token required). |
-| **iOS app** | Live worldwide on App Store, dark mode only. v1.0.2 released 2026-04-24; v1.0.3 in TestFlight. Latest same-version build: run [`25596797349`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25596797349), build `202605090842` (PLA Metal + iOS output-mode analytics parity). EU unblocked 2026-04-27. |
+| **iOS app** | Live worldwide on App Store, dark mode only. v1.0.2 released 2026-04-24; v1.0.3 submitted to App Review on 2026-05-09. Submitted build: run [`25596797349`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25596797349), build `202605090842` (PLA Metal + iOS output-mode analytics parity). EU unblocked 2026-04-27. |
 | **Engine** | Web is master — edit there, `cp` byte-identical to iOS. Walkthrough harness + iOS XCTest re-run after every engine/data edit. |
 | **Export** | Engine + bridge done. Web UI **disabled** (Bambu Studio rejected `.json`). iOS UI **hidden** (deferred post-release). Re-enabling tracked under Phase 2.7a in Deferred / Parked Work. |
 
@@ -41,7 +41,7 @@
 | Phase B — Research handovers | 🟨 Partial (handover #2 drafted; #3 sent + responded; #4 intentionally implemented directly after privacy plan; item 5 doesn't need Gemini). |
 | Phase C — Codex design packets | 🟨 Partial (item 3 design + post-impl complete; item 4 implemented with focused local tests; items 2 / 5 not started). |
 | Phase D — Implementation | 🟨 Partial (items 1 + 3 + 4 implemented; items 2 / 5 not started). |
-| Phase E — Ship cycle | 🟨 Items 1 + 3 + 4 in TestFlight; latest v1.0.3 build run `25596797349` includes PLA Metal + iOS output-mode analytics parity. Items 2 / 5 not yet built. |
+| Phase E — Ship cycle | 🟨 Items 1 + 3 + 4 submitted to App Review in build `202605090842`; latest v1.0.3 build run `25596797349` includes PLA Metal + iOS output-mode analytics parity. Items 2 / 5 not yet built. |
 
 ---
 
@@ -51,7 +51,7 @@
 
 - **v1.0.3 batch items 2 / 5** — see Active Release section above.
 - **TestFlight QA on the in-flight v1.0.3 build** — latest run `25596797349`, build `202605090842`; verify review prompt suppressed on TestFlight; verify Kobra X open-frame display; verify Centauri Carbon visible; verify PLA Metal visible + sane; verify analytics causes no visible UX change and feedback/profile generation still work; verify iOS generated-profile rows include output mode after simple/advanced toggles.
-- **v1.0.3 App Store submission follow-through** — submit/release build `202605090842` when TestFlight QA is green. Source copy lives in `../3dprintassistant-ios/docs/app-store-v1.0.3-submit.md`: final What's New text, Promotional Text, Product Interaction privacy label answers, and optional review notes. Use Manual Release if owner wants to control go-live.
+- **v1.0.3 App Store review follow-through** — build `202605090842` was submitted to App Review on 2026-05-09. Monitor review status and release manually when approved. Source copy lives in `../3dprintassistant-ios/docs/app-store-v1.0.3-submit.md`: final What's New text, Promotional Text, Product Interaction privacy label answers, and optional review notes.
 - **Analytics dashboard observation** — after real traffic accumulates, read `/analytics` (admin token) for generated profiles by platform / brand / printer / material / web output mode. Ignore setup rows with appVersion values like `setup-test`, `setup-test-2`, `setup-output-mode` from 2026-05-09 setup.
 - **`[CRITICAL-001-followup]`** — Worker `/api/feedback` currently routes iOS + web to single `DISCORD_WEBHOOK_URL` → `#web-app-feedback`. Branch on `payload.context.appSource === "ios"` to a separate `DISCORD_WEBHOOK_URL_IOS` env var so iOS feedback lands in `#ios-app-feedback` as originally intended. Scope: ~15 LoC in `functions/api/feedback.js` + new Cloudflare secret + new iOS-channel webhook + redeploy. No iOS binary change. v1.0.3-safe. Filed 2026-04-23. `[Web/Worker]`
 - **`[LOW-011]` Feedback email visibility** — (a) web copy parity helper text under email field matching iOS copy ("Leave it blank to stay anonymous. If provided, we may reply.") + new `fbEmailHelp` key in en/da; (b) Worker reorder of `Reply-to email` to top of Discord embed (currently `functions/api/feedback.js:259`). ~10 LoC web-only. Noticed 2026-04-27 after first iOS feedback received without email. `[Web]`

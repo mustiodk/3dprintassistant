@@ -4,6 +4,7 @@
 
 - iOS analytics now has parity with the web `outputMode` dimension. `AnalyticsService.profileProperties` sends `outputMode`, and `OutputView` tracks Simple and Advanced profile renders separately for analytics. This deliberately does **not** change `ProfileKeyHasher` because that hash also drives App Store review-prompt eligibility; analytics gets a separate output-mode suffix.
 - Latest same-version TestFlight build is run [`25596797349`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25596797349), version `1.0.3`, build `202605090842`, commit `153adbc`. Fastlane uploaded successfully to App Store Connect.
+- Version `1.0.3` was submitted to App Review on 2026-05-09 using build `202605090842`.
 - Public App Store listing check during submission prep: current public version was `1.0.2`; App Privacy showed Diagnostics only. v1.0.3 must add Usage Data -> Product Interaction, not linked, not used for tracking, purpose Analytics.
 - App Store submission source is now `../3dprintassistant-ios/docs/app-store-v1.0.3-submit.md`. It contains the build to select, Product Interaction privacy-label answers, optional review notes, final Promotional Text, and the final owner-used What's New text.
 - Owner's final What's New opening is: "A small-but-useful update from the feedback I have received." This wording supersedes the earlier "tiny workshop" draft.
@@ -75,7 +76,7 @@
 
 ## Open questions / Follow-up
 
-- **App Store Connect status:** owner used the final modified What's New text. If v1.0.3 has not yet been submitted, finish App Privacy Product Interaction update, select build `202605090842`, choose Manual Release, and submit. If already submitted, monitor review and release manually when approved.
+- **App Store Connect status:** v1.0.3 was submitted to App Review on 2026-05-09 using build `202605090842`; monitor review and release manually when approved.
 - **TestFlight QA:** latest build still needs owner-side smoke confirmation unless already done: PLA Metal visible + sane, Kobra X open-frame display, Centauri Carbon + Kobra 3 Max visible, review prompt suppressed on TestFlight, analytics invisible, iOS generated-profile rows include output mode after Simple/Advanced toggles.
 - **v1.0.3 remaining scope:** items 2 (expanded environments taxonomy) and 5 (web output-panel UX deep-dive) are still pending.
 - **Md-hygiene finding:** Projects root still has an unrelated local `.claude/settings.local.json` modification. Left untouched.
@@ -101,8 +102,8 @@ Nothing durable to propagate to the vault. This was release-process execution an
 
 Recommended first lane: **v1.0.3 App Store follow-through**.
 
-1. Confirm whether version `1.0.3` was submitted after the owner pasted the final What's New text.
-2. If submitted: monitor App Review; release manually when approved.
-3. If not submitted: use `../3dprintassistant-ios/docs/app-store-v1.0.3-submit.md`, ensure Product Interaction privacy label is saved, select build `202605090842`, choose Manual Release, then submit.
+1. Monitor App Review status for version `1.0.3`, build `202605090842`.
+2. Release manually when approved.
+3. If App Review returns metadata or privacy-label feedback, use `../3dprintassistant-ios/docs/app-store-v1.0.3-submit.md` as the source copy.
 
 After that, choose between v1.0.3 item 2 (environments taxonomy), item 5 (web output-panel UX), or analytics dashboard observation.
