@@ -31,12 +31,32 @@ test("buildQuery returns weighted overview SQL", () => {
   assert.match(sql, /FORMAT JSON$/);
 });
 
+test("buildQuery returns unbounded owner summary SQL", () => {
+  const sql = __test.buildQuery("summary", { days: 30, limit: 5 });
+
+  assert.match(sql, /blob2 AS event/);
+  assert.match(sql, /blob3 AS platform/);
+  assert.match(sql, /SUM\(_sample_interval \* double1\) AS events/);
+  assert.match(sql, /INTERVAL '30' DAY/);
+  assert.match(sql, /LIMIT 100/);
+});
+
 test("buildQuery includes profile details output mode", () => {
   const sql = __test.buildQuery("profile_details", { days: 7, limit: 25 });
 
   assert.match(sql, /blob8 AS printer_brand/);
   assert.match(sql, /blob9 AS printer_model/);
   assert.match(sql, /blob11 AS material/);
+  assert.match(sql, /blob20 AS output_mode/);
+  assert.match(sql, /AND blob2 = 'profile_generated'/);
+});
+
+test("buildQuery includes profile mix dimensions", () => {
+  const sql = __test.buildQuery("profile_mix", { days: 7, limit: 25 });
+
+  assert.match(sql, /blob13 AS nozzle/);
+  assert.match(sql, /blob17 AS profile_mode/);
+  assert.match(sql, /blob18 AS slicer/);
   assert.match(sql, /blob20 AS output_mode/);
   assert.match(sql, /AND blob2 = 'profile_generated'/);
 });

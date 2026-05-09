@@ -69,6 +69,18 @@ function interval(days) {
 }
 
 const QUERY_BUILDERS = {
+  summary: ({ days }) => `
+SELECT
+  blob2 AS event,
+  blob3 AS platform,
+  SUM(_sample_interval * double1) AS events
+FROM ${DATASET_TABLE}
+WHERE timestamp > ${interval(days)}
+GROUP BY event, platform
+ORDER BY events DESC
+LIMIT 100
+FORMAT JSON`,
+
   overview: ({ days, limit }) => `
 SELECT
   blob2 AS event,
@@ -123,6 +135,22 @@ FROM ${DATASET_TABLE}
 WHERE timestamp > ${interval(days)}
   AND blob2 = 'profile_generated'
 GROUP BY platform, printer_brand, printer_model, material, material_group, output_mode
+ORDER BY profiles DESC
+LIMIT ${limit}
+FORMAT JSON`,
+
+  profile_mix: ({ days, limit }) => `
+SELECT
+  blob3 AS platform,
+  blob13 AS nozzle,
+  blob17 AS profile_mode,
+  blob18 AS slicer,
+  blob20 AS output_mode,
+  SUM(_sample_interval * double1) AS profiles
+FROM ${DATASET_TABLE}
+WHERE timestamp > ${interval(days)}
+  AND blob2 = 'profile_generated'
+GROUP BY platform, nozzle, profile_mode, slicer, output_mode
 ORDER BY profiles DESC
 LIMIT ${limit}
 FORMAT JSON`,
