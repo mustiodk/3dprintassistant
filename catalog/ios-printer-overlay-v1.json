@@ -1,91 +1,12 @@
 {
-  "content_version": 2026051003,
+  "content_version": 2026051004,
   "enabled": true,
-  "generated_at": "2026-05-10T09:45:21Z",
+  "generated_at": "2026-05-10T12:00:00Z",
   "min_app_version": "1.0.3",
   "payload": {
     "brands": [],
-    "printers": [
-      {
-        "id": "x2d",
-        "name": "X2D",
-        "manufacturer": "bambu_lab",
-        "series": "corexy",
-        "series_group": "X Series",
-        "enclosure": "active_heated",
-        "active_chamber_heating": true,
-        "max_chamber_temp": 65,
-        "extruder_type": "direct_drive",
-        "max_nozzle_temp": 300,
-        "max_bed_temp": 120,
-        "max_speed": 1000,
-        "max_acceleration": 20000,
-        "has_lidar": false,
-        "has_camera": true,
-        "multi_color_systems": [
-          "ams",
-          "ams_2_pro",
-          "ams_ht"
-        ],
-        "available_plates": [
-          "textured_pei",
-          "smooth_pei",
-          "cool_plate",
-          "engineering_plate"
-        ],
-        "available_nozzle_sizes": [
-          0.2,
-          0.4,
-          0.6,
-          0.8
-        ],
-        "open_door_threshold_bed_temp": 45,
-        "notes": [
-          "Dual hotend printer: main hotend is direct drive; auxiliary hotend uses remote extrusion via PTFE tube",
-          "Active chamber temperature control up to 65°C",
-          "First-generation AMS works for multi-color printing but does not support AMS drying"
-        ]
-      },
-      {
-        "id": "h2d_pro",
-        "name": "H2D Pro",
-        "manufacturer": "bambu_lab",
-        "series": "corexy",
-        "series_group": "H2 Series",
-        "enclosure": "active_heated",
-        "active_chamber_heating": true,
-        "max_chamber_temp": 65,
-        "extruder_type": "direct_drive",
-        "max_nozzle_temp": 350,
-        "max_bed_temp": 120,
-        "max_speed": 1000,
-        "max_acceleration": 20000,
-        "has_lidar": false,
-        "has_camera": true,
-        "multi_color_systems": [
-          "ams",
-          "ams_2_pro",
-          "ams_ht"
-        ],
-        "available_plates": [
-          "textured_pei",
-          "smooth_pei"
-        ],
-        "available_nozzle_sizes": [
-          0.2,
-          0.4,
-          0.6,
-          0.8
-        ],
-        "open_door_threshold_bed_temp": 45,
-        "notes": [
-          "Dual hotend printer with tungsten carbide nozzle",
-          "Active chamber heating up to 65°C with enhanced filtration and network controls",
-          "First-generation AMS works for multi-color printing but does not support AMS drying"
-        ]
-      }
-    ]
+    "printers": []
   },
-  "payload_sha256": "ce7c80e337ebc792a4771babfec0a1c7cc08dc30c25e6682a85b5ac37c156db6",
+  "payload_sha256": "8215559455fffda32cfcba51264fa2afe88bae61ff7969a8e7dda082117bbd2d",
   "schema_version": 1
 }

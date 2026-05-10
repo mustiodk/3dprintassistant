@@ -7,7 +7,10 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 const overlayPath = path.join(root, 'catalog', 'ios-printer-overlay-v1.json');
 const printersPath = path.join(root, 'data', 'printers.json');
+const iosProjectPath = path.resolve(root, '..', '3dprintassistant-ios', 'project.yml');
 
+// YYYYMMDDXX scheme, capped at 2099-12-31-99 to match the iOS poisoned-cache guard.
+const maximumReasonableContentVersion = 2_099_123_199;
 const allowedSlicers = new Set(['bambu_studio', 'orcaslicer', 'prusaslicer']);
 const allowedSeries = new Set(['corexy', 'bedslinger']);
 const allowedEnclosures = new Set(['none', 'passive', 'active_heated']);
@@ -48,6 +51,36 @@ function stableStringify(value) {
 
 function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function parseVersion(value, label) {
+  if (typeof value !== 'string' || !/^\d+\.\d+\.\d+$/.test(value)) {
+    fail(`${label} must use MAJOR.MINOR.PATCH numeric format`);
+  }
+  return value.split('.').map((part) => Number(part));
+}
+
+function compareVersions(a, b) {
+  const left = parseVersion(a, 'left version');
+  const right = parseVersion(b, 'right version');
+  for (let i = 0; i < 3; i += 1) {
+    if (left[i] < right[i]) return -1;
+    if (left[i] > right[i]) return 1;
+  }
+  return 0;
+}
+
+function readIOSMarketingVersion() {
+  let project;
+  try {
+    project = fs.readFileSync(iosProjectPath, 'utf8');
+  } catch {
+    fail(`unable to read iOS project file: ${iosProjectPath}`);
+  }
+
+  const match = project.match(/\bMARKETING_VERSION:\s*["']?(\d+\.\d+\.\d+)["']?/);
+  if (!match) fail(`unable to read MARKETING_VERSION from ${iosProjectPath}`);
+  return match[1];
 }
 
 function fail(message) {
@@ -109,11 +142,18 @@ function assertUnique(items, label) {
 
 const overlay = JSON.parse(fs.readFileSync(overlayPath, 'utf8'));
 const bundled = JSON.parse(fs.readFileSync(printersPath, 'utf8'));
+const iosMarketingVersion = readIOSMarketingVersion();
 
 if (overlay.schema_version !== 1) fail('schema_version must be 1');
 if (!Number.isInteger(overlay.content_version) || overlay.content_version < 1) fail('content_version must be a positive integer');
+if (overlay.content_version > maximumReasonableContentVersion) {
+  fail(`content_version must be <= ${maximumReasonableContentVersion}`);
+}
 if (typeof overlay.enabled !== 'boolean') fail('enabled must be boolean');
-if (typeof overlay.min_app_version !== 'string') fail('min_app_version must be string');
+parseVersion(overlay.min_app_version, 'min_app_version');
+if (compareVersions(overlay.min_app_version, iosMarketingVersion) > 0) {
+  fail(`min_app_version ${overlay.min_app_version} is newer than iOS MARKETING_VERSION ${iosMarketingVersion}`);
+}
 if (!overlay.payload || typeof overlay.payload !== 'object') fail('payload must be object');
 if (!Array.isArray(overlay.payload.brands)) fail('payload.brands must be array');
 if (!Array.isArray(overlay.payload.printers)) fail('payload.printers must be array');
@@ -126,19 +166,24 @@ if (actualHash !== overlay.payload_sha256) {
 assertUnique(overlay.payload.brands, 'brand');
 assertUnique(overlay.payload.printers, 'printer');
 
-const brandIds = new Set(bundled.brands.map((brand) => brand.id));
+const bundledBrandIds = new Set(bundled.brands.map((brand) => brand.id));
+const brandIds = new Set(bundledBrandIds);
+const bundledPrinterIds = new Set(bundled.printers.map((printer) => printer.id));
 for (const brand of overlay.payload.brands) {
   assertAllowedFields(brand, allowedBrandFields, 'brand');
+  const id = requireString(brand, 'id');
+  if (bundledBrandIds.has(id)) fail(`overlay brand ${id} already exists in bundled printers.json`);
   requireString(brand, 'name');
   requireInteger(brand, 'sort_order', 1, 10_000);
-  if (typeof brand.primary !== 'boolean') fail(`brand ${brand.id} primary must be boolean`);
-  if (!allowedSlicers.has(requireString(brand, 'default_slicer'))) fail(`brand ${brand.id} has unsupported default_slicer`);
-  brandIds.add(brand.id);
+  if (typeof brand.primary !== 'boolean') fail(`brand ${id} primary must be boolean`);
+  if (!allowedSlicers.has(requireString(brand, 'default_slicer'))) fail(`brand ${id} has unsupported default_slicer`);
+  brandIds.add(id);
 }
 
 for (const printer of overlay.payload.printers) {
   assertAllowedFields(printer, allowedPrinterFields, 'printer');
   const id = requireString(printer, 'id');
+  if (bundledPrinterIds.has(id)) fail(`overlay printer ${id} already exists in bundled printers.json`);
   requireString(printer, 'name');
   const manufacturer = requireString(printer, 'manufacturer');
   if (!brandIds.has(manufacturer)) fail(`printer ${id} references unknown manufacturer ${manufacturer}`);

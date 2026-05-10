@@ -1,6 +1,6 @@
 # Next session - cold-start prompt (3dpa web + iOS)
 
-**Last updated:** 2026-05-10 after multi-surface wrap-up, ROADMAP repair, vault AI collaboration guide, and TestFlight build `202605101130`.
+**Last updated:** 2026-05-10 after Claude/Codex review of the corrective remote-catalog hardening pass.
 
 A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger B / explicit owner ask.
 
@@ -8,7 +8,7 @@ A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger 
 
 >>> START >>>
 
-# Cold-start: 3D Print Assistant - TestFlight verification + protocol-aware handoff
+# Cold-start: 3D Print Assistant - corrective remote catalog hardening + replacement TestFlight
 
 ## Read First, In This Order
 
@@ -31,14 +31,15 @@ Follow Trigger C from the canonical protocol. Read:
 
 ## Current State
 
-3DPA latest candidate:
+3DPA current release state:
 
 - Web/source commit `39a8d0e` - `fix: clamp nozzle temps across profile outputs`.
 - iOS commit `6bd1210` - `fix: sync nozzle temp clamp engine`.
 - TestFlight workflow [`25627557344`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25627557344) succeeded.
 - Uploaded TestFlight build: version `1.0.3`, build `202605101130`.
 - Owner cancelled the previous v1.0.3 review for build `202605090842`.
-- ROADMAP has been repaired and now points at `202605101130`.
+- Build `202605101130` is superseded by Claude/Codex review findings and must not be submitted to App Review.
+- Next replacement TestFlight must include remote-catalog hardening for additive-only validation, launch snapshot consistency, and poisoned-cache defense.
 
 What changed in the latest 3DPA build:
 
@@ -60,7 +61,17 @@ Protocol/vault changes from the latest wrap:
 
 ## Recommended First Lane
 
-TestFlight phone verification for build `202605101130`.
+Finish the corrective remote-catalog hardening pass, then create a replacement TestFlight.
+
+Execution order:
+
+1. Finish web validator/spec/ROADMAP/NEXT-SESSION updates.
+2. Finish iOS provider/tests updates.
+3. Append the review-file update for Claude with actual verification results.
+4. Commit as three focused commits: web fix, iOS fix, review docs.
+5. Push/deploy web and verify the live overlay payload/hash.
+6. Push iOS and dispatch a same-version replacement TestFlight.
+7. Phone-test the replacement build only.
 
 Phone test cases:
 
@@ -70,7 +81,7 @@ Phone test cases:
 4. **Ender-3 V3 PETG fast nozzle cap:** Ender-3 V3 + PETG Basic + Fast. Expected: nozzle clamps to `260°C`; nozzle cap warning appears.
 5. **H2D picker metadata:** Bambu printer list. Expected: H2D/H2D Pro/X2D show `High-speed`, not raw `1000 mm/s`.
 
-If phone QA is green, decide whether to submit build `202605101130` to App Review.
+If replacement-build phone QA is green, decide whether to submit that replacement build to App Review.
 
 ## Scope Rules
 
@@ -81,6 +92,7 @@ If phone QA is green, decide whether to submit build `202605101130` to App Revie
 - No iOS push/TestFlight dispatch without confirming same-version vs version-bump intent.
 - One finding = one commit per platform when practical.
 - Do not guess behavior; read the actual file.
+- `High-speed` remains the Bambu picker label because it fits on iPhone SE and avoids brittle marketed speed numbers in picker chrome.
 - If a session touches multiple projects/surfaces, run wrap-up for each in sequence and produce one combined handoff prompt.
 - Vault currently has unrelated Bambu raw-source changes. Do not mix them into protocol/3DPA commits unless explicitly asked.
 
