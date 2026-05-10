@@ -2,7 +2,7 @@
 
 **Purpose:** Live planning surface for 3dpa web + iOS. Active release tracking, current work queue, deferred and parked work, and pointers into archive + spec + session history.
 
-**Last updated:** 2026-05-09 — v1.0.3 batch 3/5 shipped (items 1 + 3 + 4 in production / App Review); latest same-version build includes PLA Metal + iOS output-mode analytics parity and was submitted to App Review; owner analytics dashboard live at `/analytics` with Product lens (`All` / `Web` / `iOS`) and mobile diagnostics; items 2 + 5 pending.
+**Last updated:** 2026-05-10 — v1.0.3 batch remains 3/5 shipped (items 1 + 3 + 4); added App Store-safe iOS remote printer catalog support as a same-version follow-up build. Latest TestFlight upload is run [`25614975605`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25614975605), version `1.0.3`, build `202605092356`; previous App Review submission used build `202605090842`. Items 2 + 5 pending.
 
 **Evergreen project context:** [`../3dpa-context.md`](../3dpa-context.md) (architecture, engine API, app state shape, slicer routing, standing rules).
 **Session history:** [`../sessions/INDEX.md`](../sessions/INDEX.md) — reverse-chronological one-line entries; full logs in `../sessions/`.
@@ -15,7 +15,7 @@
 | Area | Status |
 |---|---|
 | **Web app** | Live worldwide at [3dprintassistant.com](https://3dprintassistant.com). Cloudflare Workers/Assets deploys from `main`. Feedback → Discord `#web-app-feedback` via `/api/feedback`. Owner analytics dashboard live at `/analytics` (admin token required) with side-by-side/filterable Web vs iOS views. |
-| **iOS app** | Live worldwide on App Store, dark mode only. v1.0.2 released 2026-04-24; v1.0.3 submitted to App Review on 2026-05-09. Submitted build: run [`25596797349`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25596797349), build `202605090842` (PLA Metal + iOS output-mode analytics parity). EU unblocked 2026-04-27. |
+| **iOS app** | Live worldwide on App Store, dark mode only. v1.0.2 released 2026-04-24; v1.0.3 submitted to App Review on 2026-05-09 using build `202605090842`. New same-version TestFlight upload with remote printer catalog support: run [`25614975605`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25614975605), build `202605092356`. EU unblocked 2026-04-27. |
 | **Engine** | Web is master — edit there, `cp` byte-identical to iOS. Walkthrough harness + iOS XCTest re-run after every engine/data edit. |
 | **Export** | Engine + bridge done. Web UI **disabled** (Bambu Studio rejected `.json`). iOS UI **hidden** (deferred post-release). Re-enabling tracked under Phase 2.7a in Deferred / Parked Work. |
 
@@ -23,7 +23,7 @@
 
 ## Active Release: v1.0.3
 
-5-item v1.0.3 batch across web + iOS; **3/5 shipped so far** (items 1 + 3 + 4 — see status table below). Owner pivoted from DQ-3 to this batch on 2026-05-08. Cross-AI collaboration remains available via [`../ai-collab.md`](../ai-collab.md), but research/review packets are optional and risk-based, not a mandatory pilot workflow.
+5-item v1.0.3 batch across web + iOS; **3/5 shipped so far** (items 1 + 3 + 4 — see status table below). Owner pivoted from DQ-3 to this batch on 2026-05-08. Cross-AI collaboration remains available via [`../ai-collab.md`](../ai-collab.md), but research/review packets are optional and risk-based, not a mandatory pilot workflow. Same-version follow-up build `202605092356` adds iOS remote printer catalog support so missing printers can be delivered as validated first-party data.
 
 | # | Item | Platform | Status |
 |---|---|---|---|
@@ -41,7 +41,7 @@
 | Phase B — Research handovers | 🟨 Partial (handover #2 drafted; #3 sent + responded; #4 intentionally implemented directly after privacy plan; item 5 doesn't need Gemini). |
 | Phase C — Codex design packets | 🟨 Partial (item 3 design + post-impl complete; item 4 implemented with focused local tests; items 2 / 5 not started). |
 | Phase D — Implementation | 🟨 Partial (items 1 + 3 + 4 implemented; items 2 / 5 not started). |
-| Phase E — Ship cycle | 🟨 Items 1 + 3 + 4 submitted to App Review in build `202605090842`; latest v1.0.3 build run `25596797349` includes PLA Metal + iOS output-mode analytics parity. Items 2 / 5 not yet built. |
+| Phase E — Ship cycle | 🟨 Items 1 + 3 + 4 submitted to App Review in build `202605090842`; follow-up TestFlight build `202605092356` adds iOS remote printer catalog support. Items 2 / 5 not yet built. |
 
 ---
 
@@ -50,8 +50,9 @@
 > Live, actionable items. Pick the next one based on owner priority.
 
 - **v1.0.3 batch items 2 / 5** — see Active Release section above.
-- **TestFlight QA on the in-flight v1.0.3 build** — latest run `25596797349`, build `202605090842`; verify review prompt suppressed on TestFlight; verify Kobra X open-frame display; verify Centauri Carbon visible; verify PLA Metal visible + sane; verify analytics causes no visible UX change and feedback/profile generation still work; verify iOS generated-profile rows include output mode after simple/advanced toggles.
-- **v1.0.3 App Store review follow-through** — build `202605090842` was submitted to App Review on 2026-05-09. Monitor review status and release manually when approved. Source copy lives in `../3dprintassistant-ios/docs/app-store-v1.0.3-submit.md`: final What's New text, Promotional Text, Product Interaction privacy label answers, and optional review notes.
+- **v1.0.3 App Review/TestFlight follow-through** — build `202605090842` was submitted to App Review on 2026-05-09. If still waiting when owner returns, cancel/replace with same-version build `202605092356`; if review has started or the earlier build is approved, keep that path stable and use remote catalog support for `1.0.4`.
+- **TestFlight QA on latest v1.0.3 build** — latest run [`25614975605`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25614975605), build `202605092356`; verify normal launch, printer picker, profile generation, Kobra X/Centauri/PLA Metal still visible, analytics invisible, review prompt suppressed on TestFlight, and remote overlay empty state does not change bundled printer choices.
+- **Remote printer catalog operations** — future missing-printer additions can ship by editing `catalog/ios-printer-overlay-v1.json`, bumping `content_version`, updating `payload_sha256`, running `node scripts/validate-ios-printer-overlay.js`, and deploying web. Keep remote payload data-only: brands/printers only, no engine/rules/materials/nozzles/UI.
 - **Analytics dashboard observation** — after real traffic accumulates, read `/analytics` (admin token) using the Product lens: `All` for side-by-side Web/iOS comparison, `Web` or `iOS` for single-surface inspection. Watch generated profiles, app opens, feedback opens, release adoption, profile combinations, mode mix, printers/materials, and mobile diagnostics. Ignore setup rows with appVersion values like `setup-test`, `setup-test-2`, `setup-output-mode` from 2026-05-09 setup.
 - **`[CRITICAL-001-followup]`** — Worker `/api/feedback` currently routes iOS + web to single `DISCORD_WEBHOOK_URL` → `#web-app-feedback`. Branch on `payload.context.appSource === "ios"` to a separate `DISCORD_WEBHOOK_URL_IOS` env var so iOS feedback lands in `#ios-app-feedback` as originally intended. Scope: ~15 LoC in `functions/api/feedback.js` + new Cloudflare secret + new iOS-channel webhook + redeploy. No iOS binary change. v1.0.3-safe. Filed 2026-04-23. `[Web/Worker]`
 - **`[LOW-011]` Feedback email visibility** — (a) web copy parity helper text under email field matching iOS copy ("Leave it blank to stay anonymous. If provided, we may reply.") + new `fbEmailHelp` key in en/da; (b) Worker reorder of `Reply-to email` to top of Discord embed (currently `functions/api/feedback.js:259`). ~10 LoC web-only. Noticed 2026-04-27 after first iOS feedback received without email. `[Web]`

@@ -1,6 +1,6 @@
 # Next session — cold-start prompt (3dpa web + iOS)
 
-**Last updated:** 2026-05-09 after analytics dashboard UX/platform-lens work. v1.0.3 batch is still 3/5 shipped; submitted build includes PLA Metal + iOS output-mode analytics parity; items 2 / 5 pending.
+**Last updated:** 2026-05-10 after iOS remote printer catalog work. v1.0.3 batch is still 3/5 shipped; latest same-version TestFlight upload adds App Store-safe remote printer catalog support; items 2 / 5 pending.
 
 A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger B / explicit owner ask.
 
@@ -15,7 +15,7 @@ A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger 
 **3D Print Assistant** generates optimised slicer profiles based on **printer x material x nozzle x user goals x environment**. Two surfaces, one engine:
 
 - **Web** (`3dprintassistant/`) — live at [3dprintassistant.com](https://3dprintassistant.com). Cloudflare Workers/Assets deploys from `main`; Worker routes `/api/feedback`, `/api/analytics`, and `/api/analytics-query`.
-- **iOS** (`3dprintassistant-ios/`) — v1.0.2 live worldwide on App Store. v1.0.3 was submitted to App Review on 2026-05-09; submitted build is run [`25596797349`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25596797349), build `202605090842`, including PLA Metal + iOS output-mode analytics parity.
+- **iOS** (`3dprintassistant-ios/`) — v1.0.2 live worldwide on App Store. v1.0.3 was submitted to App Review on 2026-05-09 using build `202605090842`; latest same-version TestFlight upload is run [`25614975605`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25614975605), build `202605092356`, adding remote printer catalog support.
 
 Web is master; iOS mirrors. Every engine/data change -> copy byte-identical to iOS -> `node scripts/walkthrough-harness.js` -> iOS XCTest -> commit both sides.
 
@@ -26,6 +26,7 @@ For full project context: READ FIRST -> `docs/3dpa-context.md` (canonical evergr
 **v1.0.3 batch is 3/5 shipped.** Items 1 + 3 + 4 are in production / App Review. Items 2 / 5 still pending.
 
 **Additional shipped work since the batch snapshot:**
+- **iOS remote printer catalog support** shipped to TestFlight build `202605092356`: first-party HTTPS JSON overlay, strict Swift + web validation, last-known-good cache, bundled offline fallback, rollback via `enabled:false`, and shared merged catalog for Swift UI + JavaScriptCore. Remote data is brands/printers only; no remote code/rules/materials/nozzles/UI.
 - **PLA Metal** added to web + iOS as additive v1.0.3 build. Evidence came from Bambu vault sources (`50-Wiki/raw/3dpa/bambu/filament/`). Treat Bambu PLA Metal as AMS-compatible PLA, not hardened-nozzle metal-filled composite.
 - **Analytics dashboard** live at `/analytics`, admin-token protected, querying Cloudflare Workers Analytics Engine dataset `3dpa_usage_v1`.
 - **Profile analytics expanded** with `outputMode` (`simple` / `advanced`) on web + iOS.
@@ -36,7 +37,7 @@ For full project context: READ FIRST -> `docs/3dpa-context.md` (canonical evergr
 **Branch state:**
 - Web `main` is active and clean after commits `eb66b18`, `e9ed6b9`, `5c60549`, plus close-docs commit if present.
 - Web `ai/operating-model-pilot` is retired operationally. Its useful artifacts were promoted to `main`; do not start new work there.
-- iOS `main` has v1.0.3 product code + analytics + PLA Metal + output-mode analytics parity and was pushed.
+- iOS `main` has v1.0.3 product code + analytics + PLA Metal + output-mode analytics parity + remote printer catalog support and was pushed.
 
 **iOS push gate:** still active for future builds. Before future TestFlight dispatches, explicitly decide whether the change is a same-marketing-version build or requires `MARKETING_VERSION` bump + `xcodegen generate`.
 
@@ -47,20 +48,21 @@ For full project context: READ FIRST -> `docs/3dpa-context.md` (canonical evergr
 3. `3dprintassistant/docs/3dpa-context.md` — canonical evergreen project context.
 4. `3dprintassistant/docs/planning/ROADMAP.md` — live planning surface.
 5. `3dprintassistant/docs/sessions/INDEX.md` — top 5 entries.
-6. `3dprintassistant/docs/sessions/2026-05-09-cowork-appdev-analytics-dashboard-ux.md` — latest analytics dashboard UX session, full read.
-7. `3dprintassistant/docs/sessions/2026-05-09-cowork-appdev-ios-analytics-app-store-submit.md` — App Store / iOS analytics session, full read.
-8. `3dprintassistant/docs/sessions/2026-05-09-cowork-appdev-pla-metal-and-analytics-dashboard.md` — PLA Metal + first analytics dashboard session, full read.
-9. If choosing environments: `3dprintassistant/docs/research/gemini-environments-taxonomy-research.md`.
-10. If choosing tool-routing / review support: `3dprintassistant/docs/ai-collab.md`.
+6. `3dprintassistant/docs/sessions/2026-05-10-cowork-appdev-ios-remote-printer-catalog.md` — latest remote catalog + TestFlight session, full read.
+7. `3dprintassistant/docs/sessions/2026-05-09-cowork-appdev-analytics-dashboard-ux.md` — analytics dashboard UX session, full read.
+8. `3dprintassistant/docs/sessions/2026-05-09-cowork-appdev-ios-analytics-app-store-submit.md` — App Store / iOS analytics session, full read.
+9. `3dprintassistant/docs/sessions/2026-05-09-cowork-appdev-pla-metal-and-analytics-dashboard.md` — PLA Metal + first analytics dashboard session, full read.
+10. If choosing environments: `3dprintassistant/docs/research/gemini-environments-taxonomy-research.md`.
+11. If choosing tool-routing / review support: `3dprintassistant/docs/ai-collab.md`.
 
 **Historical lookup only — don't read by default:** `3dprintassistant/docs/planning/archive/`; `3dprintassistant/codex/roadmap-slim-and-lifecycle/`; older v1.0.3 planning/session logs unless the active task asks for them.
 
 ## First action
 
 1. Read files above in order. Confirm understanding in 3-5 bullets.
-2. Recommend the next lane. Current best first lane: **v1.0.3 App Store follow-through**, because the submitted build is waiting on App Review.
+2. Recommend the next lane. Current best first lane: **v1.0.3 App Review/TestFlight follow-through**, because build `202605090842` was already submitted and replacement build `202605092356` is now uploaded to TestFlight.
 3. If owner wants product work instead, likely choices:
-   - **v1.0.3 App Store follow-through:** monitor review status for build `202605090842`; release manually when approved.
+   - **v1.0.3 App Review/TestFlight follow-through:** if build `202605090842` is still waiting, cancel/replace with `202605092356`; if review has started or is approved, keep that path stable and use remote catalog for `1.0.4`.
    - **Item 5 — web output-panel UX:** start with a quick UX audit/scope note; do not implement blindly from the vague roadmap phrase.
    - **Item 2 — environments taxonomy:** hand `gemini-environments-taxonomy-research.md` to Gemini; triage response; implement web+iOS.
    - **Analytics observation:** open `/analytics` after traffic accumulates; use Product lens to inspect Web and iOS independently; ignore setup-test rows from 2026-05-09.
@@ -84,8 +86,8 @@ For full project context: READ FIRST -> `docs/3dpa-context.md` (canonical evergr
 
 ## Open questions to surface to owner early
 
-- **App Store release status** — v1.0.3 was submitted to App Review on 2026-05-09; monitor review and release manually when approved.
-- **TestFlight QA** — latest run `25596797349`, build `202605090842`: PLA Metal visible + sane; review prompt suppressed; Kobra X / Centauri visible; analytics invisible; iOS generated-profile analytics includes output mode after Simple/Advanced toggles.
+- **App Store release status** — v1.0.3 build `202605090842` was submitted to App Review on 2026-05-09. If still waiting, cancel/replace with build `202605092356`; if already in review/approved, plan remote catalog as `1.0.4`.
+- **TestFlight QA** — latest run `25614975605`, build `202605092356`: normal launch, printer picker, profile generation, remote overlay empty state unchanged, PLA Metal visible + sane, review prompt suppressed, Kobra X / Centauri visible, analytics invisible, iOS generated-profile analytics includes output mode after Simple/Advanced toggles.
 - **v1.0.3 remaining items** — item 2 environments taxonomy and item 5 web output-panel UX remain.
 - **Analytics test rows** — early dashboard includes setup rows from 2026-05-09; use Product lens when interpreting Web vs iOS signals.
 
