@@ -2345,6 +2345,8 @@ const Engine = (() => {
     h2c:      'Bambu Lab H2C',
     h2d:      'Bambu Lab H2D',
     h2s:      'Bambu Lab H2S',
+    x2d:      'Bambu Lab X2D',
+    h2d_pro:  'Bambu Lab H2D Pro',
   };
 
   // Printer base names for building compatible_printers dynamically (nozzle appended at export time)
@@ -2359,6 +2361,8 @@ const Engine = (() => {
     h2c:    'Bambu Lab H2C',
     h2d:    'Bambu Lab H2D',
     h2s:    'Bambu Lab H2S',
+    x2d:    'Bambu Lab X2D',
+    h2d_pro: 'Bambu Lab H2D Pro',
   };
 
   // Bambu Studio process profile inheritance: printer_id → { layer_height → exact system profile name }
@@ -2371,6 +2375,8 @@ const Engine = (() => {
     p1p:    { '0.08': '0.08mm Extra Fine @BBL P1P', '0.12': '0.12mm Fine @BBL P1P', '0.15': '0.16mm Optimal @BBL P1P', '0.20': '0.20mm Standard @BBL P1P', '0.24': '0.24mm Draft @BBL P1P', '0.28': '0.28mm Extra Draft @BBL P1P', '0.30': '0.28mm Extra Draft @BBL P1P' },
     a1:     { '0.08': '0.08mm Extra Fine @BBL A1', '0.12': '0.12mm Fine @BBL A1', '0.15': '0.16mm Optimal @BBL A1', '0.20': '0.20mm Standard @BBL A1', '0.24': '0.24mm Draft @BBL A1', '0.28': '0.28mm Extra Draft @BBL A1', '0.30': '0.28mm Extra Draft @BBL A1' },
     a1mini: { '0.08': '0.08mm Extra Fine @BBL A1M', '0.12': '0.12mm Fine @BBL A1M', '0.15': '0.16mm Optimal @BBL A1M', '0.20': '0.20mm Standard @BBL A1M', '0.24': '0.24mm Draft @BBL A1M', '0.28': '0.28mm Extra Draft @BBL A1M', '0.30': '0.28mm Extra Draft @BBL A1M' },
+    x2d:    null,  // shares with X1C until exact X2D process presets are verified
+    h2d_pro: null,  // shares with X1C until exact H2D Pro process presets are verified
   };
 
   // Bambu Studio filament profile inheritance: material_id → exact system profile name

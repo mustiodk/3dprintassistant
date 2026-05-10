@@ -29,7 +29,7 @@
       "max_acceleration": 20000,
       "has_lidar": true,
       "has_camera": true,
-      "multi_color_systems": ["ams", "ams_lite", "ams_2_pro"],
+      "multi_color_systems": ["ams", "ams_2_pro"],
       "available_plates": ["cool_plate", "textured_pei", "engineering_plate", "high_temp_plate"],
       "available_nozzle_sizes": [0.2, 0.4, 0.6, 0.8],
       "open_door_threshold_bed_temp": 45,
@@ -48,17 +48,18 @@
       "active_chamber_heating": false,
       "extruder_type": "direct_drive",
       "max_nozzle_temp": 300,
-      "max_bed_temp": 120,
-      "max_speed": 500,
+      "max_bed_temp": 110,
+      "max_speed": 600,
       "max_acceleration": 20000,
       "has_lidar": false,
       "has_camera": true,
-      "multi_color_systems": ["ams", "ams_lite", "ams_2_pro"],
-      "available_plates": ["cool_plate", "textured_pei", "engineering_plate", "high_temp_plate"],
+      "multi_color_systems": ["ams_2_pro", "ams_ht"],
+      "available_plates": ["cool_plate", "textured_pei", "smooth_pei"],
       "available_nozzle_sizes": [0.2, 0.4, 0.6, 0.8],
       "open_door_threshold_bed_temp": 45,
       "notes": [
         "P1S successor \u2014 updated internals, same price point",
+        "Compatible with AMS 2 Pro and AMS HT; no AMS Lite support documented",
         "Open front door + remove top glass when printing PLA with bed >45\u00b0C"
       ]
     },
@@ -72,12 +73,12 @@
       "active_chamber_heating": false,
       "extruder_type": "direct_drive",
       "max_nozzle_temp": 300,
-      "max_bed_temp": 120,
+      "max_bed_temp": 100,
       "max_speed": 500,
       "max_acceleration": 20000,
       "has_lidar": false,
       "has_camera": true,
-      "multi_color_systems": ["ams", "ams_lite", "ams_2_pro"],
+      "multi_color_systems": ["ams", "ams_2_pro"],
       "available_plates": ["cool_plate", "textured_pei", "engineering_plate", "high_temp_plate"],
       "available_nozzle_sizes": [0.2, 0.4, 0.6, 0.8],
       "open_door_threshold_bed_temp": 45,
@@ -97,12 +98,12 @@
       "active_chamber_heating": false,
       "extruder_type": "direct_drive",
       "max_nozzle_temp": 300,
-      "max_bed_temp": 120,
+      "max_bed_temp": 100,
       "max_speed": 500,
       "max_acceleration": 20000,
       "has_lidar": false,
       "has_camera": true,
-      "multi_color_systems": ["ams", "ams_lite", "ams_2_pro"],
+      "multi_color_systems": ["ams", "ams_2_pro"],
       "available_plates": ["cool_plate", "textured_pei", "engineering_plate", "high_temp_plate"],
       "available_nozzle_sizes": [0.2, 0.4, 0.6, 0.8],
       "open_door_threshold_bed_temp": null,
@@ -124,12 +125,12 @@
       "has_lidar": false,
       "has_camera": false,
       "multi_color_systems": ["ams_lite"],
-      "available_plates": ["cool_plate", "textured_pei", "high_temp_plate"],
+      "available_plates": ["cool_plate", "textured_pei", "smooth_pei"],
       "available_nozzle_sizes": [0.2, 0.4, 0.6, 0.8],
       "open_door_threshold_bed_temp": null,
       "notes": [
         "Bed-slinger \u2014 lower max acceleration limits; higher speeds cause ringing on tall prints",
-        "AMS Lite only \u2014 not compatible with AMS 2 Pro"
+        "AMS Lite only"
       ]
     },
     {
@@ -148,7 +149,7 @@
       "has_lidar": false,
       "has_camera": false,
       "multi_color_systems": ["ams_lite"],
-      "available_plates": ["cool_plate", "textured_pei", "high_temp_plate"],
+      "available_plates": ["cool_plate", "textured_pei", "smooth_pei"],
       "available_nozzle_sizes": [0.2, 0.4, 0.6, 0.8],
       "open_door_threshold_bed_temp": null,
       "notes": ["Compact bed-slinger \u2014 180\u00d7180\u00d7180mm build volume", "AMS Lite only"]
@@ -161,20 +162,20 @@
       "series_group": "CoreXY",
       "enclosure": "active_heated",
       "active_chamber_heating": true,
-      "max_chamber_temp": 65,
+      "max_chamber_temp": 60,
       "extruder_type": "direct_drive",
-      "max_nozzle_temp": 300,
+      "max_nozzle_temp": 320,
       "max_bed_temp": 120,
       "max_speed": 500,
       "max_acceleration": 20000,
       "has_lidar": true,
       "has_camera": true,
       "multi_color_systems": ["ams", "ams_2_pro"],
-      "available_plates": ["cool_plate", "textured_pei", "engineering_plate", "high_temp_plate"],
+      "available_plates": ["cool_plate", "textured_pei", "smooth_pei", "high_temp_plate"],
       "available_nozzle_sizes": [0.2, 0.4, 0.6, 0.8],
       "open_door_threshold_bed_temp": 45,
       "notes": [
-        "Active chamber heating up to 65\u00b0C \u2014 optimal for PA, PC, ABS, ASA",
+        "Active chamber heating up to 60\u00b0C \u2014 optimal for PA, PC, ABS, ASA",
         "Industrial-grade variant of X1C \u2014 designed for engineering filaments",
         "Open front door + remove top glass when printing PLA with bed >45\u00b0C"
       ]
@@ -195,13 +196,14 @@
       "max_acceleration": 20000,
       "has_lidar": false,
       "has_camera": true,
-      "multi_color_systems": ["ams_2_pro", "ams_ht"],
-      "available_plates": ["cool_plate", "textured_pei", "engineering_plate", "high_temp_plate"],
-      "available_nozzle_sizes": [0.2, 0.4, 0.6],
+      "multi_color_systems": ["ams", "ams_2_pro", "ams_ht"],
+      "available_plates": ["textured_pei", "engineering_plate"],
+      "available_nozzle_sizes": [0.2, 0.4, 0.6, 0.8],
       "open_door_threshold_bed_temp": 45,
       "notes": [
         "Vortek dual-nozzle hotend-swapping system",
-        "Active chamber heating up to 65\u00b0C"
+        "Active chamber heating up to 65\u00b0C",
+        "First-generation AMS works for multi-color printing but does not support AMS drying"
       ]
     },
     {
@@ -216,17 +218,18 @@
       "extruder_type": "direct_drive",
       "max_nozzle_temp": 350,
       "max_bed_temp": 120,
-      "max_speed": 600,
+      "max_speed": 1000,
       "max_acceleration": 20000,
       "has_lidar": false,
       "has_camera": true,
-      "multi_color_systems": ["ams_2_pro", "ams_ht"],
-      "available_plates": ["cool_plate", "textured_pei", "engineering_plate", "high_temp_plate"],
+      "multi_color_systems": ["ams", "ams_2_pro", "ams_ht"],
+      "available_plates": ["textured_pei", "smooth_pei"],
       "available_nozzle_sizes": [0.2, 0.4, 0.6, 0.8],
       "open_door_threshold_bed_temp": 45,
       "notes": [
         "4-in-1 personal manufacturing hub",
-        "Active chamber heating up to 65\u00b0C"
+        "Active chamber heating up to 65\u00b0C",
+        "First-generation AMS works for multi-color printing but does not support AMS drying"
       ]
     },
     {
@@ -245,13 +248,66 @@
       "max_acceleration": 20000,
       "has_lidar": false,
       "has_camera": true,
-      "multi_color_systems": ["ams_2_pro", "ams_ht"],
-      "available_plates": ["cool_plate", "textured_pei", "engineering_plate", "high_temp_plate"],
+      "multi_color_systems": ["ams", "ams_2_pro", "ams_ht"],
+      "available_plates": ["textured_pei", "smooth_pei"],
       "available_nozzle_sizes": [0.2, 0.4, 0.6, 0.8],
       "open_door_threshold_bed_temp": 45,
       "notes": [
         "Largest Bambu Lab build volume \u2014 340\u00d7320\u00d7340mm",
-        "Active chamber heating up to 65\u00b0C with HEPA + activated carbon filtration"
+        "Active chamber heating up to 65\u00b0C with HEPA + activated carbon filtration",
+        "First-generation AMS works for multi-color printing but does not support AMS drying"
+      ]
+    },
+    {
+      "id": "x2d",
+      "name": "X2D",
+      "manufacturer": "bambu_lab",
+      "series": "corexy",
+      "series_group": "X Series",
+      "enclosure": "active_heated",
+      "active_chamber_heating": true,
+      "max_chamber_temp": 65,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 300,
+      "max_bed_temp": 120,
+      "max_speed": 1000,
+      "max_acceleration": 20000,
+      "has_lidar": false,
+      "has_camera": true,
+      "multi_color_systems": ["ams", "ams_2_pro", "ams_ht"],
+      "available_plates": ["textured_pei", "smooth_pei", "cool_plate", "engineering_plate"],
+      "available_nozzle_sizes": [0.2, 0.4, 0.6, 0.8],
+      "open_door_threshold_bed_temp": 45,
+      "notes": [
+        "Dual hotend printer: main hotend is direct drive; auxiliary hotend uses remote extrusion via PTFE tube",
+        "Active chamber temperature control up to 65\u00b0C",
+        "First-generation AMS works for multi-color printing but does not support AMS drying"
+      ]
+    },
+    {
+      "id": "h2d_pro",
+      "name": "H2D Pro",
+      "manufacturer": "bambu_lab",
+      "series": "corexy",
+      "series_group": "H2 Series",
+      "enclosure": "active_heated",
+      "active_chamber_heating": true,
+      "max_chamber_temp": 65,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 350,
+      "max_bed_temp": 120,
+      "max_speed": 1000,
+      "max_acceleration": 20000,
+      "has_lidar": false,
+      "has_camera": true,
+      "multi_color_systems": ["ams", "ams_2_pro", "ams_ht"],
+      "available_plates": ["textured_pei", "smooth_pei"],
+      "available_nozzle_sizes": [0.2, 0.4, 0.6, 0.8],
+      "open_door_threshold_bed_temp": 45,
+      "notes": [
+        "Dual hotend printer with tungsten carbide nozzle",
+        "Active chamber heating up to 65\u00b0C with enhanced filtration and network controls",
+        "First-generation AMS works for multi-color printing but does not support AMS drying"
       ]
     },
     {
