@@ -2,7 +2,7 @@
 
 **Purpose:** Live planning surface for 3dpa web + iOS. Active release tracking, current work queue, deferred and parked work, and pointers into archive + spec + session history.
 
-**Last updated:** 2026-05-10 — v1.0.3 batch remains 3/5 shipped (items 1 + 3 + 4). Owner cancelled the earlier App Review submission for build `202605090842`; TestFlight build `202605101130` is superseded by the corrective remote-catalog hardening pass and must not be submitted. Items 2 + 5 pending.
+**Last updated:** 2026-05-10 — v1.0.3 was submitted to App Review with phone-QA-passed replacement build `202605101637`. Earlier builds `202605090842`, `202605101130`, and `202605101544` are stale and must not be submitted. Batch items 2 + 5 and all Claude/Codex safe-follow-up findings are parked post-v1.0.3 below.
 
 **Evergreen project context:** [`../3dpa-context.md`](../3dpa-context.md) (architecture, engine API, app state shape, slicer routing, standing rules).
 **Session history:** [`../sessions/INDEX.md`](../sessions/INDEX.md) — reverse-chronological one-line entries; full logs in `../sessions/`.
@@ -15,7 +15,7 @@
 | Area | Status |
 |---|---|
 | **Web app** | Live worldwide at [3dprintassistant.com](https://3dprintassistant.com). Cloudflare Workers/Assets deploys from `main`. Feedback → Discord `#web-app-feedback` via `/api/feedback`. Owner analytics dashboard live at `/analytics` (admin token required) with side-by-side/filterable Web vs iOS views. |
-| **iOS app** | Live worldwide on App Store, dark mode only. v1.0.2 released 2026-04-24. Owner cancelled the earlier v1.0.3 App Review submission for build `202605090842`; TestFlight build `202605101130` is stale after review findings and needs a replacement build after corrective hardening. EU unblocked 2026-04-27. |
+| **iOS app** | Live worldwide on App Store, dark mode only. v1.0.2 released 2026-04-24. v1.0.3 is submitted to App Review as of 2026-05-10 with replacement build `202605101637` after phone QA passed. Earlier builds `202605090842`, `202605101130`, and `202605101544` are stale. EU unblocked 2026-04-27. |
 | **Engine** | Web is master — edit there, `cp` byte-identical to iOS. Walkthrough harness + iOS XCTest re-run after every engine/data edit. Latest profile-temperature audit added nozzle-cap clamps across simple output, advanced output, warnings, and export paths. |
 | **Export** | Engine + bridge done. Web UI **disabled** (Bambu Studio rejected `.json`). iOS UI **hidden** (deferred post-release). Re-enabling tracked under Phase 2.7a in Deferred / Parked Work. |
 
@@ -23,7 +23,7 @@
 
 ## Active Release: v1.0.3
 
-5-item v1.0.3 batch across web + iOS; **3/5 shipped so far** (items 1 + 3 + 4 — see status table below). Owner pivoted from DQ-3 to this batch on 2026-05-08. Cross-AI collaboration remains available via [`../ai-collab.md`](../ai-collab.md), but research/review packets are optional and risk-based, not a mandatory pilot workflow. Same-version TestFlight build `202605101130` included remote printer catalog support and the profile-temperature/nozzle-cap audit fix, but is now superseded by the corrective remote-catalog hardening pass.
+5-item v1.0.3 batch across web + iOS; **3/5 shipped into the submitted App Review build** (items 1 + 3 + 4 — see status table below). Owner pivoted from DQ-3 to this batch on 2026-05-08. Cross-AI collaboration remains available via [`../ai-collab.md`](../ai-collab.md), but research/review packets are optional and risk-based, not a mandatory pilot workflow. Submitted build `202605101637` also includes the remote printer catalog hardening pass, profile-temperature/nozzle-cap audit fixes, and the Advanced filament temperature UI fix. Items 2 + 5 are post-v1.0.3 work unless owner explicitly reopens scope after Apple review.
 
 | # | Item | Platform | Status |
 |---|---|---|---|
@@ -41,7 +41,7 @@
 | Phase B — Research handovers | 🟨 Partial (handover #2 drafted; #3 sent + responded; #4 intentionally implemented directly after privacy plan; item 5 doesn't need Gemini). |
 | Phase C — Codex design packets | 🟨 Partial (item 3 design + post-impl complete; item 4 implemented with focused local tests; items 2 / 5 not started). |
 | Phase D — Implementation | 🟨 Partial (items 1 + 3 + 4 implemented; items 2 / 5 not started). |
-| Phase E — Ship cycle | 🟨 Items 1 + 3 + 4 were submitted to App Review in build `202605090842`, then owner cancelled review. Build `202605101130` is superseded by corrective remote-catalog hardening; create a replacement TestFlight and phone-test before App Review. `High-speed` remains the Bambu picker label because it fits on iPhone SE and avoids brittle marketed speed numbers in picker chrome. Items 2 / 5 not yet built. |
+| Phase E — Ship cycle | 🟩 Submitted to App Review on 2026-05-10 with replacement build `202605101637` after phone QA passed. `High-speed` remains the Bambu picker label because it fits on iPhone SE and avoids brittle marketed speed numbers in picker chrome. Items 2 / 5 not yet built and parked post-v1.0.3. |
 
 ---
 
@@ -50,9 +50,8 @@
 > Live, actionable items. Pick the next one based on owner priority.
 
 - **v1.0.3 batch items 2 / 5** — see Active Release section above.
-- **v1.0.3 corrective TestFlight QA / App Review decision** — build `202605101130` is superseded; finish the remote-catalog hardening pass, deploy web, verify the live overlay, dispatch a replacement TestFlight, then phone-test before App Review.
+- **v1.0.3 App Review monitoring** — owner submitted build `202605101637` on 2026-05-10. Wait for Apple. If approved, manually release and monitor `/analytics`, feedback, Sentry, and App Store reviews. If rejected, triage the rejection notice first; do not start post-v1.0.3 cleanup until the review path is stable.
 - **Profile/data change gate** — use [`../runbooks/profile-data-change-test-protocol.md`](../runbooks/profile-data-change-test-protocol.md) before future engine/data/warning/export pushes. Default gate: `validate-data`, profile matrix audit, iOS sync/tests when relevant, and a tiny UI smoke only for visible changes.
-- **Replacement TestFlight QA for v1.0.3** — verify normal launch, cold launch on weak/offline network, printer picker, profile generation, Kobra X/Centauri/PLA Metal still visible, analytics invisible, review prompt suppressed on TestFlight, and remote overlay empty state does not change bundled printer choices. Additional profile-audit phone checks on the replacement build: X1E + PC chamber copy, P2S + PC bed clamp, A1 Mini + HIPS bed clamp, Ender-3 V3 + PETG Fast nozzle cap, and Bambu H2/H2D/X2D picker rows showing `High-speed`.
 - **Remote printer catalog operations** — future missing-printer additions can ship by editing `catalog/ios-printer-overlay-v1.json`, bumping `content_version`, updating `payload_sha256`, running `node scripts/validate-ios-printer-overlay.js`, and deploying web. Keep remote payload data-only: brands/printers only, no engine/rules/materials/nozzles/UI.
 - **Analytics dashboard observation** — after real traffic accumulates, read `/analytics` (admin token) using the Product lens: `All` for side-by-side Web/iOS comparison, `Web` or `iOS` for single-surface inspection. Watch generated profiles, app opens, feedback opens, release adoption, profile combinations, mode mix, printers/materials, and mobile diagnostics. Ignore setup rows with appVersion values like `setup-test`, `setup-test-2`, `setup-output-mode` from 2026-05-09 setup.
 - **`[CRITICAL-001-followup]`** — Worker `/api/feedback` currently routes iOS + web to single `DISCORD_WEBHOOK_URL` → `#web-app-feedback`. Branch on `payload.context.appSource === "ios"` to a separate `DISCORD_WEBHOOK_URL_IOS` env var so iOS feedback lands in `#ios-app-feedback` as originally intended. Scope: ~15 LoC in `functions/api/feedback.js` + new Cloudflare secret + new iOS-channel webhook + redeploy. No iOS binary change. v1.0.3-safe. Filed 2026-04-23. `[Web/Worker]`
@@ -65,6 +64,28 @@
 ## Deferred / Parked Work
 
 > Real items, parked behind another decision or work item. Promote to Active Work Queue when the gating condition resolves.
+
+### Post-v1.0.3 safe-follow-up todo list
+
+These are Claude/Codex review findings explicitly classified as **not release blockers** for v1.0.3. Do not disturb the App Review submission for these unless Apple rejects the build for a related reason.
+
+| Priority | Item | Scope |
+|---|---|---|
+| P1 | **CR3-M1:** fix `scripts/profile-matrix-audit.js` `DEFAULT_STATE.level` -> `userLevel` so beginner paths are actually covered. | Web/test |
+| P1 | **CR3-L1 / CR3-O4:** add the overlay validator to the profile/data runbook when overlay files change, and remove stale hand-maintained test counts from runbook examples. | Docs |
+| P1 | **O7:** replace drifting test-count claims in `docs/3dpa-context.md` and `3dprintassistant-ios/CLAUDE.md` with "see CI/current test run" style wording. | Docs |
+| P1 | **O8:** schedule or consciously defer aging active-queue items `[CRITICAL-001-followup]` and `[LOW-011]` so the active queue stays live. | Planning |
+| P2 | **CR-M2 / M-D:** add local logging or clearer error taxonomy for remote-catalog cache/app-version rejection paths. | iOS |
+| P2 | **M-B:** decide equal-`content_version` overwrite policy before any non-empty production overlay is used. | iOS/spec |
+| P2 | **M-C / M-E / CR-L3:** tighten launch-refresh concurrency docs/tests if a manual refresh/retry path is added. | iOS/tests/spec |
+| P2 | **CR-M6 / L-C:** make the overlay validator less dependent on sibling iOS repo layout before adding it to CI. | Web/scripts |
+| P3 | **M-A:** align pathological semver overflow behavior between Node validator and Swift runtime. | Web+iOS |
+| P3 | **CR1-M1:** replace string-matched warning suppression with structured warning metadata before broader i18n/copy drift. | Web+iOS |
+| P3 | **CR1-M4:** guard advanced bed-temp clamp against missing future `bed_temp_max` values. | Web+iOS |
+| P3 | **CR3-M2:** isolate iOS catalog/cache tests from sandbox cache state. | iOS/tests |
+| P3 | **L-A / L-B / L-D / L-E:** clean low-risk `PrinterCatalogProvider` performance/source-tag/test-name/cold-start polish if remote catalog grows. | iOS |
+| P3 | **CR1-L1:** document or correct Bambu export inheritance placeholders before export UI is re-enabled. | Web+iOS/export |
+| P3 | **O-A / CR1-L6-O-D / CR3-O2 / CR3-O3:** spec/audit/UI-order polish: `min_app_version` ops note, `expires_at` reserved note, H2D Pro ordering, and audit desc-builder duplication. | Docs/web |
 
 ### Phase DQ — Data Quality & Pro-Relevance (sub-phases 3-5)
 
