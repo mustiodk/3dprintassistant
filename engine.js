@@ -963,6 +963,21 @@ const Engine = (() => {
     return n;
   }
 
+  function _nozzleTempCap(material, printer) {
+    const bs = material && material.base_settings;
+    if (!bs) return null;
+    let cap = bs.nozzle_temp_max ?? null;
+    if (printer && printer.max_nozzle_temp != null) {
+      cap = cap == null ? printer.max_nozzle_temp : Math.min(cap, printer.max_nozzle_temp);
+    }
+    return cap;
+  }
+
+  function _clampNozzleTemp(value, material, printer) {
+    const cap = _nozzleTempCap(material, printer);
+    return cap == null ? value : Math.min(value, cap);
+  }
+
   // Substitute a pattern/generator value for the target slicer if the slicer's
   // valid-value set doesn't contain the original. Returns the original value
   // unchanged when no substitution is needed, OR when slicer_capabilities.json
@@ -1003,7 +1018,7 @@ const Engine = (() => {
     if (p.active_chamber_heating) parts.push('Active heated');
     else if (p.enclosure === 'passive') parts.push('Enclosed');
     else if (p.enclosure === 'none') parts.push('Open');
-    if (p.max_speed >= 700) parts.push(p.max_speed + ' mm/s');
+    if (p.max_speed >= 700) parts.push('High-speed');
     return parts.join(' · ') || p.series;
   }
 
@@ -1122,9 +1137,12 @@ const Engine = (() => {
     const nozzleOffset = nozzle ? (nozzle.temp_offset || 0) : 0;
     const speedAdj     = speedId === 'fast' ? 5 : 0;
     const totalNozzle  = envNozzleAdj + nozzleOffset + speedAdj;
+    const rawNozzle    = bs.nozzle_temp_base + totalNozzle;
+    const nozzleTemp   = _clampNozzleTemp(rawNozzle, mat, printer);
+    const nozzleWasClamped = nozzleTemp !== rawNozzle;
 
-    let nozzleStr = `${bs.nozzle_temp_base + totalNozzle} °C`;
-    if (totalNozzle > 0) nozzleStr += `  (+${totalNozzle} adj)`;
+    let nozzleStr = `${nozzleTemp} °C`;
+    if (totalNozzle > 0 && !nozzleWasClamped) nozzleStr += `  (+${totalNozzle} adj)`;
 
     let bedTemp = bs.bed_temp_base + envBedAdj;
     const bedCap = printer && printer.max_bed_temp != null
@@ -1141,7 +1159,7 @@ const Engine = (() => {
       nozzle: nozzleStr,
       bed:    bedStr,
       _prov: {
-        nozzle: { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + (speed==="fast"?5:0)' },
+        nozzle: { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + (speed==="fast"?5:0), optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
         bed:    { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, optionally clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
       },
     };
@@ -1173,8 +1191,8 @@ const Engine = (() => {
     const nozzleAdj    = (env ? (env.nozzle_adj || 0) : 0) + (nozzle ? (nozzle.temp_offset || 0) : 0);
     const bedAdj       = env ? (env.bed_adj || 0) : 0;
 
-    const initNozzle  = bs.nozzle_temp_base + nozzleAdj + (bs.initial_layer_nozzle_offset || 5);
-    const otherNozzle = bs.nozzle_temp_base + nozzleAdj;
+    let   initNozzle  = bs.nozzle_temp_base + nozzleAdj + (bs.initial_layer_nozzle_offset || 5);
+    let   otherNozzle = bs.nozzle_temp_base + nozzleAdj;
     let   initBed     = bs.bed_temp_base + bedAdj + (bs.initial_layer_bed_offset || 0) + (isPETG ? 5 : 0);
     let   otherBed    = bs.bed_temp_base + bedAdj;
 
@@ -1187,6 +1205,9 @@ const Engine = (() => {
       : bs.bed_temp_max;
     initBed  = Math.min(initBed,  bedCap);
     otherBed = Math.min(otherBed, bedCap);
+
+    initNozzle  = _clampNozzleTemp(initNozzle,  mat, printer);
+    otherNozzle = _clampNozzleTemp(otherNozzle, mat, printer);
 
     return {
       initial_layer_temp:     `${initNozzle} °C`,
@@ -1202,8 +1223,8 @@ const Engine = (() => {
       retraction_speed:       `${bs.retraction_speed} mm/s`,
       // [IMPL-041 / DQ-1-followup] provenance sidecar. All fields numeric.
       _prov: {
-        initial_layer_temp:     { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + initial_layer_nozzle_offset' },
-        other_layers_temp:      { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset' },
+        initial_layer_temp:     { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + initial_layer_nozzle_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
+        other_layers_temp:      { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
         initial_layer_bed_temp: { source: 'calculated', ref: 'bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0), clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
         other_layers_bed_temp:  { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
         cooling_fan_min:        { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_min' },
@@ -1366,6 +1387,7 @@ const Engine = (() => {
 
     // 1. Material-level warnings from JSON data (plain strings)
     (material.warnings || []).forEach((msg, i) => {
+      if (printer && printer.enclosure !== 'none' && /open-frame printers/i.test(msg)) return;
       warnings.push(w(`mat_${material.id}_${i}`, msg, '', ''));
     });
 
@@ -1475,18 +1497,42 @@ const Engine = (() => {
         'This printer requires manual filament swaps for color changes. Automatic color printing is not supported.'));
     }
 
-    // 13. K2 Plus CFS note for multi-color — different system from Bambu AMS
-    if (printer && printer.id === 'k2_plus' && colors && colors !== 'single') {
+    // 13. Creality CFS note for multi-color — different system from Bambu AMS
+    if (printer && printer.multi_color_systems?.includes('cfs') && colors && colors !== 'single') {
       warnings.push(w('k2_plus_cfs',
-        'K2 Plus uses Creality CFS, not Bambu AMS.',
+        `${printer.name} uses Creality CFS, not Bambu AMS.`,
         'Configure purge volumes in Creality Print software — Bambu Studio AMS settings do not apply.'));
     }
 
-    // 14. Printer max nozzle temp too low for material
-    if (printer && printer.max_nozzle_temp != null && printer.max_nozzle_temp < material.base_settings.nozzle_temp_base) {
-      warnings.push(w('printer_max_nozzle_temp',
-        `${printer.name} max nozzle temp is ${printer.max_nozzle_temp}°C.`,
-        `${material.name} requires ${material.base_settings.nozzle_temp_base}°C minimum. An all-metal hot end upgrade is required.`));
+    // 14. Printer/material nozzle temp caps. Emitted nozzle targets are clamped
+    // by getAdjustedTemps/getAdvancedFilamentSettings; warnings explain why.
+    if (material.base_settings) {
+      const bs = material.base_settings;
+      const envNozzleAdj = env ? (env.nozzle_adj || 0) : 0;
+      const nozzleOffset = nozzle ? (nozzle.temp_offset || 0) : 0;
+      const speedAdj = state.speed === 'fast' ? 5 : 0;
+      const otherTarget = bs.nozzle_temp_base + envNozzleAdj + nozzleOffset;
+      const initTarget = otherTarget + (bs.initial_layer_nozzle_offset || 5);
+      const simpleTarget = bs.nozzle_temp_base + envNozzleAdj + nozzleOffset + speedAdj;
+      const highestTarget = Math.max(otherTarget, initTarget, simpleTarget);
+
+      if (printer && printer.max_nozzle_temp != null) {
+        if (printer.max_nozzle_temp < bs.nozzle_temp_min) {
+          warnings.push(w('printer_max_nozzle_temp',
+            `${printer.name} max nozzle temp is ${printer.max_nozzle_temp}°C.`,
+            `${material.name} requires at least ${bs.nozzle_temp_min}°C. This combination is below the material's safe nozzle range — choose a lower-temperature material or a higher-temperature hot end.`));
+        } else if (highestTarget > printer.max_nozzle_temp) {
+          warnings.push(w('printer_max_nozzle_temp_clamped',
+            `${printer.name} nozzle temperature capped at ${printer.max_nozzle_temp}°C.`,
+            `${material.name} can request up to ${highestTarget}°C after nozzle, speed, and initial-layer adjustments. Your printer's hot end maxes at ${printer.max_nozzle_temp}°C, so the emitted profile clamps the nozzle target.`));
+        }
+      }
+
+      if (bs.nozzle_temp_max != null && highestTarget > bs.nozzle_temp_max) {
+        warnings.push(w('material_max_nozzle_temp_clamped',
+          `${material.name} nozzle temperature capped at ${bs.nozzle_temp_max}°C.`,
+          `Nozzle, speed, and initial-layer adjustments requested up to ${highestTarget}°C, above this material's recommended maximum. The emitted profile clamps the nozzle target to stay inside the material range.`));
+      }
     }
 
     // 14b. Printer max bed temp vs material requirements — symmetric twin of #14.
@@ -1519,9 +1565,13 @@ const Engine = (() => {
 
     // 15. PA / PC + active chamber heating tip
     if (printer && printer.active_chamber_heating && ['PA', 'PC'].includes(material.group)) {
+      const targetChamber = material.enclosure_behavior?.target_chamber_temp ?? (material.group === 'PC' ? 45 : 40);
+      const maxChamber = printer.max_chamber_temp != null
+        ? ` ${printer.name} supports up to ${printer.max_chamber_temp}°C chamber temperature.`
+        : '';
       warnings.push(w('active_chamber_heating',
         `Active chamber heating on ${printer.name} is ideal for ${material.name}.`,
-        `Set chamber temp to ${material.group === 'PC' ? '45' : '40'}°C before starting — this dramatically reduces warping and delamination.`));
+        `Set chamber temp to ${targetChamber}°C before starting — this dramatically reduces warping and delamination.${maxChamber}`));
     }
 
     // 16. PA strongly recommended enclosure — on open printer
