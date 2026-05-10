@@ -1109,10 +1109,11 @@ const Engine = (() => {
 
   // ── Temperature with environment + nozzle material offset ───────────────────
   // nozzleId is optional — pass it to include nozzle material compensation
-  function getAdjustedTemps(materialId, environmentId, nozzleId, speedId) {
+  function getAdjustedTemps(materialId, environmentId, nozzleId, speedId, printerId) {
     const mat    = getMaterial(materialId);
     const env    = getEnv(environmentId);
     const nozzle = nozzleId ? getNozzle(nozzleId) : null;
+    const printer = printerId ? getPrinter(printerId) : null;
     if (!mat) return { nozzle: '—', bed: '—' };
 
     const bs           = mat.base_settings;
@@ -1125,8 +1126,15 @@ const Engine = (() => {
     let nozzleStr = `${bs.nozzle_temp_base + totalNozzle} °C`;
     if (totalNozzle > 0) nozzleStr += `  (+${totalNozzle} adj)`;
 
-    let bedStr = `${bs.bed_temp_base + envBedAdj} °C`;
-    if (envBedAdj > 0) bedStr += `  (+${envBedAdj} for environment)`;
+    let bedTemp = bs.bed_temp_base + envBedAdj;
+    const bedCap = printer && printer.max_bed_temp != null
+      ? Math.min(bs.bed_temp_max, printer.max_bed_temp)
+      : bs.bed_temp_max;
+    const bedWasClamped = bedCap != null && bedTemp > bedCap;
+    bedTemp = bedWasClamped ? bedCap : bedTemp;
+
+    let bedStr = `${bedTemp} °C`;
+    if (envBedAdj > 0 && !bedWasClamped) bedStr += `  (+${envBedAdj} for environment)`;
 
     // [IMPL-041 / DQ-1-followup] provenance sidecar.
     return {
@@ -1134,7 +1142,7 @@ const Engine = (() => {
       bed:    bedStr,
       _prov: {
         nozzle: { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + (speed==="fast"?5:0)' },
-        bed:    { source: 'calculated', ref: 'bed_temp_base + env.bed_adj' },
+        bed:    { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, optionally clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
       },
     };
   }

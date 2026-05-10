@@ -1229,7 +1229,7 @@ function renderFilamentPanel(filament, nozzle) {
     }
   } else {
     // Fallback (no material data)
-    const temps = Engine.getAdjustedTemps(state.material, state.environment, state.nozzle, state.speed);
+    const temps = Engine.getAdjustedTemps(state.material, state.environment, state.nozzle, state.speed, state.printer);
     const tP = temps?._prov || {};
     html += `<div class="setting-section-label">${FS('secTemps')}</div>`;
     html += row(T('rowNozzleTemp'), temps.nozzle, 'val-temp', tP.nozzle);
