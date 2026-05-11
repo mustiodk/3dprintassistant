@@ -2,7 +2,9 @@
 
 > **How this file works.** This is a shared procedural spec read by **both** Claude and Codex before each runs an independent QA pass. Each agent produces its own findings report at the path specified in **§ Deliverable**. The owner then diffs the two reports, collapses duplicates, and adjudicates disagreements. Do **not** modify this handover during the pass — propose edits in your final report's "Open questions" section instead.
 >
-> **Read-only constraint (MANDATORY).** During this QA pass, neither agent may modify project source files (`engine.js`, `data/**`, `app.js`, `locales/**`, iOS sources, scripts, walkthroughs, tests, runbooks, ROADMAP, specs, session logs, NEXT-SESSION). The only allowed write surface is **your own deliverable file** (one path per agent — see § Deliverable). Findings that imply a code/data change are described in your report; the owner triages and the next session implements. The research/implementation boundary is intentional.
+> **Read-only constraint (MANDATORY).** During this QA pass, neither agent may modify project source files (`engine.js`, `data/**`, `app.js`, `locales/**`, iOS sources, scripts, walkthroughs, tests, runbooks, ROADMAP, specs, session logs, NEXT-SESSION). The only allowed write surface is **your own deliverable file** (path provided in your opening line). Findings that imply a code/data change are described in your report; the owner triages and the next session implements. The research/implementation boundary is intentional.
+>
+> **Peer-agent independence (MANDATORY).** This pass is run by two agents (Claude and Codex) sequentially. Each must produce findings *independently* — that is the entire point of running two passes. You MUST NOT read, list, grep for, or otherwise discover the peer agent's deliverable file, working notes, scratch scripts, or any artifact tagged with their name. Treat sibling files in your deliverable's parent directory as off-limits unless your opening line explicitly names them. Treat `git log` / `git status` entries that reference a peer pass as off-limits — do not open the diffs. The owner runs the comparison; bias from peer-reading defeats the purpose. If you accidentally surface peer content (e.g. a grep result includes it), stop, surface that to the owner, and do not incorporate it into your reasoning.
 >
 > **Project context (read first).** [`docs/3dpa-context.md`](../3dpa-context.md) — what 3dpa is, the engine architecture, the data model, the standing rules, and the AI Operating Model. The handover below assumes you've read it end-to-end.
 
@@ -231,8 +233,10 @@ Number findings within each severity tier (`CRITICAL-01`, `CRITICAL-02`, `HIGH-0
 2. Findings the two agents agree on → straight into a v1.0.4 follow-up batch.
 3. Findings unique to one agent → owner spot-check; either accept or note "checked, false positive".
 4. Disagreements (different severity for the same finding) → owner adjudicates; document the call in the merged finding.
-5. Merged report lands at `docs/reviews/2026-05-XX-config-impact-qa-merged.md` (date set when the merge happens).
+5. Merged report lands at `docs/reviews/2026-05-11-config-impact-qa/merged.md` (date in directory; merged file at the same level as the two pass files).
 6. Each accepted finding becomes a one-finding-one-commit entry in the next implementation session.
+
+**Sequencing note (owner-set 2026-05-11):** Claude runs first, then Codex. Codex must not read Claude's deliverable; the independence constraint at the top of this handover is the binding rule. Claude does not read Codex's deliverable until the merge step is owner-triggered.
 
 ---
 
@@ -260,14 +264,9 @@ These were already established before this pass started; they bound the scope:
 
 ## Deliverable
 
-**Each agent writes ONE markdown file. Do not write multiple files. Do not commit.**
+**Each agent writes ONE markdown file. Do not write multiple files. Do not commit. Your exact deliverable path is given in your opening line — do not write anywhere else, do not infer or search for the peer agent's path.**
 
-| Agent | Deliverable path |
-|---|---|
-| Claude | `docs/reviews/2026-05-XX-config-impact-qa-claude.md` |
-| Codex  | `docs/reviews/2026-05-XX-config-impact-qa-codex.md` |
-
-(Owner replaces `XX` with actual date at merge time. Use `YYYY-MM-DD` of the day you finished the pass.)
+Both agents' deliverables land under `docs/reviews/2026-05-11-config-impact-qa/` (one file per agent, named per the opening line). The peer agent's file is off-limits per the independence constraint at the top of this handover. Treat the existence and contents of the peer file as unknown.
 
 ### Required report header
 
@@ -302,7 +301,8 @@ Confirm in one bullet each:
 - ☐ Read this handover end-to-end.
 - ☐ Captured baseline tool runs (paste output of validate-data + walkthrough + profile-matrix-audit summaries).
 - ☐ Captured starting SHAs for both repos.
-- ☐ Committed to deliverable path.
+- ☐ Committed to deliverable path (the one given in the opening line — verify it matches the path you will write to).
 - ☐ Acknowledged read-only constraint — will not touch source files.
+- ☐ Acknowledged peer-agent independence — will not list, grep, or open the peer's deliverable or sibling files in the same directory.
 
 If any baseline is red on clean main, stop and surface that before doing anything else.
