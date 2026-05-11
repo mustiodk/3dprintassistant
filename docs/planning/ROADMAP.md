@@ -2,7 +2,7 @@
 
 **Purpose:** Live planning surface for 3dpa web + iOS. Active release tracking, current work queue, deferred and parked work, and pointers into archive + spec + session history.
 
-**Last updated:** 2026-05-10 — v1.0.3 was submitted to App Review with phone-QA-passed replacement build `202605101637`. Earlier builds `202605090842`, `202605101130`, and `202605101544` are stale and must not be submitted. Batch items 2 + 5 and all Claude/Codex safe-follow-up findings are parked post-v1.0.3 below.
+**Last updated:** 2026-05-11 — Web-only fix `809549d` shipped: Advanced filament temps now always render explicit Initial + Other layer rows for nozzle and bed (parity with iOS `3a59cd1`). Configuration-impact QA handover drafted for parallel Claude + Codex review pass; engine-side environment-temp fix (dead `bed_first_layer_adj` field + material-blind cold compensation) parked behind that QA pass. v1.0.3 still in App Review with build `202605101637`; stale builds `202605090842`, `202605101130`, `202605101544` must not be submitted.
 
 **Evergreen project context:** [`../3dpa-context.md`](../3dpa-context.md) (architecture, engine API, app state shape, slicer routing, standing rules).
 **Session history:** [`../sessions/INDEX.md`](../sessions/INDEX.md) — reverse-chronological one-line entries; full logs in `../sessions/`.
@@ -51,6 +51,7 @@
 
 - **v1.0.3 batch items 2 / 5** — see Active Release section above.
 - **v1.0.3 App Review monitoring** — owner submitted build `202605101637` on 2026-05-10. Wait for Apple. If approved, manually release and monitor `/analytics`, feedback, Sentry, and App Store reviews. If rejected, triage the rejection notice first; do not start post-v1.0.3 cleanup until the review path is stable.
+- **Configuration-impact QA pass (parallel Claude + Codex)** — structured sweep across every configuration option to find correctness gaps of the same shape as the env-temps bugs (dead data fields, magnitudes drifting from community consensus, material-/printer-blind handling). Read-only research. Each agent writes one report; owner diffs. Handover spec at [`../research/configuration-impact-qa-handover.md`](../research/configuration-impact-qa-handover.md). Deliverables land at `docs/reviews/2026-05-XX-config-impact-qa-{claude,codex}.md`. Merged report drives a v1.0.4 batch. Run after App Review monitoring is stable.
 - **Profile/data change gate** — use [`../runbooks/profile-data-change-test-protocol.md`](../runbooks/profile-data-change-test-protocol.md) before future engine/data/warning/export pushes. Default gate: `validate-data`, profile matrix audit, iOS sync/tests when relevant, and a tiny UI smoke only for visible changes.
 - **Remote printer catalog operations** — future missing-printer additions can ship by editing `catalog/ios-printer-overlay-v1.json`, bumping `content_version`, updating `payload_sha256`, running `node scripts/validate-ios-printer-overlay.js`, and deploying web. Keep remote payload data-only: brands/printers only, no engine/rules/materials/nozzles/UI.
 - **Analytics dashboard observation** — after real traffic accumulates, read `/analytics` (admin token) using the Product lens: `All` for side-by-side Web/iOS comparison, `Web` or `iOS` for single-surface inspection. Watch generated profiles, app opens, feedback opens, release adoption, profile combinations, mode mix, printers/materials, and mobile diagnostics. Ignore setup rows with appVersion values like `setup-test`, `setup-test-2`, `setup-output-mode` from 2026-05-09 setup.
@@ -64,6 +65,13 @@
 ## Deferred / Parked Work
 
 > Real items, parked behind another decision or work item. Promote to Active Work Queue when the gating condition resolves.
+
+### Environment-temp engine fixes (parked behind config-impact QA pass)
+
+Surfaced 2026-05-11 cold-start. Hold until the parallel Claude + Codex QA pass merges, then bundle with whatever the QA finds into a v1.0.4 batch.
+
+- [ ] **Wire `environment_options[].bed_first_layer_adj` into `getAdvancedFilamentSettings`.** Currently DEAD — defined in `data/rules/environment.json` but never read by `engine.js`. Cold env's intended +7°C first-layer bed bump silently disappears. ~5 LoC engine fix; iOS engine sync; new walkthrough assertion + iOS XCTest. `[Web+iOS]`
+- [ ] **Material-aware environment compensation.** Current `nozzle_adj` / `bed_adj` are scalars applied uniformly across all materials; community guidance is material-group-specific (PLA needs less, PETG/ABS/ASA/PC need more). Engine extension shape: either `environment_options[].nozzle_adj` becomes a `by_group` map (`{PLA: 5, PETG: 10, ABS: 10, PC: 15, default: 5}`), or per-material `env_compensation` block in `materials.json`. Needs sourced research before values are picked — Gemini handover candidate, mirroring [`gemini-environments-taxonomy-research.md`](../research/gemini-environments-taxonomy-research.md). `[Web+iOS]`
 
 ### Post-v1.0.3 safe-follow-up todo list
 
