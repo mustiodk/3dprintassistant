@@ -1211,21 +1211,22 @@ function renderFilamentPanel(filament, nozzle) {
   const fP = filament?._prov || {};
 
   if (advTemps) {
-    // Nozzle temperature — always show initial + other (or collapsed if equal)
+    // Advanced mode always shows the layer-split rows (parity with iOS commit
+    // 3a59cd1). Simple keeps the smart collapse so the summary stays compact.
+    const isAdvanced = currentMode === 'advanced';
     html += `<div class="setting-section-label">${FS('secNozzleTemp')}</div>`;
-    if (nozzleSame) {
-      html += row(T('rowNozzleTemp'), advTemps.initial_layer_temp + ' — both layers', 'val-temp', aP.initial_layer_temp);
-    } else {
+    if (isAdvanced || !nozzleSame) {
       html += row(T('rowInitLayer'),   advTemps.initial_layer_temp,  'val-temp', aP.initial_layer_temp);
       html += row(T('rowOtherLayers'), advTemps.other_layers_temp,   'val-temp', aP.other_layers_temp);
-    }
-    // Bed temperature — always show initial + other (or collapsed if equal)
-    html += `<div class="setting-section-label">${FS('secBedTemp')}</div>`;
-    if (bedSame) {
-      html += row(T('rowBedTemp'), advTemps.initial_layer_bed_temp + ' — both layers', 'val-temp', aP.initial_layer_bed_temp);
     } else {
+      html += row(T('rowNozzleTemp'), advTemps.initial_layer_temp + ' — both layers', 'val-temp', aP.initial_layer_temp);
+    }
+    html += `<div class="setting-section-label">${FS('secBedTemp')}</div>`;
+    if (isAdvanced || !bedSame) {
       html += row(T('rowInitLayer'),   advTemps.initial_layer_bed_temp, 'val-temp', aP.initial_layer_bed_temp);
       html += row(T('rowOtherLayers'), advTemps.other_layers_bed_temp,  'val-temp', aP.other_layers_bed_temp);
+    } else {
+      html += row(T('rowBedTemp'), advTemps.initial_layer_bed_temp + ' — both layers', 'val-temp', aP.initial_layer_bed_temp);
     }
   } else {
     // Fallback (no material data)
