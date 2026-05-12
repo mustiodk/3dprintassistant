@@ -529,6 +529,31 @@ const COMBOS = [
     report += '---\n\n';
   }
 
+  // ─── v1.0.4 — Strength speed_multiplier wired in (HIGH-09 / HIGH-04) ──────
+  {
+    function pickSpeed(state, fieldKey) {
+      Engine.setActiveSlicer(Engine.getSlicerForPrinter(state.printer));
+      const profile = Engine.resolveProfile(state);
+      const value = profile?.[fieldKey]?.value;
+      if (typeof value !== 'string') throw new Error(`missing ${fieldKey} in profile`);
+      return parseFloat(value);
+    }
+    const base = { printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic',
+                   useCase: ['functional'], surface: 'standard', speed: 'balanced',
+                   environment: 'normal', support: 'none', colors: 'single',
+                   userLevel: 'intermediate', special: [], build_plate: 'textured_pei',
+                   profileMode: 'safe' };
+    const std = pickSpeed({ ...base, strength: 'standard' }, 'outer_wall_speed');
+    const strong = pickSpeed({ ...base, strength: 'strong' }, 'outer_wall_speed');
+    const max = pickSpeed({ ...base, strength: 'maximum' }, 'outer_wall_speed');
+    if (!(strong < std)) throw new Error(`v1.0.4 HIGH-09: strong outer (${strong}) should be < standard (${std}) on X1C+PLA+balanced`);
+    if (!(max < strong)) throw new Error(`v1.0.4 HIGH-09: maximum outer (${max}) should be < strong (${strong}) on X1C+PLA+balanced`);
+    const stdInner = pickSpeed({ ...base, strength: 'standard' }, 'inner_wall_speed');
+    const strongInner = pickSpeed({ ...base, strength: 'strong' }, 'inner_wall_speed');
+    if (!(strongInner < stdInner)) throw new Error(`v1.0.4 HIGH-09: strong inner (${strongInner}) should be < standard (${stdInner})`);
+    console.log(`[v1.0.4 HIGH-09] OK strong<standard<inner on X1C+PLA+balanced: outer std=${std}, strong=${strong}, max=${max}`);
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo

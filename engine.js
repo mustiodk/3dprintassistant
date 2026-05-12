@@ -1983,6 +1983,16 @@ const Engine = (() => {
       let outerSpeed = isCoreXY ? _tier(sm, 'outer_corexy', profileMode) : _tier(sm, 'outer_bedslinger', profileMode);
       let innerSpeed = isCoreXY ? sm.inner_corexy : sm.inner_bedslinger;
 
+      // v1.0.4 — Strength speed multiplier (HIGH-09 / HIGH-04). Apply Strong/Maximum
+      // slowdown to walls before material/printer/MVS caps clamp it further.
+      const strengthSlow = (strength && typeof strength.speed_multiplier === 'number')
+        ? strength.speed_multiplier
+        : 1.0;
+      if (strengthSlow !== 1.0) {
+        outerSpeed = Math.round(outerSpeed * strengthSlow);
+        innerSpeed = Math.round(innerSpeed * strengthSlow);
+      }
+
       // TPU speed cap — per-material max_speed (85A=20, 90A=30, 95A=60)
       if (isTPU) {
         const tpuMax = material.base_settings.max_speed || 40;
@@ -2061,14 +2071,14 @@ const Engine = (() => {
         petgCapped ? 'PETG surface quality degrades noticeably above 80 mm/s outer wall speed — capped for this material.' :
         sm.id === 'quality' ? 'Slow outer walls reduce vibration artifacts and give each layer more time to solidify uniformly.' :
         'Outer wall speed balanced for your printer type — CoreXY handles higher speeds without ringing.',
-        { source: 'calculated', ref: `rule:material_caps+printer_limits${outerSpeedTuned ? ' (base from _tuned)' : ''}` });
+        { source: 'calculated', ref: `rule:material_caps+printer_limits${outerSpeedTuned ? ' (base from _tuned)' : ''}${strengthSlow !== 1.0 ? '+strength_multiplier' : ''}` });
 
       p.inner_wall_speed = S(`${innerSpeed} mm/s`,
         isTPU     ? 'Inner walls also capped for flexible filament — consistent flow matters more than speed.' :
         isABSlike ? 'Moderate inner wall speed helps ABS/ASA cool uniformly between layers.' :
         !isCoreXY ? 'Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints.' :
         'Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints.',
-        { source: 'calculated', ref: 'rule:material_caps+printer_limits' });
+        { source: 'calculated', ref: `rule:material_caps+printer_limits${strengthSlow !== 1.0 ? '+strength_multiplier' : ''}` });
 
       // Advanced speed settings
       let initSpeed = isCoreXY ? sm.initial_layer : (sm.initial_layer - 5);
