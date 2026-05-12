@@ -57,7 +57,7 @@ const DEFAULT_STATE = {
   support: 'none',
   colors: 'single',
   environment: 'normal',
-  level: 'intermediate',
+  userLevel: 'intermediate',
   profileMode: 'safe',
 };
 
