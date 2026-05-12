@@ -6,7 +6,7 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const overlayPath = path.join(root, 'catalog', 'ios-printer-overlay-v1.json');
-const printersPath = path.join(root, 'data', 'printers.json');
+const iosBaselinesPath = path.join(root, 'catalog', 'ios-bundled-catalog-baselines.json');
 const iosProjectPath = path.resolve(root, '..', '3dprintassistant-ios', 'project.yml');
 
 // YYYYMMDDXX scheme, capped at 2099-12-31-99 to match the iOS poisoned-cache guard.
@@ -141,7 +141,7 @@ function assertUnique(items, label) {
 }
 
 const overlay = JSON.parse(fs.readFileSync(overlayPath, 'utf8'));
-const bundled = JSON.parse(fs.readFileSync(printersPath, 'utf8'));
+const iosBaselines = JSON.parse(fs.readFileSync(iosBaselinesPath, 'utf8'));
 const iosMarketingVersion = readIOSMarketingVersion();
 
 if (overlay.schema_version !== 1) fail('schema_version must be 1');
@@ -153,6 +153,10 @@ if (typeof overlay.enabled !== 'boolean') fail('enabled must be boolean');
 parseVersion(overlay.min_app_version, 'min_app_version');
 if (compareVersions(overlay.min_app_version, iosMarketingVersion) > 0) {
   fail(`min_app_version ${overlay.min_app_version} is newer than iOS MARKETING_VERSION ${iosMarketingVersion}`);
+}
+const iosBaseline = iosBaselines[overlay.min_app_version];
+if (!iosBaseline || !Array.isArray(iosBaseline.brand_ids) || !Array.isArray(iosBaseline.printer_ids)) {
+  fail(`missing iOS bundled catalog baseline for min_app_version ${overlay.min_app_version}`);
 }
 if (!overlay.payload || typeof overlay.payload !== 'object') fail('payload must be object');
 if (!Array.isArray(overlay.payload.brands)) fail('payload.brands must be array');
@@ -166,9 +170,9 @@ if (actualHash !== overlay.payload_sha256) {
 assertUnique(overlay.payload.brands, 'brand');
 assertUnique(overlay.payload.printers, 'printer');
 
-const bundledBrandIds = new Set(bundled.brands.map((brand) => brand.id));
+const bundledBrandIds = new Set(iosBaseline.brand_ids);
 const brandIds = new Set(bundledBrandIds);
-const bundledPrinterIds = new Set(bundled.printers.map((printer) => printer.id));
+const bundledPrinterIds = new Set(iosBaseline.printer_ids);
 for (const brand of overlay.payload.brands) {
   assertAllowedFields(brand, allowedBrandFields, 'brand');
   const id = requireString(brand, 'id');
