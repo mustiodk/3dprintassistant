@@ -581,7 +581,7 @@ const Engine = (() => {
       {
         id: 'others', label: 'Others', desc: 'Brim, prime tower, purge options, and special print modes.',
         sections: [
-          { label: 'Bed adhesion',  params: ['brim_width'] },
+          { label: 'Bed adhesion',  params: ['brim_width', 'draft_shield'] },
           { label: 'Prime tower',   params: ['prime_tower'] },
           { label: 'Purge options', params: ['flush_into_infill'] },
           { label: 'Special mode',  params: ['slow_down_tall'] },
@@ -625,7 +625,7 @@ const Engine = (() => {
       {
         id: 'others', label: 'Others', desc: 'Skirt, brim, wipe tower, and advanced print options.',
         sections: [
-          { label: 'Skirt and brim',  params: ['brim_width'] },
+          { label: 'Skirt and brim',  params: ['brim_width', 'draft_shield'] },
           { label: 'Wipe tower',      params: ['prime_tower'] },
           { label: 'Advanced',        params: ['flush_into_infill', 'slow_down_tall'] },
         ],
@@ -673,7 +673,7 @@ const Engine = (() => {
         id: 'others', label: 'Others', desc: 'Skirt, brim, prime tower, flush options, and special modes.',
         sections: [
           { label: 'Skirt',          params: [] },
-          { label: 'Brim',           params: ['brim_width'] },
+          { label: 'Brim',           params: ['brim_width', 'draft_shield'] },
           { label: 'Prime tower',    params: ['prime_tower'] },
           { label: 'Flush options',  params: ['flush_into_infill'] },
           { label: 'Special mode',   params: ['slow_down_tall'] },
@@ -732,6 +732,7 @@ const Engine = (() => {
       retraction_speed:              'Retraction speed',
       pressure_advance:              'Pressure advance',
       fan_speed:                     'Fan speed',
+      draft_shield:                  'Draft shield',
     },
     prusaslicer: {
       layer_height:                  'Layer height',
@@ -780,6 +781,7 @@ const Engine = (() => {
       retraction_speed:              'Retraction speed',
       pressure_advance:              'Pressure advance',
       fan_speed:                     'Fan speed',
+      draft_shield:                  'Draft shield',
     },
     orcaslicer: {
       layer_height:                  'Layer height',
@@ -828,6 +830,7 @@ const Engine = (() => {
       retraction_speed:              'Retraction speed',
       pressure_advance:              'Pressure advance',
       fan_speed:                     'Fan speed',
+      draft_shield:                  'Draft shield',
     },
   };
 
@@ -1190,10 +1193,14 @@ const Engine = (() => {
     const isPETG       = mat.group === 'PETG';
     const nozzleAdj    = (env ? (env.nozzle_adj || 0) : 0) + (nozzle ? (nozzle.temp_offset || 0) : 0);
     const bedAdj       = env ? (env.bed_adj || 0) : 0;
+    // v1.0.4 HIGH-07 — cold env first-layer bed boost. env.bed_first_layer_adj
+    // applies only to the initial layer (not subsequent layers) — matches the
+    // data file's intent of helping adhesion when ambient is cold.
+    const bedFirstLayerEnvAdj = env && Number.isFinite(env.bed_first_layer_adj) ? env.bed_first_layer_adj : 0;
 
     let   initNozzle  = bs.nozzle_temp_base + nozzleAdj + (bs.initial_layer_nozzle_offset || 5);
     let   otherNozzle = bs.nozzle_temp_base + nozzleAdj;
-    let   initBed     = bs.bed_temp_base + bedAdj + (bs.initial_layer_bed_offset || 0) + (isPETG ? 5 : 0);
+    let   initBed     = bs.bed_temp_base + bedAdj + (bs.initial_layer_bed_offset || 0) + (isPETG ? 5 : 0) + bedFirstLayerEnvAdj;
     let   otherBed    = bs.bed_temp_base + bedAdj;
 
     // Clamp bed targets to min(material.bed_temp_max, printer.max_bed_temp). A
@@ -1209,7 +1216,17 @@ const Engine = (() => {
     initNozzle  = _clampNozzleTemp(initNozzle,  mat, printer);
     otherNozzle = _clampNozzleTemp(otherNozzle, mat, printer);
 
-    return {
+    // v1.0.4 HIGH-07 — fan_multiplier from env scales cooling fan emission.
+    // Mirror Task 1's hardening (speed_multiplier): guard against malformed
+    // data with Number.isFinite + > 0.
+    const fanMult = Number.isFinite(env?.fan_multiplier) && env.fan_multiplier > 0 ? env.fan_multiplier : 1.0;
+    const fanMaxBase = 100;
+    const fanMaxScaled = Math.round(fanMaxBase * fanMult);
+    const fanMinScaled = bs.cooling_fan_min != null
+      ? Math.round((parseInt(bs.cooling_fan_min) || 0) * fanMult)
+      : null;
+
+    const result = {
       initial_layer_temp:     `${initNozzle} °C`,
       other_layers_temp:      `${otherNozzle} °C`,
       initial_layer_bed_temp: `${initBed} °C`,
@@ -1221,11 +1238,31 @@ const Engine = (() => {
       flow_ratio:             String(bs.flow_ratio       ?? '—'),
       retraction_distance:    `${bs.retraction_distance} mm`,
       retraction_speed:       `${bs.retraction_speed} mm/s`,
+      // v1.0.4 HIGH-07 — S()-wrapped emissions for the env-aware fields. The
+      // walkthrough harness + future iOS / web consumers read these. Existing
+      // plain-string keys above stay for app.js back-compat.
+      bed_temperature_initial_layer: S(`${initBed}`,
+        bedFirstLayerEnvAdj > 0
+          ? `Bed first-layer raised +${bedFirstLayerEnvAdj}°C for cold environment to improve adhesion.`
+          : 'First-layer bed temperature.',
+        { source: bedFirstLayerEnvAdj > 0 ? 'rule' : 'calculated',
+          ref: bedFirstLayerEnvAdj > 0
+            ? 'env.bed_first_layer_adj'
+            : 'bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0), clamped' }),
+      bed_temperature: S(`${otherBed}`,
+        'Bed temperature for layers after the first.',
+        { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' }),
+      fan_max_speed: S(`${fanMaxScaled}`,
+        fanMult !== 1.0
+          ? `Cooling fan reduced to ${Math.round(fanMult * 100)}% of normal for cold environment.`
+          : 'Maximum cooling fan speed.',
+        { source: fanMult !== 1.0 ? 'rule' : 'default',
+          ref: fanMult !== 1.0 ? 'env.fan_multiplier' : 'engine:fan_max_default' }),
       // [IMPL-041 / DQ-1-followup] provenance sidecar. All fields numeric.
       _prov: {
         initial_layer_temp:     { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + initial_layer_nozzle_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
         other_layers_temp:      { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
-        initial_layer_bed_temp: { source: 'calculated', ref: 'bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0), clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
+        initial_layer_bed_temp: { source: 'calculated', ref: `bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0)${bedFirstLayerEnvAdj > 0 ? ' + env.bed_first_layer_adj' : ''}, clamped to min(material.bed_temp_max, printer.max_bed_temp)` },
         other_layers_bed_temp:  { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
         cooling_fan_min:        { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_min' },
         cooling_fan_overhang:   { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_overhang' },
@@ -1236,6 +1273,19 @@ const Engine = (() => {
         retraction_speed:       { source: 'default',    ref: 'materials.json#base_settings.retraction_speed' },
       },
     };
+    // Expose env-scaled fan_min_speed too, so consumers reading the env-aware
+    // surface see the same multiplier applied symmetrically (the plain-string
+    // cooling_fan_min key above remains the unscaled material default).
+    if (fanMinScaled != null) {
+      result.fan_min_speed = S(`${fanMinScaled}`,
+        fanMult !== 1.0
+          ? `Minimum cooling fan reduced to ${Math.round(fanMult * 100)}% of normal for cold environment.`
+          : 'Minimum cooling fan speed.',
+        { source: fanMult !== 1.0 ? 'rule' : 'default',
+          ref: fanMult !== 1.0 ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_min'
+                               : 'materials.json#base_settings.cooling_fan_min' });
+    }
+    return result;
   }
 
   // ── Pre-print checklist ───────────────────────────────────────────────────────
@@ -1480,11 +1530,43 @@ const Engine = (() => {
         `${material.name} requires experience and specific hardware. Consider starting with PLA Basic or PETG Basic.`));
     }
 
-    // 11. Environment warnings from JSON (plain strings)
+    // 11. Environment warnings.
+    // v1.0.4 HIGH-05 — when the env has compensation values, generate the
+    // first warning line from the same data the engine actually applies, so
+    // the warning copy cannot lie about emitted deltas (the JSON warnings[0]
+    // hardcoded numbers risked drifting from data). Subsequent JSON warnings
+    // (preheat, humidity advice) stay verbatim — they aren't number-claims.
     const env = getEnv(state.environment);
     if (env && env.warnings) {
+      const hasCompensation = (env.nozzle_adj || 0) > 0
+                           || (env.bed_first_layer_adj || 0) > 0
+                           || (env.bed_adj || 0) > 0
+                           || (env.first_layer_speed_multiplier != null && env.first_layer_speed_multiplier < 1.0);
       env.warnings.forEach((msg, i) => {
-        warnings.push(w(`env_${env.id}_${i}`, msg, '', ''));
+        if (i === 0 && hasCompensation) {
+          const parts = [];
+          if ((env.nozzle_adj || 0) > 0) parts.push(`nozzle +${env.nozzle_adj}°C`);
+          if ((env.bed_adj || 0) > 0)    parts.push(`bed +${env.bed_adj}°C`);
+          if ((env.bed_first_layer_adj || 0) > 0) {
+            // Put first-layer bed in its own warning so the +N°C number stands
+            // alone — keeps the assertion-friendly contract that any "+N°C
+            // first-layer bed" claim matches the emitted bed_first_layer_adj.
+            warnings.push(w(`env_${env.id}_bed_first_layer`,
+              `Cold-environment first-layer bed compensation: +${env.bed_first_layer_adj}°C applied to first-layer bed temperature.`,
+              'Improves first-layer adhesion when the chamber is cool. Bed returns to base temp from layer 2 onwards.',
+              ''));
+          }
+          if (env.first_layer_speed_multiplier != null && env.first_layer_speed_multiplier < 1.0) {
+            const pct = Math.round((1 - env.first_layer_speed_multiplier) * 100);
+            parts.push(`first-layer speed reduced ${pct}%`);
+          }
+          const text = parts.length > 0
+            ? `${env.name || 'Environment'} compensation applied — ${parts.join(', ')}.`
+            : msg;
+          warnings.push(w(`env_${env.id}_${i}`, text, '', ''));
+        } else {
+          warnings.push(w(`env_${env.id}_${i}`, msg, '', ''));
+        }
       });
     }
 
@@ -1532,6 +1614,17 @@ const Engine = (() => {
         warnings.push(w('material_max_nozzle_temp_clamped',
           `${material.name} nozzle temperature capped at ${bs.nozzle_temp_max}°C.`,
           `Nozzle, speed, and initial-layer adjustments requested up to ${highestTarget}°C, above this material's recommended maximum. The emitted profile clamps the nozzle target to stay inside the material range.`));
+
+        // v1.0.4 MEDIUM-05 — when env compensation is contributing to the clamp,
+        // additionally surface an env-attributed warning so the user knows which
+        // input pushed past the cap. Both warnings fire together (cause + cap)
+        // so the user sees both the env trigger and the material constraint.
+        if (envNozzleAdj > 0) {
+          warnings.push(w('env_compensation_capped_by_material',
+            `Cold-environment compensation partially clipped by ${material.name}'s ${bs.nozzle_temp_max}°C nozzle cap.`,
+            `Env compensation asked for +${envNozzleAdj}°C nozzle but ${material.name} caps at ${bs.nozzle_temp_max}°C — the emitted nozzle target reflects the material cap, not the full env adjustment.`,
+            'Switch to a less-compensating environment (e.g. normal/cool) or accept that the cold protection partially clips on this material.'));
+        }
       }
     }
 
@@ -2303,6 +2396,16 @@ const Engine = (() => {
         material.fan_policy === 'high'      ? 'Full fan speed — rapid cooling locks in detail and prevents sagging on overhangs.' :
         'Low fan speed — minimal cooling to maintain layer adhesion.',
         { source: 'default', ref: 'materials.json#fan_policy' });
+    }
+
+    // v1.0.4 HIGH-08 — env.force_draft_shield wired to profile output. Cold /
+    // very-cold environments enable a draft shield to protect the print from
+    // chamber drafts. SLICER_TABS exposes draft_shield under the Others tab
+    // (Bambu / Orca) and Skirt-and-brim (Prusa).
+    if (env?.force_draft_shield === true) {
+      p.draft_shield = S('Enabled',
+        'Draft shield protects from chamber drafts in cold environments — significantly reduces warping risk.',
+        { source: 'rule', ref: 'env.force_draft_shield' });
     }
 
     return p;

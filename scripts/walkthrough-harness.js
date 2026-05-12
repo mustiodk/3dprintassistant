@@ -557,6 +557,73 @@ const COMBOS = [
     console.log(`[v1.0.4 HIGH-09] OK strong<standard<inner on X1C+PLA+balanced: outer std=${std}, strong=${strong}, max=${max}`);
   }
 
+  // ─── v1.0.4 — Env data layer + cold-warning fix (HIGH-07/08, HIGH-05) ─────
+  {
+    function profile(state) {
+      Engine.setActiveSlicer(Engine.getSlicerForPrinter(state.printer));
+      return Engine.resolveProfile(state);
+    }
+    function adv(state) {
+      Engine.setActiveSlicer(Engine.getSlicerForPrinter(state.printer));
+      return Engine.getAdvancedFilamentSettings(state);
+    }
+    function warnings(state) { return Engine.getWarnings(state).map(w => w.id); }
+    const base = { printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic',
+                   useCase: ['functional'], surface: 'standard', strength: 'standard',
+                   speed: 'balanced', support: 'none', colors: 'single',
+                   userLevel: 'intermediate', special: [], build_plate: 'textured_pei',
+                   profileMode: 'safe' };
+
+    // 1) bed_first_layer_adj wired into advanced filament settings (cold = +7°C bed first-layer)
+    const advNormal = adv({ ...base, environment: 'normal' });
+    const advCold = adv({ ...base, environment: 'cold' });
+    const bedNormal = parseFloat(advNormal.bed_temperature_initial_layer?.value ?? advNormal.bed_temperature?.value);
+    const bedCold = parseFloat(advCold.bed_temperature_initial_layer?.value ?? advCold.bed_temperature?.value);
+    if (!(bedCold > bedNormal)) throw new Error(`v1.0.4 HIGH-07: cold first-layer bed (${bedCold}) should exceed normal (${bedNormal}) by env.bed_first_layer_adj`);
+
+    // 2) fan_multiplier wired into cooling fan emission (cold = 0.9× of normal)
+    const fanNormal = parseFloat(advNormal.fan_max_speed?.value ?? advNormal.cooling_fan_max?.value);
+    const fanCold = parseFloat(advCold.fan_max_speed?.value ?? advCold.cooling_fan_max?.value);
+    if (!(fanCold < fanNormal)) throw new Error(`v1.0.4 HIGH-07: cold fan max (${fanCold}) should be lower than normal (${fanNormal}) by env.fan_multiplier`);
+
+    // 3) force_draft_shield wired into profile output for cold/vcold env
+    const profCold = profile({ ...base, environment: 'cold' });
+    const draftShieldField = profCold.draft_shield;
+    if (!draftShieldField || !/enabled|on|true/i.test(String(draftShieldField.value))) {
+      throw new Error(`v1.0.4 HIGH-08: cold env should emit draft_shield enabled; got ${JSON.stringify(draftShieldField)}`);
+    }
+
+    // 4) Cold-warning text does NOT lie. If warning copy mentions "first layer bed +N", N must match emitted delta.
+    const coldWarnings = Engine.getWarnings({ ...base, environment: 'cold' });
+    const bedClaim = coldWarnings.find(w => /first[\s-]?layer\s+bed/i.test(w.text + ' ' + (w.detail || '')));
+    if (bedClaim) {
+      const match = (bedClaim.text + ' ' + (bedClaim.detail || '')).match(/\+\s*(\d+)\s*°?C/i);
+      const claimed = match ? parseInt(match[1], 10) : null;
+      const delta = Math.round(bedCold - bedNormal);
+      if (claimed !== null && claimed !== delta) {
+        throw new Error(`v1.0.4 HIGH-05: cold warning claims +${claimed}°C first-layer bed but emit is +${delta}°C`);
+      }
+    }
+    console.log(`[v1.0.4 ENV] OK bed_first_layer_adj=+${Math.round(bedCold - bedNormal)}°C, fan reduced, draft_shield emitted, warning copy matches emit`);
+  }
+
+  // ─── v1.0.4 — env clamp misattribution (MEDIUM-05) ────────────────────────
+  {
+    // PLA Basic on A1 + vcold (PLA max_nozzle=230). Env wants +10°C → 230 + initial offset
+    // would clamp. Warning should attribute to env, not material.
+    const stVcold = { printer: 'a1', nozzle: 'std_0.4', material: 'pla_basic',
+                      useCase: ['functional'], surface: 'standard', strength: 'standard',
+                      speed: 'balanced', environment: 'vcold', support: 'none', colors: 'single',
+                      userLevel: 'intermediate', special: [], build_plate: 'textured_pei',
+                      profileMode: 'safe' };
+    const ws = Engine.getWarnings(stVcold);
+    const envClampWarn = ws.find(w => /env_compensation_capped|env.*clamp|cold.*clamp/i.test(w.id || ''));
+    if (!envClampWarn) {
+      throw new Error(`v1.0.4 MEDIUM-05: expected env-attributed clamp warning on PLA+a1+vcold; got ids ${ws.map(w => w.id).join(',')}`);
+    }
+    console.log(`[v1.0.4 MEDIUM-05] OK env-attributed clamp warning id=${envClampWarn.id}`);
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo
