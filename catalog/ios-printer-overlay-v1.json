@@ -1,23 +1,15 @@
 {
-  "content_version": 2026051201,
+  "content_version": 2026051202,
   "enabled": true,
-  "generated_at": "2026-05-12T19:36:08.536Z",
+  "generated_at": "2026-05-12T19:57:07.724Z",
   "min_app_version": "1.0.3",
   "payload": {
-    "brands": [
-      {
-        "id": "sparkx",
-        "name": "SPARKX",
-        "sort_order": 13,
-        "primary": false,
-        "default_slicer": "orcaslicer"
-      }
-    ],
+    "brands": [],
     "printers": [
       {
         "id": "sparkx_i7",
         "name": "i7",
-        "manufacturer": "sparkx",
+        "manufacturer": "creality",
         "series": "bedslinger",
         "series_group": "i Series",
         "enclosure": "none",
@@ -51,6 +43,6 @@
       }
     ]
   },
-  "payload_sha256": "0d10067e27c2b52a16e2477b28a0b55f3e050749b627a94a8644982f2cd83c70",
+  "payload_sha256": "1c3f219b8e0a397ff82ab83b68dda1d0598368fcee0bb5c1bb8dc994b43727ad",
   "schema_version": 1
 }

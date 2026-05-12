@@ -11,8 +11,7 @@
     { "id": "artillery",  "name": "Artillery",    "sort_order": 9,  "primary": false, "default_slicer": "orcaslicer" },
     { "id": "anker",      "name": "AnkerMake",    "sort_order": 10, "primary": false, "default_slicer": "orcaslicer" },
     { "id": "voron",      "name": "Voron",        "sort_order": 11, "primary": false, "default_slicer": "orcaslicer" },
-    { "id": "diy",        "name": "DIY / Other",  "sort_order": 12, "primary": false, "default_slicer": "orcaslicer" },
-    { "id": "sparkx",     "name": "SPARKX",       "sort_order": 13, "primary": false, "default_slicer": "orcaslicer" }
+    { "id": "diy",        "name": "DIY / Other",  "sort_order": 12, "primary": false, "default_slicer": "orcaslicer" }
   ],
   "printers": [
     {
@@ -547,7 +546,7 @@
     {
       "id": "sparkx_i7",
       "name": "i7",
-      "manufacturer": "sparkx",
+      "manufacturer": "creality",
       "series": "bedslinger",
       "series_group": "i Series",
       "enclosure": "none",

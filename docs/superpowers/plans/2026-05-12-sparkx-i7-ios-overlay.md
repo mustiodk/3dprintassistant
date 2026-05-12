@@ -4,7 +4,7 @@
 
 **Goal:** Make SPARKX i7 available to already-shipped iOS v1.0.3 users through the remote printer overlay, without creating or submitting a new iOS binary.
 
-**Architecture:** Keep web using the bundled `data/printers.json` entry that is already on `main`, and publish the same printer as an additive iOS remote overlay. Fix the web-side overlay validator so it checks collisions against the shipped iOS v1.0.3 catalog baseline, not the current web catalog, because web can add a printer before the iOS binary bundles it.
+**Architecture:** Keep web using the bundled `data/printers.json` entry that is already on `main`, and publish the same printer as an additive iOS remote overlay under the existing `creality` brand and `i Series` group. Fix the web-side overlay validator so it checks collisions against the shipped iOS v1.0.3 catalog baseline, not the current web catalog, because web can add a printer before the iOS binary bundles it.
 
 **Tech Stack:** Static JSON overlay on Cloudflare Pages, Node validator scripts, existing iOS `PrinterCatalogProvider` remote catalog runtime.
 
@@ -17,7 +17,7 @@
 - Create: `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/catalog/ios-bundled-catalog-baselines.json`
   - Responsibility: store the shipped iOS catalog ID set used by overlay validation.
 - Modify: `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/catalog/ios-printer-overlay-v1.json`
-  - Responsibility: publish SPARKX brand and i7 printer as data-only remote content for current iOS clients.
+  - Responsibility: publish the i7 printer under the existing Creality brand as data-only remote content for current iOS clients.
 - Modify: `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/specs/ios-remote-printer-catalog.md`
   - Responsibility: document that deploy validation uses the shipped iOS baseline, not current web catalog data.
 - Do not modify for this hot update: `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant-ios/**`
@@ -175,14 +175,12 @@ overlay.generated_at = new Date().toISOString();
 overlay.min_app_version = '1.0.3';
 overlay.enabled = true;
 overlay.payload = {
-  brands: [
-    { id: 'sparkx', name: 'SPARKX', sort_order: 13, primary: false, default_slicer: 'orcaslicer' },
-  ],
+  brands: [],
   printers: [
     {
       id: 'sparkx_i7',
       name: 'i7',
-      manufacturer: 'sparkx',
+      manufacturer: 'creality',
       series: 'bedslinger',
       series_group: 'i Series',
       enclosure: 'none',
@@ -239,16 +237,20 @@ const overlay = require('./catalog/ios-printer-overlay-v1.json');
 const webPrinter = web.printers.find((printer) => printer.id === 'sparkx_i7');
 const overlayPrinter = overlay.payload.printers.find((printer) => printer.id === 'sparkx_i7');
 if (!webPrinter || !overlayPrinter) throw new Error('missing sparkx_i7 in web data or overlay');
-console.log(`web=${webPrinter.manufacturer}/${webPrinter.name}`);
-console.log(`overlay=${overlayPrinter.manufacturer}/${overlayPrinter.name}`);
+if (webPrinter.manufacturer !== 'creality') throw new Error(`web manufacturer is ${webPrinter.manufacturer}`);
+if (overlayPrinter.manufacturer !== 'creality') throw new Error(`overlay manufacturer is ${overlayPrinter.manufacturer}`);
+if (webPrinter.series_group !== 'i Series') throw new Error(`web series_group is ${webPrinter.series_group}`);
+if (overlayPrinter.series_group !== 'i Series') throw new Error(`overlay series_group is ${overlayPrinter.series_group}`);
+console.log(`web=${webPrinter.manufacturer}/${webPrinter.series_group}/${webPrinter.name}`);
+console.log(`overlay=${overlayPrinter.manufacturer}/${overlayPrinter.series_group}/${overlayPrinter.name}`);
 NODE
 ```
 
 Expected output:
 
 ```text
-web=sparkx/i7
-overlay=sparkx/i7
+web=creality/i Series/i7
+overlay=creality/i Series/i7
 ```
 
 - [ ] **Step 4: Commit the overlay payload**
@@ -371,7 +373,7 @@ const overlay = JSON.parse(fs.readFileSync('/tmp/ios-printer-overlay-live.json',
 const hash = crypto.createHash('sha256').update(stableStringify(overlay.payload)).digest('hex');
 console.log(`content_version=${overlay.content_version}`);
 console.log(`hash_ok=${hash === overlay.payload_sha256}`);
-console.log(`brands=${overlay.payload.brands.map((brand) => brand.id).join(',')}`);
+console.log(`brands=${overlay.payload.brands.map((brand) => brand.id).join(',') || '(none)'}`);
 console.log(`printers=${overlay.payload.printers.map((printer) => printer.id).join(',')}`);
 NODE
 ```
@@ -381,7 +383,7 @@ Expected output:
 ```text
 content_version=2026051201
 hash_ok=true
-brands=sparkx
+brands=(none)
 printers=sparkx_i7
 ```
 
@@ -399,11 +401,11 @@ Do not run Fastlane, do not archive, do not upload TestFlight, and do not submit
 Before shipping iOS v1.0.4, choose one of these two options:
 
 ```text
-Option A, recommended if SPARKX should remain overlay-only for now:
-Revert iOS commit c8cbf97 before building v1.0.4.
+Option A, recommended if i7 should remain overlay-only for now:
+Revert or exclude the iOS bundled i7 catalog row before building v1.0.4.
 
-Option B, recommended if SPARKX should become bundled in v1.0.4:
-Ship v1.0.4 with SPARKX bundled, then keep the SPARKX overlay row until normal auto-update uptake is acceptable. Before adding more remote-only rows for v1.0.4+ clients, publish a higher content_version overlay without sparkx/sparkx_i7.
+Option B, recommended if i7 should become bundled in v1.0.4:
+Ship v1.0.4 with i7 bundled under Creality, then keep the i7 overlay row until normal auto-update uptake is acceptable. Before adding more remote-only rows for v1.0.4+ clients, publish a higher content_version overlay without sparkx_i7.
 ```
 
 ## Self-Review

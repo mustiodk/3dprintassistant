@@ -487,7 +487,7 @@ const COMBOS = [
   { id: 10, label: 'K1 Max + 0.4 std + PC + Strong/Balanced (K1+PC bed-temp gap check)',
     state: stateDefault({ printer: 'k1_max', nozzle: 'std_0.4', material: 'pc', strength: 'strong' }) },
 
-  { id: 11, label: 'SPARKX i7 + 0.4 hardened + PLA-CF + Standard/Balanced (new open-frame bedslinger)',
+  { id: 11, label: 'Creality i7 / SPARKX + 0.4 hardened + PLA-CF + Standard/Balanced (new open-frame bedslinger)',
     state: stateDefault({ printer: 'sparkx_i7', nozzle: 'hrd_0.4', material: 'pla_cf' }) },
 ];
 
