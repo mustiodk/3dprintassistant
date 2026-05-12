@@ -11,7 +11,8 @@
     { "id": "artillery",  "name": "Artillery",    "sort_order": 9,  "primary": false, "default_slicer": "orcaslicer" },
     { "id": "anker",      "name": "AnkerMake",    "sort_order": 10, "primary": false, "default_slicer": "orcaslicer" },
     { "id": "voron",      "name": "Voron",        "sort_order": 11, "primary": false, "default_slicer": "orcaslicer" },
-    { "id": "diy",        "name": "DIY / Other",  "sort_order": 12, "primary": false, "default_slicer": "orcaslicer" }
+    { "id": "diy",        "name": "DIY / Other",  "sort_order": 12, "primary": false, "default_slicer": "orcaslicer" },
+    { "id": "sparkx",     "name": "SPARKX",       "sort_order": 13, "primary": false, "default_slicer": "orcaslicer" }
   ],
   "printers": [
     {
@@ -542,6 +543,32 @@
       "available_nozzle_sizes": [0.4],
       "open_door_threshold_bed_temp": null,
       "notes": ["Budget entry printer", "Sprite direct-drive extruder"]
+    },
+    {
+      "id": "sparkx_i7",
+      "name": "i7",
+      "manufacturer": "sparkx",
+      "series": "bedslinger",
+      "series_group": "i Series",
+      "enclosure": "none",
+      "active_chamber_heating": false,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 300,
+      "max_bed_temp": 100,
+      "max_speed": 500,
+      "max_acceleration": 10000,
+      "has_lidar": false,
+      "has_camera": true,
+      "multi_color_systems": ["cfs_lite"],
+      "available_plates": ["textured_pei"],
+      "available_nozzle_sizes": [0.2, 0.4, 0.6, 0.8],
+      "open_door_threshold_bed_temp": null,
+      "notes": [
+        "Open-frame Cartesian bed-slinger — 260×260×255mm build volume",
+        "CFS Lite supports up to 4-color printing; CFS Mini is automatic refill only",
+        "Quick-swap hardened hotend — 0.4mm installed, 0.2/0.6/0.8 available",
+        "ABS, ASA, PC, PA and other high-temperature filaments are not recommended on the open frame"
+      ]
     },
     {
       "id": "core_one",
