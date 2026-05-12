@@ -1791,6 +1791,21 @@ const Engine = (() => {
         'Retraction distances are increased to compensate for the longer filament path. Fine-tune based on your PTFE tube length.'));
     }
 
+    // v1.0.4 — Physical printer × nozzle guard (HIGH-01)
+    // printers.json:available_nozzle_sizes lists the sizes the printer physically
+    // ships with / accepts. Warn when the user's nozzle pick isn't on that list —
+    // otherwise the engine emits a confident profile for hardware the user can't
+    // actually mount.
+    if (printer && nozzle && Array.isArray(printer.available_nozzle_sizes)) {
+      const supportedSizes = printer.available_nozzle_sizes;
+      if (!supportedSizes.includes(nozzle.size)) {
+        warnings.push(w('nozzle_not_on_printer',
+          `${printer.name} doesn't ship with a ${nozzle.size}mm nozzle.`,
+          `Supported sizes on ${printer.name}: ${supportedSizes.join(', ')}mm. The emitted profile won't match the physical printer if you can't mount this nozzle.`,
+          `Switch the nozzle picker to a size in [${supportedSizes.join(', ')}], or pick a printer whose available_nozzle_sizes include ${nozzle.size}mm.`));
+      }
+    }
+
     // C5. Printer-capability clamping notices (IMPL-039)
     // Informs the user when an emitted value was reduced because their printer's
     // firmware / slicer can't accept the raw value from the objective profile.
@@ -2443,6 +2458,30 @@ const Engine = (() => {
       const mvsVal = material.base_settings.max_mvs?.[String(n.size)];
       const mvsBlocked = mvsVal === null;
       return { id: n.id, name: n.name, compatible: ok && !mvsBlocked };
+    });
+  }
+
+  // ── Nozzle filtering by material × printer compatibility (v1.0.4 HIGH-01) ────
+  // Wraps getCompatibleNozzles and additionally cross-checks the nozzle's physical
+  // size against the printer's available_nozzle_sizes list. UI consumers that
+  // know which printer is selected can use this to dim nozzles the printer can't
+  // physically mount, alongside the existing material-driven dimming. The
+  // not_on_printer flag lets the UI distinguish "incompatible because printer"
+  // from "incompatible because material" (the latter is still the `compatible`
+  // false-positive bucket from getCompatibleNozzles).
+  function getCompatibleNozzlesForPrinter(materialId, printerId) {
+    const baseList = getCompatibleNozzles(materialId);
+    const printer = getPrinter(printerId);
+    if (!printer || !Array.isArray(printer.available_nozzle_sizes)) return baseList;
+    const allowed = new Set(printer.available_nozzle_sizes);
+    return baseList.map(entry => {
+      const noz = getNozzle(entry.id);
+      const onPrinter = !!(noz && allowed.has(noz.size));
+      return {
+        ...entry,
+        compatible: entry.compatible && onPrinter,
+        not_on_printer: entry.compatible && !onPrinter,
+      };
     });
   }
 
@@ -3216,6 +3255,7 @@ const Engine = (() => {
     getActiveSlicer,
     isNozzleCompatibleWithMaterial,
     getCompatibleNozzles,
+    getCompatibleNozzlesForPrinter,
     getSymptoms,
     getTroubleshootingTips,
     exportProfile,

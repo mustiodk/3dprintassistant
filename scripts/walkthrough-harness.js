@@ -626,6 +626,41 @@ const COMBOS = [
     console.log(`[v1.0.4 MEDIUM-05] OK env-attributed clamp warning id=${envClampWarn.id}`);
   }
 
+  // ─── v1.0.4 — Physical printer × nozzle guard (HIGH-01) ───────────────────
+  {
+    // Ender-3 V3 SE has available_nozzle_sizes:[0.4]. Selecting std_0.8 must warn.
+    const stBad = { printer: 'ender3_v3_se', nozzle: 'std_0.8', material: 'pla_basic',
+                    useCase: ['functional'], surface: 'standard', strength: 'standard',
+                    speed: 'balanced', environment: 'normal', support: 'none', colors: 'single',
+                    userLevel: 'intermediate', special: [], build_plate: 'textured_pei',
+                    profileMode: 'safe' };
+    const warnIds = Engine.getWarnings(stBad).map(w => w.id);
+    const has = warnIds.some(id => /nozzle_not_on_printer|printer_nozzle|printer.*nozzle_size/i.test(id));
+    if (!has) throw new Error(`v1.0.4 HIGH-01: expected nozzle-not-available warning on ender3_v3_se+std_0.8; got ${warnIds.join(',')}`);
+
+    // Centauri Carbon has available_nozzle_sizes:[0.4]. std_0.4 must NOT warn for this reason.
+    const stOk = { ...stBad, printer: 'centauri_carbon', nozzle: 'std_0.4' };
+    const okWarnIds = Engine.getWarnings(stOk).map(w => w.id);
+    if (okWarnIds.some(id => /nozzle_not_on_printer|printer_nozzle/i.test(id))) {
+      throw new Error(`v1.0.4 HIGH-01: centauri_carbon+std_0.4 should NOT trigger nozzle-not-on-printer; got ${okWarnIds.join(',')}`);
+    }
+
+    // getCompatibleNozzlesForPrinter (new helper) — if exposed, verify it dims non-printer nozzles.
+    if (typeof Engine.getCompatibleNozzlesForPrinter === 'function') {
+      const list = Engine.getCompatibleNozzlesForPrinter('pla_basic', 'ender3_v3_se');
+      const std08 = list.find(e => e.id === 'std_0.8');
+      if (std08 && std08.compatible === true) {
+        throw new Error(`v1.0.4 HIGH-01: getCompatibleNozzlesForPrinter should mark std_0.8 incompatible on ender3_v3_se`);
+      }
+      const std04 = list.find(e => e.id === 'std_0.4');
+      if (std04 && std04.compatible !== true) {
+        throw new Error(`v1.0.4 HIGH-01: getCompatibleNozzlesForPrinter should keep std_0.4 compatible on ender3_v3_se`);
+      }
+    }
+
+    console.log(`[v1.0.4 HIGH-01] OK printer × nozzle guard fires for ender3_v3_se+std_0.8 and stays silent for centauri_carbon+std_0.4`);
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo
