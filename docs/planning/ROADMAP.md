@@ -2,7 +2,7 @@
 
 **Purpose:** Live planning surface for 3dpa web + iOS. Active release tracking, current work queue, deferred and parked work, and pointers into archive + spec + session history.
 
-**Last updated:** 2026-05-11 — Configuration-impact QA pass and both cross-pass reviews are complete: Claude pass (29 findings), Codex pass (10 findings), Claude-reviewing-Codex, and Codex-reviewing-Claude all live at `docs/reviews/2026-05-11-config-impact-qa/{claude,codex}.md`. v1.0.4 planning is locked: ship core first; chips are advisory-first; multicolor uses practical tiers; chamber is guard-only; nozzle/material compatibility remains material-side authoritative; numeric material formulas require sourced research. **Next step:** create `docs/reviews/2026-05-11-config-impact-qa/merged.md` as the owner-accepted queue, then start v1.0.4 core implementation. v1.0.3 still in App Review with build `202605101637`; stale builds `202605090842`, `202605101130`, `202605101544` must not be submitted.
+**Last updated:** 2026-05-12 — v1.0.3 is live on the App Store; public lookup showed version `1.0.3` released `2026-05-11T17:00:02Z` after submitted build `202605101637`. User-requested i7 printer support shipped without a new iOS binary via remote overlay `content_version=2026051202`, placed under Creality -> i Series -> i7. v1.0.4 planning remains locked: ship core first; chips are advisory-first; multicolor uses practical tiers; chamber is guard-only; nozzle/material compatibility remains material-side authoritative; numeric material formulas require sourced research. **Next step:** create `docs/reviews/2026-05-11-config-impact-qa/merged.md` as the owner-accepted queue, then start v1.0.4 core implementation.
 
 **Evergreen project context:** [`../3dpa-context.md`](../3dpa-context.md) (architecture, engine API, app state shape, slicer routing, standing rules).
 **Session history:** [`../sessions/INDEX.md`](../sessions/INDEX.md) — reverse-chronological one-line entries; full logs in `../sessions/`.
@@ -15,7 +15,7 @@
 | Area | Status |
 |---|---|
 | **Web app** | Live worldwide at [3dprintassistant.com](https://3dprintassistant.com). Cloudflare Workers/Assets deploys from `main`. Feedback → Discord `#web-app-feedback` via `/api/feedback`. Owner analytics dashboard live at `/analytics` (admin token required) with side-by-side/filterable Web vs iOS views. |
-| **iOS app** | Live worldwide on App Store, dark mode only. v1.0.2 released 2026-04-24. v1.0.3 is submitted to App Review as of 2026-05-10 with replacement build `202605101637` after phone QA passed. Earlier builds `202605090842`, `202605101130`, and `202605101544` are stale. EU unblocked 2026-04-27. |
+| **iOS app** | Live worldwide on App Store, dark mode only. v1.0.3 is live since 2026-05-11 after submitted build `202605101637`; public App Store lookup showed version `1.0.3` released `2026-05-11T17:00:02Z`. Remote printer overlay `content_version=2026051202` is live and adds i7 under Creality / i Series for current 1.0.3 clients without a new binary. Earlier builds `202605090842`, `202605101130`, and `202605101544` are stale. EU unblocked 2026-04-27. |
 | **Engine** | Web is master — edit there, `cp` byte-identical to iOS. Walkthrough harness + iOS XCTest re-run after every engine/data edit. Latest profile-temperature audit added nozzle-cap clamps across simple output, advanced output, warnings, and export paths. |
 | **Export** | Engine + bridge done. Web UI **disabled** (Bambu Studio rejected `.json`). iOS UI **hidden** (deferred post-release). Re-enabling tracked under Phase 2.7a in Deferred / Parked Work. |
 
@@ -23,7 +23,7 @@
 
 ## Active Release: v1.0.3
 
-5-item v1.0.3 batch across web + iOS; **3/5 shipped into the submitted App Review build** (items 1 + 3 + 4 — see status table below). Owner pivoted from DQ-3 to this batch on 2026-05-08. Cross-AI collaboration remains available via [`../ai-collab.md`](../ai-collab.md), but research/review packets are optional and risk-based, not a mandatory pilot workflow. Submitted build `202605101637` also includes the remote printer catalog hardening pass, profile-temperature/nozzle-cap audit fixes, and the Advanced filament temperature UI fix. Items 2 + 5 are post-v1.0.3 work unless owner explicitly reopens scope after Apple review.
+5-item v1.0.3 batch across web + iOS; **3/5 shipped into the live App Store build** (items 1 + 3 + 4 — see status table below). Owner pivoted from DQ-3 to this batch on 2026-05-08. Cross-AI collaboration remains available via [`../ai-collab.md`](../ai-collab.md), but research/review packets are optional and risk-based, not a mandatory pilot workflow. Released build `202605101637` also includes the remote printer catalog hardening pass, profile-temperature/nozzle-cap audit fixes, and the Advanced filament temperature UI fix. Items 2 + 5 are post-v1.0.3 work unless owner explicitly reopens scope.
 
 | # | Item | Platform | Status |
 |---|---|---|---|
@@ -41,7 +41,7 @@
 | Phase B — Research handovers | 🟨 Partial (handover #2 drafted; #3 sent + responded; #4 intentionally implemented directly after privacy plan; item 5 doesn't need Gemini). |
 | Phase C — Codex design packets | 🟨 Partial (item 3 design + post-impl complete; item 4 implemented with focused local tests; items 2 / 5 not started). |
 | Phase D — Implementation | 🟨 Partial (items 1 + 3 + 4 implemented; items 2 / 5 not started). |
-| Phase E — Ship cycle | 🟩 Submitted to App Review on 2026-05-10 with replacement build `202605101637` after phone QA passed. `High-speed` remains the Bambu picker label because it fits on iPhone SE and avoids brittle marketed speed numbers in picker chrome. Items 2 / 5 not yet built and parked post-v1.0.3. |
+| Phase E — Ship cycle | 🟩 Released on the App Store 2026-05-11 after replacement build `202605101637` passed review. `High-speed` remains the Bambu picker label because it fits on iPhone SE and avoids brittle marketed speed numbers in picker chrome. Items 2 / 5 not yet built and parked post-v1.0.3. |
 
 ---
 
@@ -50,10 +50,10 @@
 > Live, actionable items. Pick the next one based on owner priority.
 
 - **v1.0.3 batch items 2 / 5** — see Active Release section above.
-- **v1.0.3 App Review monitoring** — owner submitted build `202605101637` on 2026-05-10. Wait for Apple. If approved, manually release and monitor `/analytics`, feedback, Sentry, and App Store reviews. If rejected, triage the rejection notice first; do not start post-v1.0.3 cleanup until the review path is stable.
+- **v1.0.3 live monitoring** — version `1.0.3` is live since 2026-05-11. Monitor `/analytics`, feedback, Sentry, App Store reviews, and any owner/user reports from the remote printer overlay path.
 - **v1.0.4 config-impact core prep.** Both QA passes and both cross-pass sections are complete at `docs/reviews/2026-05-11-config-impact-qa/{claude,codex}.md`. Owner-locked planning defaults: core-first release; advisory-first chip contract; practical MCS tiers (`none`, `ams_lite`, full AMS-like, `cfs`, generic non-AMS); chamber guard-only; material-side nozzle authority; research before numeric material formulas. **Next step:** create `docs/reviews/2026-05-11-config-impact-qa/merged.md` as the owner-accepted queue. Core implementation order after that: strength `speed_multiplier`; environment data layer/copy; runtime physical nozzle/plate guards then UI filters; multicolor practical tiers; chamber safe-cap guard; nozzle min-diameter warning cleanup. Rest backlog stays visible in `merged.md`.
 - **Profile/data change gate** — use [`../runbooks/profile-data-change-test-protocol.md`](../runbooks/profile-data-change-test-protocol.md) before future engine/data/warning/export pushes. Default gate: `validate-data`, profile matrix audit, iOS sync/tests when relevant, and a tiny UI smoke only for visible changes.
-- **Remote printer catalog operations** — future missing-printer additions can ship by editing `catalog/ios-printer-overlay-v1.json`, bumping `content_version`, updating `payload_sha256`, running `node scripts/validate-ios-printer-overlay.js`, and deploying web. Keep remote payload data-only: brands/printers only, no engine/rules/materials/nozzles/UI.
+- **Remote printer catalog operations** — future missing-printer additions can ship by editing `catalog/ios-printer-overlay-v1.json`, bumping `content_version`, updating `payload_sha256`, running `node scripts/validate-ios-printer-overlay.js`, and deploying web. Keep remote payload data-only: brands/printers only, no engine/rules/materials/nozzles/UI. Latest live overlay is `content_version=2026051202`, adding i7 under existing Creality / i Series with no new standalone brand; current iOS applies fetched overlays on the next launch.
 - **Analytics dashboard observation** — after real traffic accumulates, read `/analytics` (admin token) using the Product lens: `All` for side-by-side Web/iOS comparison, `Web` or `iOS` for single-surface inspection. Watch generated profiles, app opens, feedback opens, release adoption, profile combinations, mode mix, printers/materials, and mobile diagnostics. Ignore setup rows with appVersion values like `setup-test`, `setup-test-2`, `setup-output-mode` from 2026-05-09 setup.
 - **`[CRITICAL-001-followup]`** — Worker `/api/feedback` currently routes iOS + web to single `DISCORD_WEBHOOK_URL` → `#web-app-feedback`. Branch on `payload.context.appSource === "ios"` to a separate `DISCORD_WEBHOOK_URL_IOS` env var so iOS feedback lands in `#ios-app-feedback` as originally intended. Scope: ~15 LoC in `functions/api/feedback.js` + new Cloudflare secret + new iOS-channel webhook + redeploy. No iOS binary change. v1.0.3-safe. Filed 2026-04-23. `[Web/Worker]`
 - **`[LOW-011]` Feedback email visibility** — (a) web copy parity helper text under email field matching iOS copy ("Leave it blank to stay anonymous. If provided, we may reply.") + new `fbEmailHelp` key in en/da; (b) Worker reorder of `Reply-to email` to top of Discord embed (currently `functions/api/feedback.js:259`). ~10 LoC web-only. Noticed 2026-04-27 after first iOS feedback received without email. `[Web]`
@@ -77,7 +77,7 @@ Surfaced 2026-05-11 cold-start and configuration-impact QA. Both independent pas
 
 ### Post-v1.0.3 safe-follow-up todo list
 
-These are Claude/Codex review findings explicitly classified as **not release blockers** for v1.0.3. Do not disturb the App Review submission for these unless Apple rejects the build for a related reason.
+These are Claude/Codex review findings explicitly classified as **not release blockers** for v1.0.3. Do not disturb the live v1.0.3 binary solely for these; schedule them into v1.0.4 or later unless owner priority changes.
 
 | Priority | Item | Scope |
 |---|---|---|
