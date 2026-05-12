@@ -80,6 +80,8 @@ Reject the overlay before cache write when:
 
 Unknown fields are ignored by the app and rejected by the web-side validation script before deploy. Remote overlays may not include engine-consumed optional fields unless the Swift validator explicitly supports them.
 
+Deploy validation checks bundled-ID collisions against the shipped iOS catalog baseline for `min_app_version`, not against the current web `data/printers.json`. This allows web to bundle a printer immediately while iOS v1.0.3 receives the same printer through the additive remote overlay.
+
 `content_version` follows the `YYYYMMDDXX` scheme and is capped at `2099-12-31-99` (`2_099_123_199`) by both deploy validation and the iOS provider. Values above the ceiling are treated as invalid poisoned-cache defense.
 
 ## Promotion From Overlay To Bundled
@@ -91,6 +93,8 @@ When a printer or brand shipped through the overlay becomes stable enough to bun
 3. Run the overlay validator and deploy web before shipping the replacement TestFlight.
 
 Order matters. For a real printer or brand promotion, the bundled binary must ship before the overlay row is removed; otherwise devices still on the older binary can fetch the smaller overlay, cache it, and lose the printer on next launch. Practical rule: do not remove a real overlay row until the bundled binary has been live long enough for normal auto-update uptake. The 2026-05-10 empty-overlay corrective deploy is the narrow exception because build `202605101130` is superseded/TestFlight-only and must not be submitted or used as the release candidate.
+
+If a printer is already in the iOS development branch but not in the public App Store binary, keep it in the remote overlay until the binary that bundles it is actually released. Before adding additional overlay-only printers after that release, publish a higher `content_version` overlay that removes any IDs now bundled by the public binary, or the newer app will reject the whole overlay due to bundled-ID collision.
 
 ## Rollback Plan
 
