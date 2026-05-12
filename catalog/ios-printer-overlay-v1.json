@@ -1,12 +1,56 @@
 {
-  "content_version": 2026051004,
+  "content_version": 2026051201,
   "enabled": true,
-  "generated_at": "2026-05-10T12:00:00Z",
+  "generated_at": "2026-05-12T19:36:08.536Z",
   "min_app_version": "1.0.3",
   "payload": {
-    "brands": [],
-    "printers": []
+    "brands": [
+      {
+        "id": "sparkx",
+        "name": "SPARKX",
+        "sort_order": 13,
+        "primary": false,
+        "default_slicer": "orcaslicer"
+      }
+    ],
+    "printers": [
+      {
+        "id": "sparkx_i7",
+        "name": "i7",
+        "manufacturer": "sparkx",
+        "series": "bedslinger",
+        "series_group": "i Series",
+        "enclosure": "none",
+        "active_chamber_heating": false,
+        "extruder_type": "direct_drive",
+        "max_nozzle_temp": 300,
+        "max_bed_temp": 100,
+        "max_speed": 500,
+        "max_acceleration": 10000,
+        "has_lidar": false,
+        "has_camera": true,
+        "multi_color_systems": [
+          "cfs_lite"
+        ],
+        "available_plates": [
+          "textured_pei"
+        ],
+        "available_nozzle_sizes": [
+          0.2,
+          0.4,
+          0.6,
+          0.8
+        ],
+        "open_door_threshold_bed_temp": null,
+        "notes": [
+          "Open-frame Cartesian bed-slinger — 260×260×255mm build volume",
+          "CFS Lite supports up to 4-color printing; CFS Mini is automatic refill only",
+          "Quick-swap hardened hotend — 0.4mm installed, 0.2/0.6/0.8 available",
+          "ABS, ASA, PC, PA and other high-temperature filaments are not recommended on the open frame"
+        ]
+      }
+    ]
   },
-  "payload_sha256": "8215559455fffda32cfcba51264fa2afe88bae61ff7969a8e7dda082117bbd2d",
+  "payload_sha256": "0d10067e27c2b52a16e2477b28a0b55f3e050749b627a94a8644982f2cd83c70",
   "schema_version": 1
 }
