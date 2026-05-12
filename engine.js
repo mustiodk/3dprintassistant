@@ -2480,7 +2480,7 @@ const Engine = (() => {
       return {
         ...entry,
         compatible: entry.compatible && onPrinter,
-        not_on_printer: entry.compatible && !onPrinter,
+        not_on_printer: !onPrinter,
       };
     });
   }
