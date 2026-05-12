@@ -1241,6 +1241,13 @@ const Engine = (() => {
       // v1.0.4 HIGH-07 — S()-wrapped emissions for the env-aware fields. The
       // walkthrough harness + future iOS / web consumers read these. Existing
       // plain-string keys above stay for app.js back-compat.
+      // Dual emission: legacy plain-string keys above (initial_layer_bed_temp,
+      // cooling_fan_min) are read by app.js; new S()-wrapped keys below
+      // (bed_temperature_initial_layer, fan_max_speed, fan_min_speed) carry
+      // provenance + env scaling for the walkthrough harness, iOS bridge, and
+      // future export work. Migration target: app.js reads .value from S-wrapped
+      // keys, legacy plain strings retire. Until then: keep both in sync; legacy
+      // cooling_fan_min is unscaled by design (S-wrapped fan_min_speed is env-scaled).
       bed_temperature_initial_layer: S(`${initBed}`,
         bedFirstLayerEnvAdj > 0
           ? `Bed first-layer raised +${bedFirstLayerEnvAdj}°C for cold environment to improve adhesion.`
@@ -1552,7 +1559,7 @@ const Engine = (() => {
             // alone — keeps the assertion-friendly contract that any "+N°C
             // first-layer bed" claim matches the emitted bed_first_layer_adj.
             warnings.push(w(`env_${env.id}_bed_first_layer`,
-              `Cold-environment first-layer bed compensation: +${env.bed_first_layer_adj}°C applied to first-layer bed temperature.`,
+              `${env.name} first-layer bed compensation: +${env.bed_first_layer_adj}°C applied to first-layer bed temperature.`,
               'Improves first-layer adhesion when the chamber is cool. Bed returns to base temp from layer 2 onwards.',
               ''));
           }
@@ -2483,6 +2490,7 @@ const Engine = (() => {
     brim_width:                'brim_width',
     ironing:                   'ironing_type',
     slow_down_tall:            'enable_height_slowdown',
+    // TODO(v1.0.4-export): draft_shield → enable_draft_shield mapping missing. See ROADMAP "IR-deferred export-path findings".
   };
 
   // BS fields that need array wrapping: ["value"] instead of "value"
@@ -2852,6 +2860,7 @@ const Engine = (() => {
     if (mvsVal)  filament.filament_max_volumetric_speed = [String(parseFloat(mvsVal))];
 
     // Fan speeds
+    // TODO(v1.0.4-export): env.fan_multiplier scaling not applied here. See ROADMAP "IR-deferred export-path findings".
     if (bs.cooling_fan_min != null) {
       filament.fan_min_speed = [String(parseInt(bs.cooling_fan_min) || 0)];
       filament.fan_max_speed = ['100'];

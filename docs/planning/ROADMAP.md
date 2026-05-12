@@ -168,6 +168,7 @@ These are Claude/Codex review findings explicitly classified as **not release bl
 - [ ] **[MEDIUM-008]** Export-path pattern map duplication — collapse via `mapForSlicer`.
 - [ ] **[LOW-007]** Hoist Bambu preset `version: '2.5.0.14'` to module constant. (Same item appears in IR-5; tracked once here.)
 - [ ] Live Bambu Studio import test (5 combos).
+- [ ] **v1.0.4 env-data export propagation** — `exportBambuStudioJSON` reads `material.base_settings.cooling_fan_min` directly (engine.js:~2855) and lacks a `BAMBU_PROCESS_MAP` entry for `draft_shield` (engine.js:~2445-2487). When export is re-enabled, mirror Task 2's env-data wiring into the export path: scale fan emissions by `env.fan_multiplier`, add `draft_shield → enable_draft_shield` to `BAMBU_PROCESS_MAP` with `'Enabled' → 'enabled'` mapping. Surfaced 2026-05-13 in Task 2 code review (`f7b34f1` follow-up). `[Web]`
 
 ### Phase 2.7b — Web rendering of explanatory descriptions
 

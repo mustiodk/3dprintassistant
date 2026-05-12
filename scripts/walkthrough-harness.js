@@ -577,14 +577,16 @@ const COMBOS = [
     // 1) bed_first_layer_adj wired into advanced filament settings (cold = +7°C bed first-layer)
     const advNormal = adv({ ...base, environment: 'normal' });
     const advCold = adv({ ...base, environment: 'cold' });
-    const bedNormal = parseFloat(advNormal.bed_temperature_initial_layer?.value ?? advNormal.bed_temperature?.value);
-    const bedCold = parseFloat(advCold.bed_temperature_initial_layer?.value ?? advCold.bed_temperature?.value);
+    const bedNormal = parseFloat(advNormal.bed_temperature_initial_layer.value);
+    const bedCold = parseFloat(advCold.bed_temperature_initial_layer.value);
     if (!(bedCold > bedNormal)) throw new Error(`v1.0.4 HIGH-07: cold first-layer bed (${bedCold}) should exceed normal (${bedNormal}) by env.bed_first_layer_adj`);
+    if (bedCold - bedNormal !== 7) throw new Error(`v1.0.4 HIGH-07: expected +7°C from env.cold.bed_first_layer_adj, got +${bedCold - bedNormal}`);
 
     // 2) fan_multiplier wired into cooling fan emission (cold = 0.9× of normal)
-    const fanNormal = parseFloat(advNormal.fan_max_speed?.value ?? advNormal.cooling_fan_max?.value);
-    const fanCold = parseFloat(advCold.fan_max_speed?.value ?? advCold.cooling_fan_max?.value);
+    const fanNormal = parseFloat(advNormal.fan_max_speed.value);
+    const fanCold = parseFloat(advCold.fan_max_speed.value);
     if (!(fanCold < fanNormal)) throw new Error(`v1.0.4 HIGH-07: cold fan max (${fanCold}) should be lower than normal (${fanNormal}) by env.fan_multiplier`);
+    if (Math.round(fanCold) !== Math.round(fanNormal * 0.9)) throw new Error(`v1.0.4 HIGH-07: expected fanCold = round(fanNormal * 0.9) = ${Math.round(fanNormal * 0.9)}, got ${fanCold} (fanNormal=${fanNormal})`);
 
     // 3) force_draft_shield wired into profile output for cold/vcold env
     const profCold = profile({ ...base, environment: 'cold' });
