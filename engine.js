@@ -1985,7 +1985,7 @@ const Engine = (() => {
 
       // v1.0.4 — Strength speed multiplier (HIGH-09 / HIGH-04). Apply Strong/Maximum
       // slowdown to walls before material/printer/MVS caps clamp it further.
-      const strengthSlow = (strength && typeof strength.speed_multiplier === 'number')
+      const strengthSlow = (strength && Number.isFinite(strength.speed_multiplier) && strength.speed_multiplier > 0)
         ? strength.speed_multiplier
         : 1.0;
       if (strengthSlow !== 1.0) {

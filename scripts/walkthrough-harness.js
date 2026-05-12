@@ -546,6 +546,9 @@ const COMBOS = [
     const std = pickSpeed({ ...base, strength: 'standard' }, 'outer_wall_speed');
     const strong = pickSpeed({ ...base, strength: 'strong' }, 'outer_wall_speed');
     const max = pickSpeed({ ...base, strength: 'maximum' }, 'outer_wall_speed');
+    if (std !== 100) throw new Error(`v1.0.4 HIGH-09: expected std outer=100 on X1C+PLA+balanced, got ${std}`);
+    if (strong !== 90) throw new Error(`v1.0.4 HIGH-09: expected strong outer=90 (100*0.9), got ${strong}`);
+    if (max !== 80) throw new Error(`v1.0.4 HIGH-09: expected maximum outer=80 (100*0.8), got ${max}`);
     if (!(strong < std)) throw new Error(`v1.0.4 HIGH-09: strong outer (${strong}) should be < standard (${std}) on X1C+PLA+balanced`);
     if (!(max < strong)) throw new Error(`v1.0.4 HIGH-09: maximum outer (${max}) should be < strong (${strong}) on X1C+PLA+balanced`);
     const stdInner = pickSpeed({ ...base, strength: 'standard' }, 'inner_wall_speed');
