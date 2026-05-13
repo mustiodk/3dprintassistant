@@ -1,0 +1,1303 @@
+diff --git a/data/nozzles.json b/data/nozzles.json
+index c2041ab..0e7467a 100644
+--- a/data/nozzles.json
++++ b/data/nozzles.json
+@@ -7,19 +7,6 @@
+       "hardened": false,
+       "material": "stainless_steel",
+       "temp_offset": 0,
+-      "suitable_for": [
+-        "pla_basic",
+-        "pla_silk",
+-        "pla_matte",
+-        "pla_metal",
+-        "petg_basic",
+-        "pva"
+-      ],
+-      "not_suitable_for": [
+-        "pla_cf",
+-        "petg_cf",
+-        "pa_cf"
+-      ],
+       "notes": "Fine detail nozzle. Good for miniatures and detailed prints. Not suitable for abrasive or composite filaments."
+     },
+     {
+@@ -29,20 +16,7 @@
+       "hardened": false,
+       "material": "stainless_steel",
+       "temp_offset": 0,
+-      "suitable_for": [
+-        "pla_basic",
+-        "pla_silk",
+-        "pla_matte",
+-        "pla_metal",
+-        "petg_basic",
+-        "pva"
+-      ],
+-      "not_suitable_for": [
+-        "pla_cf",
+-        "petg_cf",
+-        "pa_cf"
+-      ],
+-      "notes": "Ultra-fine detail for miniatures and precision parts. NEVER use with CF/GF or composite filaments \u2014 immediate clogging."
++      "notes": "Ultra-fine detail for miniatures and precision parts. NEVER use with CF/GF or composite filaments — immediate clogging."
+     },
+     {
+       "id": "hrd_0.2",
+@@ -51,20 +25,7 @@
+       "hardened": true,
+       "material": "hardened_steel",
+       "temp_offset": 7,
+-      "suitable_for": [
+-        "pla_basic",
+-        "pla_silk",
+-        "pla_matte",
+-        "pla_metal",
+-        "pla_cf",
+-        "petg_basic",
+-        "petg_cf",
+-        "abs",
+-        "asa",
+-        "pa_cf"
+-      ],
+-      "not_suitable_for": [],
+-      "notes": "Fine detail hardened nozzle. Can handle CF/GF filaments at small diameter. Lower thermal conductivity \u2014 temp offset applied."
++      "notes": "Fine detail hardened nozzle. Can handle CF/GF filaments at small diameter. Lower thermal conductivity — temp offset applied."
+     },
+     {
+       "id": "std_0.4",
+@@ -72,23 +33,6 @@
+       "size": 0.4,
+       "material": "stainless_steel",
+       "temp_offset": 0,
+-      "suitable_for": [
+-        "pla_basic",
+-        "pla_silk",
+-        "pla_matte",
+-        "pla_metal",
+-        "petg_basic",
+-        "petg_hf",
+-        "tpu_95a",
+-        "tpu_90a",
+-        "tpu_85a",
+-        "pva"
+-      ],
+-      "not_suitable_for": [
+-        "pla_cf",
+-        "petg_cf",
+-        "pa_cf"
+-      ],
+       "notes": "Default nozzle on most Bambu Lab printers. Excellent thermal conductivity. Wears with abrasive filaments.",
+       "hardened": false
+     },
+@@ -99,24 +43,7 @@
+       "hardened": true,
+       "material": "hardened_steel",
+       "temp_offset": 7,
+-      "suitable_for": [
+-        "pla_basic",
+-        "pla_silk",
+-        "pla_matte",
+-        "pla_metal",
+-        "pla_cf",
+-        "petg_basic",
+-        "petg_hf",
+-        "petg_cf",
+-        "abs",
+-        "asa",
+-        "tpu_95a",
+-        "tpu_90a",
+-        "tpu_85a",
+-        "pa_cf"
+-      ],
+-      "not_suitable_for": [],
+-      "notes": "Required for CF/GF filaments. Lower thermal conductivity than brass \u2014 +5-10\u00b0C temp offset applied automatically."
++      "notes": "Required for CF/GF filaments. Lower thermal conductivity than brass — +5-10°C temp offset applied automatically."
+     },
+     {
+       "id": "std_0.6",
+@@ -125,26 +52,6 @@
+       "hardened": false,
+       "material": "stainless_steel",
+       "temp_offset": 0,
+-      "suitable_for": [
+-        "pla_basic",
+-        "pla_silk",
+-        "pla_matte",
+-        "pla_metal",
+-        "petg_basic",
+-        "petg_hf",
+-        "abs",
+-        "asa",
+-        "tpu_95a",
+-        "tpu_90a",
+-        "tpu_85a",
+-        "pva",
+-        "hips"
+-      ],
+-      "not_suitable_for": [
+-        "pla_cf",
+-        "petg_cf",
+-        "pa_cf"
+-      ],
+       "notes": "Larger nozzle for faster prints. Good balance of speed and quality. Wears with abrasive filaments."
+     },
+     {
+@@ -154,28 +61,7 @@
+       "hardened": true,
+       "material": "hardened_steel",
+       "temp_offset": 7,
+-      "suitable_for": [
+-        "pla_basic",
+-        "pla_silk",
+-        "pla_matte",
+-        "pla_metal",
+-        "pla_cf",
+-        "petg_basic",
+-        "petg_hf",
+-        "petg_cf",
+-        "abs",
+-        "asa",
+-        "tpu_95a",
+-        "tpu_90a",
+-        "tpu_85a",
+-        "pa",
+-        "pa_cf",
+-        "pc",
+-        "pet_cf",
+-        "hips"
+-      ],
+-      "not_suitable_for": [],
+-      "notes": "Recommended for CF/GF filaments \u2014 larger opening reduces clogging risk from fibers. Significantly faster print speeds possible."
++      "notes": "Recommended for CF/GF filaments — larger opening reduces clogging risk from fibers. Significantly faster print speeds possible."
+     },
+     {
+       "id": "std_0.8",
+@@ -184,26 +70,6 @@
+       "hardened": false,
+       "material": "stainless_steel",
+       "temp_offset": 0,
+-      "suitable_for": [
+-        "pla_basic",
+-        "pla_silk",
+-        "pla_matte",
+-        "pla_metal",
+-        "petg_basic",
+-        "petg_hf",
+-        "abs",
+-        "asa",
+-        "tpu_95a",
+-        "tpu_90a",
+-        "tpu_85a",
+-        "pva",
+-        "hips"
+-      ],
+-      "not_suitable_for": [
+-        "pla_cf",
+-        "petg_cf",
+-        "pa_cf"
+-      ],
+       "notes": "High-flow nozzle for rapid prototyping and large prints. Sacrifices fine detail for significant speed gains."
+     },
+     {
+@@ -213,28 +79,7 @@
+       "hardened": true,
+       "material": "hardened_steel",
+       "temp_offset": 7,
+-      "suitable_for": [
+-        "pla_basic",
+-        "pla_silk",
+-        "pla_matte",
+-        "pla_metal",
+-        "pla_cf",
+-        "petg_basic",
+-        "petg_hf",
+-        "petg_cf",
+-        "abs",
+-        "asa",
+-        "tpu_95a",
+-        "tpu_90a",
+-        "tpu_85a",
+-        "pa",
+-        "pa_cf",
+-        "pc",
+-        "pet_cf",
+-        "hips"
+-      ],
+-      "not_suitable_for": [],
+-      "notes": "High-flow hardened nozzle. Ideal for fast printing with abrasive filaments. Lower thermal conductivity \u2014 temp offset applied."
++      "notes": "High-flow hardened nozzle. Ideal for fast printing with abrasive filaments. Lower thermal conductivity — temp offset applied."
+     }
+   ]
+ }
+diff --git a/engine.js b/engine.js
+index 38bcf36..4d6bcc9 100644
+--- a/engine.js
++++ b/engine.js
+@@ -198,17 +198,10 @@ const Engine = (() => {
+       });
+     });
+ 
+-    // Soft: nozzle.not_suitable_for refs (MEDIUM-018). Accept either a
+-    // material id or a case-insensitive material.group name.
+-    const materialIds = new Set(_materials.map(m => m.id));
+-    const materialGroups = new Set(_materials.map(m => m.group && m.group.toLowerCase()).filter(Boolean));
+-    _nozzles.forEach(n => {
+-      (n.not_suitable_for || []).forEach(ref => {
+-        if (!materialIds.has(ref) && !materialGroups.has(String(ref).toLowerCase())) {
+-          warnings.push(`nozzle "${n.id}" not_suitable_for references unknown material/group "${ref}"`);
+-        }
+-      });
+-    });
++    // (retired v1.0.4 HIGH-06) Soft: nozzle.not_suitable_for / suitable_for
++    //   schema check — nozzle-side authority dropped per owner default 5.
++    //   Material-side nozzle_requirements is now the sole authority and is
++    //   already validated by the materials/nozzle-requirements check above.
+ 
+     // Soft: max_mvs / k_factor_matrix key alignment (MEDIUM-019 — partial fix)
+     _materials.forEach(m => {
+@@ -581,7 +574,7 @@ const Engine = (() => {
+       {
+         id: 'others', label: 'Others', desc: 'Brim, prime tower, purge options, and special print modes.',
+         sections: [
+-          { label: 'Bed adhesion',  params: ['brim_width'] },
++          { label: 'Bed adhesion',  params: ['brim_width', 'draft_shield'] },
+           { label: 'Prime tower',   params: ['prime_tower'] },
+           { label: 'Purge options', params: ['flush_into_infill'] },
+           { label: 'Special mode',  params: ['slow_down_tall'] },
+@@ -625,7 +618,7 @@ const Engine = (() => {
+       {
+         id: 'others', label: 'Others', desc: 'Skirt, brim, wipe tower, and advanced print options.',
+         sections: [
+-          { label: 'Skirt and brim',  params: ['brim_width'] },
++          { label: 'Skirt and brim',  params: ['brim_width', 'draft_shield'] },
+           { label: 'Wipe tower',      params: ['prime_tower'] },
+           { label: 'Advanced',        params: ['flush_into_infill', 'slow_down_tall'] },
+         ],
+@@ -673,7 +666,7 @@ const Engine = (() => {
+         id: 'others', label: 'Others', desc: 'Skirt, brim, prime tower, flush options, and special modes.',
+         sections: [
+           { label: 'Skirt',          params: [] },
+-          { label: 'Brim',           params: ['brim_width'] },
++          { label: 'Brim',           params: ['brim_width', 'draft_shield'] },
+           { label: 'Prime tower',    params: ['prime_tower'] },
+           { label: 'Flush options',  params: ['flush_into_infill'] },
+           { label: 'Special mode',   params: ['slow_down_tall'] },
+@@ -732,6 +725,7 @@ const Engine = (() => {
+       retraction_speed:              'Retraction speed',
+       pressure_advance:              'Pressure advance',
+       fan_speed:                     'Fan speed',
++      draft_shield:                  'Draft shield',
+     },
+     prusaslicer: {
+       layer_height:                  'Layer height',
+@@ -780,6 +774,7 @@ const Engine = (() => {
+       retraction_speed:              'Retraction speed',
+       pressure_advance:              'Pressure advance',
+       fan_speed:                     'Fan speed',
++      draft_shield:                  'Draft shield',
+     },
+     orcaslicer: {
+       layer_height:                  'Layer height',
+@@ -828,6 +823,7 @@ const Engine = (() => {
+       retraction_speed:              'Retraction speed',
+       pressure_advance:              'Pressure advance',
+       fan_speed:                     'Fan speed',
++      draft_shield:                  'Draft shield',
+     },
+   };
+ 
+@@ -963,6 +959,37 @@ const Engine = (() => {
+     return n;
+   }
+ 
++  // v1.0.4 — Practical MCS tier resolver. Returns one of:
++  //   'none' | 'ams_lite' | 'ams_like' | 'cfs' | 'generic_non_ams'
++  // Replaces the binary "has any multi_color_systems entry" check at the three
++  // sites that previously emitted AMS-flavored copy / prime_tower / checklist
++  // text regardless of the actual hardware (HIGH-03 system-type bundle).
++  // Order matters: ams_lite is detected BEFORE ams_like so a hypothetical
++  // printer that listed both classifies as ams_lite (the more restrictive feed
++  // path wins for material-gating purposes).
++  function _mcsTier(printer) {
++    const systems = Array.isArray(printer?.multi_color_systems) ? printer.multi_color_systems : [];
++    if (systems.length === 0) return 'none';
++    if (systems.includes('ams_lite')) return 'ams_lite';
++    if (systems.some(s => s === 'ams' || s === 'ams_2_pro' || s === 'ams_ht')) return 'ams_like';
++    if (systems.some(s => s === 'cfs' || s === 'cfs_lite')) return 'cfs';
++    return 'generic_non_ams'; // mmu3 / ace / idex / toolchanger / filament_hub / etc.
++  }
++
++  // Display-name map for the generic_non_ams tier's user-visible sysLabel.
++  // Keeps user copy in proper case ('Filament Hub', 'Toolchanger') instead of
++  // leaking data-key spelling ('FILAMENT_HUB'). Fallback below replaces
++  // underscores with spaces + uppercases — graceful handling for future
++  // unknown system IDs.
++  const _GENERIC_MCS_LABELS = {
++    mmu3: 'MMU3',
++    ace: 'ACE',
++    idex: 'IDEX',
++    toolchanger: 'Toolchanger',
++    filament_hub: 'Filament Hub',
++    ams_ht: 'AMS HT', // shouldn't reach here (caught by ams_like), but defensive
++  };
++
+   function _nozzleTempCap(material, printer) {
+     const bs = material && material.base_settings;
+     if (!bs) return null;
+@@ -1190,10 +1217,14 @@ const Engine = (() => {
+     const isPETG       = mat.group === 'PETG';
+     const nozzleAdj    = (env ? (env.nozzle_adj || 0) : 0) + (nozzle ? (nozzle.temp_offset || 0) : 0);
+     const bedAdj       = env ? (env.bed_adj || 0) : 0;
++    // v1.0.4 HIGH-07 — cold env first-layer bed boost. env.bed_first_layer_adj
++    // applies only to the initial layer (not subsequent layers) — matches the
++    // data file's intent of helping adhesion when ambient is cold.
++    const bedFirstLayerEnvAdj = env && Number.isFinite(env.bed_first_layer_adj) ? env.bed_first_layer_adj : 0;
+ 
+     let   initNozzle  = bs.nozzle_temp_base + nozzleAdj + (bs.initial_layer_nozzle_offset || 5);
+     let   otherNozzle = bs.nozzle_temp_base + nozzleAdj;
+-    let   initBed     = bs.bed_temp_base + bedAdj + (bs.initial_layer_bed_offset || 0) + (isPETG ? 5 : 0);
++    let   initBed     = bs.bed_temp_base + bedAdj + (bs.initial_layer_bed_offset || 0) + (isPETG ? 5 : 0) + bedFirstLayerEnvAdj;
+     let   otherBed    = bs.bed_temp_base + bedAdj;
+ 
+     // Clamp bed targets to min(material.bed_temp_max, printer.max_bed_temp). A
+@@ -1209,7 +1240,17 @@ const Engine = (() => {
+     initNozzle  = _clampNozzleTemp(initNozzle,  mat, printer);
+     otherNozzle = _clampNozzleTemp(otherNozzle, mat, printer);
+ 
+-    return {
++    // v1.0.4 HIGH-07 — fan_multiplier from env scales cooling fan emission.
++    // Mirror Task 1's hardening (speed_multiplier): guard against malformed
++    // data with Number.isFinite + > 0.
++    const fanMult = Number.isFinite(env?.fan_multiplier) && env.fan_multiplier > 0 ? env.fan_multiplier : 1.0;
++    const fanMaxBase = 100;
++    const fanMaxScaled = Math.round(fanMaxBase * fanMult);
++    const fanMinScaled = bs.cooling_fan_min != null
++      ? Math.round((parseInt(bs.cooling_fan_min) || 0) * fanMult)
++      : null;
++
++    const result = {
+       initial_layer_temp:     `${initNozzle} °C`,
+       other_layers_temp:      `${otherNozzle} °C`,
+       initial_layer_bed_temp: `${initBed} °C`,
+@@ -1221,11 +1262,38 @@ const Engine = (() => {
+       flow_ratio:             String(bs.flow_ratio       ?? '—'),
+       retraction_distance:    `${bs.retraction_distance} mm`,
+       retraction_speed:       `${bs.retraction_speed} mm/s`,
++      // v1.0.4 HIGH-07 — S()-wrapped emissions for the env-aware fields. The
++      // walkthrough harness + future iOS / web consumers read these. Existing
++      // plain-string keys above stay for app.js back-compat.
++      // Dual emission: legacy plain-string keys above (initial_layer_bed_temp,
++      // cooling_fan_min) are read by app.js; new S()-wrapped keys below
++      // (bed_temperature_initial_layer, fan_max_speed, fan_min_speed) carry
++      // provenance + env scaling for the walkthrough harness, iOS bridge, and
++      // future export work. Migration target: app.js reads .value from S-wrapped
++      // keys, legacy plain strings retire. Until then: keep both in sync; legacy
++      // cooling_fan_min is unscaled by design (S-wrapped fan_min_speed is env-scaled).
++      bed_temperature_initial_layer: S(`${initBed}`,
++        bedFirstLayerEnvAdj > 0
++          ? `Bed first-layer raised +${bedFirstLayerEnvAdj}°C for cold environment to improve adhesion.`
++          : 'First-layer bed temperature.',
++        { source: bedFirstLayerEnvAdj > 0 ? 'rule' : 'calculated',
++          ref: bedFirstLayerEnvAdj > 0
++            ? 'env.bed_first_layer_adj'
++            : 'bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0), clamped' }),
++      bed_temperature: S(`${otherBed}`,
++        'Bed temperature for layers after the first.',
++        { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' }),
++      fan_max_speed: S(`${fanMaxScaled}`,
++        fanMult !== 1.0
++          ? `Cooling fan reduced to ${Math.round(fanMult * 100)}% of normal for cold environment.`
++          : 'Maximum cooling fan speed.',
++        { source: fanMult !== 1.0 ? 'rule' : 'default',
++          ref: fanMult !== 1.0 ? 'env.fan_multiplier' : 'engine:fan_max_default' }),
+       // [IMPL-041 / DQ-1-followup] provenance sidecar. All fields numeric.
+       _prov: {
+         initial_layer_temp:     { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + initial_layer_nozzle_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
+         other_layers_temp:      { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
+-        initial_layer_bed_temp: { source: 'calculated', ref: 'bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0), clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
++        initial_layer_bed_temp: { source: 'calculated', ref: `bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0)${bedFirstLayerEnvAdj > 0 ? ' + env.bed_first_layer_adj' : ''}, clamped to min(material.bed_temp_max, printer.max_bed_temp)` },
+         other_layers_bed_temp:  { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
+         cooling_fan_min:        { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_min' },
+         cooling_fan_overhang:   { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_overhang' },
+@@ -1236,6 +1304,19 @@ const Engine = (() => {
+         retraction_speed:       { source: 'default',    ref: 'materials.json#base_settings.retraction_speed' },
+       },
+     };
++    // Expose env-scaled fan_min_speed too, so consumers reading the env-aware
++    // surface see the same multiplier applied symmetrically (the plain-string
++    // cooling_fan_min key above remains the unscaled material default).
++    if (fanMinScaled != null) {
++      result.fan_min_speed = S(`${fanMinScaled}`,
++        fanMult !== 1.0
++          ? `Minimum cooling fan reduced to ${Math.round(fanMult * 100)}% of normal for cold environment.`
++          : 'Minimum cooling fan speed.',
++        { source: fanMult !== 1.0 ? 'rule' : 'default',
++          ref: fanMult !== 1.0 ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_min'
++                               : 'materials.json#base_settings.cooling_fan_min' });
++    }
++    return result;
+   }
+ 
+   // ── Pre-print checklist ───────────────────────────────────────────────────────
+@@ -1307,13 +1388,26 @@ const Engine = (() => {
+       });
+     }
+ 
+-    // 6. AMS check for multi-color
+-    if (state.colors && state.colors !== 'single') {
+-      items.push({
+-        text:     'Check AMS filament path and spool seating',
+-        detail:   'Ensure PTFE tubes are connected, spools are correctly seated, and no tangles exist.',
+-        critical: false,
+-      });
++    // 6. Multicolor filament-path check — tier-aware (v1.0.4 HIGH-03).
++    // Empty-MCS printers (tier 'none') get no checklist item — there's no
++    // filament path to check. CFS / generic_non_ams use the system's real
++    // name instead of the misleading "AMS" copy.
++    if (state.colors && state.colors !== 'single' && printer) {
++      const mcsTier = _mcsTier(printer);
++      const tierLabel = {
++        ams_lite:        'AMS Lite',
++        ams_like:        'AMS',
++        cfs:             'CFS',
++        generic_non_ams: 'the multicolor system',
++        none:            null,
++      }[mcsTier];
++      if (tierLabel) {
++        items.push({
++          text:     `Check ${tierLabel} filament path and spool seating`,
++          detail:   'Ensure PTFE tubes are connected, spools are correctly seated, and no tangles exist.',
++          critical: false,
++        });
++      }
+     }
+ 
+     // 7. TPU: use rear spool holder
+@@ -1420,12 +1514,10 @@ const Engine = (() => {
+         'A hardened steel nozzle is required — carbon fibers will destroy standard nozzles within hours.'));
+     }
+ 
+-    // 6. CF material + 0.2mm nozzle
+-    if (material.nozzle_requirements?.min_diameter > 0.2 && nozzle && nozzle.size < material.nozzle_requirements.min_diameter) {
+-      warnings.push(w('cf_small_nozzle',
+-        `Nozzle too small for ${material.name}.`,
+-        `Minimum ${material.nozzle_requirements.min_diameter}mm required — 0.2mm nozzle will clog immediately.`));
+-    }
++    // 6. (retired) cf_small_nozzle — merged into warning #17 below
++    //    (nozzle_below_min_diameter) per v1.0.4 HIGH-12. Same condition,
++    //    parameterized body, generic ID. Material-side nozzle_requirements
++    //    is now the sole authority (owner default 5).
+ 
+     // 7. AMS on TPU
+     if (material.group === 'TPU' && !material.ams_compatible && colors && colors !== 'single') {
+@@ -1466,11 +1558,43 @@ const Engine = (() => {
+         'PLA Matte is designed for this — consider switching material for best results.'));
+     }
+ 
+-    // 9. AMS incompatibility
+-    if (colors && colors !== 'single' && !material.ams_compatible) {
+-      warnings.push(w('ams_incompatible',
+-        `${material.name} is not AMS compatible.`,
+-        'Multi-color printing requires an AMS-compatible filament.'));
++    // 9. Multicolor material-compatibility — tier-aware (v1.0.4 HIGH-03 + ams_lite).
++    // The single binary check (`!material.ams_compatible`) used to apply the same
++    // copy on AMS, AMS Lite, CFS, MMU3, and printers with no MCS at all. The new
++    // logic dispatches on _mcsTier(printer):
++    //   - ams_like  → keep the historical AMS-compat warning (no behavior change
++    //                 for X1C / P1S / AMS HT / AMS 2 Pro).
++    //   - ams_lite  → ams_lite_compatible-gated (treat missing as INCOMPATIBLE).
++    //   - cfs       → CFS-specific guidance, not "AMS" copy.
++    //   - generic_non_ams → tier-label guidance (MMU3 / ACE / IDEX / etc.).
++    //   - none      → covered by the empty-MCS warning below; no material gate.
++    if (colors && colors !== 'single') {
++      const tier = _mcsTier(printer);
++      if (tier === 'ams_like' && !material.ams_compatible) {
++        warnings.push(w('ams_incompatible',
++          `${material.name} is not AMS compatible.`,
++          'Multi-color printing requires an AMS-compatible filament.'));
++      } else if (tier === 'ams_lite' && material.ams_lite_compatible !== true) {
++        // Missing/undefined treated as incompatible — safer default for materials
++        // that haven't been explicitly validated against the AMS Lite feed path.
++        warnings.push(w('ams_lite_material_incompat',
++          `${material.name} can't reliably feed through AMS Lite.`,
++          'AMS Lite has no enclosed feed path — abrasive, brittle, or high-temp materials that work in full AMS may jam or cause skipped colors. Use a single-color setup or pick an AMS Lite-compatible material (PLA, PETG basic).'));
++      } else if (tier === 'cfs') {
++        const systems = Array.isArray(printer.multi_color_systems) ? printer.multi_color_systems : [];
++        const sysLabel = systems.includes('cfs') ? 'CFS' : 'CFS Lite';
++        warnings.push(w('mcs_tier_cfs_guidance',
++          `${printer.name} uses ${sysLabel}, not AMS.`,
++          'Configure purge volumes in Creality Print — Bambu Studio AMS settings do not transfer. Flush behavior and feed reliability differ from AMS.'));
++      } else if (tier === 'generic_non_ams') {
++        const systems = Array.isArray(printer.multi_color_systems) ? printer.multi_color_systems : [];
++        const sysLabel = systems.length
++          ? systems.map(s => _GENERIC_MCS_LABELS[s] || s.replace(/_/g, ' ').toUpperCase()).join(', ')
++          : 'the multicolor system';
++        warnings.push(w('mcs_tier_generic_non_ams_guidance',
++          `${printer.name} uses ${sysLabel}, not AMS.`,
++          'Multi-color setup, purge volumes, and material handling differ from Bambu AMS. Consult the printer’s slicer / multicolor documentation before tuning purge values.'));
++      }
+     }
+ 
+     // 10. Beginner + advanced materials
+@@ -1480,29 +1604,58 @@ const Engine = (() => {
+         `${material.name} requires experience and specific hardware. Consider starting with PLA Basic or PETG Basic.`));
+     }
+ 
+-    // 11. Environment warnings from JSON (plain strings)
++    // 11. Environment warnings.
++    // v1.0.4 HIGH-05 — when the env has compensation values, generate the
++    // first warning line from the same data the engine actually applies, so
++    // the warning copy cannot lie about emitted deltas (the JSON warnings[0]
++    // hardcoded numbers risked drifting from data). Subsequent JSON warnings
++    // (preheat, humidity advice) stay verbatim — they aren't number-claims.
+     const env = getEnv(state.environment);
+     if (env && env.warnings) {
++      const hasCompensation = (env.nozzle_adj || 0) > 0
++                           || (env.bed_first_layer_adj || 0) > 0
++                           || (env.bed_adj || 0) > 0
++                           || (env.first_layer_speed_multiplier != null && env.first_layer_speed_multiplier < 1.0);
+       env.warnings.forEach((msg, i) => {
+-        warnings.push(w(`env_${env.id}_${i}`, msg, '', ''));
++        if (i === 0 && hasCompensation) {
++          const parts = [];
++          if ((env.nozzle_adj || 0) > 0) parts.push(`nozzle +${env.nozzle_adj}°C`);
++          if ((env.bed_adj || 0) > 0)    parts.push(`bed +${env.bed_adj}°C`);
++          if ((env.bed_first_layer_adj || 0) > 0) {
++            // Put first-layer bed in its own warning so the +N°C number stands
++            // alone — keeps the assertion-friendly contract that any "+N°C
++            // first-layer bed" claim matches the emitted bed_first_layer_adj.
++            warnings.push(w(`env_${env.id}_bed_first_layer`,
++              `${env.name} first-layer bed compensation: +${env.bed_first_layer_adj}°C applied to first-layer bed temperature.`,
++              'Improves first-layer adhesion when the chamber is cool. Bed returns to base temp from layer 2 onwards.',
++              ''));
++          }
++          if (env.first_layer_speed_multiplier != null && env.first_layer_speed_multiplier < 1.0) {
++            const pct = Math.round((1 - env.first_layer_speed_multiplier) * 100);
++            parts.push(`first-layer speed reduced ${pct}%`);
++          }
++          const text = parts.length > 0
++            ? `${env.name || 'Environment'} compensation applied — ${parts.join(', ')}.`
++            : msg;
++          warnings.push(w(`env_${env.id}_${i}`, text, '', ''));
++        } else {
++          warnings.push(w(`env_${env.id}_${i}`, msg, '', ''));
++        }
+       });
+     }
+ 
+-    // 12. Creality printer — no multi-color system
+-    if (printer && printer.manufacturer === 'creality' &&
+-        (!printer.multi_color_systems || printer.multi_color_systems.length === 0) &&
+-        colors && colors !== 'single') {
+-      warnings.push(w('creality_no_multicolor',
+-        `${printer.name} has no multi-color system.`,
+-        'This printer requires manual filament swaps for color changes. Automatic color printing is not supported.'));
++    // 12. Empty MCS — printer with no automatic multicolor system + multi-color
++    // selection (v1.0.4 MEDIUM-01 generalization of the old Creality-only check).
++    // Fires for any manufacturer whose multi_color_systems is empty / absent,
++    // so Centauri Carbon, Ender3 V3 SE, etc. now get the same correct warning
++    // the Creality K1 family was getting in isolation.
++    if (printer && _mcsTier(printer) === 'none' && colors && colors !== 'single') {
++      warnings.push(w('mcs_empty_no_multicolor',
++        `${printer.name} has no automatic multicolor system.`,
++        'Multicolor selections won’t translate to slicer output. This printer requires manual filament swaps for color changes; automatic color printing is not supported.'));
+     }
+ 
+-    // 13. Creality CFS note for multi-color — different system from Bambu AMS
+-    if (printer && printer.multi_color_systems?.includes('cfs') && colors && colors !== 'single') {
+-      warnings.push(w('k2_plus_cfs',
+-        `${printer.name} uses Creality CFS, not Bambu AMS.`,
+-        'Configure purge volumes in Creality Print software — Bambu Studio AMS settings do not apply.'));
+-    }
++    // 13. (retired) Creality CFS note — superseded by tier-aware mcs_tier_cfs_guidance above.
+ 
+     // 14. Printer/material nozzle temp caps. Emitted nozzle targets are clamped
+     // by getAdjustedTemps/getAdvancedFilamentSettings; warnings explain why.
+@@ -1532,6 +1685,17 @@ const Engine = (() => {
+         warnings.push(w('material_max_nozzle_temp_clamped',
+           `${material.name} nozzle temperature capped at ${bs.nozzle_temp_max}°C.`,
+           `Nozzle, speed, and initial-layer adjustments requested up to ${highestTarget}°C, above this material's recommended maximum. The emitted profile clamps the nozzle target to stay inside the material range.`));
++
++        // v1.0.4 MEDIUM-05 — when env compensation is contributing to the clamp,
++        // additionally surface an env-attributed warning so the user knows which
++        // input pushed past the cap. Both warnings fire together (cause + cap)
++        // so the user sees both the env trigger and the material constraint.
++        if (envNozzleAdj > 0) {
++          warnings.push(w('env_compensation_capped_by_material',
++            `Cold-environment compensation partially clipped by ${material.name}'s ${bs.nozzle_temp_max}°C nozzle cap.`,
++            `Env compensation asked for +${envNozzleAdj}°C nozzle but ${material.name} caps at ${bs.nozzle_temp_max}°C — the emitted nozzle target reflects the material cap, not the full env adjustment.`,
++            'Switch to a less-compensating environment (e.g. normal/cool) or accept that the cold protection partially clips on this material.'));
++        }
+       }
+     }
+ 
+@@ -1574,6 +1738,21 @@ const Engine = (() => {
+         `Set chamber temp to ${targetChamber}°C before starting — this dramatically reduces warping and delamination.${maxChamber}`));
+     }
+ 
++    // 15a. v1.0.4 HIGH-05 — Chamber safe-cap guard (warning-only per owner default 4).
++    // When the active-chamber printer can heat the chamber above the material's
++    // safe ceiling, warn the user before they enable the heater. No numeric
++    // chamber profile field is emitted; this is guard copy + checklist only.
++    {
++      const matSafeCap = material?.safe_chamber_temp_max
++        ?? material?.enclosure_behavior?.safe_chamber_temp_max;
++      if (printer && printer.active_chamber_heating && matSafeCap != null) {
++        warnings.push(w('chamber_above_material_safe',
++          `${material.name}'s safe chamber max is ${matSafeCap}°C.`,
++          `${printer.name} can heat the chamber and supports up to ${printer.max_chamber_temp ?? '—'}°C. ${material.name} softens above ${matSafeCap}°C and risks bonding to the bed or losing dimensional accuracy.`,
++          `If you use ${printer.name}'s active chamber heater, keep the chamber target at ≤ ${matSafeCap}°C for ${material.name}.`));
++      }
++    }
++
+     // 16. PA strongly recommended enclosure — on open printer
+     if (material.enclosure_behavior?.enclosure_strongly_recommended && printer && printer.enclosure === 'none') {
+       warnings.push(w('pa_open_printer',
+@@ -1581,11 +1760,17 @@ const Engine = (() => {
+         `${material.name} warps significantly without enclosure. Use a brim of 10mm+ and print in a draught-free, warm room. Consider an enclosure upgrade.`));
+     }
+ 
+-    // 17. Nozzle too small for material (e.g. TPU 85A requires 0.6mm+)
++    // 17. v1.0.4 HIGH-12 — Nozzle below material's required min_diameter.
++    // Generic ID + parameterized body using the actual selected nozzle size
++    // and the actual material-required minimum. Subsumes the retired
++    // cf_small_nozzle. Material-side nozzle_requirements is authoritative
++    // (owner default 5); no per-nozzle suitable_for / not_suitable_for arrays.
+     if (nozzle && material.nozzle_requirements?.min_diameter && nozzle.size < material.nozzle_requirements.min_diameter) {
+-      warnings.push(w('nozzle_too_small',
+-        `${material.name} requires a ${material.nozzle_requirements.min_diameter}mm or larger nozzle.`,
+-        `Your selected ${nozzle.size}mm nozzle is too small — the soft material cannot generate enough pressure to flow cleanly and will clog.`));
++      const minDiameter = material.nozzle_requirements.min_diameter;
++      warnings.push(w('nozzle_below_min_diameter',
++        `${material.name} needs at least a ${minDiameter}mm nozzle.`,
++        `Your selected ${nozzle.size}mm nozzle is below ${material.name}'s minimum diameter of ${minDiameter}mm; expect clogging and under-extrusion.`,
++        `Switch to a nozzle ≥ ${minDiameter}mm.`));
+     }
+ 
+     // 18. MVS null = nozzle size not supported for this material
+@@ -1647,6 +1832,57 @@ const Engine = (() => {
+         'Use a glue stick or hairspray as a release layer to prevent damage to the build plate surface. A textured PEI sheet is also a safe alternative.'));
+     }
+ 
++    // v1.0.4 — Physical printer × plate guard (HIGH-02)
++    // printers.json:available_plates lists the plates the printer physically
++    // ships with / accepts. Warn when the user's plate pick isn't on that list —
++    // otherwise the engine emits a confident profile for a plate the user can't
++    // actually mount. Additive to the BUILD_PLATE_COMPAT static map below
++    // (Phase 3 removes the static map; v1.0.4 keeps it as complementary safety net).
++    if (printer && Array.isArray(printer.available_plates) && state.build_plate) {
++      if (!printer.available_plates.includes(state.build_plate)) {
++        warnings.push(w('plate_not_on_printer',
++          `${printer.name} doesn't ship with the selected plate.`,
++          `Supported plates on ${printer.name}: ${printer.available_plates.join(', ')}. The selected plate (${state.build_plate}) isn't in the printer's inventory.`,
++          `Switch the build-plate picker to one of [${printer.available_plates.join(', ')}], or pick a printer whose available_plates include ${state.build_plate}.`));
++      }
++    }
++
++    // v1.0.4 — Material plate bed_temp_range guidance (HIGH-03 material half)
++    // Replicates getAdvancedFilamentSettings' bed-temp recipe (initial + steady,
++    // with env.bed_adj + env.bed_first_layer_adj + material initial_layer_bed_offset
++    // + PETG +5 bump + printer/material cap). Mirror updates here if that
++    // helper's recipe changes (engine.js ~1199-1214). Both the initial-layer and
++    // steady-state targets are checked so the warning fires when either falls
++    // outside the plate's recommended range — the initial layer is precisely
++    // where plate adhesion matters most.
++    if (material && Array.isArray(material.compatible_plates) && state.build_plate && material.base_settings) {
++      const matPlate = material.compatible_plates.find(cp => cp.plate_id === state.build_plate);
++      if (matPlate && Array.isArray(matPlate.bed_temp_range) && matPlate.bed_temp_range.length === 2) {
++        const [plateMin, plateMax] = matPlate.bed_temp_range;
++        const bs = material.base_settings;
++        const bedAdj = env && Number.isFinite(env.bed_adj) ? env.bed_adj : 0;
++        const bedFirstLayerEnvAdj = env && Number.isFinite(env.bed_first_layer_adj) && env.bed_first_layer_adj > 0
++          ? env.bed_first_layer_adj : 0;
++        const initOffset = Number.isFinite(bs.initial_layer_bed_offset) ? bs.initial_layer_bed_offset : 0;
++        const petgBump = material.group === 'PETG' ? 5 : 0;
++        const printerCap = printer && Number.isFinite(printer.max_bed_temp) ? printer.max_bed_temp : Infinity;
++        const matCap = Number.isFinite(bs.bed_temp_max) ? bs.bed_temp_max : Infinity;
++        const bedCap = Math.min(matCap, printerCap);
++        const otherBed = Math.min(bs.bed_temp_base + bedAdj, bedCap);
++        const initBed  = Math.min(bs.bed_temp_base + bedAdj + initOffset + petgBump + bedFirstLayerEnvAdj, bedCap);
++        if (Number.isFinite(plateMin) && Number.isFinite(plateMax) && Number.isFinite(otherBed) && Number.isFinite(initBed)) {
++          const lo = Math.min(otherBed, initBed);
++          const hi = Math.max(otherBed, initBed);
++          if (hi > plateMax || lo < plateMin) {
++            warnings.push(w('plate_bed_temp_range',
++              `${material.name} bed temp range exceeds ${state.build_plate} recommended limits.`,
++              `${state.build_plate} is rated for ${plateMin}–${plateMax}°C for ${material.name}. Engine will emit bed temps in ${lo}–${hi}°C (initial layer + steady state, including env compensation and printer cap).`,
++              `Switch to a plate whose recommended range covers ${lo}–${hi}°C, or accept that adhesion / release behavior may be suboptimal.`));
++          }
++        }
++      }
++    }
++
+     // C1. Build plate compatibility warning
+     if (state.build_plate && material.group) {
+       const compat = BUILD_PLATE_COMPAT[material.group];
+@@ -1691,6 +1927,21 @@ const Engine = (() => {
+         'Retraction distances are increased to compensate for the longer filament path. Fine-tune based on your PTFE tube length.'));
+     }
+ 
++    // v1.0.4 — Physical printer × nozzle guard (HIGH-01)
++    // printers.json:available_nozzle_sizes lists the sizes the printer physically
++    // ships with / accepts. Warn when the user's nozzle pick isn't on that list —
++    // otherwise the engine emits a confident profile for hardware the user can't
++    // actually mount.
++    if (printer && nozzle && Array.isArray(printer.available_nozzle_sizes)) {
++      const supportedSizes = printer.available_nozzle_sizes;
++      if (!supportedSizes.includes(nozzle.size)) {
++        warnings.push(w('nozzle_not_on_printer',
++          `${printer.name} doesn't ship with a ${nozzle.size}mm nozzle.`,
++          `Supported sizes on ${printer.name}: ${supportedSizes.join(', ')}mm. The emitted profile won't match the physical printer if you can't mount this nozzle.`,
++          `Switch the nozzle picker to a size in [${supportedSizes.join(', ')}], or pick a printer whose available_nozzle_sizes include ${nozzle.size}mm.`));
++      }
++    }
++
+     // C5. Printer-capability clamping notices (IMPL-039)
+     // Informs the user when an emitted value was reduced because their printer's
+     // firmware / slicer can't accept the raw value from the objective profile.
+@@ -1983,6 +2234,16 @@ const Engine = (() => {
+       let outerSpeed = isCoreXY ? _tier(sm, 'outer_corexy', profileMode) : _tier(sm, 'outer_bedslinger', profileMode);
+       let innerSpeed = isCoreXY ? sm.inner_corexy : sm.inner_bedslinger;
+ 
++      // v1.0.4 — Strength speed multiplier (HIGH-09 / HIGH-04). Apply Strong/Maximum
++      // slowdown to walls before material/printer/MVS caps clamp it further.
++      const strengthSlow = (strength && Number.isFinite(strength.speed_multiplier) && strength.speed_multiplier > 0)
++        ? strength.speed_multiplier
++        : 1.0;
++      if (strengthSlow !== 1.0) {
++        outerSpeed = Math.round(outerSpeed * strengthSlow);
++        innerSpeed = Math.round(innerSpeed * strengthSlow);
++      }
++
+       // TPU speed cap — per-material max_speed (85A=20, 90A=30, 95A=60)
+       if (isTPU) {
+         const tpuMax = material.base_settings.max_speed || 40;
+@@ -2061,14 +2322,14 @@ const Engine = (() => {
+         petgCapped ? 'PETG surface quality degrades noticeably above 80 mm/s outer wall speed — capped for this material.' :
+         sm.id === 'quality' ? 'Slow outer walls reduce vibration artifacts and give each layer more time to solidify uniformly.' :
+         'Outer wall speed balanced for your printer type — CoreXY handles higher speeds without ringing.',
+-        { source: 'calculated', ref: `rule:material_caps+printer_limits${outerSpeedTuned ? ' (base from _tuned)' : ''}` });
++        { source: 'calculated', ref: `rule:material_caps+printer_limits${outerSpeedTuned ? ' (base from _tuned)' : ''}${strengthSlow !== 1.0 ? '+strength_multiplier' : ''}` });
+ 
+       p.inner_wall_speed = S(`${innerSpeed} mm/s`,
+         isTPU     ? 'Inner walls also capped for flexible filament — consistent flow matters more than speed.' :
+         isABSlike ? 'Moderate inner wall speed helps ABS/ASA cool uniformly between layers.' :
+         !isCoreXY ? 'Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints.' :
+         'Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints.',
+-        { source: 'calculated', ref: 'rule:material_caps+printer_limits' });
++        { source: 'calculated', ref: `rule:material_caps+printer_limits${strengthSlow !== 1.0 ? '+strength_multiplier' : ''}` });
+ 
+       // Advanced speed settings
+       let initSpeed = isCoreXY ? sm.initial_layer : (sm.initial_layer - 5);
+@@ -2170,11 +2431,20 @@ const Engine = (() => {
+     // ─── OTHERS TAB ───────────────────────────────────────────────────────────
+     const colors = state.colors;
+     if (colors && colors !== 'single') {
+-      p.prime_tower = S('Enabled',
+-        'Prime tower purges leftover filament from the previous color before printing each new color layer — prevents color contamination.');
+-      if (colors === 'multi_5') {
+-        p.flush_into_infill = S('Enabled',
+-          'Flushes purge material into the infill rather than the prime tower — saves time and material on high color-count prints.');
++      // v1.0.4 MEDIUM-01 — gate prime_tower on _mcsTier !== 'none'. Empty-MCS
++      // printers (e.g. Centauri Carbon, Ender3 V3 SE) cannot use a prime tower
++      // because there's no automatic color change to purge for — emitting
++      // "Enabled" was misleading. Skip the emission entirely; the empty-MCS
++      // warning fired from getWarnings tells the user multicolor won't work.
++      if (_mcsTier(printer) !== 'none') {
++        p.prime_tower = S('Enabled',
++          'Prime tower purges leftover filament from the previous color before printing each new color layer — prevents color contamination.',
++          { source: 'rule', ref: 'printer.multi_color_systems+_mcsTier' });
++        if (colors === 'multi_5') {
++          p.flush_into_infill = S('Enabled',
++            'Flushes purge material into the infill rather than the prime tower — saves time and material on high color-count prints.',
++            { source: 'rule', ref: 'printer.multi_color_systems+_mcsTier' });
++        }
+       }
+     }
+ 
+@@ -2295,6 +2565,16 @@ const Engine = (() => {
+         { source: 'default', ref: 'materials.json#fan_policy' });
+     }
+ 
++    // v1.0.4 HIGH-08 — env.force_draft_shield wired to profile output. Cold /
++    // very-cold environments enable a draft shield to protect the print from
++    // chamber drafts. SLICER_TABS exposes draft_shield under the Others tab
++    // (Bambu / Orca) and Skirt-and-brim (Prusa).
++    if (env?.force_draft_shield === true) {
++      p.draft_shield = S('Enabled',
++        'Draft shield protects from chamber drafts in cold environments — significantly reduces warping risk.',
++        { source: 'rule', ref: 'env.force_draft_shield' });
++    }
++
+     return p;
+   }
+ 
+@@ -2326,6 +2606,30 @@ const Engine = (() => {
+     });
+   }
+ 
++  // ── Nozzle filtering by material × printer compatibility (v1.0.4 HIGH-01) ────
++  // Wraps getCompatibleNozzles and additionally cross-checks the nozzle's physical
++  // size against the printer's available_nozzle_sizes list. UI consumers that
++  // know which printer is selected can use this to dim nozzles the printer can't
++  // physically mount, alongside the existing material-driven dimming. The
++  // not_on_printer flag lets the UI distinguish "incompatible because printer"
++  // from "incompatible because material" (the latter is still the `compatible`
++  // false-positive bucket from getCompatibleNozzles).
++  function getCompatibleNozzlesForPrinter(materialId, printerId) {
++    const baseList = getCompatibleNozzles(materialId);
++    const printer = getPrinter(printerId);
++    if (!printer || !Array.isArray(printer.available_nozzle_sizes)) return baseList;
++    const allowed = new Set(printer.available_nozzle_sizes);
++    return baseList.map(entry => {
++      const noz = getNozzle(entry.id);
++      const onPrinter = !!(noz && allowed.has(noz.size));
++      return {
++        ...entry,
++        compatible: entry.compatible && onPrinter,
++        not_on_printer: !onPrinter,
++      };
++    });
++  }
++
+   // ── Profile export ───────────────────────────────────────────────────────────
+ 
+   // Bambu Studio field mapping: engine param ID → BS JSON field name
+@@ -2370,6 +2674,7 @@ const Engine = (() => {
+     brim_width:                'brim_width',
+     ironing:                   'ironing_type',
+     slow_down_tall:            'enable_height_slowdown',
++    // TODO(v1.0.4-export): draft_shield → enable_draft_shield mapping missing. See ROADMAP "IR-deferred export-path findings".
+   };
+ 
+   // BS fields that need array wrapping: ["value"] instead of "value"
+@@ -2739,6 +3044,7 @@ const Engine = (() => {
+     if (mvsVal)  filament.filament_max_volumetric_speed = [String(parseFloat(mvsVal))];
+ 
+     // Fan speeds
++    // TODO(v1.0.4-export): env.fan_multiplier scaling not applied here. See ROADMAP "IR-deferred export-path findings".
+     if (bs.cooling_fan_min != null) {
+       filament.fan_min_speed = [String(parseInt(bs.cooling_fan_min) || 0)];
+       filament.fan_max_speed = ['100'];
+@@ -3094,6 +3400,7 @@ const Engine = (() => {
+     getActiveSlicer,
+     isNozzleCompatibleWithMaterial,
+     getCompatibleNozzles,
++    getCompatibleNozzlesForPrinter,
+     getSymptoms,
+     getTroubleshootingTips,
+     exportProfile,
+diff --git a/scripts/profile-matrix-audit.js b/scripts/profile-matrix-audit.js
+index 6b17fd5..7ac642a 100644
+--- a/scripts/profile-matrix-audit.js
++++ b/scripts/profile-matrix-audit.js
+@@ -57,7 +57,7 @@ const DEFAULT_STATE = {
+   support: 'none',
+   colors: 'single',
+   environment: 'normal',
+-  level: 'intermediate',
++  userLevel: 'intermediate',
+   profileMode: 'safe',
+ };
+ 
+@@ -143,7 +143,7 @@ const CASES = [
+     noWarning('k2_plus_cfs'),
+   ]),
+   c('creality-k2plus-multicolor-cfs', 'K2 Plus + multicolor shows CFS warning', { printer: 'k2_plus', material: 'pla_basic', colors: 'multi_5' }, [
+-    warning('k2_plus_cfs'),
++    warning('mcs_tier_cfs_guidance'),
+   ]),
+   c('anycubic-kobrax-multicolor', 'Anycubic Kobra X + multicolor uses ACE metadata without unknown-printer warning', { printer: 'kobra_x', material: 'pla_basic', colors: 'multi_5' }, [
+     printerField('multi_color_systems', ['ace']), noWarning('missing_printer'),
+@@ -277,10 +277,10 @@ const POSTFIX_CASES = [
+     warning('petg_open_printer'), noUxMatching(/raw advertised speed/i),
+   ]),
+   c('postfix-p1s-tpu85-nozzle-diameter', 'P1S + TPU 85A + standard 0.4 warns on nozzle size and keeps TPU speeds low', { printer: 'p1s', material: 'tpu_85a', nozzle: 'std_0.4' }, [
+-    warning('nozzle_too_small'), noWarning('tpu_ams_incompatible'), maxProfileNumber('outer_wall_speed', 20),
++    warning('nozzle_below_min_diameter'), noWarning('tpu_ams_incompatible'), maxProfileNumber('outer_wall_speed', 20),
+   ]),
+   c('postfix-k2-pla-multicolor-cfs-copy', 'Creality K2 + PLA multicolor shows CFS-specific warning', { printer: 'k2', material: 'pla_basic', colors: 'multi_5' }, [
+-    warning('k2_plus_cfs'), noWarning('creality_no_multicolor'), noUxMatching(/open-frame material warning/i),
++    warning('mcs_tier_cfs_guidance'), noWarning('creality_no_multicolor'), noUxMatching(/open-frame material warning/i),
+   ]),
+   c('postfix-p2s-pc-bed-110-boundary', 'Bambu P2S + PC clamps bed to 110C and avoids open-frame copy', { printer: 'p2s', material: 'pc' }, [
+     advancedBed('110 °C', '110 °C'), warning('printer_max_bed_temp_clamped'), noWarning('printer_bed_temp_incompatible'), noUxMatching(/open-frame material warning/i),
+diff --git a/scripts/walkthrough-harness.js b/scripts/walkthrough-harness.js
+index 64ac197..1e330b4 100644
+--- a/scripts/walkthrough-harness.js
++++ b/scripts/walkthrough-harness.js
+@@ -529,6 +529,373 @@ const COMBOS = [
+     report += '---\n\n';
+   }
+ 
++  // ─── v1.0.4 — Strength speed_multiplier wired in (HIGH-09 / HIGH-04) ──────
++  {
++    function pickSpeed(state, fieldKey) {
++      Engine.setActiveSlicer(Engine.getSlicerForPrinter(state.printer));
++      const profile = Engine.resolveProfile(state);
++      const value = profile?.[fieldKey]?.value;
++      if (typeof value !== 'string') throw new Error(`missing ${fieldKey} in profile`);
++      return parseFloat(value);
++    }
++    const base = { printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic',
++                   useCase: ['functional'], surface: 'standard', speed: 'balanced',
++                   environment: 'normal', support: 'none', colors: 'single',
++                   userLevel: 'intermediate', special: [], build_plate: 'textured_pei',
++                   profileMode: 'safe' };
++    const std = pickSpeed({ ...base, strength: 'standard' }, 'outer_wall_speed');
++    const strong = pickSpeed({ ...base, strength: 'strong' }, 'outer_wall_speed');
++    const max = pickSpeed({ ...base, strength: 'maximum' }, 'outer_wall_speed');
++    if (std !== 100) throw new Error(`v1.0.4 HIGH-09: expected std outer=100 on X1C+PLA+balanced, got ${std}`);
++    if (strong !== 90) throw new Error(`v1.0.4 HIGH-09: expected strong outer=90 (100*0.9), got ${strong}`);
++    if (max !== 80) throw new Error(`v1.0.4 HIGH-09: expected maximum outer=80 (100*0.8), got ${max}`);
++    if (!(strong < std)) throw new Error(`v1.0.4 HIGH-09: strong outer (${strong}) should be < standard (${std}) on X1C+PLA+balanced`);
++    if (!(max < strong)) throw new Error(`v1.0.4 HIGH-09: maximum outer (${max}) should be < strong (${strong}) on X1C+PLA+balanced`);
++    const stdInner = pickSpeed({ ...base, strength: 'standard' }, 'inner_wall_speed');
++    const strongInner = pickSpeed({ ...base, strength: 'strong' }, 'inner_wall_speed');
++    if (!(strongInner < stdInner)) throw new Error(`v1.0.4 HIGH-09: strong inner (${strongInner}) should be < standard (${stdInner})`);
++    console.log(`[v1.0.4 HIGH-09] OK strong<standard<inner on X1C+PLA+balanced: outer std=${std}, strong=${strong}, max=${max}`);
++  }
++
++  // ─── v1.0.4 — Env data layer + cold-warning fix (HIGH-07/08, HIGH-05) ─────
++  {
++    function profile(state) {
++      Engine.setActiveSlicer(Engine.getSlicerForPrinter(state.printer));
++      return Engine.resolveProfile(state);
++    }
++    function adv(state) {
++      Engine.setActiveSlicer(Engine.getSlicerForPrinter(state.printer));
++      return Engine.getAdvancedFilamentSettings(state);
++    }
++    function warnings(state) { return Engine.getWarnings(state).map(w => w.id); }
++    const base = { printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic',
++                   useCase: ['functional'], surface: 'standard', strength: 'standard',
++                   speed: 'balanced', support: 'none', colors: 'single',
++                   userLevel: 'intermediate', special: [], build_plate: 'textured_pei',
++                   profileMode: 'safe' };
++
++    // 1) bed_first_layer_adj wired into advanced filament settings (cold = +7°C bed first-layer)
++    const advNormal = adv({ ...base, environment: 'normal' });
++    const advCold = adv({ ...base, environment: 'cold' });
++    const bedNormal = parseFloat(advNormal.bed_temperature_initial_layer.value);
++    const bedCold = parseFloat(advCold.bed_temperature_initial_layer.value);
++    if (!(bedCold > bedNormal)) throw new Error(`v1.0.4 HIGH-07: cold first-layer bed (${bedCold}) should exceed normal (${bedNormal}) by env.bed_first_layer_adj`);
++    if (bedCold - bedNormal !== 7) throw new Error(`v1.0.4 HIGH-07: expected +7°C from env.cold.bed_first_layer_adj, got +${bedCold - bedNormal}`);
++
++    // 2) fan_multiplier wired into cooling fan emission (cold = 0.9× of normal)
++    const fanNormal = parseFloat(advNormal.fan_max_speed.value);
++    const fanCold = parseFloat(advCold.fan_max_speed.value);
++    if (!(fanCold < fanNormal)) throw new Error(`v1.0.4 HIGH-07: cold fan max (${fanCold}) should be lower than normal (${fanNormal}) by env.fan_multiplier`);
++    if (Math.round(fanCold) !== Math.round(fanNormal * 0.9)) throw new Error(`v1.0.4 HIGH-07: expected fanCold = round(fanNormal * 0.9) = ${Math.round(fanNormal * 0.9)}, got ${fanCold} (fanNormal=${fanNormal})`);
++
++    // 3) force_draft_shield wired into profile output for cold/vcold env
++    const profCold = profile({ ...base, environment: 'cold' });
++    const draftShieldField = profCold.draft_shield;
++    if (!draftShieldField || !/enabled|on|true/i.test(String(draftShieldField.value))) {
++      throw new Error(`v1.0.4 HIGH-08: cold env should emit draft_shield enabled; got ${JSON.stringify(draftShieldField)}`);
++    }
++
++    // 4) Cold-warning text does NOT lie. If warning copy mentions "first layer bed +N", N must match emitted delta.
++    const coldWarnings = Engine.getWarnings({ ...base, environment: 'cold' });
++    const bedClaim = coldWarnings.find(w => /first[\s-]?layer\s+bed/i.test(w.text + ' ' + (w.detail || '')));
++    if (bedClaim) {
++      const match = (bedClaim.text + ' ' + (bedClaim.detail || '')).match(/\+\s*(\d+)\s*°?C/i);
++      const claimed = match ? parseInt(match[1], 10) : null;
++      const delta = Math.round(bedCold - bedNormal);
++      if (claimed !== null && claimed !== delta) {
++        throw new Error(`v1.0.4 HIGH-05: cold warning claims +${claimed}°C first-layer bed but emit is +${delta}°C`);
++      }
++    }
++    console.log(`[v1.0.4 ENV] OK bed_first_layer_adj=+${Math.round(bedCold - bedNormal)}°C, fan reduced, draft_shield emitted, warning copy matches emit`);
++  }
++
++  // ─── v1.0.4 — env clamp misattribution (MEDIUM-05) ────────────────────────
++  {
++    // PLA Basic on A1 + vcold (PLA max_nozzle=230). Env wants +10°C → 230 + initial offset
++    // would clamp. Warning should attribute to env, not material.
++    const stVcold = { printer: 'a1', nozzle: 'std_0.4', material: 'pla_basic',
++                      useCase: ['functional'], surface: 'standard', strength: 'standard',
++                      speed: 'balanced', environment: 'vcold', support: 'none', colors: 'single',
++                      userLevel: 'intermediate', special: [], build_plate: 'textured_pei',
++                      profileMode: 'safe' };
++    const ws = Engine.getWarnings(stVcold);
++    const envClampWarn = ws.find(w => /env_compensation_capped|env.*clamp|cold.*clamp/i.test(w.id || ''));
++    if (!envClampWarn) {
++      throw new Error(`v1.0.4 MEDIUM-05: expected env-attributed clamp warning on PLA+a1+vcold; got ids ${ws.map(w => w.id).join(',')}`);
++    }
++    console.log(`[v1.0.4 MEDIUM-05] OK env-attributed clamp warning id=${envClampWarn.id}`);
++  }
++
++  // ─── v1.0.4 — Physical printer × nozzle guard (HIGH-01) ───────────────────
++  {
++    // Ender-3 V3 SE has available_nozzle_sizes:[0.4]. Selecting std_0.8 must warn.
++    const stBad = { printer: 'ender3_v3_se', nozzle: 'std_0.8', material: 'pla_basic',
++                    useCase: ['functional'], surface: 'standard', strength: 'standard',
++                    speed: 'balanced', environment: 'normal', support: 'none', colors: 'single',
++                    userLevel: 'intermediate', special: [], build_plate: 'textured_pei',
++                    profileMode: 'safe' };
++    const warnIds = Engine.getWarnings(stBad).map(w => w.id);
++    const has = warnIds.includes('nozzle_not_on_printer');
++    if (!has) throw new Error(`v1.0.4 HIGH-01: expected nozzle-not-available warning on ender3_v3_se+std_0.8; got ${warnIds.join(',')}`);
++
++    // Centauri Carbon has available_nozzle_sizes:[0.4]. std_0.4 must NOT warn for this reason.
++    const stOk = { ...stBad, printer: 'centauri_carbon', nozzle: 'std_0.4' };
++    const okWarnIds = Engine.getWarnings(stOk).map(w => w.id);
++    if (okWarnIds.includes('nozzle_not_on_printer')) {
++      throw new Error(`v1.0.4 HIGH-01: centauri_carbon+std_0.4 should NOT trigger nozzle-not-on-printer; got ${okWarnIds.join(',')}`);
++    }
++
++    // Bambu X1C has available_nozzle_sizes:[0.2, 0.4, 0.6, 0.8]. std_0.6 must NOT trigger guard.
++    const stMulti = { ...stBad, printer: 'x1c', nozzle: 'std_0.6' };
++    const multiWarnIds = Engine.getWarnings(stMulti).map(w => w.id);
++    if (multiWarnIds.includes('nozzle_not_on_printer')) {
++      throw new Error(`v1.0.4 HIGH-01: x1c+std_0.6 should NOT trigger nozzle-not-on-printer; got ${multiWarnIds.join(',')}`);
++    }
++
++    // getCompatibleNozzlesForPrinter is a hard contract on the public surface; if
++    // it's silently dropped the harness must fail rather than skip the check.
++    if (typeof Engine.getCompatibleNozzlesForPrinter !== 'function') {
++      throw new Error(`v1.0.4 HIGH-01: Engine.getCompatibleNozzlesForPrinter must be exposed on the public surface`);
++    }
++    const list = Engine.getCompatibleNozzlesForPrinter('pla_basic', 'ender3_v3_se');
++    const std08 = list.find(e => e.id === 'std_0.8');
++    if (std08 && std08.compatible === true) {
++      throw new Error(`v1.0.4 HIGH-01: getCompatibleNozzlesForPrinter should mark std_0.8 incompatible on ender3_v3_se`);
++    }
++    const std04 = list.find(e => e.id === 'std_0.4');
++    if (std04 && std04.compatible !== true) {
++      throw new Error(`v1.0.4 HIGH-01: getCompatibleNozzlesForPrinter should keep std_0.4 compatible on ender3_v3_se`);
++    }
++
++    console.log(`[v1.0.4 HIGH-01] OK printer × nozzle guard fires for ender3_v3_se+std_0.8 and stays silent for centauri_carbon+std_0.4`);
++  }
++
++  // ─── v1.0.4 — Physical printer × plate guard + material plate range (HIGH-02 / HIGH-03) ─
++  {
++    const baseHarness = { nozzle: 'std_0.4', useCase: ['functional'], surface: 'standard',
++                          strength: 'standard', speed: 'balanced', environment: 'normal',
++                          support: 'none', colors: 'single', userLevel: 'intermediate',
++                          special: [], profileMode: 'safe' };
++
++    // 1) BAD: H2D ships [textured_pei, smooth_pei] — cool_plate is not on the printer.
++    //    Selecting it must warn with exact ID 'plate_not_on_printer'.
++    const stBad = { ...baseHarness, printer: 'h2d', material: 'pla_basic', build_plate: 'cool_plate' };
++    const badIds = Engine.getWarnings(stBad).map(w => w.id);
++    if (!badIds.includes('plate_not_on_printer')) {
++      throw new Error(`v1.0.4 HIGH-02: expected exact warning id 'plate_not_on_printer' on h2d+cool_plate; got ${badIds.join(',')}`);
++    }
++
++    // 2) GOOD: Centauri Carbon has available_plates:[textured_pei]. Must NOT trigger guard.
++    const stOk = { ...baseHarness, printer: 'centauri_carbon', material: 'pla_basic', build_plate: 'textured_pei' };
++    const okIds = Engine.getWarnings(stOk).map(w => w.id);
++    if (okIds.includes('plate_not_on_printer')) {
++      throw new Error(`v1.0.4 HIGH-02: centauri_carbon+textured_pei should NOT trigger plate_not_on_printer; got ${okIds.join(',')}`);
++    }
++
++    // 3) MULTI-PLATE GOOD: x1c ships multiple plates incl. textured_pei. Must NOT trigger guard.
++    const stMulti = { ...baseHarness, printer: 'x1c', material: 'pla_basic', build_plate: 'textured_pei' };
++    const multiIds = Engine.getWarnings(stMulti).map(w => w.id);
++    if (multiIds.includes('plate_not_on_printer')) {
++      throw new Error(`v1.0.4 HIGH-02: x1c+textured_pei should NOT trigger plate_not_on_printer (multi-plate printer); got ${multiIds.join(',')}`);
++    }
++
++    // 4) HIGH-03 POSITIVE: petg_basic on textured_pei (x1c) — recipe yields
++    //    initBed=85 (75 base + 0 env + 5 init-offset + 5 PETG bump), other=75;
++    //    plate range for petg_basic on textured_pei is [60, 80]. 85 > 80 ⇒ MUST
++    //    fire plate_bed_temp_range. Exercises the initial-layer-driven path
++    //    where steady-state stays in-range but the initial layer exceeds it.
++    const stBedRange = { ...baseHarness, printer: 'x1c', material: 'petg_basic', build_plate: 'textured_pei' };
++    const bedRangeIds = Engine.getWarnings(stBedRange).map(w => w.id);
++    if (!bedRangeIds.includes('plate_bed_temp_range')) {
++      throw new Error(`v1.0.4 HIGH-03: expected exact warning id 'plate_bed_temp_range' on x1c+petg_basic+textured_pei (initBed 85°C exceeds plate max 80°C); got ${bedRangeIds.join(',')}`);
++    }
++
++    // 5) HIGH-03 NEGATIVE: pla_basic on textured_pei (x1c) — both targets fall
++    //    inside the plate's [55, 65]°C range. Must NOT fire plate_bed_temp_range.
++    const stBedRangeOk = { ...baseHarness, printer: 'x1c', material: 'pla_basic', build_plate: 'textured_pei' };
++    const bedRangeOkIds = Engine.getWarnings(stBedRangeOk).map(w => w.id);
++    if (bedRangeOkIds.includes('plate_bed_temp_range')) {
++      throw new Error(`v1.0.4 HIGH-03: x1c+pla_basic+textured_pei should NOT trigger plate_bed_temp_range (both bed targets in [55,65]); got ${bedRangeOkIds.join(',')}`);
++    }
++
++    console.log(`[v1.0.4 HIGH-02/HIGH-03] OK plate guard fires for h2d+cool_plate, stays silent for centauri_carbon+textured_pei and x1c+textured_pei; plate_bed_temp_range fires for petg_basic+textured_pei and stays silent for pla_basic+textured_pei`);
++  }
++
++  // ─── v1.0.4 — Practical MCS tiers (HIGH-03 system-type, HIGH ams_lite, MEDIUM-01 empty-MCS) ─
++  {
++    function getProfile(state) {
++      Engine.setActiveSlicer(Engine.getSlicerForPrinter(state.printer));
++      return Engine.resolveProfile(state);
++    }
++    function wIds(state) { return Engine.getWarnings(state).map(w => w.id); }
++    const baseMCS = { nozzle: 'std_0.4', useCase: ['functional'], surface: 'standard',
++                      strength: 'standard', speed: 'balanced', environment: 'normal',
++                      support: 'none', userLevel: 'intermediate', special: [],
++                      build_plate: 'textured_pei', profileMode: 'safe' };
++
++    // 1) EMPTY MCS: centauri_carbon (multi_color_systems:[]) + multi_2_4 must warn AND must NOT emit prime_tower: Enabled.
++    const stEmpty = { ...baseMCS, printer: 'centauri_carbon', material: 'pla_basic', colors: 'multi_2_4' };
++    const profEmpty = getProfile(stEmpty);
++    const emptyIds = wIds(stEmpty);
++    if (!emptyIds.includes('mcs_empty_no_multicolor')) {
++      throw new Error(`v1.0.4 MEDIUM-01: empty-MCS centauri_carbon+multi_2_4 must fire 'mcs_empty_no_multicolor'; got ${emptyIds.join(',')}`);
++    }
++    if (profEmpty.prime_tower && /enabled/i.test(String(profEmpty.prime_tower.value || ''))) {
++      throw new Error(`v1.0.4 MEDIUM-01: empty-MCS must NOT emit prime_tower=Enabled; got ${profEmpty.prime_tower.value}`);
++    }
++
++    // 2) AMS LITE MATERIAL GATE: A1 (ams_lite) + ABS (ams_compatible:true but ams_lite_compatible:false) + multi MUST warn 'ams_lite_material_incompat'.
++    const stLite = { ...baseMCS, printer: 'a1', material: 'abs', colors: 'multi_2_4' };
++    const liteIds = wIds(stLite);
++    if (!liteIds.includes('ams_lite_material_incompat')) {
++      throw new Error(`v1.0.4 (ams_lite): A1+ABS+multi must fire 'ams_lite_material_incompat'; got ${liteIds.join(',')}`);
++    }
++
++    // 3) AMS LITE COMPATIBLE: A1 + PLA Basic (ams_lite_compatible likely true) + multi MUST NOT fire ams_lite_material_incompat.
++    const stLiteOK = { ...baseMCS, printer: 'a1', material: 'pla_basic', colors: 'multi_2_4' };
++    const liteOKIds = wIds(stLiteOK);
++    if (liteOKIds.includes('ams_lite_material_incompat')) {
++      throw new Error(`v1.0.4 (ams_lite): A1+PLA Basic+multi must NOT fire 'ams_lite_material_incompat'; got ${liteOKIds.join(',')}`);
++    }
++
++    // 4) AMS-LIKE (x1c, ams_compatible PLA Basic) — no false ams_lite warning, no empty-MCS warning.
++    const stAMS = { ...baseMCS, printer: 'x1c', material: 'pla_basic', colors: 'multi_2_4' };
++    const amsIds = wIds(stAMS);
++    if (amsIds.includes('ams_lite_material_incompat')) {
++      throw new Error(`v1.0.4 (system-type): x1c (ams_like) must NOT fire ams_lite-specific warning; got ${amsIds.join(',')}`);
++    }
++    if (amsIds.includes('mcs_empty_no_multicolor')) {
++      throw new Error(`v1.0.4 (system-type): x1c (ams_like) must NOT fire empty-MCS warning; got ${amsIds.join(',')}`);
++    }
++
++    // 5) CFS tier (k2_plus): k2_plus + pla_basic + multi MUST fire 'mcs_tier_cfs_guidance'.
++    const stCFS = { ...baseMCS, printer: 'k2_plus', material: 'pla_basic', colors: 'multi_2_4' };
++    const cfsIds = wIds(stCFS);
++    if (!cfsIds.includes('mcs_tier_cfs_guidance')) {
++      throw new Error(`v1.0.4 (cfs tier): k2_plus+pla+multi must fire 'mcs_tier_cfs_guidance'; got ${cfsIds.join(',')}`);
++    }
++
++    // 6) CFS LITE sysLabel branch (sparkx_i7): sparkx_i7 + pla_basic + multi MUST also fire 'mcs_tier_cfs_guidance'
++    // (exercises the cfs_lite branch in the sysLabel ternary — same ID, different printer/system label).
++    const stCFSLite = { ...baseMCS, printer: 'sparkx_i7', material: 'pla_basic', colors: 'multi_2_4' };
++    const cfsLiteIds = wIds(stCFSLite);
++    if (!cfsLiteIds.includes('mcs_tier_cfs_guidance')) {
++      throw new Error(`v1.0.4 (cfs_lite tier): sparkx_i7+pla+multi must fire 'mcs_tier_cfs_guidance'; got ${cfsLiteIds.join(',')}`);
++    }
++
++    // 7) GENERIC NON-AMS tier (mk4 with mmu3): must fire 'mcs_tier_generic_non_ams_guidance'.
++    const stGeneric = { ...baseMCS, printer: 'mk4', material: 'pla_basic', colors: 'multi_2_4' };
++    const genericIds = wIds(stGeneric);
++    if (!genericIds.includes('mcs_tier_generic_non_ams_guidance')) {
++      throw new Error(`v1.0.4 (generic_non_ams tier): mk4+pla+multi must fire 'mcs_tier_generic_non_ams_guidance'; got ${genericIds.join(',')}`);
++    }
++
++    // 8) AMS-LIKE prime_tower PRESERVED: x1c + multi MUST still emit prime_tower=Enabled (positive case — pairs with assertion 1's negative).
++    const profAMS = getProfile({ ...baseMCS, printer: 'x1c', material: 'pla_basic', colors: 'multi_2_4' });
++    if (!profAMS.prime_tower || !/enabled/i.test(String(profAMS.prime_tower.value || ''))) {
++      throw new Error(`v1.0.4 (ams_like): x1c+multi MUST emit prime_tower=Enabled; got ${profAMS.prime_tower?.value || '(absent)'}`);
++    }
++
++    // 9) MULTI_5 empty-MCS suppression: centauri_carbon + multi_5 must suppress BOTH prime_tower AND flush_into_infill
++    //    (exercises the multi_5 branch in the gating).
++    const profEmpty5 = getProfile({ ...baseMCS, printer: 'centauri_carbon', material: 'pla_basic', colors: 'multi_5' });
++    if (profEmpty5.prime_tower && /enabled/i.test(String(profEmpty5.prime_tower.value || ''))) {
++      throw new Error(`v1.0.4 (multi_5 empty-MCS): centauri_carbon+multi_5 must NOT emit prime_tower=Enabled; got ${profEmpty5.prime_tower.value}`);
++    }
++    if (profEmpty5.flush_into_infill && /enabled/i.test(String(profEmpty5.flush_into_infill.value || ''))) {
++      throw new Error(`v1.0.4 (multi_5 empty-MCS): centauri_carbon+multi_5 must NOT emit flush_into_infill=Enabled; got ${profEmpty5.flush_into_infill.value}`);
++    }
++
++    console.log(`[v1.0.4 MCS] OK empty-MCS warn+suppress; ams_lite gates; ams_like preserves prime_tower; cfs/cfs_lite/generic_non_ams advisories fire; multi_5 suppression on empty-MCS works. empty prime_tower=${profEmpty.prime_tower?.value || '(absent)'}, ams_like prime_tower=${profAMS.prime_tower?.value}, cfs ids=${cfsIds.length}, generic ids=${genericIds.length}`);
++  }
++
++  // ─── v1.0.4 — Chamber safe-cap guard (HIGH-05) ─────────────────────────────
++  // Owner default 4: guard-only. No numeric chamber profile field is emitted;
++  // the guard surfaces a warning whenever the active-chamber printer + material
++  // pair could exceed the material's safe ceiling.
++  //
++  // Canonical pathological combo: X1E (active_chamber_heating, max_chamber=60°C)
++  // + PETG Basic (safe_chamber_temp_max=50°C) — guard MUST fire.
++  // Silent-for cases:
++  //   - X1C + PETG Basic: enclosed but no active_chamber_heating → guard MUST NOT fire.
++  //   - X1E + PLA Basic: active chamber but PLA carries no safe_chamber_temp_max → guard MUST NOT fire.
++  {
++    const stFire = stateDefault({
++      printer: 'x1e', nozzle: 'std_0.4', material: 'petg_basic',
++    });
++    const fireWarns = Engine.getWarnings(stFire);
++    const fireIds = fireWarns.map(w => w.id);
++    if (!fireIds.includes('chamber_above_material_safe')) {
++      throw new Error(`v1.0.4 HIGH-05: X1E+petg_basic must fire chamber_above_material_safe; got ${fireIds.join(',')}`);
++    }
++    const petg = Engine.getMaterial('petg_basic');
++    const matCap = petg?.safe_chamber_temp_max ?? petg?.enclosure_behavior?.safe_chamber_temp_max;
++    if (matCap !== 50) {
++      throw new Error(`v1.0.4 HIGH-05: petg_basic safe_chamber_temp_max expected 50, got ${matCap}`);
++    }
++    const guardWarn = fireWarns.find(w => w.id === 'chamber_above_material_safe');
++    if (!/50°C/.test(guardWarn.text)) {
++      throw new Error(`v1.0.4 HIGH-05: guard text must reference 50°C cap; got "${guardWarn.text}"`);
++    }
++
++    const stSilentNoActive = stateDefault({
++      printer: 'x1c', nozzle: 'std_0.4', material: 'petg_basic',
++    });
++    const silentNoActiveIds = Engine.getWarnings(stSilentNoActive).map(w => w.id);
++    if (silentNoActiveIds.includes('chamber_above_material_safe')) {
++      throw new Error(`v1.0.4 HIGH-05: X1C+petg_basic (no active chamber) must NOT fire chamber_above_material_safe; got ${silentNoActiveIds.join(',')}`);
++    }
++
++    const stSilentNoCap = stateDefault({
++      printer: 'x1e', nozzle: 'std_0.4', material: 'pla_basic',
++    });
++    const silentNoCapIds = Engine.getWarnings(stSilentNoCap).map(w => w.id);
++    if (silentNoCapIds.includes('chamber_above_material_safe')) {
++      throw new Error(`v1.0.4 HIGH-05: X1E+pla_basic (material has no safe cap) must NOT fire chamber_above_material_safe; got ${silentNoCapIds.join(',')}`);
++    }
++
++    console.log(`[v1.0.4 HIGH-05] OK chamber_above_material_safe fires on X1E+petg_basic (cap=${matCap}°C); silent on X1C+petg_basic and X1E+pla_basic.`);
++  }
++
++  // ─── v1.0.4 — Nozzle min-diameter cleanup + nozzle-side authority drop (HIGH-12 / HIGH-06) ─
++  // TPU 85A on std_0.4: TPU 85A min_diameter=0.6 → guard MUST fire.
++  // Retired cf_small_nozzle MUST NOT fire (it carried the misleading "0.2mm
++  // nozzle will clog immediately" hardcode that fired on any CF-or-bigger
++  // material below min_diameter, not just 0.2mm nozzles).
++  // Warning body must mention selected (0.4mm) and required (0.6mm) sizes —
++  // never the bogus "0.2mm" hardcode.
++  // Nozzle entries must no longer carry suitable_for / not_suitable_for arrays
++  // (material-side nozzle_requirements is authoritative per owner default 5).
++  {
++    const st = stateDefault({ printer: 'x1c', nozzle: 'std_0.4', material: 'tpu_85a' });
++    const ws = Engine.getWarnings(st);
++    const ids = ws.map(w => w.id);
++
++    if (ids.includes('cf_small_nozzle')) {
++      throw new Error(`v1.0.4 HIGH-12: retired cf_small_nozzle still fires; got ${ids.join(',')}`);
++    }
++    if (!ids.includes('nozzle_below_min_diameter')) {
++      throw new Error(`v1.0.4 HIGH-12: expected nozzle_below_min_diameter on x1c+std_0.4+tpu_85a; got ${ids.join(',')}`);
++    }
++    const guardWarn = ws.find(w => w.id === 'nozzle_below_min_diameter');
++    const body = String(guardWarn.text || '') + ' ' + String(guardWarn.detail || '');
++    if (/0\.2\s*mm/.test(body)) {
++      throw new Error(`v1.0.4 HIGH-12: warning body wrongly mentions 0.2mm on tpu_85a+std_0.4: ${body}`);
++    }
++    if (!/0\.4/.test(body) || !/0\.6/.test(body)) {
++      throw new Error(`v1.0.4 HIGH-12: warning body must mention selected (0.4) and required (0.6); got ${body}`);
++    }
++
++    // Spot-check one nozzle for HIGH-06 schema cleanup. Full data sweep runs
++    // in the verification gate (Step 5 node -e oneliner).
++    const sampleNoz = Engine.getNozzle('std_0.4');
++    if (sampleNoz && ('suitable_for' in sampleNoz || 'not_suitable_for' in sampleNoz)) {
++      throw new Error(`v1.0.4 HIGH-06: nozzle ${sampleNoz.id} still carries suitable_for/not_suitable_for after cleanup`);
++    }
++
++    console.log(`[v1.0.4 HIGH-12/HIGH-06] OK nozzle_below_min_diameter parameterized (selected=0.4mm, required=0.6mm); cf_small_nozzle retired; std_0.4 carries no suitable_for/not_suitable_for.`);
++  }
++
+   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
+   // combos in Safe and Tuned; asserts:
+   //   (a) Safe emission byte-equal to the default (profileMode absent) combo
