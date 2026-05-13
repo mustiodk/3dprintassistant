@@ -1747,6 +1747,21 @@ const Engine = (() => {
         `Set chamber temp to ${targetChamber}°C before starting — this dramatically reduces warping and delamination.${maxChamber}`));
     }
 
+    // 15a. v1.0.4 HIGH-05 — Chamber safe-cap guard (warning-only per owner default 4).
+    // When the active-chamber printer can heat the chamber above the material's
+    // safe ceiling, warn the user before they enable the heater. No numeric
+    // chamber profile field is emitted; this is guard copy + checklist only.
+    {
+      const matSafeCap = material?.safe_chamber_temp_max
+        ?? material?.enclosure_behavior?.safe_chamber_temp_max;
+      if (printer && printer.active_chamber_heating && matSafeCap != null) {
+        warnings.push(w('chamber_above_material_safe',
+          `${material.name}'s safe chamber max is ${matSafeCap}°C.`,
+          `${printer.name} can heat the chamber and supports up to ${printer.max_chamber_temp ?? '—'}°C. ${material.name} softens above ${matSafeCap}°C and risks bonding to the bed or losing dimensional accuracy.`,
+          `If you use ${printer.name}'s active chamber heater, keep the chamber target at ≤ ${matSafeCap}°C for ${material.name}.`));
+      }
+    }
+
     // 16. PA strongly recommended enclosure — on open printer
     if (material.enclosure_behavior?.enclosure_strongly_recommended && printer && printer.enclosure === 'none') {
       warnings.push(w('pa_open_printer',

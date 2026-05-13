@@ -809,6 +809,54 @@ const COMBOS = [
     console.log(`[v1.0.4 MCS] OK empty-MCS warn+suppress; ams_lite gates; ams_like preserves prime_tower; cfs/cfs_lite/generic_non_ams advisories fire; multi_5 suppression on empty-MCS works. empty prime_tower=${profEmpty.prime_tower?.value || '(absent)'}, ams_like prime_tower=${profAMS.prime_tower?.value}, cfs ids=${cfsIds.length}, generic ids=${genericIds.length}`);
   }
 
+  // ─── v1.0.4 — Chamber safe-cap guard (HIGH-05) ─────────────────────────────
+  // Owner default 4: guard-only. No numeric chamber profile field is emitted;
+  // the guard surfaces a warning whenever the active-chamber printer + material
+  // pair could exceed the material's safe ceiling.
+  //
+  // Canonical pathological combo: X1E (active_chamber_heating, max_chamber=60°C)
+  // + PETG Basic (safe_chamber_temp_max=50°C) — guard MUST fire.
+  // Silent-for cases:
+  //   - X1C + PETG Basic: enclosed but no active_chamber_heating → guard MUST NOT fire.
+  //   - X1E + PLA Basic: active chamber but PLA carries no safe_chamber_temp_max → guard MUST NOT fire.
+  {
+    const stFire = stateDefault({
+      printer: 'x1e', nozzle: 'std_0.4', material: 'petg_basic',
+    });
+    const fireWarns = Engine.getWarnings(stFire);
+    const fireIds = fireWarns.map(w => w.id);
+    if (!fireIds.includes('chamber_above_material_safe')) {
+      throw new Error(`v1.0.4 HIGH-05: X1E+petg_basic must fire chamber_above_material_safe; got ${fireIds.join(',')}`);
+    }
+    const petg = Engine.getMaterial('petg_basic');
+    const matCap = petg?.safe_chamber_temp_max ?? petg?.enclosure_behavior?.safe_chamber_temp_max;
+    if (matCap !== 50) {
+      throw new Error(`v1.0.4 HIGH-05: petg_basic safe_chamber_temp_max expected 50, got ${matCap}`);
+    }
+    const guardWarn = fireWarns.find(w => w.id === 'chamber_above_material_safe');
+    if (!/50°C/.test(guardWarn.text)) {
+      throw new Error(`v1.0.4 HIGH-05: guard text must reference 50°C cap; got "${guardWarn.text}"`);
+    }
+
+    const stSilentNoActive = stateDefault({
+      printer: 'x1c', nozzle: 'std_0.4', material: 'petg_basic',
+    });
+    const silentNoActiveIds = Engine.getWarnings(stSilentNoActive).map(w => w.id);
+    if (silentNoActiveIds.includes('chamber_above_material_safe')) {
+      throw new Error(`v1.0.4 HIGH-05: X1C+petg_basic (no active chamber) must NOT fire chamber_above_material_safe; got ${silentNoActiveIds.join(',')}`);
+    }
+
+    const stSilentNoCap = stateDefault({
+      printer: 'x1e', nozzle: 'std_0.4', material: 'pla_basic',
+    });
+    const silentNoCapIds = Engine.getWarnings(stSilentNoCap).map(w => w.id);
+    if (silentNoCapIds.includes('chamber_above_material_safe')) {
+      throw new Error(`v1.0.4 HIGH-05: X1E+pla_basic (material has no safe cap) must NOT fire chamber_above_material_safe; got ${silentNoCapIds.join(',')}`);
+    }
+
+    console.log(`[v1.0.4 HIGH-05] OK chamber_above_material_safe fires on X1E+petg_basic (cap=${matCap}°C); silent on X1C+petg_basic and X1E+pla_basic.`);
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo
