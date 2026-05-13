@@ -143,7 +143,7 @@ const CASES = [
     noWarning('k2_plus_cfs'),
   ]),
   c('creality-k2plus-multicolor-cfs', 'K2 Plus + multicolor shows CFS warning', { printer: 'k2_plus', material: 'pla_basic', colors: 'multi_5' }, [
-    warning('mcs_tier_cfs_guidance'),
+    warning('mcs_tier_cfs_guidance'), noWarning('k2_plus_cfs'),
   ]),
   c('anycubic-kobrax-multicolor', 'Anycubic Kobra X + multicolor uses ACE metadata without unknown-printer warning', { printer: 'kobra_x', material: 'pla_basic', colors: 'multi_5' }, [
     printerField('multi_color_systems', ['ace']), noWarning('missing_printer'),
@@ -280,7 +280,7 @@ const POSTFIX_CASES = [
     warning('nozzle_below_min_diameter'), noWarning('tpu_ams_incompatible'), maxProfileNumber('outer_wall_speed', 20),
   ]),
   c('postfix-k2-pla-multicolor-cfs-copy', 'Creality K2 + PLA multicolor shows CFS-specific warning', { printer: 'k2', material: 'pla_basic', colors: 'multi_5' }, [
-    warning('mcs_tier_cfs_guidance'), noWarning('creality_no_multicolor'), noUxMatching(/open-frame material warning/i),
+    warning('mcs_tier_cfs_guidance'), noWarning('creality_no_multicolor'), noWarning('k2_plus_cfs'), noUxMatching(/open-frame material warning/i),
   ]),
   c('postfix-p2s-pc-bed-110-boundary', 'Bambu P2S + PC clamps bed to 110C and avoids open-frame copy', { printer: 'p2s', material: 'pc' }, [
     advancedBed('110 °C', '110 °C'), warning('printer_max_bed_temp_clamped'), noWarning('printer_bed_temp_incompatible'), noUxMatching(/open-frame material warning/i),
