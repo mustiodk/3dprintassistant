@@ -984,7 +984,7 @@ const COMBOS = [
 
     // (f) Non-regression: PETG (no open_door_threshold_bed_temp) on X1E + cold
     //     MUST still carry the "Keep door closed" copy — suppression is
-    //     material-aware, not blanket env-aware.
+    //     material-aware (PLA-only), not blanket env-aware.
     const stPetgColdActive = stateDefault({
       printer: 'x1e', nozzle: 'std_0.4', material: 'petg_basic', environment: 'cold',
     });
@@ -994,7 +994,41 @@ const COMBOS = [
       throw new Error(`v1.0.4 P1.5 HIGH-02 non-regression: PETG (no open_door_threshold) on X1E+cold MUST still carry "Keep door closed" copy; got = ${petgColdText}`);
     }
 
-    console.log(`[v1.0.4 P1.5 HIGH-02] OK PLA on X1E (active) + cold: pla_heat_creep fires; no "Keep door closed"; no "Preheat enclosure" in checklist; "Open front door" still present. Passive (P1S) regression clean. PETG non-regression: "Keep door closed" preserved.`);
+    // (g) Non-regression: PVA (carries open_door_threshold_bed_temp but is
+    //     out of HIGH-02 scope) on X1C + cold MUST still carry the verbatim
+    //     "Keep door closed" copy — suppression predicate must NOT broaden
+    //     to all materials with open_door_threshold. Pre-existing PVA
+    //     humidity posture is preserved.
+    const stPvaColdEnclosed = stateDefault({
+      printer: 'x1c', nozzle: 'std_0.4', material: 'pva', environment: 'cold',
+    });
+    const pvaColdText = Engine.getWarnings(stPvaColdEnclosed)
+      .map(w => `${w.text} ${w.detail || ''}`).join(' || ');
+    if (!/Keep door closed/i.test(pvaColdText)) {
+      throw new Error(`v1.0.4 P1.5 HIGH-02 scope guard: PVA on X1C+cold MUST still carry "Keep door closed" (HIGH-02 is PLA-only); got = ${pvaColdText}`);
+    }
+
+    // (h) vcold pin: PLA + X1E + vcold MUST suppress vcold's "Extended preheat
+    //     (20 min)" copy (the `preheat \(` regex clause exists specifically
+    //     for this string). pla_heat_creep MUST still fire. Pins the regex
+    //     against future env.json copy edits drifting silently.
+    const stPlaVcoldActive = stateDefault({
+      printer: 'x1e', nozzle: 'std_0.4', material: 'pla_basic', environment: 'vcold',
+    });
+    const plaVcoldWarns = Engine.getWarnings(stPlaVcoldActive);
+    const plaVcoldIds = plaVcoldWarns.map(w => w.id);
+    const plaVcoldText = plaVcoldWarns.map(w => `${w.text} ${w.detail || ''}`).join(' || ');
+    if (!plaVcoldIds.includes('pla_heat_creep')) {
+      throw new Error(`v1.0.4 P1.5 HIGH-02 vcold: pla_heat_creep MUST fire on X1E+PLA+vcold; got ${plaVcoldIds.join(',')}`);
+    }
+    if (/Extended preheat/i.test(plaVcoldText)) {
+      throw new Error(`v1.0.4 P1.5 HIGH-02 vcold: PLA + enclosed + vcold MUST NOT carry "Extended preheat" copy; warnings text = ${plaVcoldText}`);
+    }
+    if (/Preheat the enclosure/i.test(plaVcoldText)) {
+      throw new Error(`v1.0.4 P1.5 HIGH-02 vcold: PLA + enclosed + vcold MUST NOT carry "Preheat the enclosure" copy; warnings text = ${plaVcoldText}`);
+    }
+
+    console.log(`[v1.0.4 P1.5 HIGH-02] OK PLA on X1E (active) + cold/vcold: pla_heat_creep fires; no "Keep door closed"/"Extended preheat"/"Preheat the enclosure"; no "Preheat enclosure" in checklist; "Open front door" still present. Passive (P1S) regression clean. PETG + PVA non-regressions: "Keep door closed" preserved (PLA-only scope).`);
   }
 
   // ─── v1.0.4 — Nozzle min-diameter cleanup + nozzle-side authority drop (HIGH-12 / HIGH-06) ─

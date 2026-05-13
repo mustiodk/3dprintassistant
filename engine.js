@@ -1364,16 +1364,19 @@ const Engine = (() => {
     }
 
     // 4. Preheat enclosure if needed + cold environment.
-    // v1.0.4 P1.5 HIGH-02 — materials with open_door_threshold_bed_temp
-    // (PLA-family) on enclosed printers want the door open to mitigate heat
-    // creep; the generic "Preheat enclosure for N minutes" copy contradicts
-    // the open-door guidance item #5 directly below, so suppress the preheat
-    // item for those pairs.
+    // v1.0.4 P1.5 HIGH-02 — PLA on enclosed printers wants the door open to
+    // mitigate heat creep; the generic "Preheat enclosure for N minutes" copy
+    // contradicts the open-door guidance item #5 directly below, so suppress
+    // the preheat item for that combo. Scope is intentionally PLA-only
+    // (matches the pla_heat_creep warning gate at engine.js #4); PVA also
+    // carries open_door_threshold_bed_temp but its pre-existing humidity
+    // posture is left untouched by this finding.
     const needsEnclosure = mat.enclosure_required || (mat.enclosure_behavior && mat.enclosure_behavior.enclosure_required);
     const coldEnv = state.environment === 'cold' || state.environment === 'vcold';
     const hasEnclosure = printer && printer.enclosure !== 'none';
     const openDoorThreshold = mat.enclosure_behavior && mat.enclosure_behavior.open_door_threshold_bed_temp;
-    if (hasEnclosure && (needsEnclosure || coldEnv) && openDoorThreshold == null) {
+    const plaHeatCreepPair = mat.group === 'PLA' && hasEnclosure && openDoorThreshold != null;
+    if (hasEnclosure && (needsEnclosure || coldEnv) && !plaHeatCreepPair) {
       const minutes = env ? (env.preheat_minutes || 15) : 15;
       items.push({
         text:     `Preheat enclosure for ${minutes} minutes before starting`,
@@ -1651,13 +1654,20 @@ const Engine = (() => {
         } else {
           // v1.0.4 P1.5 HIGH-02 — material-aware suppression of subsequent
           // env warnings that contradict the open-door heat-creep guidance.
-          // Materials with open_door_threshold_bed_temp (PLA-family) on
-          // enclosed printers must NOT be told to keep the door closed or to
-          // preheat a sealed enclosure. Other verbatim env warnings (e.g.
-          // humidity advisories) pass through unchanged.
-          const heatCreepPair = printer && printer.enclosure !== 'none'
+          // PLA on enclosed printers must NOT be told to keep the door closed
+          // or to preheat a sealed enclosure. Other verbatim env warnings
+          // (e.g. humidity advisories) pass through unchanged.
+          // Scope is intentionally PLA-only (matches the pla_heat_creep gate
+          // at warning #4 + the checklist suppression at getChecklist #4);
+          // PVA also carries open_door_threshold_bed_temp but its
+          // pre-existing humidity posture is left untouched.
+          // NOTE: regex couples to current env.json copy. If env.json copy is
+          // ever rewritten, re-verify these patterns or replace this with a
+          // `kind`-tagged warning structure (see ROADMAP follow-up).
+          const plaHeatCreepPair = material.group === 'PLA'
+            && printer && printer.enclosure !== 'none'
             && material.enclosure_behavior?.open_door_threshold_bed_temp != null;
-          if (heatCreepPair && /door closed|preheat the enclosure|preheat \(/i.test(msg)) {
+          if (plaHeatCreepPair && /door closed|preheat the enclosure|preheat \(/i.test(msg)) {
             return;
           }
           warnings.push(w(`env_${env.id}_${i}`, msg, '', ''));

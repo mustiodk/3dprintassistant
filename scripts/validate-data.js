@@ -107,6 +107,29 @@ function validateMaterials() {
       check(file, isNumber(bs.pressure_advance), `${bsc}: pressure_advance must be a number`);
       check(file, isNumber(bs.flow_ratio),       `${bsc}: flow_ratio must be a number`);
     }
+
+    // v1.0.4 P1.5 HIGH-02 — load-bearing enclosure_behavior fields. Both
+    // fields are optional, but when present they must be numeric and within
+    // a sane range. A typo (e.g. safe_chamber_max_temp) would silently
+    // disable the HIGH-02 / HIGH-05 chamber-safe-cap guard otherwise.
+    if (isObject(m.enclosure_behavior)) {
+      const eb  = m.enclosure_behavior;
+      const ebc = `${ctx}.enclosure_behavior`;
+      if (eb.safe_chamber_temp_max != null) {
+        check(file, isNumber(eb.safe_chamber_temp_max) && eb.safe_chamber_temp_max >= 30 && eb.safe_chamber_temp_max <= 90,
+          `${ebc}: safe_chamber_temp_max must be a number in [30, 90]°C (got ${eb.safe_chamber_temp_max})`);
+      }
+      if (eb.open_door_threshold_bed_temp != null) {
+        check(file, isNumber(eb.open_door_threshold_bed_temp) && eb.open_door_threshold_bed_temp >= 30 && eb.open_door_threshold_bed_temp <= 90,
+          `${ebc}: open_door_threshold_bed_temp must be a number in [30, 90]°C (got ${eb.open_door_threshold_bed_temp})`);
+      }
+    }
+    // Also accept the top-level form the engine reads as fallback
+    // (mat.safe_chamber_temp_max). Same range check.
+    if (m.safe_chamber_temp_max != null) {
+      check(file, isNumber(m.safe_chamber_temp_max) && m.safe_chamber_temp_max >= 30 && m.safe_chamber_temp_max <= 90,
+        `${ctx}: safe_chamber_temp_max (top-level) must be a number in [30, 90]°C (got ${m.safe_chamber_temp_max})`);
+    }
   });
 }
 
