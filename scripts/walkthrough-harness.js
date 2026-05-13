@@ -797,8 +797,21 @@ const COMBOS = [
     // v1.0.4 P1.5 LOW-01 — retired Creality-only no-multicolor warning must
     // NOT fire alongside the generalized mcs_empty_no_multicolor (the
     // Creality-specific check was retired in S4 when MCS tiers landed).
+    // Two cases pair this guard so it actually exercises the manufacturer-
+    // gated retirement: the centauri_carbon (Elegoo) successor catches the
+    // generalized re-introduction; the ender3_v3_se (Creality manufacturer)
+    // successor catches a *manufacturer-gated* re-introduction that would
+    // otherwise slip past the Elegoo case alone.
     if (emptyIds.includes('creality_no_multicolor')) {
-      throw new Error(`v1.0.4 P1.5 LOW-01: retired creality_no_multicolor still fires on empty-MCS successor case; got ${emptyIds.join(',')}`);
+      throw new Error(`v1.0.4 P1.5 LOW-01: retired creality_no_multicolor still fires on empty-MCS (Elegoo) successor case; got ${emptyIds.join(',')}`);
+    }
+    const stEmptyCreality = { ...baseMCS, printer: 'ender3_v3_se', material: 'pla_basic', colors: 'multi_2_4' };
+    const emptyCrealityIds = wIds(stEmptyCreality);
+    if (!emptyCrealityIds.includes('mcs_empty_no_multicolor')) {
+      throw new Error(`v1.0.4 P1.5 LOW-01: Creality empty-MCS (ender3_v3_se) successor MUST fire mcs_empty_no_multicolor; got ${emptyCrealityIds.join(',')}`);
+    }
+    if (emptyCrealityIds.includes('creality_no_multicolor')) {
+      throw new Error(`v1.0.4 P1.5 LOW-01: retired creality_no_multicolor still fires on Creality empty-MCS (ender3_v3_se) successor case — manufacturer-gated regression caught; got ${emptyCrealityIds.join(',')}`);
     }
 
     // 2) AMS LITE MATERIAL GATE: A1 (ams_lite) + ABS (ams_compatible:true but ams_lite_compatible:false) + multi MUST warn 'ams_lite_material_incompat'.
@@ -1091,7 +1104,7 @@ const COMBOS = [
       throw new Error(`v1.0.4 HIGH-06: nozzle ${sampleNoz.id} still carries suitable_for/not_suitable_for after cleanup`);
     }
 
-    console.log(`[v1.0.4 HIGH-12/HIGH-06] OK nozzle_below_min_diameter parameterized (selected=0.4mm, required=0.6mm); cf_small_nozzle retired; std_0.4 carries no suitable_for/not_suitable_for.`);
+    console.log(`[v1.0.4 HIGH-12/HIGH-06] OK nozzle_below_min_diameter parameterized (selected=0.4mm, required=0.6mm); retired cf_small_nozzle + nozzle_too_small silent on successor case (LOW-01); std_0.4 carries no suitable_for/not_suitable_for.`);
   }
 
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
