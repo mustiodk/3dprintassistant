@@ -897,15 +897,104 @@ const COMBOS = [
       throw new Error(`v1.0.4 HIGH-05: X1C+petg_basic (no active chamber) must NOT fire chamber_above_material_safe; got ${silentNoActiveIds.join(',')}`);
     }
 
-    const stSilentNoCap = stateDefault({
+    // v1.0.4 P1.5 HIGH-02: post-fix, X1E + PLA Basic MUST fire the guard
+    // (PLA-family now carries safe_chamber_temp_max=50 < X1E max_chamber=60).
+    // The original "silent on no-safe-cap" case is replaced by X1C+pla_basic
+    // (no active-chamber → guard silent regardless of material cap).
+    const stFirePLA = stateDefault({
       printer: 'x1e', nozzle: 'std_0.4', material: 'pla_basic',
     });
-    const silentNoCapIds = Engine.getWarnings(stSilentNoCap).map(w => w.id);
-    if (silentNoCapIds.includes('chamber_above_material_safe')) {
-      throw new Error(`v1.0.4 HIGH-05: X1E+pla_basic (material has no safe cap) must NOT fire chamber_above_material_safe; got ${silentNoCapIds.join(',')}`);
+    const firePLAWarns = Engine.getWarnings(stFirePLA);
+    const firePLAIds = firePLAWarns.map(w => w.id);
+    if (!firePLAIds.includes('chamber_above_material_safe')) {
+      throw new Error(`v1.0.4 P1.5 HIGH-02: X1E+pla_basic must fire chamber_above_material_safe; got ${firePLAIds.join(',')}`);
+    }
+    const pla = Engine.getMaterial('pla_basic');
+    const plaCap = pla?.safe_chamber_temp_max ?? pla?.enclosure_behavior?.safe_chamber_temp_max;
+    if (plaCap !== 50) {
+      throw new Error(`v1.0.4 P1.5 HIGH-02: pla_basic safe_chamber_temp_max expected 50, got ${plaCap}`);
+    }
+    const plaGuard = firePLAWarns.find(w => w.id === 'chamber_above_material_safe');
+    if (!/50°C/.test(plaGuard.text)) {
+      throw new Error(`v1.0.4 P1.5 HIGH-02: guard text must reference 50°C cap for PLA; got "${plaGuard.text}"`);
     }
 
-    console.log(`[v1.0.4 HIGH-05] OK chamber_above_material_safe fires on X1E+petg_basic (cap=${matCap}°C); silent on X1C+petg_basic and X1E+pla_basic.`);
+    const stSilentNoActivePLA = stateDefault({
+      printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic',
+    });
+    const silentNoActivePLAIds = Engine.getWarnings(stSilentNoActivePLA).map(w => w.id);
+    if (silentNoActivePLAIds.includes('chamber_above_material_safe')) {
+      throw new Error(`v1.0.4 P1.5 HIGH-02: X1C+pla_basic (no active chamber) must NOT fire chamber_above_material_safe; got ${silentNoActivePLAIds.join(',')}`);
+    }
+
+    console.log(`[v1.0.4 HIGH-05] OK chamber_above_material_safe fires on X1E+petg_basic (cap=${matCap}°C) and X1E+pla_basic (cap=${plaCap}°C); silent on X1C+petg_basic and X1C+pla_basic (no active chamber).`);
+  }
+
+  // ─── v1.0.4 P1.5 — HIGH-02 PLA cold/chamber safety (Option B) ──────────────
+  // PLA on enclosed/active-heated printers must NOT be told to keep the door
+  // closed during cold-env compensation; instead it must get the positive
+  // open-door / remove-top-glass guidance + the chamber safe-cap guard. The
+  // generic cold-env "Preheat enclosure 15 min" copy contradicts the heat-creep
+  // mitigation and must be suppressed for the same material/printer pair.
+  //
+  // Non-regression: PETG (no open_door_threshold_bed_temp) on X1E + cold MUST
+  // still receive the verbatim "Keep door closed" copy — the suppression is
+  // material-aware, not env-aware.
+  {
+    // PLA on X1E (active-heated, enclosure='active') + cold env.
+    const stPlaColdActive = stateDefault({
+      printer: 'x1e', nozzle: 'std_0.4', material: 'pla_basic', environment: 'cold',
+    });
+    const plaColdWarns = Engine.getWarnings(stPlaColdActive);
+    const plaColdIds = plaColdWarns.map(w => w.id);
+    const plaColdText = plaColdWarns.map(w => `${w.text} ${w.detail || ''}`).join(' || ');
+
+    // (a) Extended pla_heat_creep MUST fire (was passive-only; Option B extends to active).
+    if (!plaColdIds.includes('pla_heat_creep')) {
+      throw new Error(`v1.0.4 P1.5 HIGH-02: pla_heat_creep MUST fire on X1E+PLA+cold (active enclosure extension); got ${plaColdIds.join(',')}`);
+    }
+
+    // (b) NO warning text on PLA+enclosed pair may say "Keep door closed".
+    if (/Keep door closed/i.test(plaColdText)) {
+      throw new Error(`v1.0.4 P1.5 HIGH-02: PLA + enclosed + cold MUST NOT carry "Keep door closed" copy; warnings text = ${plaColdText}`);
+    }
+
+    // (c) Checklist MUST NOT include "Preheat enclosure" for PLA-family + enclosed
+    //     (contradicts the open-door guidance the same checklist provides next).
+    const plaChecklist = Engine.getChecklist(stPlaColdActive);
+    const plaChecklistText = plaChecklist.map(c => c.text).join(' || ');
+    if (/Preheat enclosure/i.test(plaChecklistText)) {
+      throw new Error(`v1.0.4 P1.5 HIGH-02: PLA + enclosed + cold MUST NOT include "Preheat enclosure" checklist item; got = ${plaChecklistText}`);
+    }
+    // (d) Existing "Open front door + remove top glass panel" item MUST still appear
+    //     (this is the positive guidance — without it the user gets no door direction at all).
+    if (!/Open front door/i.test(plaChecklistText)) {
+      throw new Error(`v1.0.4 P1.5 HIGH-02: PLA + enclosed + cold MUST include "Open front door" checklist item; got = ${plaChecklistText}`);
+    }
+
+    // (e) Non-regression on passive-enclosure path: PLA + P1S (passive) + cold
+    //     must still fire pla_heat_creep (existing behavior).
+    const stPlaColdPassive = stateDefault({
+      printer: 'p1s', nozzle: 'std_0.4', material: 'pla_basic', environment: 'cold',
+    });
+    const plaColdPassiveIds = Engine.getWarnings(stPlaColdPassive).map(w => w.id);
+    if (!plaColdPassiveIds.includes('pla_heat_creep')) {
+      throw new Error(`v1.0.4 P1.5 HIGH-02 non-regression: pla_heat_creep must still fire on P1S+PLA+cold (passive enclosure); got ${plaColdPassiveIds.join(',')}`);
+    }
+
+    // (f) Non-regression: PETG (no open_door_threshold_bed_temp) on X1E + cold
+    //     MUST still carry the "Keep door closed" copy — suppression is
+    //     material-aware, not blanket env-aware.
+    const stPetgColdActive = stateDefault({
+      printer: 'x1e', nozzle: 'std_0.4', material: 'petg_basic', environment: 'cold',
+    });
+    const petgColdText = Engine.getWarnings(stPetgColdActive)
+      .map(w => `${w.text} ${w.detail || ''}`).join(' || ');
+    if (!/Keep door closed/i.test(petgColdText)) {
+      throw new Error(`v1.0.4 P1.5 HIGH-02 non-regression: PETG (no open_door_threshold) on X1E+cold MUST still carry "Keep door closed" copy; got = ${petgColdText}`);
+    }
+
+    console.log(`[v1.0.4 P1.5 HIGH-02] OK PLA on X1E (active) + cold: pla_heat_creep fires; no "Keep door closed"; no "Preheat enclosure" in checklist; "Open front door" still present. Passive (P1S) regression clean. PETG non-regression: "Keep door closed" preserved.`);
   }
 
   // ─── v1.0.4 — Nozzle min-diameter cleanup + nozzle-side authority drop (HIGH-12 / HIGH-06) ─

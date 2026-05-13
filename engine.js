@@ -1363,11 +1363,17 @@ const Engine = (() => {
       });
     }
 
-    // 4. Preheat enclosure if needed + cold environment
+    // 4. Preheat enclosure if needed + cold environment.
+    // v1.0.4 P1.5 HIGH-02 — materials with open_door_threshold_bed_temp
+    // (PLA-family) on enclosed printers want the door open to mitigate heat
+    // creep; the generic "Preheat enclosure for N minutes" copy contradicts
+    // the open-door guidance item #5 directly below, so suppress the preheat
+    // item for those pairs.
     const needsEnclosure = mat.enclosure_required || (mat.enclosure_behavior && mat.enclosure_behavior.enclosure_required);
     const coldEnv = state.environment === 'cold' || state.environment === 'vcold';
     const hasEnclosure = printer && printer.enclosure !== 'none';
-    if (hasEnclosure && (needsEnclosure || coldEnv)) {
+    const openDoorThreshold = mat.enclosure_behavior && mat.enclosure_behavior.open_door_threshold_bed_temp;
+    if (hasEnclosure && (needsEnclosure || coldEnv) && openDoorThreshold == null) {
       const minutes = env ? (env.preheat_minutes || 15) : 15;
       items.push({
         text:     `Preheat enclosure for ${minutes} minutes before starting`,
@@ -1379,7 +1385,6 @@ const Engine = (() => {
     }
 
     // 5. Enclosure open for PLA-type materials on enclosed printers
-    const openDoorThreshold = mat.enclosure_behavior && mat.enclosure_behavior.open_door_threshold_bed_temp;
     if (openDoorThreshold != null && hasEnclosure) {
       items.push({
         text:     `Open front door + remove top glass panel`,
@@ -1499,8 +1504,13 @@ const Engine = (() => {
         'PETG prints better with stable ambient temperature. Consider a DIY enclosure or warm room to avoid layer separation.'));
     }
 
-    // 4. PLA + passive enclosure (heat creep warning)
-    if (material.group === 'PLA' && printer && printer.enclosure === 'passive' &&
+    // 4. PLA + enclosed printer (heat creep warning).
+    // v1.0.4 P1.5 HIGH-02 — extended from passive-only to any enclosed printer
+    // (passive OR active-heated). Active-chamber printers like X1E heat the
+    // chamber above PLA's softening point; the open-door guidance is needed
+    // symmetrically. Pairs with the chamber_above_material_safe guard for
+    // active-chamber printers (now firing for PLA after the data fix).
+    if (material.group === 'PLA' && printer && printer.enclosure !== 'none' &&
         material.enclosure_behavior?.open_door_threshold_bed_temp != null) {
       warnings.push(w('pla_heat_creep',
         'PLA + enclosed printer:',
@@ -1639,6 +1649,17 @@ const Engine = (() => {
             : msg;
           warnings.push(w(`env_${env.id}_${i}`, text, '', ''));
         } else {
+          // v1.0.4 P1.5 HIGH-02 — material-aware suppression of subsequent
+          // env warnings that contradict the open-door heat-creep guidance.
+          // Materials with open_door_threshold_bed_temp (PLA-family) on
+          // enclosed printers must NOT be told to keep the door closed or to
+          // preheat a sealed enclosure. Other verbatim env warnings (e.g.
+          // humidity advisories) pass through unchanged.
+          const heatCreepPair = printer && printer.enclosure !== 'none'
+            && material.enclosure_behavior?.open_door_threshold_bed_temp != null;
+          if (heatCreepPair && /door closed|preheat the enclosure|preheat \(/i.test(msg)) {
+            return;
+          }
           warnings.push(w(`env_${env.id}_${i}`, msg, '', ''));
         }
       });

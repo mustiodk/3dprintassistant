@@ -40,6 +40,7 @@
       "enclosure_required": false,
       "enclosure_behavior": {
         "open_door_threshold_bed_temp": 45,
+        "safe_chamber_temp_max": 50,
         "reason": "PLA softens at 57°C — passive enclosure heats up with bed, causing heat creep and clogs"
       },
       "compatible_plates": [
@@ -145,6 +146,7 @@
       "enclosure_required": false,
       "enclosure_behavior": {
         "open_door_threshold_bed_temp": 45,
+        "safe_chamber_temp_max": 50,
         "reason": "Same as PLA Basic — passive enclosure overheats with bed >45°C"
       },
       "compatible_plates": [
@@ -243,6 +245,7 @@
       "enclosure_required": false,
       "enclosure_behavior": {
         "open_door_threshold_bed_temp": 45,
+        "safe_chamber_temp_max": 50,
         "reason": "Same as PLA — keep door open to prevent heat creep"
       },
       "compatible_plates": [
@@ -342,6 +345,7 @@
       "enclosure_required": false,
       "enclosure_behavior": {
         "open_door_threshold_bed_temp": 45,
+        "safe_chamber_temp_max": 50,
         "reason": "PLA Metal follows PLA chamber limits — open door / remove top cover when bed is above 45°C to prevent heat creep"
       },
       "compatible_plates": [
@@ -449,6 +453,7 @@
       "enclosure_required": false,
       "enclosure_behavior": {
         "open_door_threshold_bed_temp": 45,
+        "safe_chamber_temp_max": 50,
         "reason": "PLA-CF is still PLA-based — same enclosure rules apply"
       },
       "compatible_plates": [
