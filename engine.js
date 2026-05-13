@@ -983,6 +983,20 @@ const Engine = (() => {
     return 'generic_non_ams'; // mmu3 / ace / idex / toolchanger / filament_hub / etc.
   }
 
+  // Display-name map for the generic_non_ams tier's user-visible sysLabel.
+  // Keeps user copy in proper case ('Filament Hub', 'Toolchanger') instead of
+  // leaking data-key spelling ('FILAMENT_HUB'). Fallback below replaces
+  // underscores with spaces + uppercases — graceful handling for future
+  // unknown system IDs.
+  const _GENERIC_MCS_LABELS = {
+    mmu3: 'MMU3',
+    ace: 'ACE',
+    idex: 'IDEX',
+    toolchanger: 'Toolchanger',
+    filament_hub: 'Filament Hub',
+    ams_ht: 'AMS HT', // shouldn't reach here (caught by ams_like), but defensive
+  };
+
   function _nozzleTempCap(material, printer) {
     const bs = material && material.base_settings;
     if (!bs) return null;
@@ -1583,7 +1597,9 @@ const Engine = (() => {
           'Configure purge volumes in Creality Print — Bambu Studio AMS settings do not transfer. Flush behavior and feed reliability differ from AMS.'));
       } else if (tier === 'generic_non_ams') {
         const systems = Array.isArray(printer.multi_color_systems) ? printer.multi_color_systems : [];
-        const sysLabel = systems.length ? systems.join(', ').toUpperCase() : 'the multicolor system';
+        const sysLabel = systems.length
+          ? systems.map(s => _GENERIC_MCS_LABELS[s] || s.replace(/_/g, ' ').toUpperCase()).join(', ')
+          : 'the multicolor system';
         warnings.push(w('mcs_tier_generic_non_ams_guidance',
           `${printer.name} uses ${sysLabel}, not AMS.`,
           'Multi-color setup, purge volumes, and material handling differ from Bambu AMS. Consult the printer’s slicer / multicolor documentation before tuning purge values.'));

@@ -768,7 +768,45 @@ const COMBOS = [
       throw new Error(`v1.0.4 (system-type): x1c (ams_like) must NOT fire empty-MCS warning; got ${amsIds.join(',')}`);
     }
 
-    console.log(`[v1.0.4 MCS] OK empty-MCS warns + suppresses prime_tower; ams_lite gates by ams_lite_compatible; ams_like is silent on lite-specific concerns. empty-MCS prime_tower=${profEmpty.prime_tower?.value || '(absent)'}, a1+ABS ids=${liteIds.length}, a1+PLA ids=${liteOKIds.length}, x1c+PLA ids=${amsIds.length}`);
+    // 5) CFS tier (k2_plus): k2_plus + pla_basic + multi MUST fire 'mcs_tier_cfs_guidance'.
+    const stCFS = { ...baseMCS, printer: 'k2_plus', material: 'pla_basic', colors: 'multi_2_4' };
+    const cfsIds = wIds(stCFS);
+    if (!cfsIds.includes('mcs_tier_cfs_guidance')) {
+      throw new Error(`v1.0.4 (cfs tier): k2_plus+pla+multi must fire 'mcs_tier_cfs_guidance'; got ${cfsIds.join(',')}`);
+    }
+
+    // 6) CFS LITE sysLabel branch (sparkx_i7): sparkx_i7 + pla_basic + multi MUST also fire 'mcs_tier_cfs_guidance'
+    // (exercises the cfs_lite branch in the sysLabel ternary — same ID, different printer/system label).
+    const stCFSLite = { ...baseMCS, printer: 'sparkx_i7', material: 'pla_basic', colors: 'multi_2_4' };
+    const cfsLiteIds = wIds(stCFSLite);
+    if (!cfsLiteIds.includes('mcs_tier_cfs_guidance')) {
+      throw new Error(`v1.0.4 (cfs_lite tier): sparkx_i7+pla+multi must fire 'mcs_tier_cfs_guidance'; got ${cfsLiteIds.join(',')}`);
+    }
+
+    // 7) GENERIC NON-AMS tier (mk4 with mmu3): must fire 'mcs_tier_generic_non_ams_guidance'.
+    const stGeneric = { ...baseMCS, printer: 'mk4', material: 'pla_basic', colors: 'multi_2_4' };
+    const genericIds = wIds(stGeneric);
+    if (!genericIds.includes('mcs_tier_generic_non_ams_guidance')) {
+      throw new Error(`v1.0.4 (generic_non_ams tier): mk4+pla+multi must fire 'mcs_tier_generic_non_ams_guidance'; got ${genericIds.join(',')}`);
+    }
+
+    // 8) AMS-LIKE prime_tower PRESERVED: x1c + multi MUST still emit prime_tower=Enabled (positive case — pairs with assertion 1's negative).
+    const profAMS = getProfile({ ...baseMCS, printer: 'x1c', material: 'pla_basic', colors: 'multi_2_4' });
+    if (!profAMS.prime_tower || !/enabled/i.test(String(profAMS.prime_tower.value || ''))) {
+      throw new Error(`v1.0.4 (ams_like): x1c+multi MUST emit prime_tower=Enabled; got ${profAMS.prime_tower?.value || '(absent)'}`);
+    }
+
+    // 9) MULTI_5 empty-MCS suppression: centauri_carbon + multi_5 must suppress BOTH prime_tower AND flush_into_infill
+    //    (exercises the multi_5 branch in the gating).
+    const profEmpty5 = getProfile({ ...baseMCS, printer: 'centauri_carbon', material: 'pla_basic', colors: 'multi_5' });
+    if (profEmpty5.prime_tower && /enabled/i.test(String(profEmpty5.prime_tower.value || ''))) {
+      throw new Error(`v1.0.4 (multi_5 empty-MCS): centauri_carbon+multi_5 must NOT emit prime_tower=Enabled; got ${profEmpty5.prime_tower.value}`);
+    }
+    if (profEmpty5.flush_into_infill && /enabled/i.test(String(profEmpty5.flush_into_infill.value || ''))) {
+      throw new Error(`v1.0.4 (multi_5 empty-MCS): centauri_carbon+multi_5 must NOT emit flush_into_infill=Enabled; got ${profEmpty5.flush_into_infill.value}`);
+    }
+
+    console.log(`[v1.0.4 MCS] OK empty-MCS warn+suppress; ams_lite gates; ams_like preserves prime_tower; cfs/cfs_lite/generic_non_ams advisories fire; multi_5 suppression on empty-MCS works. empty prime_tower=${profEmpty.prime_tower?.value || '(absent)'}, ams_like prime_tower=${profAMS.prime_tower?.value}, cfs ids=${cfsIds.length}, generic ids=${genericIds.length}`);
   }
 
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
