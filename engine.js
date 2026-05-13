@@ -1747,6 +1747,44 @@ const Engine = (() => {
         'Use a glue stick or hairspray as a release layer to prevent damage to the build plate surface. A textured PEI sheet is also a safe alternative.'));
     }
 
+    // v1.0.4 — Physical printer × plate guard (HIGH-02)
+    // printers.json:available_plates lists the plates the printer physically
+    // ships with / accepts. Warn when the user's plate pick isn't on that list —
+    // otherwise the engine emits a confident profile for a plate the user can't
+    // actually mount. Additive to the BUILD_PLATE_COMPAT static map below
+    // (Phase 3 removes the static map; v1.0.4 keeps it as complementary safety net).
+    if (printer && Array.isArray(printer.available_plates) && state.build_plate) {
+      if (!printer.available_plates.includes(state.build_plate)) {
+        warnings.push(w('plate_not_on_printer',
+          `${printer.name} doesn't ship with the selected plate.`,
+          `Supported plates on ${printer.name}: ${printer.available_plates.join(', ')}. The selected plate (${state.build_plate}) isn't in the printer's inventory.`,
+          `Switch the build-plate picker to one of [${printer.available_plates.join(', ')}], or pick a printer whose available_plates include ${state.build_plate}.`));
+      }
+    }
+
+    // v1.0.4 — Material plate bed_temp_range guidance (HIGH-03 material half)
+    // When material.compatible_plates carries an entry for the selected plate with
+    // a bed_temp_range[min,max], consult the engine's resolved bed temp (base +
+    // env adj — same recipe used by warning #14b above and by getAdvancedFilamentSettings)
+    // and emit supplementary guidance when out of plate-recommended range.
+    if (material && Array.isArray(material.compatible_plates) && state.build_plate && material.base_settings) {
+      const matPlate = material.compatible_plates.find(cp => cp.plate_id === state.build_plate);
+      if (matPlate && Array.isArray(matPlate.bed_temp_range) && matPlate.bed_temp_range.length === 2) {
+        const [plateMin, plateMax] = matPlate.bed_temp_range;
+        const bs = material.base_settings;
+        const bedAdj = env ? (env.bed_adj || 0) : 0;
+        const resolvedBed = bs.bed_temp_base + bedAdj;
+        if (Number.isFinite(plateMin) && Number.isFinite(plateMax) && Number.isFinite(resolvedBed)) {
+          if (resolvedBed < plateMin || resolvedBed > plateMax) {
+            warnings.push(w('plate_bed_temp_range',
+              `${material.name} on ${state.build_plate}: bed temp outside plate-recommended range.`,
+              `Recommended bed range for ${material.name} on ${state.build_plate}: ${plateMin}–${plateMax}°C. Current resolved bed temp: ${resolvedBed}°C.`,
+              `Switch to a plate whose recommended range covers ${resolvedBed}°C, or accept that adhesion / release behavior may be suboptimal.`));
+          }
+        }
+      }
+    }
+
     // C1. Build plate compatibility warning
     if (state.build_plate && material.group) {
       const compat = BUILD_PLATE_COMPAT[material.group];

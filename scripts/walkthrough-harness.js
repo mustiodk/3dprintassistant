@@ -670,6 +670,38 @@ const COMBOS = [
     console.log(`[v1.0.4 HIGH-01] OK printer × nozzle guard fires for ender3_v3_se+std_0.8 and stays silent for centauri_carbon+std_0.4`);
   }
 
+  // ─── v1.0.4 — Physical printer × plate guard + material plate range (HIGH-02 / HIGH-03) ─
+  {
+    const baseHarness = { nozzle: 'std_0.4', useCase: ['functional'], surface: 'standard',
+                          strength: 'standard', speed: 'balanced', environment: 'normal',
+                          support: 'none', colors: 'single', userLevel: 'intermediate',
+                          special: [], profileMode: 'safe' };
+
+    // 1) BAD: H2D ships [textured_pei, smooth_pei] — cool_plate is not on the printer.
+    //    Selecting it must warn with exact ID 'plate_not_on_printer'.
+    const stBad = { ...baseHarness, printer: 'h2d', material: 'pla_basic', build_plate: 'cool_plate' };
+    const badIds = Engine.getWarnings(stBad).map(w => w.id);
+    if (!badIds.includes('plate_not_on_printer')) {
+      throw new Error(`v1.0.4 HIGH-02: expected exact warning id 'plate_not_on_printer' on h2d+cool_plate; got ${badIds.join(',')}`);
+    }
+
+    // 2) GOOD: Centauri Carbon has available_plates:[textured_pei]. Must NOT trigger guard.
+    const stOk = { ...baseHarness, printer: 'centauri_carbon', material: 'pla_basic', build_plate: 'textured_pei' };
+    const okIds = Engine.getWarnings(stOk).map(w => w.id);
+    if (okIds.includes('plate_not_on_printer')) {
+      throw new Error(`v1.0.4 HIGH-02: centauri_carbon+textured_pei should NOT trigger plate_not_on_printer; got ${okIds.join(',')}`);
+    }
+
+    // 3) MULTI-PLATE GOOD: x1c ships multiple plates incl. textured_pei. Must NOT trigger guard.
+    const stMulti = { ...baseHarness, printer: 'x1c', material: 'pla_basic', build_plate: 'textured_pei' };
+    const multiIds = Engine.getWarnings(stMulti).map(w => w.id);
+    if (multiIds.includes('plate_not_on_printer')) {
+      throw new Error(`v1.0.4 HIGH-02: x1c+textured_pei should NOT trigger plate_not_on_printer (multi-plate printer); got ${multiIds.join(',')}`);
+    }
+
+    console.log(`[v1.0.4 HIGH-02] OK plate guard fires for h2d+cool_plate and stays silent for centauri_carbon+textured_pei and x1c+textured_pei`);
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo
