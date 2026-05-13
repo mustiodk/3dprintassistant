@@ -2674,7 +2674,8 @@ const Engine = (() => {
     brim_width:                'brim_width',
     ironing:                   'ironing_type',
     slow_down_tall:            'enable_height_slowdown',
-    // TODO(v1.0.4-export): draft_shield → enable_draft_shield mapping missing. See ROADMAP "IR-deferred export-path findings".
+    // v1.0.4 Phase 1.5 HIGH-01: env-driven draft_shield must reach BS process export.
+    draft_shield:              'enable_draft_shield',
   };
 
   // BS fields that need array wrapping: ["value"] instead of "value"
@@ -2925,7 +2926,7 @@ const Engine = (() => {
       // Boolean-like toggles
       if (engineKey === 'arc_fitting' || engineKey === 'avoid_crossing_walls' ||
           engineKey === 'only_one_wall_top' || engineKey === 'infill_combination' ||
-          engineKey === 'slow_down_tall') {
+          engineKey === 'slow_down_tall' || engineKey === 'draft_shield') {
         process[bsKey] = /enabled|1|true/i.test(String(raw)) ? '1' : '0';
         return;
       }
@@ -3043,11 +3044,14 @@ const Engine = (() => {
     const mvsVal = bs.max_mvs?.[String(nozzle.size)];
     if (mvsVal)  filament.filament_max_volumetric_speed = [String(parseFloat(mvsVal))];
 
-    // Fan speeds
-    // TODO(v1.0.4-export): env.fan_multiplier scaling not applied here. See ROADMAP "IR-deferred export-path findings".
-    if (bs.cooling_fan_min != null) {
-      filament.fan_min_speed = [String(parseInt(bs.cooling_fan_min) || 0)];
-      filament.fan_max_speed = ['100'];
+    // Fan speeds — v1.0.4 Phase 1.5 HIGH-01: read env-scaled fan_min_speed /
+    // fan_max_speed from getAdvancedFilamentSettings so cold/vcold envs export
+    // the same env.fan_multiplier-scaled values the engine emits to the live UI.
+    if (adv.fan_min_speed != null) {
+      filament.fan_min_speed = [String(parseInt(adv.fan_min_speed.value, 10) || 0)];
+    }
+    if (adv.fan_max_speed != null) {
+      filament.fan_max_speed = [String(parseInt(adv.fan_max_speed.value, 10) || 100)];
     }
     // Overhang fan speed (e.g. "80%" → 80)
     if (bs.cooling_fan_overhang != null) {
@@ -3128,13 +3132,14 @@ const Engine = (() => {
       }
       lines.push('');
 
-      // Fan settings
-      const hasFan = filament.cooling_fan != null || adv.cooling_fan_min != null
+      // Fan settings — v1.0.4 Phase 1.5 HIGH-01: read env-scaled fan_min_speed
+      // (S-wrapped), not the raw cooling_fan_min material default.
+      const hasFan = filament.cooling_fan != null || adv.fan_min_speed != null
                   || adv.cooling_fan_overhang != null || adv.slow_layer_time != null;
       if (hasFan) {
         lines.push('  FAN SETTINGS');
         if (filament.cooling_fan != null)      lines.push(`    Part cooling fan:        ${filament.cooling_fan}`);
-        if (adv.cooling_fan_min != null)       lines.push(`    Fan speed (min):         ${adv.cooling_fan_min}`);
+        if (adv.fan_min_speed != null)         lines.push(`    Fan speed (min):         ${adv.fan_min_speed.value}%`);
         if (adv.cooling_fan_overhang != null)  lines.push(`    Overhang fan speed:      ${adv.cooling_fan_overhang}`);
         if (adv.slow_layer_time != null)       lines.push(`    Min layer time:          ${adv.slow_layer_time}`);
         lines.push('');

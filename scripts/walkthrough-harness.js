@@ -609,6 +609,57 @@ const COMBOS = [
     console.log(`[v1.0.4 ENV] OK bed_first_layer_adj=+${Math.round(bedCold - bedNormal)}°C, fan reduced, draft_shield emitted, warning copy matches emit`);
   }
 
+  // ─── v1.0.4 Phase 1.5 — Codex HIGH-01 export-path env-fan + draft_shield ──
+  // Phase 1.5 Codex audit (2026-05-13) found that text export + Bambu export
+  // bypass the env-scaled fan_min_speed/fan_max_speed engine emissions and the
+  // BAMBU_PROCESS_MAP lacks draft_shield → enable_draft_shield. Live export
+  // buttons (app.js:814-846) ship these unscaled values to users.
+  {
+    const base = { printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic',
+                   useCase: ['functional'], surface: 'standard', strength: 'standard',
+                   speed: 'balanced', support: 'none', colors: 'single',
+                   userLevel: 'intermediate', special: [], build_plate: 'textured_pei',
+                   profileMode: 'safe' };
+    const coldState = { ...base, environment: 'cold' };
+
+    // Baseline: PLA Basic cooling_fan_min = 70%, fan_max = 100, env.cold.fan_multiplier = 0.9.
+    // Engine-side env-scaled emission: fan_min_speed = round(70 × 0.9) = 63, fan_max_speed = 90.
+    const advCold = Engine.getAdvancedFilamentSettings(coldState);
+    const scaledFanMin = parseInt(advCold.fan_min_speed.value, 10);
+    const scaledFanMax = parseInt(advCold.fan_max_speed.value, 10);
+    if (scaledFanMin !== 63) throw new Error(`v1.0.4 Codex HIGH-01 baseline: expected fan_min_speed=63 (70×0.9) for PLA+cold; got ${scaledFanMin}`);
+    if (scaledFanMax !== 90) throw new Error(`v1.0.4 Codex HIGH-01 baseline: expected fan_max_speed=90 (100×0.9) for PLA+cold; got ${scaledFanMax}`);
+
+    // 1) Text export must surface the env-scaled fan min (not the raw 70%).
+    const txt = Engine.formatProfileAsText(coldState);
+    if (!txt) throw new Error(`v1.0.4 Codex HIGH-01 export: formatProfileAsText returned null for x1c+cold`);
+    const fanMinLine = txt.match(/Fan speed \(min\):\s*([\d]+)/);
+    if (!fanMinLine) throw new Error(`v1.0.4 Codex HIGH-01 export: text export missing "Fan speed (min):" line`);
+    const txtFanMin = parseInt(fanMinLine[1], 10);
+    if (txtFanMin !== scaledFanMin) {
+      throw new Error(`v1.0.4 Codex HIGH-01 export: text export Fan speed (min)=${txtFanMin} should match env-scaled ${scaledFanMin} (not unscaled 70)`);
+    }
+
+    // 2) Bambu process export must include enable_draft_shield for cold env.
+    const bs = Engine.exportBambuStudioJSON(coldState);
+    if (!bs) throw new Error(`v1.0.4 Codex HIGH-01 export: exportBambuStudioJSON returned null for x1c+cold`);
+    if (bs.process.enable_draft_shield !== '1') {
+      throw new Error(`v1.0.4 Codex HIGH-01 export: BS process.enable_draft_shield should be '1' for cold env; got ${JSON.stringify(bs.process.enable_draft_shield)}`);
+    }
+
+    // 3) Bambu filament export must apply env.fan_multiplier (not raw material default).
+    const bsFanMin = bs.filament.fan_min_speed?.[0];
+    const bsFanMax = bs.filament.fan_max_speed?.[0];
+    if (parseInt(bsFanMin, 10) !== scaledFanMin) {
+      throw new Error(`v1.0.4 Codex HIGH-01 export: BS filament.fan_min_speed=${bsFanMin} should match env-scaled ${scaledFanMin} (not unscaled 70)`);
+    }
+    if (parseInt(bsFanMax, 10) !== scaledFanMax) {
+      throw new Error(`v1.0.4 Codex HIGH-01 export: BS filament.fan_max_speed=${bsFanMax} should match env-scaled ${scaledFanMax} (not unscaled 100)`);
+    }
+
+    console.log(`[v1.0.4 P1.5 HIGH-01-export] OK text+BS export use env-scaled fan (${scaledFanMin}/${scaledFanMax}) + enable_draft_shield for cold env`);
+  }
+
   // ─── v1.0.4 — env clamp misattribution (MEDIUM-05) ────────────────────────
   {
     // PLA Basic on A1 + vcold (PLA max_nozzle=230). Env wants +10°C → 230 + initial offset

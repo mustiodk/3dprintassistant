@@ -1242,8 +1242,13 @@ function renderFilamentPanel(filament, nozzle) {
     ${row(T('rowCoolingFan'), filament.cooling_fan, undefined, fP.cooling_fan)}`;
 
   if (adv) {
+    // v1.0.4 Phase 1.5 HIGH-01: render env-scaled fan_min_speed.value with its
+    // inline S-wrapped prov sidecar; not the raw cooling_fan_min material default.
+    const fanMinHtml = adv.fan_min_speed != null
+      ? row(T('rowFanMin'), `${adv.fan_min_speed.value}%`, undefined, adv.fan_min_speed)
+      : '';
     html += `
-      ${row(T('rowFanMin'),      adv.cooling_fan_min,      undefined, aP.cooling_fan_min)}
+      ${fanMinHtml}
       ${row(T('rowFanOverhang'), adv.cooling_fan_overhang, undefined, aP.cooling_fan_overhang)}
       ${row(T('rowSlowLayer'),   adv.slow_layer_time,      undefined, aP.slow_layer_time)}`;
   }
