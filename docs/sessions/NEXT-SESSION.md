@@ -1,6 +1,6 @@
 # Next session - cold-start prompt (3dpa web + iOS)
 
-**Last updated:** 2026-05-13 after v1.0.4 S6 close. Phase 1.5 Codex audit packet is **prepped and pushed** (web `690519e`). Owner runs Codex manually using the dispatch command at the bottom of this file; once findings are pasted into `codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-response.md`, S7 cold-starts and triages per the IR rubric. Web `main` is at `690519e`; iOS `main` at `eeb2915` (untouched).
+**Last updated:** 2026-05-13 after v1.0.4 S7-1 close (Phase 1.5 Codex HIGH-01 shipped). Web `main` at `eaf3f09`; iOS `main` at `eeb2915` (untouched). Phase 1.5 owner-triaged scope: HIGH-01 + HIGH-02 + MEDIUM-01 + LOW-01 in v1.0.4; defer MEDIUM-02 + OBSERVATION-01 to v1.0.5. **HIGH-02 modeling locked to Option B** ("right thing, not cutting corners") — `safe_chamber_temp_max` data + engine + harness + material-aware cold-env warning copy rewrite. S7-2 picks up HIGH-02 next.
 
 A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger B / explicit owner ask.
 
@@ -8,7 +8,7 @@ A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger 
 
 >>> START >>>
 
-# Cold-start: 3D Print Assistant — S7, v1.0.4 Phase 1.5 (Codex audit response triage + web-only remediation)
+# Cold-start: 3D Print Assistant — S7-2, v1.0.4 Phase 1.5 HIGH-02 (PLA cold/chamber safety, Option B)
 
 ## Read First, In This Order
 
@@ -20,100 +20,94 @@ Follow Trigger C from the canonical protocol. Show progress while reading. Confi
 4. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/planning/ROADMAP.md`
 5. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/INDEX.md`
 6. Last three session logs, in full (newest first):
+   - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-13-cowork-appdev-v1.0.4-s7-1-high-01.md`
    - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-13-cowork-appdev-v1.0.4-s6-codex-packet.md`
    - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-13-cowork-appdev-v1.0.4-s5-impl.md`
-   - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-13-cowork-appdev-v1.0.4-s4-impl.md`
 7. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/NEXT-SESSION.md`
-8. Task-specific files (THIS IS THE WORK):
-   - **Codex response (the entry point):** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-response.md`. If empty, STOP — owner hasn't dispatched Codex yet. Surface that and end the session.
-   - **Packet for reference (what Codex was asked):** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-packet.md`.
-   - **Diff for reference (the surface Codex reviewed):** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/codex/v1.0.4-audit/v1.0.4-commit-range.diff`.
-   - **Phase 1.5 spec, plan, Step 5 layout (S7 cold-start procedure):** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/superpowers/plans/2026-05-13-v1.0.4-config-impact.md` Phase 1.5 Step 5 section.
-   - **AI collaboration / IR severity rubric:** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/ai-collab.md`.
-   - **Merged.md (locked SHA `5bcd68b`):** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/reviews/2026-05-11-config-impact-qa/merged.md` — the original v1.0.4 scope source.
+8. Task-specific files (THIS IS THE WORK — HIGH-02 PLA cold/chamber safety):
+   - **Codex finding HIGH-02 in full:** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-response.md` (read the `### HIGH-02` section — evidence cites engine.js / materials.json / environment.json / walkthrough-harness.js line numbers).
+   - **Existing harness X1E+PLA silent assertion (to flip):** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/scripts/walkthrough-harness.js:849-855`.
+   - **Chamber safe-cap guard (Task 6):** `engine.js:1746-1749` — fires `chamber_above_material_safe` only when material carries `safe_chamber_temp_max`.
+   - **PLA heat-creep warning (passive enclosure only):** `engine.js:1502-1507`.
+   - **Cold-env preheat checklist:** `engine.js:1366-1378`.
+   - **Cold-env "Keep door closed" warning copy:** `data/rules/environment.json:31-34` (preserved verbatim through `getWarnings` at `engine.js:1607-1612` + `:1641-1643`).
+   - **PLA-family heat-resistance baseline:** `data/materials.json:88-89` (`heat_resistance_c: 57` for PLA Basic). All PLA-family materials likely similar — confirm before assigning `safe_chamber_temp_max`.
+   - **AI collaboration rubric:** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/ai-collab.md`.
 
 ## Current State
 
-- **v1.0.3 is live worldwide on the App Store.** Remote overlay `content_version=2026051202` adds `sparkx_i7` under Creality / i Series.
-- **v1.0.4 Phase 1 is COMPLETE on web (7/7 tasks shipped).** Walkthrough has 8 cumulative v1.0.4 OK lines; profile-matrix-audit 55/55 curated + 47196 broad clean at every commit; validate-data clean.
-- **v1.0.4 Phase 1.5 packet PREPPED and pushed** — web `690519e` (3 files: diff + packet + empty response under `codex/v1.0.4-audit/`).
-- **Owner runs Codex manually.** Owner-gated dispatch (Option B low-touch). S7 cold-starts AFTER owner has pasted Codex findings into the response file.
-- **Web `main` at `690519e`.** iOS `main` at `eeb2915` (untouched).
-- **Phase shape:** Phase 1 ✅ → Phase 1.5 packet prep ✅ (S6) → **Phase 1.5 response triage (THIS SESSION, S7)** → Phase 2.1 (iOS engine/data sync + XCTest, Task 8) → Phase 2.2 (UI walkthrough + MARKETING_VERSION bump + ship, Task 9). Owner manually dispatches TestFlight after Phase 2.2.
+- **v1.0.3 is live worldwide on the App Store.** Remote overlay `content_version=2026051202` ships i7 under Creality / i Series.
+- **v1.0.4 Phase 1 COMPLETE (7/7 web tasks).** Walkthrough has 9 cumulative v1.0.4 OK lines after S7-1.
+- **v1.0.4 Phase 1.5 owner-triage COMPLETE.** Codex audit response committed (`fe2964e`); triage 0 CRITICAL / 2 HIGH / 2 MEDIUM / 1 LOW / 1 OBSERVATION. Owner scope: HIGH-01 + HIGH-02 + MEDIUM-01 + LOW-01 in v1.0.4; defer MEDIUM-02 + OBSERVATION-01 to v1.0.5.
+- **S7-1 SHIPPED Codex HIGH-01** to web (`eaf3f09`): live export surfaces (BS process / BS filament / plain-text / app.js advanced render) now read env-scaled `fan_min_speed` / `fan_max_speed` + emit `enable_draft_shield`.
+- **Web `main` at `eaf3f09`.** iOS `main` at `eeb2915` (untouched). 9 cumulative v1.0.4 walkthrough OK lines.
+- **Phase shape:** Phase 1 ✅ → Phase 1.5 owner-triage ✅ → S7-1 HIGH-01 ✅ → **S7-2 HIGH-02 (THIS SESSION)** → S7-3 MEDIUM-01 → S7-4 LOW-01 → S8 Phase 2.1 → S9 Phase 2.2.
 
-## Recommended First Lane
+## Recommended First Lane — S7-2 HIGH-02 (PLA cold/chamber safety, Option B)
 
-S7 of the multi-session autonomous arc. This session reads the Codex response, triages findings, applies the autonomy/pause logic, and either remediates web-only OR pauses for owner adjudication OR confirms green-path collapse.
+### Why "Option B"
 
-1. **`git status` in web + iOS** to confirm clean state. Confirm web HEAD is `690519e` (or later if owner committed something) and iOS HEAD is `eeb2915`.
-2. **Read the response file in full** at `codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-response.md`.
-   - **If empty:** STOP. Surface to owner: "Codex response file is empty — has Codex been dispatched yet? S7 needs the response before continuing." End the session.
-3. **Triage findings per IR severity rubric** (CRITICAL / HIGH / MEDIUM / LOW / OBSERVATION). Count by severity. Apply stop conditions:
-   - **≥1 CRITICAL or ≥5 HIGH** → STOP autonomous flow. Surface findings + recommended ordering + ask owner whether to remediate, defer to v1.0.5, or split. Wait for owner direction before any code touch.
-   - **0 CRITICAL, 1-4 HIGH** → autonomous web-only remediation. One finding = one commit. Per-finding checkpoint applies between findings (if context budget tight, Trigger A close after each commit and continue in S7-N session). Re-run `validate-data` + walkthrough + matrix-audit per commit.
-   - **MEDIUM/LOW only** → surface to owner with a recommended split: which to remediate this arc vs defer to v1.0.5 vs ignore. Owner triages; autonomous remediation only on accepted items.
-   - **0 findings (or OBSERVATIONs only)** → green-path collapse. Note this explicitly in the session log + skip directly to S8 (Phase 2.1 / Task 8). The Trigger A close note for S7 should preface the S8 cold-start instead of regenerating an S8 entry-point file.
-4. **Per-finding remediation pattern** (when autonomous): TDD-first per finding — RED block in `scripts/walkthrough-harness.js` asserting the fix, GREEN engine/data change, verification gate (validate-data + walkthrough + matrix-audit), commit `fix: <one-line>`, push. Same exact-value / exact-ID assertion discipline applied across S2-S5.
-5. **Trigger A close** (or per-finding checkpoint wrap if context budget runs tight mid-remediation): session log + INDEX prepend + ROADMAP header/queue update + NEXT-SESSION regen for S8 (or for S7-continuation) + memory + vault sweeps + self-check.
+Owner explicitly chose Option B over A when triaging HIGH-02: *"nr 2 looks like the the best option if we want to do the right thing, not cutting corners"*. Option B is "Option A + material-aware rewrite of the cold-env 'Keep door closed' warning copy" — wider blast radius than data-only.
+
+### Concrete surface
+
+1. **Data: add `safe_chamber_temp_max` to PLA-family materials in `data/materials.json`.**
+   - PLA-family IDs: `pla_basic`, `pla_matte`, `pla_silk`, `pla_metal`, `pla_cf`.
+   - Suggested cap: **50°C** (conservative margin below PLA's 57°C softening point per `heat_resistance_c` field). Matches the PETG Basic precedent that S5 used for HIGH-05.
+   - Recipe applies the existing chamber-safe-cap guard naturally (`engine.js:1746-1749`) — X1E (chamber max 60°C) + PLA will fire `chamber_above_material_safe`.
+
+2. **Engine: extend cold-env warning path to be material-aware (the Option-B-specific part).**
+   - `getWarnings` currently rewrites only the *first* env warning at `engine.js:1607-1612` and preserves subsequent JSON warnings verbatim at `:1641-1643`. The cold env's second warning ("Keep door closed throughout print") fires unconditionally from `data/rules/environment.json:31-34`.
+   - Option B: intercept the second cold-env warning for PLA-family on enclosed/active-heated printers — either suppress it, or replace with PLA-specific "door / top open for PLA heat-creep mitigation" copy.
+   - Cross-check with the existing PLA heat-creep warning at `engine.js:1502-1507` — currently gated on `printer.enclosure === 'passive'`. Option B may extend it to `'active'` for PLA-family so the positive open-door guidance fires symmetrically.
+
+3. **Checklist: material-aware preheat-enclosure suppression.**
+   - `getChecklist` at `engine.js:1366-1378` adds "Preheat enclosure" for any enclosed printer in cold/vcold env. For PLA-family on enclosed/active-heated printers this contradicts the open-door guidance. Suppress it for PLA-family + enclosed/active-heated combo.
+
+4. **Harness: flip the X1E+PLA silent assertion.**
+   - Existing assertion at `scripts/walkthrough-harness.js:849-855` codifies X1E + PLA silent on chamber guard — drop the silent-for-PLA line, replace with positive assertion that `chamber_above_material_safe` fires for X1E + PLA (X1E chamber 60°C > new PLA cap 50°C).
+   - Add cold-env material-aware assertions: cold + PLA + X1E should NOT carry "Keep door closed" verbatim; should EITHER suppress that warning OR present the open-door PLA-specific copy.
+
+### Procedure
+
+1. **`git status` in web + iOS.** Confirm clean state. Web HEAD `eaf3f09` (or later if intervening commits); iOS HEAD `eeb2915`.
+2. **TDD-first per the standing rule.** Per `superpowers:test-driven-development`:
+   - Write **RED** assertions in `scripts/walkthrough-harness.js`: PLA + X1E fires `chamber_above_material_safe`; PLA-family on enclosed/active-heated printer + cold env does NOT carry the verbatim "Keep door closed" copy; checklist doesn't include "Preheat enclosure" for PLA-family + enclosed/active-heated + cold.
+   - Run walkthrough — verify RED fails for the right reason on each new assertion.
+3. **GREEN.**
+   - Add `safe_chamber_temp_max: 50` to each PLA-family material entry in `data/materials.json`.
+   - Extend `getWarnings` cold-env path with material-aware filtering for PLA-family on enclosed/active-heated printers.
+   - Extend `getChecklist` preheat-enclosure entry with material-aware suppression.
+   - Update / flip the existing X1E+PLA silent assertion to positive.
+4. **Verification gate.** `node scripts/walkthrough-harness.js` (expect 10+ cumulative v1.0.4 OK lines), `node scripts/validate-data.js`, `node scripts/profile-matrix-audit.js`.
+5. **Commit + push.** One commit: `fix: PLA-aware cold/chamber safety guidance (P1.5 HIGH-02)`. Push to `origin/main`. Cloudflare Pages auto-deploys.
+6. **Trigger A close.** Session log → INDEX prepend → ROADMAP header/queue update → NEXT-SESSION regen for S7-3 (MEDIUM-01) → memory sweep → vault sweep → self-check.
 
 ## Scope Rules
 
-- **Autonomy authorization (S7-specific):** web-only one-finding-one-commit remediation is autonomous under the autonomy/pause-conditions logic. Pause conditions take priority — never auto-remediate past the stop threshold.
-- **No iOS changes.** iOS HEAD `eeb2915` stays untouched. Phase 2.1 is gated until Phase 1.5 closes (this session's remediation lands).
-- **No autonomous Codex peer review.** The Phase 1.5 carve-out covered S6 packet prep + S7 response triage; it does NOT extend to dispatching follow-up Codex reviews on S7's remediation. If S7 remediation creates a new design surface that warrants peer review, surface to owner and stop.
+- **Autonomous remediation eligible.** S7-2 is autonomous web-only per Phase 1.5 carve-out (1-4 HIGH lane). Pause condition: if HIGH-02 remediation reveals a new design surface not covered by owner direction (e.g., conflict between Option B's cold-env-copy suppression and an existing warning ID's positive surface), STOP and surface to owner.
+- **No iOS changes.** iOS HEAD `eeb2915` stays untouched. Phase 2.1 picks up after S7-4 closes.
+- **No autonomous Codex follow-up review.** Phase 1.5 carve-out covered S6 packet + S7 response triage; doesn't extend to peer-reviewing S7-N remediation.
 - **No autonomous TestFlight dispatch.**
-- **Trigger A close still runs at session end** — log + INDEX + ROADMAP + NEXT-SESSION regen. Memory + vault sweeps still run.
-- **Stop conditions that trigger abort + Trigger B:** dirty working tree before any commit; verification gate fails after a remediation attempt (revert + surface, don't push broken); mid-flow adjudication needed; Codex response file format unparseable.
-- **`[claude-adjudicated]` calls eligible for owner override** at any cold-start.
+- **TDD-first per finding.** Load `superpowers:test-driven-development` skill before writing any production code. Rigid: RED → verify-fails → GREEN → verify-passes.
+- **Verification before completion.** Load `superpowers:verification-before-completion` skill before claiming work done. No completion claims without fresh evidence.
+- **Trigger A close runs at session end.** Per-finding-checkpoint discipline — Trigger A between S7-N findings.
+- **Stop conditions that abort + Trigger B:** dirty working tree before commit; verification gate fails after a remediation attempt (revert + surface, don't push broken); design ambiguity surfacing mid-implementation.
 
-## S6-learned addition
+## S7-1 carry-forward (relevant for S7-2 and onward)
 
-**PHASE1_END pinning to the explicit Task 7 SHA (`901153a`) reads cleaner than HEAD-based bash.** NEXT-SESSION's bash for the diff snapshot at S5 close resolved `PHASE1_END` from `git log -1 main`, which would have set the endpoint label to S5's docs-only close commit `e36a91b`. The diff content was identical either way (filter excludes docs), but the packet's commit-range field reads more cleanly with the explicit Task 7 SHA. For S7 specifically: this lesson family ("plan templates can ossify around assumptions; verify the actual state") has now been reapplied at S5 (Task 6 PLA Basic → petg_basic substitution + 2 line-citation re-greps) and S6 (PHASE1_END pinning). When S7 cites engine.js line numbers in remediation commits, grep first.
+- **Codex response file** at `codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-response.md` is the canonical source. S7-2 reads finding HIGH-02 in full before coding. Subsequent S7-N commits reference Codex finding IDs (P1.5 HIGH-02 / MEDIUM-01 / LOW-01).
+- **`enable_height_slowdown` + `enable_draft_shield` array-wrapping irregularity** filed in S7-1 follow-up: both are in `BAMBU_ARRAY_FIELDS` but the boolean-toggle branch (`engine.js:2926-2931`) emits plain strings and returns early. Verify against actual Bambu Studio process-profile expectations when Phase 2.7a re-enables export UI. Not S7-2 scope.
+- **Engine kept legacy plain-string `cooling_fan_min` key** in `getAdvancedFilamentSettings` output for back-compat with iOS pre-sync. S7-1 migrated consumers (text export + Bambu export + app.js advanced render) to S-wrapped `fan_min_speed` / `fan_max_speed`. Phase 2.1 Task 8 byte-identical sync will propagate cleanly.
 
-## S5-learned reminder (still applies)
+## After S7-2
 
-**Plan templates can encode stale line citations + stale data assumptions; recon before coding.** S5 caught this on Task 6 (PLA Basic carries no `safe_chamber_temp_max`) and Task 7 (line citation drift). S7 may face the same when remediating Codex findings — verify the actual file state, don't trust template literals from older docs.
+- **S7-3 — MEDIUM-01** (bed-clamp attribution honesty). `engine.js:1624-1631` claims `+NdegC applied to first-layer bed temperature` even when the requested delta was fully clipped by `bed_temp_max`. Compute effective post-clamp delta; emit cap/clip warning when partially or fully clipped. Pair: bed-clamp warning at `engine.js:1706-1727` should include `bed_first_layer_adj` in its attribution.
+- **S7-4 — LOW-01** (test-contract hardening). Add explicit negative assertions for retired warning IDs in successor positive cases: `nozzle_too_small` (alongside existing `cf_small_nozzle` guard), `k2_plus_cfs`, `creality_no_multicolor`.
+- **S8 — Phase 2.1 / Task 8.** Byte-identical engine + data copy to iOS; add XCTests mirroring Phase 1 walkthrough assertions + Phase 1.5 HIGH-01 / HIGH-02 / MEDIUM-01 / LOW-01. iOS XCTest green; one iOS local commit (engine + data + tests). **No push.**
+- **S9 — Phase 2.2 / Task 9.** UI screenshot walkthrough; MARKETING_VERSION 1.0.3 → 1.0.4 via `sed` + `xcodegen`; second iOS local commit (project.yml + .pbxproj); 5-point ship-ready handoff. **Owner manually dispatches TestFlight.**
 
-## S4-learned reminder (still applies)
-
-**When retiring or renaming a warning ID, sweep ALL test contracts before commit.** Walkthrough harness + profile-matrix-audit + validate-data + any other `scripts/*` files. S5 caught one drift pre-commit; S7 should apply the same discipline if remediation touches warning IDs.
-
-## S3-learned reminder (still applies)
-
-**When replicating engine logic in warning-side checks, MIRROR THE FULL RECIPE — don't use simplified subsets.** If S7 remediation involves new warning-side recipe checks (clamp logic, threshold comparisons), mirror the engine's full path including initial-layer offsets, env adjustments, and clamping bounds.
-
-## S2-learned reminder (still applies)
-
-**Write exact-value / exact-ID assertions in the harness from the start.** Reduces fixup round-trips. Apply to any new RED block in S7.
-
-## Copy-paste-ready Codex dispatch command (for owner — run BEFORE S7)
-
-```
-=== Phase 1.5 packet ready ===
-Packet: codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-packet.md
-Diff:   codex/v1.0.4-audit/v1.0.4-commit-range.diff
-Empty response file: codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-response.md
-
-To dispatch Codex (run from terminal):
-  cd /Users/mragile.io/Documents/Claude/Projects/3dprintassistant && \
-    codex "Review per docs/codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-packet.md.
-            Save findings to codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-response.md
-            using IR severity rubric (CRITICAL/HIGH/MEDIUM/LOW/OBSERVATION).
-            Honor 'Challenge this. Do not validate it by default.' framing per ai-collab.md."
-
-Once Codex has written findings to the response file, kick off S7 with:
-  "3dpa cold start"
-
-S7 will read this NEXT-SESSION.md, read the response, and triage per the IR rubric.
-```
-
-## What you'll do across S7…S∞ (skim)
-
-- **S7 (this session)** — Phase 1.5 remediation. Cold-start on owner-pasted response. Triage per IR rubric. Apply autonomy/pause logic. Either web-only one-finding-one-commit remediation, owner-paused adjudication, owner-triaged split, or green-path collapse. **No iOS work.**
-- **S8** — Phase 2.1 / Task 8. Byte-identical engine + data copy to iOS; add new XCTests mirroring Phase 1 walkthrough assertions (+ any Phase 1.5 remediation); iOS XCTest green; one iOS local commit (engine + data + tests). **No push.** If S7 was green-path-collapsed, S8 absorbs the confirmation note.
-- **S9** — Phase 2.2 / Task 9. UI screenshot walkthrough; MARKETING_VERSION bump 1.0.3 → 1.0.4 via `sed` + `xcodegen`; second iOS local commit (project.yml + .pbxproj); 5-point ship-ready handoff. **Owner manually dispatches TestFlight.**
-
-Each web task was one commit per platform. iOS commits stay local until the 5-point ship-ready check passes at the end of S9.
+Each web finding lands as one web commit; iOS commits stay local until S9's 5-point ship-ready check passes.
 
 <<< END <<<
 
