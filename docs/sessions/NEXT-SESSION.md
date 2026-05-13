@@ -1,6 +1,6 @@
 # Next session - cold-start prompt (3dpa web + iOS)
 
-**Last updated:** 2026-05-13 after v1.0.4 S5 close. Phase 1 is COMPLETE on web: S5 shipped Tasks 6 + 7 in one session with zero reviewer round-trips (`6f9e542` chamber safe-cap guard + `901153a` nozzle-min-diameter cleanup + nozzle-side authority drop). 7/7 Phase 1 web tasks shipped; walkthrough has 8 cumulative v1.0.4 OK lines; profile-matrix-audit 55/55 curated + 0 broad failures. iOS HEAD `eeb2915` untouched. S6 target: Phase 1.5 — prepare the Codex audit packet at `codex/v1.0.4-audit/`, surface a copy-paste-ready dispatch command in the Trigger A close note, and stop. Owner runs Codex manually; S7 cold-starts on the response.
+**Last updated:** 2026-05-13 after v1.0.4 S6 close. Phase 1.5 Codex audit packet is **prepped and pushed** (web `690519e`). Owner runs Codex manually using the dispatch command at the bottom of this file; once findings are pasted into `codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-response.md`, S7 cold-starts and triages per the IR rubric. Web `main` is at `690519e`; iOS `main` at `eeb2915` (untouched).
 
 A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger B / explicit owner ask.
 
@@ -8,7 +8,7 @@ A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger 
 
 >>> START >>>
 
-# Cold-start: 3D Print Assistant — S6, v1.0.4 Phase 1.5 (Codex audit packet prep, owner-gated dispatch)
+# Cold-start: 3D Print Assistant — S7, v1.0.4 Phase 1.5 (Codex audit response triage + web-only remediation)
 
 ## Read First, In This Order
 
@@ -20,89 +20,97 @@ Follow Trigger C from the canonical protocol. Show progress while reading. Confi
 4. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/planning/ROADMAP.md`
 5. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/INDEX.md`
 6. Last three session logs, in full (newest first):
+   - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-13-cowork-appdev-v1.0.4-s6-codex-packet.md`
    - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-13-cowork-appdev-v1.0.4-s5-impl.md`
    - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-13-cowork-appdev-v1.0.4-s4-impl.md`
-   - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-13-cowork-appdev-v1.0.4-s3-impl.md`
 7. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/NEXT-SESSION.md`
 8. Task-specific files (THIS IS THE WORK):
-   - **Phase 1.5 spec, plan, and packet template:** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/superpowers/plans/2026-05-13-v1.0.4-config-impact.md` — read Phase 1.5 section (starts around line 902).
-   - **AI collaboration / Codex Review Packet template:** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/ai-collab.md`.
-   - **Merged.md (locked SHA `5bcd68b`):** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/reviews/2026-05-11-config-impact-qa/merged.md` — gives Codex the original v1.0.4 scope source.
+   - **Codex response (the entry point):** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-response.md`. If empty, STOP — owner hasn't dispatched Codex yet. Surface that and end the session.
+   - **Packet for reference (what Codex was asked):** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-packet.md`.
+   - **Diff for reference (the surface Codex reviewed):** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/codex/v1.0.4-audit/v1.0.4-commit-range.diff`.
+   - **Phase 1.5 spec, plan, Step 5 layout (S7 cold-start procedure):** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/superpowers/plans/2026-05-13-v1.0.4-config-impact.md` Phase 1.5 Step 5 section.
+   - **AI collaboration / IR severity rubric:** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/ai-collab.md`.
+   - **Merged.md (locked SHA `5bcd68b`):** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/reviews/2026-05-11-config-impact-qa/merged.md` — the original v1.0.4 scope source.
 
 ## Current State
 
 - **v1.0.3 is live worldwide on the App Store.** Remote overlay `content_version=2026051202` adds `sparkx_i7` under Creality / i Series.
-- **v1.0.4 Phase 1 is COMPLETE on web (7/7 tasks shipped).** Task 1 strength `speed_multiplier`, Task 2 env data layer + cold-warning copy + clamp attribution, Task 3 physical printer × nozzle guard, Task 4 physical printer × plate guard + material plate range, Task 5 practical multicolor 5-tier resolver (9 sub-assertions in walkthrough), Task 6 chamber safe-cap guard, Task 7 nozzle min-diameter cleanup + nozzle-side authority drop.
-- **Walkthrough harness has 8 cumulative v1.0.4 OK lines.** Profile-matrix-audit clean across 55/55 curated + 47196 broad configs at every Phase 1 commit. `validate-data` clean.
-- **Web `main` is at `901153a` (Task 7 close).** iOS `main` is at `eeb2915` (untouched).
-- **Phase shape locked at 4 phases:** Phase 1 (web Tasks 1-7) ✅ → **Phase 1.5 (Codex audit, owner-gated dispatch — THIS SESSION)** → Phase 2.1 (iOS engine/data sync + XCTest) → Phase 2.2 (UI walkthrough + MARKETING_VERSION bump + ship).
-- **New warning IDs introduced across Phase 1** (S6 should grep `engine.js` for the canonical list; carry-forward from S5 log lists candidates but flags drift risk): `chamber_above_material_safe` (Task 6), `nozzle_below_min_diameter` (Task 7 — replaces retired `cf_small_nozzle` + `nozzle_too_small`), `plate_not_on_printer` (Task 4), `mcs_empty_no_multicolor` / `ams_lite_material_incompat` / `mcs_tier_cfs_guidance` / `mcs_tier_generic_non_ams_guidance` (Task 5), `env_compensation_capped_by_material` (Task 2), Task 3 printer-nozzle guard ID, Task 1 strength-multiplier clamp ID (verify against engine.js).
+- **v1.0.4 Phase 1 is COMPLETE on web (7/7 tasks shipped).** Walkthrough has 8 cumulative v1.0.4 OK lines; profile-matrix-audit 55/55 curated + 47196 broad clean at every commit; validate-data clean.
+- **v1.0.4 Phase 1.5 packet PREPPED and pushed** — web `690519e` (3 files: diff + packet + empty response under `codex/v1.0.4-audit/`).
+- **Owner runs Codex manually.** Owner-gated dispatch (Option B low-touch). S7 cold-starts AFTER owner has pasted Codex findings into the response file.
+- **Web `main` at `690519e`.** iOS `main` at `eeb2915` (untouched).
+- **Phase shape:** Phase 1 ✅ → Phase 1.5 packet prep ✅ (S6) → **Phase 1.5 response triage (THIS SESSION, S7)** → Phase 2.1 (iOS engine/data sync + XCTest, Task 8) → Phase 2.2 (UI walkthrough + MARKETING_VERSION bump + ship, Task 9). Owner manually dispatches TestFlight after Phase 2.2.
 
 ## Recommended First Lane
 
-This is S6 of the multi-session autonomous arc. Owner-gated dispatch (Option B — low-touch). S6 prepares the packet AND a copy-paste-ready dispatch command AND a pre-created empty response file, then stops. Owner runs Codex manually.
+S7 of the multi-session autonomous arc. This session reads the Codex response, triages findings, applies the autonomy/pause logic, and either remediates web-only OR pauses for owner adjudication OR confirms green-path collapse.
 
-1. **`git status` in web + iOS** to confirm clean state.
-2. **Confirm the Phase 1 commit range and packet pre-requisites.**
-   - Phase 1 start (last commit before Task 1): `5bcd68b` (S1 close — "docs: wrap SPARKX i7 overlay hotfix session").
-   - Phase 1 end (Task 7): `901153a`.
-   - Hand-verify both by `git log 5bcd68b^..901153a --oneline`.
-3. **Execute Phase 1.5 Step 1 — Snapshot the Phase 1 commit-range diff.**
-   ```bash
-   PHASE1_START=5bcd68b
-   PHASE1_END=$(git -C /Users/mragile.io/Documents/Claude/Projects/3dprintassistant log --oneline -1 --format='%H' main)
-   DATESTAMP=$(date +%Y-%m-%d)
-   mkdir -p /Users/mragile.io/Documents/Claude/Projects/3dprintassistant/codex/v1.0.4-audit
-   git -C /Users/mragile.io/Documents/Claude/Projects/3dprintassistant diff "$PHASE1_START..$PHASE1_END" \
-       -- engine.js data/ scripts/walkthrough-harness.js scripts/profile-matrix-audit.js \
-       > /Users/mragile.io/Documents/Claude/Projects/3dprintassistant/codex/v1.0.4-audit/v1.0.4-commit-range.diff
-   wc -l /Users/mragile.io/Documents/Claude/Projects/3dprintassistant/codex/v1.0.4-audit/v1.0.4-commit-range.diff
-   ```
-   Expected: several thousand lines (engine + data + harness + audit changes across 7 tasks).
-4. **Execute Phase 1.5 Step 2 — Author the Codex packet per [`docs/ai-collab.md`](../ai-collab.md) Review Packet template.**
-   - Path: `codex/v1.0.4-audit/codex-${DATESTAMP}-v1.0.4-audit-packet.md`.
-   - Template literals at `<...>` filled at execution time from actual Phase 1 commit list, walkthrough OK-line count, new warning IDs (grep engine.js — see plan Phase 1.5 Step 2 for the full template, and the S5 log's carry-forward notes warning-ID list with drift risk flag).
-   - Use the implementation plan's template verbatim (`2026-05-13-v1.0.4-config-impact.md` Phase 1.5 Step 2) and only fill in dynamic values.
-5. **Execute Phase 1.5 Step 3 — Pre-create empty response file.**
-   ```bash
-   touch /Users/mragile.io/Documents/Claude/Projects/3dprintassistant/codex/v1.0.4-audit/codex-${DATESTAMP}-v1.0.4-audit-response.md
-   ```
-6. **Verification gate (S6-specific):** `validate-data` + walkthrough (no `❌`) + `profile-matrix-audit` (0/0) — confirm no drift between Phase 1 close and packet prep.
-7. **Commit + push:** one commit packaging the diff snapshot + packet + empty response placeholder. Subject: `chore: prep v1.0.4 Phase 1.5 Codex audit packet (owner-gated dispatch)`.
-8. **Trigger A close (S6 → S7):** session log + INDEX prepend + ROADMAP header/queue update + NEXT-SESSION regen for S7 + memory + vault sweeps + self-check.
-9. **In the Trigger A close note, surface the copy-paste-ready Codex dispatch command** — owner runs it manually. Example: `cd ~/Documents/Claude/Projects/3dprintassistant && cat codex/v1.0.4-audit/codex-${DATESTAMP}-v1.0.4-audit-packet.md` followed by paste-into-Codex-CLI instructions per `docs/ai-collab.md`.
+1. **`git status` in web + iOS** to confirm clean state. Confirm web HEAD is `690519e` (or later if owner committed something) and iOS HEAD is `eeb2915`.
+2. **Read the response file in full** at `codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-response.md`.
+   - **If empty:** STOP. Surface to owner: "Codex response file is empty — has Codex been dispatched yet? S7 needs the response before continuing." End the session.
+3. **Triage findings per IR severity rubric** (CRITICAL / HIGH / MEDIUM / LOW / OBSERVATION). Count by severity. Apply stop conditions:
+   - **≥1 CRITICAL or ≥5 HIGH** → STOP autonomous flow. Surface findings + recommended ordering + ask owner whether to remediate, defer to v1.0.5, or split. Wait for owner direction before any code touch.
+   - **0 CRITICAL, 1-4 HIGH** → autonomous web-only remediation. One finding = one commit. Per-finding checkpoint applies between findings (if context budget tight, Trigger A close after each commit and continue in S7-N session). Re-run `validate-data` + walkthrough + matrix-audit per commit.
+   - **MEDIUM/LOW only** → surface to owner with a recommended split: which to remediate this arc vs defer to v1.0.5 vs ignore. Owner triages; autonomous remediation only on accepted items.
+   - **0 findings (or OBSERVATIONs only)** → green-path collapse. Note this explicitly in the session log + skip directly to S8 (Phase 2.1 / Task 8). The Trigger A close note for S7 should preface the S8 cold-start instead of regenerating an S8 entry-point file.
+4. **Per-finding remediation pattern** (when autonomous): TDD-first per finding — RED block in `scripts/walkthrough-harness.js` asserting the fix, GREEN engine/data change, verification gate (validate-data + walkthrough + matrix-audit), commit `fix: <one-line>`, push. Same exact-value / exact-ID assertion discipline applied across S2-S5.
+5. **Trigger A close** (or per-finding checkpoint wrap if context budget runs tight mid-remediation): session log + INDEX prepend + ROADMAP header/queue update + NEXT-SESSION regen for S8 (or for S7-continuation) + memory + vault sweeps + self-check.
 
 ## Scope Rules
 
-- **Autonomy authorization (Phase 1.5 carve-out, narrow + additive):** S6 may autonomously *prepare* the Codex audit packet + diff snapshot + empty response file under `codex/v1.0.4-audit/` and surface a copy-paste-ready dispatch command in the Trigger A close note. **Owner runs Codex manually.** The blanket "No autonomous Codex peer review" rule remains in force outside this scoped Phase 1.5 carve-out.
-- **No code changes this session.** S6 is documentation + diff snapshot only. Engine + data + harness + audit are untouched (Phase 1 is closed; any changes pre-Codex would invalidate the audit packet's commit range).
-- **No iOS changes.** iOS HEAD `eeb2915` stays untouched. Phase 2 is gated until Phase 1.5 closes via S7 remediation.
+- **Autonomy authorization (S7-specific):** web-only one-finding-one-commit remediation is autonomous under the autonomy/pause-conditions logic. Pause conditions take priority — never auto-remediate past the stop threshold.
+- **No iOS changes.** iOS HEAD `eeb2915` stays untouched. Phase 2.1 is gated until Phase 1.5 closes (this session's remediation lands).
+- **No autonomous Codex peer review.** The Phase 1.5 carve-out covered S6 packet prep + S7 response triage; it does NOT extend to dispatching follow-up Codex reviews on S7's remediation. If S7 remediation creates a new design surface that warrants peer review, surface to owner and stop.
 - **No autonomous TestFlight dispatch.**
-- **Trigger A close still runs at session end** — log + INDEX + ROADMAP + NEXT-SESSION regen for S7. Memory + vault sweeps still run.
-- **Stop conditions that trigger abort + Trigger B:** dirty working tree before snapshot; diff snapshot fails (e.g., empty due to wrong range); cannot locate `docs/ai-collab.md` Review Packet template; mid-flow adjudication needed.
-- **`[claude-adjudicated]` calls eligible for owner override** at any cold-start. If owner flips any default at this cold-start: edit `merged.md`, re-snapshot the lock SHA, proceed.
+- **Trigger A close still runs at session end** — log + INDEX + ROADMAP + NEXT-SESSION regen. Memory + vault sweeps still run.
+- **Stop conditions that trigger abort + Trigger B:** dirty working tree before any commit; verification gate fails after a remediation attempt (revert + surface, don't push broken); mid-flow adjudication needed; Codex response file format unparseable.
+- **`[claude-adjudicated]` calls eligible for owner override** at any cold-start.
 
-## S5-learned addition
+## S6-learned addition
 
-**Plan templates can encode stale line citations + stale data assumptions; recon before coding.** Task 6's plan template said `engine.js:1566-1574` (actual site at 1739-1748) and assumed PLA Basic carried `safe_chamber_temp_max` (actual: only PETG/PET-group materials carry it under `enclosure_behavior.safe_chamber_temp_max=50`). Task 7's plan said `engine.js:1424-1427` for `cf_small_nozzle` (actual: 1524-1529). For S6 specifically: don't blindly copy template literals from the plan — read `docs/ai-collab.md` Review Packet template + the plan's Phase 1.5 Step 2 layout, then fill dynamic values from the actual engine.js / harness / audit state at HEAD.
+**PHASE1_END pinning to the explicit Task 7 SHA (`901153a`) reads cleaner than HEAD-based bash.** NEXT-SESSION's bash for the diff snapshot at S5 close resolved `PHASE1_END` from `git log -1 main`, which would have set the endpoint label to S5's docs-only close commit `e36a91b`. The diff content was identical either way (filter excludes docs), but the packet's commit-range field reads more cleanly with the explicit Task 7 SHA. For S7 specifically: this lesson family ("plan templates can ossify around assumptions; verify the actual state") has now been reapplied at S5 (Task 6 PLA Basic → petg_basic substitution + 2 line-citation re-greps) and S6 (PHASE1_END pinning). When S7 cites engine.js line numbers in remediation commits, grep first.
+
+## S5-learned reminder (still applies)
+
+**Plan templates can encode stale line citations + stale data assumptions; recon before coding.** S5 caught this on Task 6 (PLA Basic carries no `safe_chamber_temp_max`) and Task 7 (line citation drift). S7 may face the same when remediating Codex findings — verify the actual file state, don't trust template literals from older docs.
 
 ## S4-learned reminder (still applies)
 
-**When retiring or renaming a warning ID, sweep ALL test contracts before commit.** S5 successfully applied this for Task 7's `nozzle_too_small` → `nozzle_below_min_diameter` rename (caught `profile-matrix-audit.js:280` pre-commit). S6 should grep `engine.js` for the canonical Phase 1 warning-ID list rather than trust this NEXT-SESSION's drift-risk list — drift between session-log carry-forward and reality is real.
+**When retiring or renaming a warning ID, sweep ALL test contracts before commit.** Walkthrough harness + profile-matrix-audit + validate-data + any other `scripts/*` files. S5 caught one drift pre-commit; S7 should apply the same discipline if remediation touches warning IDs.
 
 ## S3-learned reminder (still applies)
 
-**When replicating engine logic in warning-side checks, MIRROR THE FULL RECIPE — don't use simplified subsets.** Not directly relevant to S6 (no engine work) but stays in the carry-forward for Phase 2.1 iOS sync (Task 8 in S8).
+**When replicating engine logic in warning-side checks, MIRROR THE FULL RECIPE — don't use simplified subsets.** If S7 remediation involves new warning-side recipe checks (clamp logic, threshold comparisons), mirror the engine's full path including initial-layer offsets, env adjustments, and clamping bounds.
 
 ## S2-learned reminder (still applies)
 
-**Write exact-value / exact-ID assertions in the harness from the start.** Not directly relevant to S6 (no harness work) but stays in the carry-forward for any future Phase 2 / iOS XCTest authoring (Task 8 in S8).
+**Write exact-value / exact-ID assertions in the harness from the start.** Reduces fixup round-trips. Apply to any new RED block in S7.
 
-## What you'll do across S6…S∞ (skim)
+## Copy-paste-ready Codex dispatch command (for owner — run BEFORE S7)
 
-- **S6 (this session)** — Phase 1.5 packet prep. Snapshot Phase 1 commit-range diff; author packet per `docs/ai-collab.md` Review Packet template; pre-create empty response file; surface copy-paste-ready Codex dispatch command in Trigger A close note. **Owner-gated: S6 ends after packet prep; owner runs Codex manually.**
-- **S7** — Phase 1.5 remediation. Cold-start on owner-pasted response file at `codex/v1.0.4-audit/codex-YYYY-MM-DD-v1.0.4-audit-response.md`. Triage per IR rubric. Stop conditions: ≥1 CRITICAL or ≥5 HIGH → pause for owner; 1-4 HIGH → autonomous web-only one-finding-one-commit remediation; MEDIUM/LOW → owner-triaged. **Green-path collapse:** if Codex returns 0 findings, S7 compresses into a confirmation note at the start of S8.
-- **S8** — Phase 2.1 / Task 8. Byte-identical engine + data copy to iOS; add 7 new XCTests mirroring Phase 1 walkthrough assertions; iOS XCTest green; one iOS local commit (engine + data + tests). **No push.**
+```
+=== Phase 1.5 packet ready ===
+Packet: codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-packet.md
+Diff:   codex/v1.0.4-audit/v1.0.4-commit-range.diff
+Empty response file: codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-response.md
+
+To dispatch Codex (run from terminal):
+  cd /Users/mragile.io/Documents/Claude/Projects/3dprintassistant && \
+    codex "Review per docs/codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-packet.md.
+            Save findings to codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-response.md
+            using IR severity rubric (CRITICAL/HIGH/MEDIUM/LOW/OBSERVATION).
+            Honor 'Challenge this. Do not validate it by default.' framing per ai-collab.md."
+
+Once Codex has written findings to the response file, kick off S7 with:
+  "3dpa cold start"
+
+S7 will read this NEXT-SESSION.md, read the response, and triage per the IR rubric.
+```
+
+## What you'll do across S7…S∞ (skim)
+
+- **S7 (this session)** — Phase 1.5 remediation. Cold-start on owner-pasted response. Triage per IR rubric. Apply autonomy/pause logic. Either web-only one-finding-one-commit remediation, owner-paused adjudication, owner-triaged split, or green-path collapse. **No iOS work.**
+- **S8** — Phase 2.1 / Task 8. Byte-identical engine + data copy to iOS; add new XCTests mirroring Phase 1 walkthrough assertions (+ any Phase 1.5 remediation); iOS XCTest green; one iOS local commit (engine + data + tests). **No push.** If S7 was green-path-collapsed, S8 absorbs the confirmation note.
 - **S9** — Phase 2.2 / Task 9. UI screenshot walkthrough; MARKETING_VERSION bump 1.0.3 → 1.0.4 via `sed` + `xcodegen`; second iOS local commit (project.yml + .pbxproj); 5-point ship-ready handoff. **Owner manually dispatches TestFlight.**
 
 Each web task was one commit per platform. iOS commits stay local until the 5-point ship-ready check passes at the end of S9.
