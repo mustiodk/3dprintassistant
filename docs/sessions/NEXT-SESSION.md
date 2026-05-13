@@ -1,6 +1,6 @@
 # Next session - cold-start prompt (3dpa web + iOS)
 
-**Last updated:** 2026-05-13 after S4 v1.0.4 impl close (Task 5 shipped; web HEAD at the S4-close commit on top of `1695cba`; iOS HEAD `eeb2915` untouched).
+**Last updated:** 2026-05-13 after v1.0.4 arc-restructure session (local-only commit `12fd33c` — UNPUSHED, MacBook lacks GitHub HTTPS credential helper; web HEAD will be at the arc-restructure close commit on top of `12fd33c` once owner pushes; iOS HEAD `eeb2915` untouched). The restructure inserted Phase 1.5 (Codex audit gate, owner-gated Option B low-touch dispatch) between Phase 1 and Phase 2.1, and split Phase 2 into Phase 2.1 (engine + data sync + iOS XCTest) + Phase 2.2 (UI walkthrough + MARKETING_VERSION bump + ship). S5 cold-start target unchanged: Task 6 (chamber safe-cap guard, warning-only, HIGH-05).
 
 A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger B / explicit owner ask.
 
