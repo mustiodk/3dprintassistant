@@ -1654,6 +1654,10 @@ const Engine = (() => {
             const prnBedCap = printer && printer.max_bed_temp != null ? printer.max_bed_temp : Infinity;
             const bedCap = Math.min(matBedCap, prnBedCap);
             const effectiveAdj = Math.min(initBedWithEnv, bedCap) - Math.min(initBedNoEnv, bedCap);
+            // capSource: the else-branch dereferences `printer.name`, but it
+            // is only reachable when `matBedCap > prnBedCap`, which requires
+            // `prnBedCap` to be a finite number — i.e., `printer && printer
+            // .max_bed_temp != null`. So `printer.name` is always safe here.
             const capSource = matBedCap <= prnBedCap
               ? `${material.name}'s ${matBedCap}°C bed cap`
               : `${printer.name}'s ${prnBedCap}°C bed cap`;

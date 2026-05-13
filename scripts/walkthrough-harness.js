@@ -1189,7 +1189,36 @@ const COMBOS = [
       throw new Error(`v1.0.4 P1.5 MEDIUM-01 non-regression: PETG+X1C+cold MUST NOT fire printer_max_bed_temp_clamped (X1C 110°C bed cap is generous; material cap is the binding constraint); got ${petgX1cWarns.map(w=>w.id).join(',')}`);
     }
 
-    console.log(`[v1.0.4 P1.5 MEDIUM-01] OK env_cold_bed_first_layer reflects post-clamp truth: fully-clipped PETG+X1C+cold says "requested but clipped"; un-clipped PLA+X1C+cold keeps "+7°C applied"; printer_max_bed_temp_clamped now fires on PETG+Kobra 3 Max+cold via env contribution to initTarget; non-regression on PLA+X1C and PETG+X1C printer-cap-clamp paths.`);
+    // (e) Partial-clip branch coverage: PLA Basic + X1C + vcold.
+    //     vcold has bed_adj=5 and bed_first_layer_adj=10. PLA bed_temp_base=55,
+    //     bed_temp_max=65, initial_layer_bed_offset=0, not isPETG.
+    //     initBedNoEnv = 55+5+0+0 = 60.
+    //     initBedWithEnv = 60+10 = 70.
+    //     bedCap = min(65, 110 X1C cap) = 65.
+    //     effectiveAdj = min(70,65) - min(60,65) = 65 - 60 = 5.
+    //     Requested +10°C; only +5°C lands — partial clip branch must fire.
+    //     This is the ONLY naturally-reachable partial-clip combo with current
+    //     env + materials data, so the harness pins the branch's copy shape
+    //     against future drift (added per code-review subagent's "branch is
+    //     dead-untested today" Important finding).
+    const stPlaX1cVcold = stateDefault({
+      printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', environment: 'vcold',
+    });
+    const plaVcoldBed = Engine.getWarnings(stPlaX1cVcold).find(w => w.id === 'env_vcold_bed_first_layer');
+    if (!plaVcoldBed) {
+      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PLA+X1C+vcold must emit env_vcold_bed_first_layer (partial-clip); got warnings from vcold combo`);
+    }
+    if (!/\+5°C applied/i.test(plaVcoldBed.text)) {
+      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PLA+X1C+vcold (partial clip) MUST report "+5°C applied"; text = "${plaVcoldBed.text}"`);
+    }
+    if (!/requested \+10°C/i.test(plaVcoldBed.text)) {
+      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PLA+X1C+vcold (partial clip) MUST report "requested +10°C"; text = "${plaVcoldBed.text}"`);
+    }
+    if (!/partially clip/i.test(plaVcoldBed.text)) {
+      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PLA+X1C+vcold (partial clip) MUST contain "partially clip"; text = "${plaVcoldBed.text}"`);
+    }
+
+    console.log(`[v1.0.4 P1.5 MEDIUM-01] OK env_*_bed_first_layer reflects post-clamp truth across all three branches: fully-clipped PETG+X1C+cold says "requested but clipped"; un-clipped PLA+X1C+cold keeps "+7°C applied"; partial-clip PLA+X1C+vcold says "+5°C applied (requested +10°C, partially clipped...)". printer_max_bed_temp_clamped now fires on PETG+Kobra 3 Max+cold via env contribution to initTarget; non-regression on PLA+X1C and PETG+X1C printer-cap-clamp paths.`);
   }
 
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
