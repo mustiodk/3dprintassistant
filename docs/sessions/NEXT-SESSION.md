@@ -1,6 +1,6 @@
 # Next session - cold-start prompt (3dpa web + iOS)
 
-**Last updated:** 2026-05-14 after v1.0.4 S7-4 close (Phase 1.5 LOW-01 shipped). Web `main` at `bc9c655`; iOS `main` at `eeb2915` (untouched). Phase 1.5 owner-triaged scope: HIGH-01 ✅ + HIGH-02 ✅ + LOW-01 ✅ + MEDIUM-01 (S7-3) — the only remaining Phase 1.5 web finding. After S7-3 ships, Phase 1.5 closes and S8 Phase 2.1 iOS sync opens.
+**Last updated:** 2026-05-14 after v1.0.4 S7-3 close. **Phase 1.5 is CLOSED — all 4 owner-triaged web findings shipped** (HIGH-01 ✅ + HIGH-02 ✅ + MEDIUM-01 ✅ + LOW-01 ✅). Web `main` at the close-commit successor of `58d919b`. iOS `main` still at `eeb2915` (untouched since 2026-04-27 era — Phase 2 gate stays active until S9 wraps). **S8 cold-starts on Phase 2.1 / Task 8: byte-identical engine + data sync to iOS + XCTest mirroring + one iOS local commit (no push).**
 
 A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger B / explicit owner ask.
 
@@ -8,21 +8,21 @@ A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger 
 
 >>> START >>>
 
-# Cold-start: 3D Print Assistant — S7-3, v1.0.4 Phase 1.5 MEDIUM-01 (first-layer bed-clamp attribution honesty)
+# Cold-start: 3D Print Assistant — S8, v1.0.4 Phase 2.1 / Task 8 (iOS engine + data sync)
 
-## Required skills — invoke at cold-start (owner directive 2026-05-13 post-S7-1, reaffirmed S7-2 + S7-4)
+## Required skills — invoke at cold-start
 
-Per `superpowers:using-superpowers`, the rule is "invoke relevant skills BEFORE any response or action." For S7-N remediation arcs, that means loading these skills at cold-start, not when about to act:
+The Phase 2.1 surface is mechanical sync (byte-identical `cp`) but **not pure copy** — XCTest assertions need to be mirrored / added for the v1.0.4 surface, and the engine.js + data files must be confirmed byte-identical post-sync via `diff`. Per `superpowers:using-superpowers`, the rule is "invoke relevant skills BEFORE any response or action." Load:
 
 1. **`superpowers:using-superpowers`** — meta-discipline.
-2. **`superpowers:writing-plans`** — refine/review existing v1.0.4 plan if the finding's surface is non-trivial.
+2. **`superpowers:writing-plans`** — Phase 2.1 has more surface than a single-finding remediation (engine + data + XCTest); a brief plan slice is worthwhile.
 3. **`superpowers:executing-plans`** — plan-checkpoint discipline.
-4. **`superpowers:requesting-code-review`** — dispatch a code-review subagent between impl and tightening commits. Validated S7-2 (caught PVA scope creep) AND S7-4 (caught Creality empty-MCS mis-targeting). Keep using this pattern unless owner overrides.
-5. **`superpowers:systematic-debugging`** — fallback when TDD-GREEN doesn't land cleanly.
-6. **`superpowers:test-driven-development`** — rigid; RED → verify-fails → GREEN → verify-passes per finding.
+4. **`superpowers:requesting-code-review`** — dispatch a code-review subagent on the iOS local commit before declaring Phase 2.1 done. Validated across S7-2 / S7-4 / S7-3 — caught real Important findings each time. Don't skip.
+5. **`superpowers:systematic-debugging`** — XCTest failures during sync are likely; this is the fallback when GREEN doesn't land cleanly.
+6. **`superpowers:test-driven-development`** — for any new XCTest assertions that need to mirror walkthrough behaviors.
 7. **`superpowers:verification-before-completion`** — rigid; no completion claims without fresh evidence.
 
-Load all seven via the `Skill` tool at the start of S7-3. Announce each as it loads.
+Load all seven via the `Skill` tool at the start of S8. Announce each as it loads.
 
 ## Read First, In This Order
 
@@ -30,94 +30,103 @@ Follow Trigger C from the canonical protocol. Show progress while reading. Confi
 
 1. `/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md`
 2. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/CLAUDE.md`
-3. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/3dpa-context.md`
-4. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/planning/ROADMAP.md`
-5. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/INDEX.md`
-6. Last three session logs, in full (newest first):
+3. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant-ios/CLAUDE.md` (iOS project rules; check the cross-device UITest workflow + simulator-build context)
+4. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/3dpa-context.md`
+5. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/planning/ROADMAP.md`
+6. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/INDEX.md`
+7. Last three session logs, in full (newest first — all three are S7-N Phase 1.5 commits):
+   - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-14-cowork-appdev-v1.0.4-s7-3-medium-01.md`
    - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-14-cowork-appdev-v1.0.4-s7-4-low-01.md`
    - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-13-cowork-appdev-v1.0.4-s7-2-high-02.md`
-   - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-13-cowork-appdev-v1.0.4-s7-1-high-01.md`
-7. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/NEXT-SESSION.md` (this file)
-8. Task-specific files (THIS IS THE WORK — MEDIUM-01 first-layer bed-clamp attribution):
-   - **Codex finding MEDIUM-01 in full:** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-response.md` (read the `### MEDIUM-01` section).
-   - **`getAdvancedFilamentSettings` bed-temp computation:** `engine.js:1220-1245` (where `env.bed_first_layer_adj` enters `initBed` and where `bedCap` clamps).
-   - **First-layer bed warning copy:** `engine.js:1624-1631` — emits `+NdegC applied to first-layer bed temperature` even when the delta was fully clipped by `bedCap`.
-   - **Existing bed-clamp warning:** `engine.js:1706-1727` — should include `bed_first_layer_adj` in its attribution alongside the existing nozzle-side attribution discipline.
-   - **Pair finding for attribution discipline parity:** `env_compensation_capped_by_material` (MEDIUM-05 from S2; covers the nozzle side — bed side currently lacks the same honesty).
-   - **Concrete static example (Codex evidence):** `data/materials.json:520-526` for PETG Basic — `bed_temp_base: 75`, `bed_temp_max: 85`, `initial_layer_bed_offset: 5`. Cold env wants another +7°C bed delta but the engine's own +5 initial-layer offset already reaches the 85°C cap, so the requested +7 is fully clipped while the warning still reads "+7°C applied."
+8. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/NEXT-SESSION.md` (this file)
+9. Task-specific files (THIS IS THE WORK — Phase 2.1 iOS sync):
+   - **Canonical v1.0.4 plan Task 8:** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/superpowers/plans/2026-05-13-v1.0.4-config-impact.md` — Phase 2.1 / Task 8 section (engine + data byte-identical sync + iOS XCTest).
+   - **iOS XCTest target current state:** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant-ios/3DPrintAssistantTests/` — current count was 64 tests (per S7-1 log; verify before adding). Identify which tests mirror engine behaviors that v1.0.4 changed (env compensation, MCS tiers, nozzle min-diameter, chamber safe-cap, PLA heat-creep / cold-chamber safety, bed-clamp attribution).
+   - **Codex audit response (reference for what behaviors landed):** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-response.md` — all 4 Phase 1.5 findings.
 
 ## Current State
 
 - **v1.0.3 is live worldwide on the App Store.** Remote overlay `content_version=2026051202` ships i7 under Creality / i Series.
-- **v1.0.4 Phase 1 COMPLETE (7/7 web tasks).** 10 cumulative v1.0.4 walkthrough OK lines after S7-4.
-- **v1.0.4 Phase 1.5:** HIGH-01 ✅ (S7-1, `eaf3f09`) + HIGH-02 ✅ (S7-2, `a4b8873` + `f2aa84f`) + LOW-01 ✅ (S7-4, `d863635` + `bc9c655`).
-- **Web `main` at `bc9c655`.** iOS `main` at `eeb2915` (untouched).
-- **Phase shape:** Phase 1 ✅ → Phase 1.5 owner-triage ✅ → S7-1 HIGH-01 ✅ → S7-2 HIGH-02 ✅ → S7-4 LOW-01 ✅ → **S7-3 MEDIUM-01 (THIS SESSION — only Phase 1.5 web finding left)** → S8 Phase 2.1 → S9 Phase 2.2.
+- **v1.0.4 Phase 1 COMPLETE (7/7 web tasks).** 11 cumulative v1.0.4 walkthrough OK lines.
+- **v1.0.4 Phase 1.5 CLOSED:** HIGH-01 ✅ (S7-1, `eaf3f09`) + HIGH-02 ✅ (S7-2, `a4b8873` + `f2aa84f`) + LOW-01 ✅ (S7-4, `d863635` + `bc9c655`) + MEDIUM-01 ✅ (S7-3, `243be51` + `58d919b`).
+- **Web `main`** at the close-commit successor of `58d919b` (run `git log --oneline -2` at session start to confirm exact HEAD).
+- **iOS `main` at `eeb2915`** (untouched since 2026-04-27 era — about 18 days of web changes to sync). Phase 2 gate active.
+- **Phase shape:** Phase 1 ✅ → Phase 1.5 CLOSED ✅ → **S8 Phase 2.1 / Task 8 (THIS SESSION)** → S9 Phase 2.2 / Task 9 → owner manually dispatches TestFlight.
 
-## Recommended First Lane — S7-3 MEDIUM-01 (first-layer bed-clamp attribution honesty)
+## Recommended First Lane — S8 Phase 2.1 / Task 8 (iOS engine + data sync)
 
-### Codex's framing of the bug
+### What "Task 8" actually means
 
-`getAdvancedFilamentSettings` adds `env.bed_first_layer_adj` into `initBed` at `engine.js:1227`, then clamps `initBed` to `bedCap` at `engine.js:1234-1238`. `getWarnings` emits "`+NdegC applied to first-layer bed temperature`" at `engine.js:1624-1631` **whenever `env.bed_first_layer_adj > 0`** — it does not check whether the requested delta was actually applied after the clamp. Effect: the warning lies about emitted output when the bed-temp cap clips the delta.
-
-### Concrete reproduction
-
-PETG Basic + cold env on a printer whose `bed_temp_max` ≤ 85°C:
-- `bed_temp_base: 75`, `initial_layer_bed_offset: 5` → engine's own first-layer offset already puts `initBed` at 80°C.
-- Cold env's `bed_first_layer_adj: 7` would push to 87°C, but PETG's `bed_temp_max: 85` clips it to 85°C.
-- Effective delta vs base = 10°C (not 12 = 5 + 7); effective env delta = 5°C (not 7).
-- Current warning copy says `+7°C applied to first-layer bed temperature` — **lies**.
+From the canonical v1.0.4 plan: **byte-identical sync of `engine.js` + `data/*.json` from web → iOS**, plus XCTest target updates so the iOS test suite continues to assert the same behaviors the web walkthrough harness asserts. The sync itself is mechanical `cp`; the XCTest layer requires deliberate updates because XCTest assertions don't auto-mirror the walkthrough.
 
 ### Concrete surface
 
-1. **Engine: compute effective post-clamp delta in `getAdvancedFilamentSettings` (engine.js:1220-1245)** and expose it on the returned object alongside the existing fields. Or compute it inline in the warning generator at `engine.js:1624-1631` from the same data the engine actually applies.
-2. **Engine: warning honesty in `getWarnings` (engine.js:1624-1631).** Three options to choose between:
-   - (A) Suppress the `env_${env.id}_bed_first_layer` warning entirely when the requested delta is fully clipped.
-   - (B) Rewrite the warning copy to `"first-layer bed compensation: +N°C requested but clipped to material max (M°C)"` when partially or fully clipped.
-   - (C) Always emit two warnings: the requested-delta warning AND a paired clip-warning when applicable.
-   - (B) is the honest middle ground per Codex's `requested but clipped` language. Confirm with owner if ambiguous.
-3. **Engine: pair the bed-clamp warning at `engine.js:1706-1727`** (`printer_max_bed_temp_clamped`) with attribution discipline — include `bed_first_layer_adj` in the cap explanation alongside `env.nozzle_adj` parity from the MEDIUM-05 work.
-4. **Harness: new MEDIUM-01 assertion block.**
-   - PETG Basic + cold env + small-cap printer (e.g., A1) → `env_${env.id}_bed_first_layer` either suppressed OR carries the new "requested but clipped" copy; effective delta computed correctly.
-   - PETG Basic + normal env (no delta) → no false `env_${env.id}_bed_first_layer` warning (existing behavior, non-regression).
-   - PLA Basic + cold env + same printer → effective delta == 7 (within cap), warning copy unchanged. Non-regression.
+1. **`cp` the source files:**
+   - `engine.js` → `3dprintassistant-ios/3DPrintAssistant/Resources/Engine/engine.js` (verify exact destination via existing iOS structure).
+   - `data/*.json` → `3dprintassistant-ios/3DPrintAssistant/Resources/Data/*.json` (or equivalent — check actual path in iOS bundle structure).
+   - **Verify byte-identity** via `diff` post-cp. The "byte-identical" rule is load-bearing for behavior parity.
+
+2. **XCTest update inventory.** Walk through what's NEW in v1.0.4 (Phase 1 + Phase 1.5) that didn't exist at iOS HEAD `eeb2915`:
+   - Strength `speed_multiplier` wiring (S2 Task 1, HIGH-09 / HIGH-04).
+   - Env data layer + cold-warning copy fix + env clamp attribution (S2 Task 2, HIGH-07/08 + MEDIUM-05).
+   - Physical printer × nozzle guard (S2 Task 3, HIGH-01).
+   - Physical printer × plate guard + material plate range (S3 Task 4, HIGH-02 / HIGH-03).
+   - 5-tier MCS resolver (S4 Task 5).
+   - Chamber safe-cap guard (S5 Task 6, HIGH-05) — extended to PLA in S7-2.
+   - Nozzle min-diameter cleanup + nozzle-side authority drop (S5 Task 7, HIGH-12 / HIGH-06).
+   - Phase 1.5 HIGH-01: env-fan / draft_shield wired through live export surfaces.
+   - Phase 1.5 HIGH-02: PLA cold/chamber safety (safe_chamber_temp_max on PLA-family + pla_heat_creep extended to active enclosures + getChecklist + env-warning material-aware filter).
+   - Phase 1.5 LOW-01: retired-warning-ID negative assertions (test-only — no engine surface change).
+   - Phase 1.5 MEDIUM-01: bed-clamp attribution honesty (env first-layer bed warning rewrite + printer_max_bed_temp_clamped initTarget includes bed_first_layer_adj).
+
+   For each, decide: (a) does an existing XCTest cover it (post-`cp`)?; (b) does it need a new test mirroring a walkthrough harness assertion?; (c) is it pure-web (export-surface stuff Codex caught) that has no iOS analog and stays uncovered?
+
+3. **Run iOS XCTest** post-sync + post-new-tests. Expect: 64 tests → some N >= 64 (depends on additions). Must be all green. Use whichever local Xcode / xcodebuild command is documented in iOS CLAUDE.md.
+
+4. **ONE iOS local commit.** Subject line should follow the existing convention (check `git log --oneline` on iOS HEAD for examples). Body: list the sync + each XCTest addition. **No push.** Phase 2 gate remains until S9's 5-point ship-ready check passes.
+
+### Stop conditions / blockers
+
+- iOS XCTest fails on a behavior that web walkthrough asserts is correct → likely a data-shape decode issue (iOS Codable layer); diagnose carefully before patching. The "forgiving Codable layer" standing rule (3dpa-context.md #9) usually handles additive fields without changes, but breaking data-shape changes might need iOS adjustment.
+- A web behavior has no clean iOS-side test surface (e.g., harness directly tests `formatProfileAsText` which iOS might not expose) → surface to owner before working around it.
+- iOS XCTest target / project structure changed materially since iOS HEAD `eeb2915` (unlikely but possible if a forgotten WIP commit landed) → confirm clean state first.
 
 ### Procedure
 
-1. **`git status`** in web + iOS. Confirm clean. Web HEAD `bc9c655` (or its close-commit successor); iOS HEAD `eeb2915`.
-2. **TDD-RED.** Author new harness block + run; verify each assertion fails for the right reason.
-3. **GREEN.** Engine changes per the surface above. Run walkthrough harness; verify all GREEN. Run validate-data + profile-matrix-audit.
-4. **Local commit.** Single impl commit on top of web `bc9c655`. Don't push yet.
-5. **Internal code review.** Dispatch general-purpose subagent w/ `requesting-code-review` prompt. SHA range `bc9c655..HEAD_AFTER_IMPL` (or the close-commit successor). Stress: warning copy phrasing choice (suppress vs rewrite vs paired), edge cases (partial clip, exact-cap delta, multiple env deltas — bed_adj + bed_first_layer_adj combinations), regression risk on the existing MEDIUM-05 attribution discipline.
-6. **Tightening commit** if reviewer surfaces Important findings (matches S7-2 + S7-4 pattern — both sessions had real Important findings caught by the reviewer). Re-run verification gate.
-7. **Push** after green + reviewer-clear. `git push origin main` → Cloudflare auto-deploys.
-8. **Trigger A close.** Session log → INDEX prepend → ROADMAP header/queue update → NEXT-SESSION regen for S8 (Phase 2.1 / Task 8 iOS sync) → memory sweep → vault sweep → self-check.
+1. **`git status` in web + iOS.** Confirm clean state. Web HEAD post-S7-3 close-commit; iOS HEAD `eeb2915`.
+2. **Read iOS CLAUDE.md + tests target structure.** Understand the test naming convention + the engine bridge.
+3. **`cp` web engine.js + data/*.json → iOS** in one batch.
+4. **`diff -q` byte-identity check** post-cp.
+5. **XCTest update pass.** For each new v1.0.4 behavior in the inventory above: locate the existing test (if any), add new assertions if needed. TDD-RED first when adding genuinely new tests.
+6. **Run iOS XCTest.** Expect all green. Use the documented local command from iOS CLAUDE.md.
+7. **Internal code review subagent on the resulting iOS local commit.** SHA range will be iOS HEAD pre-commit → iOS HEAD after. Stress: byte-identity correctness, XCTest coverage gaps, any web-only behaviors that should have iOS analogs.
+8. **Tightening commit if reviewer surfaces Important findings** (matches S7-2 / S7-4 / S7-3 pattern).
+9. **NO push.** Phase 2 gate.
+10. **Trigger A close.** Session log → INDEX prepend → ROADMAP header/queue update → NEXT-SESSION regen for S9 (Phase 2.2 / Task 9 UI walkthrough + MARKETING_VERSION bump + 5-point ship-ready handoff) → memory sweep → vault sweep → self-check.
 
 ## Scope Rules
 
-- **Autonomous remediation eligible.** S7-3 is autonomous web-only per Phase 1.5 carve-out (MEDIUM lane within owner-triaged scope). Pause condition: if MEDIUM-01 remediation reveals a new design surface not covered by owner direction (e.g., a more invasive engine restructure required), STOP and surface to owner.
-- **No iOS changes.** iOS HEAD `eeb2915` stays untouched. Phase 2.1 picks up after S7-3 closes.
-- **No autonomous Codex follow-up review.** Phase 1.5 carve-out doesn't extend to peer-reviewing S7-N remediation.
-- **No autonomous TestFlight dispatch.**
-- **TDD-first per finding.** Rigid: RED → verify-fails → GREEN → verify-passes.
-- **Verification before completion.** No completion claims without fresh evidence.
-- **Internal code review subagent between impl and tightening** — pattern validated in S7-2 + S7-4; keep using it on S7-3.
-- **Trigger A close runs at session end.** Per-finding-checkpoint discipline.
-- **Stop conditions that abort + Trigger B:** dirty working tree before commit; verification gate fails after a remediation attempt (revert + surface, don't push broken); design ambiguity surfacing mid-implementation.
+- **iOS local commits only.** Phase 2 gate active. `git push` is blocked until S9 + 5-point ship-ready check.
+- **Byte-identical web → iOS.** The "web is master, iOS mirrors" rule is the architectural foundation. Verify post-cp via `diff -q`.
+- **Internal code review subagent between impl and tightening.** Pattern is now 3-for-3 on Phase 1.5; keep using it.
+- **TDD-first for new XCTest assertions.** Rigid where applicable.
+- **Verification before completion.** No completion claims without fresh evidence (iOS XCTest output, byte-identity diff output).
+- **Trigger A close runs at session end** — Phase 1.5 closed; S8 wrap regenerates NEXT-SESSION for S9.
+- **Stop conditions that abort + Trigger B:** dirty working tree before commit; iOS XCTest fails after sync and the root cause isn't trivial; iOS project structure has unexpectedly drifted.
 
-## S7-4 carry-forward (relevant for S7-3 and onward)
+## S7-3 carry-forward (relevant for S8 and beyond)
 
-- **The "internal code-review subagent between impl and tightening" pattern is now proven across two consecutive Phase 1.5 sessions** (S7-2 PVA scope creep; S7-4 Creality empty-MCS mis-targeting). Each time, the reviewer caught a real Important issue the committer missed. Keep dispatching the subagent for S7-3 unless owner overrides.
-- **Shared `RETIRED_IDS` const array (S7-4 follow-up, deferred).** Reviewer suggested extracting all retired warning IDs into a single const referenced from harness + engine, so future retirements need one canonical push and typo-class regressions are easier to catch. Multi-arc audit; not S7-3 scope. File in ROADMAP if MEDIUM-01 work touches the warning-shape code-paths and the lift becomes opportunistic.
-- **Per-finding plan inline vs separate plan file.** Both S7-2 (HIGH-02) and S7-4 (LOW-01) used inline plans in the conversation rather than creating new `docs/superpowers/plans/*.md` files. Works fine for single-finding remediation inside an existing arc. Continue this for S7-3 unless MEDIUM-01 surface is unexpectedly large.
+- **Math duplication in engine.js (3×) — Reviewer Important #1 + #2 from S7-3.** When the iOS sync lands the new bed-clamp logic, the duplication risk transitions from "web-only" to "web + iOS both copies have it." Filed as MEDIUM follow-up before any next bed-formula touch. Lift the `_computeInitBedTarget(state)` helper + data-drive `(isPETG ? 5 : 0)` at the same time.
+- **profile-matrix-audit env-axis blind spot — Reviewer Minor #6 from S7-3.** The 47196-config sweep only runs `environment: 'normal'`. The new MEDIUM-01 surfaces (env first-layer bed warning copy branches, printer_max_bed_temp_clamped on cold/vcold) are entirely outside that sweep. Backlog hygiene; would catch future regressions cheaply.
+- **Smoke assertion: emitted `bed_temperature_initial_layer` equals env-warning's claimed effective bed value — Reviewer Hidden assumption #1.** Single combo would pin the duplication-drift between getAdvancedFilamentSettings and the env warning. Land alongside the helper extraction.
+- **Visual mobile-card check on warning text length — Reviewer Minor #7.** Partial-clip wording (~140 chars) is the longest new copy in the v1.0.4 arc. Visual smoke before next release; specifically the smallest mobile breakpoint where chip/warning cards live.
+- **Shared `RETIRED_IDS` const array (S7-4 follow-up).** Multi-arc audit beyond v1.0.4 scope; still deferred.
+- **Internal code-review subagent caught a substantive Important finding for the THIRD consecutive Phase 1.5 session.** S7-2 → PVA scope creep; S7-4 → Creality empty-MCS mis-targeting; S7-3 → partial-clip branch dead-untested. Three-for-three pattern reinforces the standing-rule: for any multi-branch / multi-surface remediation, dispatch the reviewer between impl and tightening commits BEFORE push.
 
-## After S7-3
+## After S8
 
-- **Phase 1.5 closes.** All 4 owner-triaged Phase 1.5 web findings shipped (HIGH-01, HIGH-02, MEDIUM-01, LOW-01).
-- **S8 — Phase 2.1 / Task 8.** Byte-identical engine + data copy to iOS; add XCTests mirroring Phase 1 walkthrough assertions + Phase 1.5 HIGH-01 / HIGH-02 / MEDIUM-01 / LOW-01. iOS XCTest green; one iOS local commit (engine + data + tests). **No push.**
-- **S9 — Phase 2.2 / Task 9.** UI screenshot walkthrough; MARKETING_VERSION 1.0.3 → 1.0.4 via `sed` + `xcodegen`; second iOS local commit (project.yml + .pbxproj); 5-point ship-ready handoff. **Owner manually dispatches TestFlight.**
-
-Each web finding lands as one or two web commits (impl + optional tightening per code review); iOS commits stay local until S9's 5-point ship-ready check passes.
+- **S9 — Phase 2.2 / Task 9.** UI screenshot walkthrough on iOS Simulator; `sed`/`xcodegen` MARKETING_VERSION bump 1.0.3 → 1.0.4; second iOS local commit (project.yml + .pbxproj + UI-walkthrough fixtures if any); 5-point ship-ready handoff. After S9 closes and the 5-point check passes, **owner manually dispatches TestFlight** via `gh workflow run testflight.yml --ref main`.
+- **Owner-manual TestFlight gate.** No autonomous TestFlight per the autonomy contract.
 
 <<< END <<<
 
