@@ -721,6 +721,56 @@ const COMBOS = [
     console.log(`[v1.0.4 HIGH-02/HIGH-03] OK plate guard fires for h2d+cool_plate, stays silent for centauri_carbon+textured_pei and x1c+textured_pei; plate_bed_temp_range fires for petg_basic+textured_pei and stays silent for pla_basic+textured_pei`);
   }
 
+  // ─── v1.0.4 — Practical MCS tiers (HIGH-03 system-type, HIGH ams_lite, MEDIUM-01 empty-MCS) ─
+  {
+    function getProfile(state) {
+      Engine.setActiveSlicer(Engine.getSlicerForPrinter(state.printer));
+      return Engine.resolveProfile(state);
+    }
+    function wIds(state) { return Engine.getWarnings(state).map(w => w.id); }
+    const baseMCS = { nozzle: 'std_0.4', useCase: ['functional'], surface: 'standard',
+                      strength: 'standard', speed: 'balanced', environment: 'normal',
+                      support: 'none', userLevel: 'intermediate', special: [],
+                      build_plate: 'textured_pei', profileMode: 'safe' };
+
+    // 1) EMPTY MCS: centauri_carbon (multi_color_systems:[]) + multi_2_4 must warn AND must NOT emit prime_tower: Enabled.
+    const stEmpty = { ...baseMCS, printer: 'centauri_carbon', material: 'pla_basic', colors: 'multi_2_4' };
+    const profEmpty = getProfile(stEmpty);
+    const emptyIds = wIds(stEmpty);
+    if (!emptyIds.includes('mcs_empty_no_multicolor')) {
+      throw new Error(`v1.0.4 MEDIUM-01: empty-MCS centauri_carbon+multi_2_4 must fire 'mcs_empty_no_multicolor'; got ${emptyIds.join(',')}`);
+    }
+    if (profEmpty.prime_tower && /enabled/i.test(String(profEmpty.prime_tower.value || ''))) {
+      throw new Error(`v1.0.4 MEDIUM-01: empty-MCS must NOT emit prime_tower=Enabled; got ${profEmpty.prime_tower.value}`);
+    }
+
+    // 2) AMS LITE MATERIAL GATE: A1 (ams_lite) + ABS (ams_compatible:true but ams_lite_compatible:false) + multi MUST warn 'ams_lite_material_incompat'.
+    const stLite = { ...baseMCS, printer: 'a1', material: 'abs', colors: 'multi_2_4' };
+    const liteIds = wIds(stLite);
+    if (!liteIds.includes('ams_lite_material_incompat')) {
+      throw new Error(`v1.0.4 (ams_lite): A1+ABS+multi must fire 'ams_lite_material_incompat'; got ${liteIds.join(',')}`);
+    }
+
+    // 3) AMS LITE COMPATIBLE: A1 + PLA Basic (ams_lite_compatible likely true) + multi MUST NOT fire ams_lite_material_incompat.
+    const stLiteOK = { ...baseMCS, printer: 'a1', material: 'pla_basic', colors: 'multi_2_4' };
+    const liteOKIds = wIds(stLiteOK);
+    if (liteOKIds.includes('ams_lite_material_incompat')) {
+      throw new Error(`v1.0.4 (ams_lite): A1+PLA Basic+multi must NOT fire 'ams_lite_material_incompat'; got ${liteOKIds.join(',')}`);
+    }
+
+    // 4) AMS-LIKE (x1c, ams_compatible PLA Basic) — no false ams_lite warning, no empty-MCS warning.
+    const stAMS = { ...baseMCS, printer: 'x1c', material: 'pla_basic', colors: 'multi_2_4' };
+    const amsIds = wIds(stAMS);
+    if (amsIds.includes('ams_lite_material_incompat')) {
+      throw new Error(`v1.0.4 (system-type): x1c (ams_like) must NOT fire ams_lite-specific warning; got ${amsIds.join(',')}`);
+    }
+    if (amsIds.includes('mcs_empty_no_multicolor')) {
+      throw new Error(`v1.0.4 (system-type): x1c (ams_like) must NOT fire empty-MCS warning; got ${amsIds.join(',')}`);
+    }
+
+    console.log(`[v1.0.4 MCS] OK empty-MCS warns + suppresses prime_tower; ams_lite gates by ams_lite_compatible; ams_like is silent on lite-specific concerns. empty-MCS prime_tower=${profEmpty.prime_tower?.value || '(absent)'}, a1+ABS ids=${liteIds.length}, a1+PLA ids=${liteOKIds.length}, x1c+PLA ids=${amsIds.length}`);
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo

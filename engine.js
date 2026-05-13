@@ -966,6 +966,23 @@ const Engine = (() => {
     return n;
   }
 
+  // v1.0.4 — Practical MCS tier resolver. Returns one of:
+  //   'none' | 'ams_lite' | 'ams_like' | 'cfs' | 'generic_non_ams'
+  // Replaces the binary "has any multi_color_systems entry" check at the three
+  // sites that previously emitted AMS-flavored copy / prime_tower / checklist
+  // text regardless of the actual hardware (HIGH-03 system-type bundle).
+  // Order matters: ams_lite is detected BEFORE ams_like so a hypothetical
+  // printer that listed both classifies as ams_lite (the more restrictive feed
+  // path wins for material-gating purposes).
+  function _mcsTier(printer) {
+    const systems = Array.isArray(printer?.multi_color_systems) ? printer.multi_color_systems : [];
+    if (systems.length === 0) return 'none';
+    if (systems.includes('ams_lite')) return 'ams_lite';
+    if (systems.some(s => s === 'ams' || s === 'ams_2_pro' || s === 'ams_ht')) return 'ams_like';
+    if (systems.some(s => s === 'cfs' || s === 'cfs_lite')) return 'cfs';
+    return 'generic_non_ams'; // mmu3 / ace / idex / toolchanger / filament_hub / etc.
+  }
+
   function _nozzleTempCap(material, printer) {
     const bs = material && material.base_settings;
     if (!bs) return null;
@@ -1364,13 +1381,26 @@ const Engine = (() => {
       });
     }
 
-    // 6. AMS check for multi-color
-    if (state.colors && state.colors !== 'single') {
-      items.push({
-        text:     'Check AMS filament path and spool seating',
-        detail:   'Ensure PTFE tubes are connected, spools are correctly seated, and no tangles exist.',
-        critical: false,
-      });
+    // 6. Multicolor filament-path check — tier-aware (v1.0.4 HIGH-03).
+    // Empty-MCS printers (tier 'none') get no checklist item — there's no
+    // filament path to check. CFS / generic_non_ams use the system's real
+    // name instead of the misleading "AMS" copy.
+    if (state.colors && state.colors !== 'single' && printer) {
+      const mcsTier = _mcsTier(printer);
+      const tierLabel = {
+        ams_lite:        'AMS Lite',
+        ams_like:        'AMS',
+        cfs:             'CFS',
+        generic_non_ams: 'the multicolor system',
+        none:            null,
+      }[mcsTier];
+      if (tierLabel) {
+        items.push({
+          text:     `Check ${tierLabel} filament path and spool seating`,
+          detail:   'Ensure PTFE tubes are connected, spools are correctly seated, and no tangles exist.',
+          critical: false,
+        });
+      }
     }
 
     // 7. TPU: use rear spool holder
@@ -1523,11 +1553,41 @@ const Engine = (() => {
         'PLA Matte is designed for this — consider switching material for best results.'));
     }
 
-    // 9. AMS incompatibility
-    if (colors && colors !== 'single' && !material.ams_compatible) {
-      warnings.push(w('ams_incompatible',
-        `${material.name} is not AMS compatible.`,
-        'Multi-color printing requires an AMS-compatible filament.'));
+    // 9. Multicolor material-compatibility — tier-aware (v1.0.4 HIGH-03 + ams_lite).
+    // The single binary check (`!material.ams_compatible`) used to apply the same
+    // copy on AMS, AMS Lite, CFS, MMU3, and printers with no MCS at all. The new
+    // logic dispatches on _mcsTier(printer):
+    //   - ams_like  → keep the historical AMS-compat warning (no behavior change
+    //                 for X1C / P1S / AMS HT / AMS 2 Pro).
+    //   - ams_lite  → ams_lite_compatible-gated (treat missing as INCOMPATIBLE).
+    //   - cfs       → CFS-specific guidance, not "AMS" copy.
+    //   - generic_non_ams → tier-label guidance (MMU3 / ACE / IDEX / etc.).
+    //   - none      → covered by the empty-MCS warning below; no material gate.
+    if (colors && colors !== 'single') {
+      const tier = _mcsTier(printer);
+      if (tier === 'ams_like' && !material.ams_compatible) {
+        warnings.push(w('ams_incompatible',
+          `${material.name} is not AMS compatible.`,
+          'Multi-color printing requires an AMS-compatible filament.'));
+      } else if (tier === 'ams_lite' && material.ams_lite_compatible !== true) {
+        // Missing/undefined treated as incompatible — safer default for materials
+        // that haven't been explicitly validated against the AMS Lite feed path.
+        warnings.push(w('ams_lite_material_incompat',
+          `${material.name} can't reliably feed through AMS Lite.`,
+          'AMS Lite has no enclosed feed path — abrasive, brittle, or high-temp materials that work in full AMS may jam or cause skipped colors. Use a single-color setup or pick an AMS Lite-compatible material (PLA, PETG basic).'));
+      } else if (tier === 'cfs') {
+        const systems = Array.isArray(printer.multi_color_systems) ? printer.multi_color_systems : [];
+        const sysLabel = systems.includes('cfs') ? 'CFS' : 'CFS Lite';
+        warnings.push(w('mcs_tier_cfs_guidance',
+          `${printer.name} uses ${sysLabel}, not AMS.`,
+          'Configure purge volumes in Creality Print — Bambu Studio AMS settings do not transfer. Flush behavior and feed reliability differ from AMS.'));
+      } else if (tier === 'generic_non_ams') {
+        const systems = Array.isArray(printer.multi_color_systems) ? printer.multi_color_systems : [];
+        const sysLabel = systems.length ? systems.join(', ').toUpperCase() : 'the multicolor system';
+        warnings.push(w('mcs_tier_generic_non_ams_guidance',
+          `${printer.name} uses ${sysLabel}, not AMS.`,
+          'Multi-color setup, purge volumes, and material handling differ from Bambu AMS. Consult the printer’s slicer / multicolor documentation before tuning purge values.'));
+      }
     }
 
     // 10. Beginner + advanced materials
@@ -1577,21 +1637,18 @@ const Engine = (() => {
       });
     }
 
-    // 12. Creality printer — no multi-color system
-    if (printer && printer.manufacturer === 'creality' &&
-        (!printer.multi_color_systems || printer.multi_color_systems.length === 0) &&
-        colors && colors !== 'single') {
-      warnings.push(w('creality_no_multicolor',
-        `${printer.name} has no multi-color system.`,
-        'This printer requires manual filament swaps for color changes. Automatic color printing is not supported.'));
+    // 12. Empty MCS — printer with no automatic multicolor system + multi-color
+    // selection (v1.0.4 MEDIUM-01 generalization of the old Creality-only check).
+    // Fires for any manufacturer whose multi_color_systems is empty / absent,
+    // so Centauri Carbon, Ender3 V3 SE, etc. now get the same correct warning
+    // the Creality K1 family was getting in isolation.
+    if (printer && _mcsTier(printer) === 'none' && colors && colors !== 'single') {
+      warnings.push(w('mcs_empty_no_multicolor',
+        `${printer.name} has no automatic multicolor system.`,
+        'Multicolor selections won’t translate to slicer output. This printer requires manual filament swaps for color changes; automatic color printing is not supported.'));
     }
 
-    // 13. Creality CFS note for multi-color — different system from Bambu AMS
-    if (printer && printer.multi_color_systems?.includes('cfs') && colors && colors !== 'single') {
-      warnings.push(w('k2_plus_cfs',
-        `${printer.name} uses Creality CFS, not Bambu AMS.`,
-        'Configure purge volumes in Creality Print software — Bambu Studio AMS settings do not apply.'));
-    }
+    // 13. (retired) Creality CFS note — superseded by tier-aware mcs_tier_cfs_guidance above.
 
     // 14. Printer/material nozzle temp caps. Emitted nozzle targets are clamped
     // by getAdjustedTemps/getAdvancedFilamentSettings; warnings explain why.
@@ -2346,11 +2403,20 @@ const Engine = (() => {
     // ─── OTHERS TAB ───────────────────────────────────────────────────────────
     const colors = state.colors;
     if (colors && colors !== 'single') {
-      p.prime_tower = S('Enabled',
-        'Prime tower purges leftover filament from the previous color before printing each new color layer — prevents color contamination.');
-      if (colors === 'multi_5') {
-        p.flush_into_infill = S('Enabled',
-          'Flushes purge material into the infill rather than the prime tower — saves time and material on high color-count prints.');
+      // v1.0.4 MEDIUM-01 — gate prime_tower on _mcsTier !== 'none'. Empty-MCS
+      // printers (e.g. Centauri Carbon, Ender3 V3 SE) cannot use a prime tower
+      // because there's no automatic color change to purge for — emitting
+      // "Enabled" was misleading. Skip the emission entirely; the empty-MCS
+      // warning fired from getWarnings tells the user multicolor won't work.
+      if (_mcsTier(printer) !== 'none') {
+        p.prime_tower = S('Enabled',
+          'Prime tower purges leftover filament from the previous color before printing each new color layer — prevents color contamination.',
+          { source: 'rule', ref: 'printer.multi_color_systems+_mcsTier' });
+        if (colors === 'multi_5') {
+          p.flush_into_infill = S('Enabled',
+            'Flushes purge material into the infill rather than the prime tower — saves time and material on high color-count prints.',
+            { source: 'rule', ref: 'printer.multi_color_systems+_mcsTier' });
+        }
       }
     }
 
