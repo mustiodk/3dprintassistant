@@ -1107,6 +1107,91 @@ const COMBOS = [
     console.log(`[v1.0.4 HIGH-12/HIGH-06] OK nozzle_below_min_diameter parameterized (selected=0.4mm, required=0.6mm); retired cf_small_nozzle + nozzle_too_small silent on successor case (LOW-01); std_0.4 carries no suitable_for/not_suitable_for.`);
   }
 
+  // ─── v1.0.4 P1.5 — MEDIUM-01 First-layer bed-clamp attribution honesty ────
+  // Pre-fix: env_${env.id}_bed_first_layer warning claimed "+N°C applied"
+  // whenever env.bed_first_layer_adj > 0, regardless of whether bedCap clipped
+  // the requested delta. Also: printer_max_bed_temp_clamped initTarget math
+  // excluded bed_first_layer_adj, so cap-warnings underreported when env
+  // compensation pushed past the printer bed cap.
+  //
+  // Post-fix:
+  //   - env_..._bed_first_layer warning computes effective post-clamp delta
+  //     and switches to "requested but clipped" copy when partially/fully
+  //     clipped; keeps "+N°C applied" copy when delta lands cleanly.
+  //   - printer_max_bed_temp_clamped initTarget includes bed_first_layer_adj,
+  //     mirroring getAdvancedFilamentSettings' computation — attribution
+  //     discipline parity with MEDIUM-05's nozzle-side env-attribution.
+  {
+    // (a) PETG + X1C + cold: material cap (PETG 85°C) fully clips +7°C env.
+    //     initBedNoEnv = 75+0+5+5 = 85 (already at PETG cap);
+    //     initBedWithEnv = 92, clamped to 85;
+    //     effective applied = 0.
+    //     Warning copy MUST indicate "requested but clipped" and MUST NOT
+    //     claim "+7°C applied".
+    const stPetgX1cCold = stateDefault({
+      printer: 'x1c', nozzle: 'std_0.4', material: 'petg_basic', environment: 'cold',
+    });
+    const petgX1cWarns = Engine.getWarnings(stPetgX1cCold);
+    const petgX1cBed = petgX1cWarns.find(w => w.id === 'env_cold_bed_first_layer');
+    if (!petgX1cBed) {
+      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PETG+X1C+cold must still emit env_cold_bed_first_layer warning; got ids ${petgX1cWarns.map(w=>w.id).join(',')}`);
+    }
+    if (/\+7°C applied/i.test(petgX1cBed.text)) {
+      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PETG+X1C+cold warning still claims "+7°C applied" despite material cap fully clipping; text = "${petgX1cBed.text}"`);
+    }
+    if (!/requested.+clip/i.test(petgX1cBed.text)) {
+      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PETG+X1C+cold warning must indicate "requested but clipped" framing; text = "${petgX1cBed.text}"`);
+    }
+
+    // (b) PLA + X1C + cold: no clipping. PLA bedCap = min(65, 110) = 65;
+    //     initBedNoEnv = 55+0+0+0 = 55; initBedWithEnv = 62 ≤ 65.
+    //     Effective applied = +7°C. Copy MUST keep "+7°C applied" and MUST
+    //     NOT mention clipping (non-regression).
+    const stPlaX1cCold = stateDefault({
+      printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', environment: 'cold',
+    });
+    const plaX1cWarns = Engine.getWarnings(stPlaX1cCold);
+    const plaX1cBed = plaX1cWarns.find(w => w.id === 'env_cold_bed_first_layer');
+    if (!plaX1cBed) {
+      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PLA+X1C+cold must still emit env_cold_bed_first_layer (no clip); got ids ${plaX1cWarns.map(w=>w.id).join(',')}`);
+    }
+    if (!/\+7°C applied/i.test(plaX1cBed.text)) {
+      throw new Error(`v1.0.4 P1.5 MEDIUM-01 non-regression: PLA+X1C+cold (no clip) MUST keep "+7°C applied" copy; text = "${plaX1cBed.text}"`);
+    }
+    if (/clip/i.test(plaX1cBed.text)) {
+      throw new Error(`v1.0.4 P1.5 MEDIUM-01 non-regression: PLA+X1C+cold (no clip) MUST NOT mention clipping; text = "${plaX1cBed.text}"`);
+    }
+    // Same combo: PLA + X1C + cold MUST NOT fire printer_max_bed_temp_clamped
+    // (X1C bed cap 110 is generous; PLA initTarget post-env = 62 ≤ 110).
+    if (plaX1cWarns.map(w=>w.id).includes('printer_max_bed_temp_clamped')) {
+      throw new Error(`v1.0.4 P1.5 MEDIUM-01 non-regression: PLA+X1C+cold MUST NOT fire printer_max_bed_temp_clamped; got ${plaX1cWarns.map(w=>w.id).join(',')}`);
+    }
+
+    // (c) Pair-fix coverage: PETG + Kobra 3 Max + cold. Kobra 3 Max
+    //     max_bed_temp = 90; PETG initTarget(no env) = 85 ≤ 90 so cap-warning
+    //     historically did NOT fire even though env compensation actually
+    //     pushed past the printer cap. Including bed_first_layer_adj in the
+    //     initTarget math makes initTarget(with env) = 92 > 90 → fires.
+    //     Attribution discipline parity with MEDIUM-05.
+    const stPetgKobraCold = stateDefault({
+      printer: 'kobra_3_max', nozzle: 'std_0.4', material: 'petg_basic', environment: 'cold',
+    });
+    const petgKobraIds = Engine.getWarnings(stPetgKobraCold).map(w => w.id);
+    if (!petgKobraIds.includes('printer_max_bed_temp_clamped')) {
+      throw new Error(`v1.0.4 P1.5 MEDIUM-01 pair: PETG+Kobra 3 Max+cold MUST fire printer_max_bed_temp_clamped (env compensation pushes initTarget=92 past Kobra's 90°C bed cap); got ${petgKobraIds.join(',')}`);
+    }
+
+    // (d) Non-regression: PETG + X1C + cold MUST NOT fire
+    //     printer_max_bed_temp_clamped — material cap is binding, not printer.
+    //     X1C max_bed_temp = 110; PETG initTarget post-env = 92 ≤ 110. The
+    //     env warning rewrite at (a) is what conveys the material-side clip.
+    if (petgX1cWarns.map(w=>w.id).includes('printer_max_bed_temp_clamped')) {
+      throw new Error(`v1.0.4 P1.5 MEDIUM-01 non-regression: PETG+X1C+cold MUST NOT fire printer_max_bed_temp_clamped (X1C 110°C bed cap is generous; material cap is the binding constraint); got ${petgX1cWarns.map(w=>w.id).join(',')}`);
+    }
+
+    console.log(`[v1.0.4 P1.5 MEDIUM-01] OK env_cold_bed_first_layer reflects post-clamp truth: fully-clipped PETG+X1C+cold says "requested but clipped"; un-clipped PLA+X1C+cold keeps "+7°C applied"; printer_max_bed_temp_clamped now fires on PETG+Kobra 3 Max+cold via env contribution to initTarget; non-regression on PLA+X1C and PETG+X1C printer-cap-clamp paths.`);
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo

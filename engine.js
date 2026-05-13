@@ -1635,12 +1635,46 @@ const Engine = (() => {
           if ((env.nozzle_adj || 0) > 0) parts.push(`nozzle +${env.nozzle_adj}°C`);
           if ((env.bed_adj || 0) > 0)    parts.push(`bed +${env.bed_adj}°C`);
           if ((env.bed_first_layer_adj || 0) > 0) {
-            // Put first-layer bed in its own warning so the +N°C number stands
-            // alone — keeps the assertion-friendly contract that any "+N°C
-            // first-layer bed" claim matches the emitted bed_first_layer_adj.
+            // v1.0.4 P1.5 MEDIUM-01 — compute effective post-clamp delta using
+            // the same math getAdvancedFilamentSettings applies (see line
+            // ~1227 onwards). When the requested bed_first_layer_adj is
+            // partially or fully clipped by min(material bed_temp_max,
+            // printer max_bed_temp), the warning copy switches from the
+            // historical "+N°C applied" claim to an honest "requested but
+            // clipped" framing — keeps users from acting on a delta that
+            // didn't actually land. Attribution discipline parity with
+            // MEDIUM-05's nozzle-side env_compensation_capped_by_material.
+            const bsBed = material.base_settings;
+            const isPETGBed = material.group === 'PETG';
+            const bedAdjEnv = env.bed_adj || 0;
+            const requestedAdj = env.bed_first_layer_adj;
+            const initBedNoEnv = bsBed.bed_temp_base + bedAdjEnv + (bsBed.initial_layer_bed_offset || 0) + (isPETGBed ? 5 : 0);
+            const initBedWithEnv = initBedNoEnv + requestedAdj;
+            const matBedCap = bsBed.bed_temp_max;
+            const prnBedCap = printer && printer.max_bed_temp != null ? printer.max_bed_temp : Infinity;
+            const bedCap = Math.min(matBedCap, prnBedCap);
+            const effectiveAdj = Math.min(initBedWithEnv, bedCap) - Math.min(initBedNoEnv, bedCap);
+            const capSource = matBedCap <= prnBedCap
+              ? `${material.name}'s ${matBedCap}°C bed cap`
+              : `${printer.name}'s ${prnBedCap}°C bed cap`;
+            let bedFirstText, bedFirstDetail;
+            if (effectiveAdj === requestedAdj) {
+              // Full apply — keep historical copy contract: the "+N°C applied"
+              // claim matches the emitted bed_first_layer_adj.
+              bedFirstText = `${env.name} first-layer bed compensation: +${requestedAdj}°C applied to first-layer bed temperature.`;
+              bedFirstDetail = 'Improves first-layer adhesion when the chamber is cool. Bed returns to base temp from layer 2 onwards.';
+            } else if (effectiveAdj <= 0) {
+              // Fully clipped — base initial-layer target already at/over cap.
+              bedFirstText = `${env.name} first-layer bed compensation: +${requestedAdj}°C requested but fully clipped by ${capSource}.`;
+              bedFirstDetail = `The base initial-layer bed target is already at the cap, so the env first-layer boost emits +0°C effective. Switching to a less-compensating environment will not raise the bed further on this combo.`;
+            } else {
+              // Partially clipped — emit honest applied delta + requested delta.
+              bedFirstText = `${env.name} first-layer bed compensation: +${effectiveAdj}°C applied to first-layer bed (requested +${requestedAdj}°C, partially clipped by ${capSource}).`;
+              bedFirstDetail = `The requested env delta exceeds the bed cap; the emitted first-layer bed reflects ${effectiveAdj}°C of compensation, not ${requestedAdj}°C.`;
+            }
             warnings.push(w(`env_${env.id}_bed_first_layer`,
-              `${env.name} first-layer bed compensation: +${env.bed_first_layer_adj}°C applied to first-layer bed temperature.`,
-              'Improves first-layer adhesion when the chamber is cool. Bed returns to base temp from layer 2 onwards.',
+              bedFirstText,
+              bedFirstDetail,
               ''));
           }
           if (env.first_layer_speed_multiplier != null && env.first_layer_speed_multiplier < 1.0) {
@@ -1737,8 +1771,14 @@ const Engine = (() => {
     if (printer && printer.max_bed_temp != null && material.base_settings) {
       const bs          = material.base_settings;
       const bedAdj      = env ? (env.bed_adj || 0) : 0;
+      // v1.0.4 P1.5 MEDIUM-01 — include bed_first_layer_adj so the cap-warning
+      // fires when env compensation pushes the initial-layer bed past the
+      // printer cap. Matches getAdvancedFilamentSettings' actual clamp math
+      // (see line ~1227). Attribution discipline parity with MEDIUM-05's
+      // nozzle-side env handling.
+      const bedFirstLayerEnvAdj = env && Number.isFinite(env.bed_first_layer_adj) ? env.bed_first_layer_adj : 0;
       const isPETG      = material.group === 'PETG';
-      const initTarget  = bs.bed_temp_base + bedAdj + (bs.initial_layer_bed_offset || 0) + (isPETG ? 5 : 0);
+      const initTarget  = bs.bed_temp_base + bedAdj + (bs.initial_layer_bed_offset || 0) + (isPETG ? 5 : 0) + bedFirstLayerEnvAdj;
       const otherTarget = bs.bed_temp_base + bedAdj;
       const highestTarget = Math.max(initTarget, otherTarget);
 
