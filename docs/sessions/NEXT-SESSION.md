@@ -10,6 +10,20 @@ A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger 
 
 # Cold-start: 3D Print Assistant — S7-2, v1.0.4 Phase 1.5 HIGH-02 (PLA cold/chamber safety, Option B)
 
+## Required skills — invoke at cold-start (owner directive 2026-05-13 post-S7-1)
+
+Per `superpowers:using-superpowers`, the rule is "invoke relevant skills BEFORE any response or action." For S7-N remediation arcs, that means loading these skills at cold-start, not when about to act:
+
+1. **`superpowers:using-superpowers`** — meta-discipline; sets the rule that skill-checks gate every action.
+2. **`superpowers:writing-plans`** — for refining / reviewing the existing Phase 1.5 Step 5 plan when a finding's surface is non-trivial (HIGH-02 in particular).
+3. **`superpowers:executing-plans`** — governs plan-checkpoint discipline between findings.
+4. **`superpowers:requesting-code-review`** — request review against the plan before pushing each remediation commit.
+5. **`superpowers:systematic-debugging`** — fallback when TDD-GREEN doesn't land cleanly or verification gate fails unexpectedly.
+6. **`superpowers:test-driven-development`** — rigid; required RED → verify-fails → GREEN → verify-passes for every fix.
+7. **`superpowers:verification-before-completion`** — rigid; no completion claims without fresh evidence.
+
+Load all seven via the `Skill` tool at the start of S7-2 (and S7-3, S7-4). Announce each as it loads.
+
 ## Read First, In This Order
 
 Follow Trigger C from the canonical protocol. Show progress while reading. Confirm current state, locked next step, and risks before making changes. Read:
