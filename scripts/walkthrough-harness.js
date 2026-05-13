@@ -699,7 +699,26 @@ const COMBOS = [
       throw new Error(`v1.0.4 HIGH-02: x1c+textured_pei should NOT trigger plate_not_on_printer (multi-plate printer); got ${multiIds.join(',')}`);
     }
 
-    console.log(`[v1.0.4 HIGH-02] OK plate guard fires for h2d+cool_plate and stays silent for centauri_carbon+textured_pei and x1c+textured_pei`);
+    // 4) HIGH-03 POSITIVE: petg_basic on textured_pei (x1c) — recipe yields
+    //    initBed=85 (75 base + 0 env + 5 init-offset + 5 PETG bump), other=75;
+    //    plate range for petg_basic on textured_pei is [60, 80]. 85 > 80 ⇒ MUST
+    //    fire plate_bed_temp_range. Exercises the initial-layer-driven path
+    //    where steady-state stays in-range but the initial layer exceeds it.
+    const stBedRange = { ...baseHarness, printer: 'x1c', material: 'petg_basic', build_plate: 'textured_pei' };
+    const bedRangeIds = Engine.getWarnings(stBedRange).map(w => w.id);
+    if (!bedRangeIds.includes('plate_bed_temp_range')) {
+      throw new Error(`v1.0.4 HIGH-03: expected exact warning id 'plate_bed_temp_range' on x1c+petg_basic+textured_pei (initBed 85°C exceeds plate max 80°C); got ${bedRangeIds.join(',')}`);
+    }
+
+    // 5) HIGH-03 NEGATIVE: pla_basic on textured_pei (x1c) — both targets fall
+    //    inside the plate's [55, 65]°C range. Must NOT fire plate_bed_temp_range.
+    const stBedRangeOk = { ...baseHarness, printer: 'x1c', material: 'pla_basic', build_plate: 'textured_pei' };
+    const bedRangeOkIds = Engine.getWarnings(stBedRangeOk).map(w => w.id);
+    if (bedRangeOkIds.includes('plate_bed_temp_range')) {
+      throw new Error(`v1.0.4 HIGH-03: x1c+pla_basic+textured_pei should NOT trigger plate_bed_temp_range (both bed targets in [55,65]); got ${bedRangeOkIds.join(',')}`);
+    }
+
+    console.log(`[v1.0.4 HIGH-02/HIGH-03] OK plate guard fires for h2d+cool_plate, stays silent for centauri_carbon+textured_pei and x1c+textured_pei; plate_bed_temp_range fires for petg_basic+textured_pei and stays silent for pla_basic+textured_pei`);
   }
 
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline

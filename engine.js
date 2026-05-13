@@ -1763,23 +1763,36 @@ const Engine = (() => {
     }
 
     // v1.0.4 — Material plate bed_temp_range guidance (HIGH-03 material half)
-    // When material.compatible_plates carries an entry for the selected plate with
-    // a bed_temp_range[min,max], consult the engine's resolved bed temp (base +
-    // env adj — same recipe used by warning #14b above and by getAdvancedFilamentSettings)
-    // and emit supplementary guidance when out of plate-recommended range.
+    // Replicates getAdvancedFilamentSettings' bed-temp recipe (initial + steady,
+    // with env.bed_adj + env.bed_first_layer_adj + material initial_layer_bed_offset
+    // + PETG +5 bump + printer/material cap). Mirror updates here if that
+    // helper's recipe changes (engine.js ~1199-1214). Both the initial-layer and
+    // steady-state targets are checked so the warning fires when either falls
+    // outside the plate's recommended range — the initial layer is precisely
+    // where plate adhesion matters most.
     if (material && Array.isArray(material.compatible_plates) && state.build_plate && material.base_settings) {
       const matPlate = material.compatible_plates.find(cp => cp.plate_id === state.build_plate);
       if (matPlate && Array.isArray(matPlate.bed_temp_range) && matPlate.bed_temp_range.length === 2) {
         const [plateMin, plateMax] = matPlate.bed_temp_range;
         const bs = material.base_settings;
-        const bedAdj = env ? (env.bed_adj || 0) : 0;
-        const resolvedBed = bs.bed_temp_base + bedAdj;
-        if (Number.isFinite(plateMin) && Number.isFinite(plateMax) && Number.isFinite(resolvedBed)) {
-          if (resolvedBed < plateMin || resolvedBed > plateMax) {
+        const bedAdj = env && Number.isFinite(env.bed_adj) ? env.bed_adj : 0;
+        const bedFirstLayerEnvAdj = env && Number.isFinite(env.bed_first_layer_adj) && env.bed_first_layer_adj > 0
+          ? env.bed_first_layer_adj : 0;
+        const initOffset = Number.isFinite(bs.initial_layer_bed_offset) ? bs.initial_layer_bed_offset : 0;
+        const petgBump = material.group === 'PETG' ? 5 : 0;
+        const printerCap = printer && Number.isFinite(printer.max_bed_temp) ? printer.max_bed_temp : Infinity;
+        const matCap = Number.isFinite(bs.bed_temp_max) ? bs.bed_temp_max : Infinity;
+        const bedCap = Math.min(matCap, printerCap);
+        const otherBed = Math.min(bs.bed_temp_base + bedAdj, bedCap);
+        const initBed  = Math.min(bs.bed_temp_base + bedAdj + initOffset + petgBump + bedFirstLayerEnvAdj, bedCap);
+        if (Number.isFinite(plateMin) && Number.isFinite(plateMax) && Number.isFinite(otherBed) && Number.isFinite(initBed)) {
+          const lo = Math.min(otherBed, initBed);
+          const hi = Math.max(otherBed, initBed);
+          if (hi > plateMax || lo < plateMin) {
             warnings.push(w('plate_bed_temp_range',
-              `${material.name} on ${state.build_plate}: bed temp outside plate-recommended range.`,
-              `Recommended bed range for ${material.name} on ${state.build_plate}: ${plateMin}–${plateMax}°C. Current resolved bed temp: ${resolvedBed}°C.`,
-              `Switch to a plate whose recommended range covers ${resolvedBed}°C, or accept that adhesion / release behavior may be suboptimal.`));
+              `${material.name} bed temp range exceeds ${state.build_plate} recommended limits.`,
+              `${state.build_plate} is rated for ${plateMin}–${plateMax}°C for ${material.name}. Engine will emit bed temps in ${lo}–${hi}°C (initial layer + steady state, including env compensation and printer cap).`,
+              `Switch to a plate whose recommended range covers ${lo}–${hi}°C, or accept that adhesion / release behavior may be suboptimal.`));
           }
         }
       }
