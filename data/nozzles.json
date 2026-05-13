@@ -7,19 +7,6 @@
       "hardened": false,
       "material": "stainless_steel",
       "temp_offset": 0,
-      "suitable_for": [
-        "pla_basic",
-        "pla_silk",
-        "pla_matte",
-        "pla_metal",
-        "petg_basic",
-        "pva"
-      ],
-      "not_suitable_for": [
-        "pla_cf",
-        "petg_cf",
-        "pa_cf"
-      ],
       "notes": "Fine detail nozzle. Good for miniatures and detailed prints. Not suitable for abrasive or composite filaments."
     },
     {
@@ -29,20 +16,7 @@
       "hardened": false,
       "material": "stainless_steel",
       "temp_offset": 0,
-      "suitable_for": [
-        "pla_basic",
-        "pla_silk",
-        "pla_matte",
-        "pla_metal",
-        "petg_basic",
-        "pva"
-      ],
-      "not_suitable_for": [
-        "pla_cf",
-        "petg_cf",
-        "pa_cf"
-      ],
-      "notes": "Ultra-fine detail for miniatures and precision parts. NEVER use with CF/GF or composite filaments \u2014 immediate clogging."
+      "notes": "Ultra-fine detail for miniatures and precision parts. NEVER use with CF/GF or composite filaments — immediate clogging."
     },
     {
       "id": "hrd_0.2",
@@ -51,20 +25,7 @@
       "hardened": true,
       "material": "hardened_steel",
       "temp_offset": 7,
-      "suitable_for": [
-        "pla_basic",
-        "pla_silk",
-        "pla_matte",
-        "pla_metal",
-        "pla_cf",
-        "petg_basic",
-        "petg_cf",
-        "abs",
-        "asa",
-        "pa_cf"
-      ],
-      "not_suitable_for": [],
-      "notes": "Fine detail hardened nozzle. Can handle CF/GF filaments at small diameter. Lower thermal conductivity \u2014 temp offset applied."
+      "notes": "Fine detail hardened nozzle. Can handle CF/GF filaments at small diameter. Lower thermal conductivity — temp offset applied."
     },
     {
       "id": "std_0.4",
@@ -72,23 +33,6 @@
       "size": 0.4,
       "material": "stainless_steel",
       "temp_offset": 0,
-      "suitable_for": [
-        "pla_basic",
-        "pla_silk",
-        "pla_matte",
-        "pla_metal",
-        "petg_basic",
-        "petg_hf",
-        "tpu_95a",
-        "tpu_90a",
-        "tpu_85a",
-        "pva"
-      ],
-      "not_suitable_for": [
-        "pla_cf",
-        "petg_cf",
-        "pa_cf"
-      ],
       "notes": "Default nozzle on most Bambu Lab printers. Excellent thermal conductivity. Wears with abrasive filaments.",
       "hardened": false
     },
@@ -99,24 +43,7 @@
       "hardened": true,
       "material": "hardened_steel",
       "temp_offset": 7,
-      "suitable_for": [
-        "pla_basic",
-        "pla_silk",
-        "pla_matte",
-        "pla_metal",
-        "pla_cf",
-        "petg_basic",
-        "petg_hf",
-        "petg_cf",
-        "abs",
-        "asa",
-        "tpu_95a",
-        "tpu_90a",
-        "tpu_85a",
-        "pa_cf"
-      ],
-      "not_suitable_for": [],
-      "notes": "Required for CF/GF filaments. Lower thermal conductivity than brass \u2014 +5-10\u00b0C temp offset applied automatically."
+      "notes": "Required for CF/GF filaments. Lower thermal conductivity than brass — +5-10°C temp offset applied automatically."
     },
     {
       "id": "std_0.6",
@@ -125,26 +52,6 @@
       "hardened": false,
       "material": "stainless_steel",
       "temp_offset": 0,
-      "suitable_for": [
-        "pla_basic",
-        "pla_silk",
-        "pla_matte",
-        "pla_metal",
-        "petg_basic",
-        "petg_hf",
-        "abs",
-        "asa",
-        "tpu_95a",
-        "tpu_90a",
-        "tpu_85a",
-        "pva",
-        "hips"
-      ],
-      "not_suitable_for": [
-        "pla_cf",
-        "petg_cf",
-        "pa_cf"
-      ],
       "notes": "Larger nozzle for faster prints. Good balance of speed and quality. Wears with abrasive filaments."
     },
     {
@@ -154,28 +61,7 @@
       "hardened": true,
       "material": "hardened_steel",
       "temp_offset": 7,
-      "suitable_for": [
-        "pla_basic",
-        "pla_silk",
-        "pla_matte",
-        "pla_metal",
-        "pla_cf",
-        "petg_basic",
-        "petg_hf",
-        "petg_cf",
-        "abs",
-        "asa",
-        "tpu_95a",
-        "tpu_90a",
-        "tpu_85a",
-        "pa",
-        "pa_cf",
-        "pc",
-        "pet_cf",
-        "hips"
-      ],
-      "not_suitable_for": [],
-      "notes": "Recommended for CF/GF filaments \u2014 larger opening reduces clogging risk from fibers. Significantly faster print speeds possible."
+      "notes": "Recommended for CF/GF filaments — larger opening reduces clogging risk from fibers. Significantly faster print speeds possible."
     },
     {
       "id": "std_0.8",
@@ -184,26 +70,6 @@
       "hardened": false,
       "material": "stainless_steel",
       "temp_offset": 0,
-      "suitable_for": [
-        "pla_basic",
-        "pla_silk",
-        "pla_matte",
-        "pla_metal",
-        "petg_basic",
-        "petg_hf",
-        "abs",
-        "asa",
-        "tpu_95a",
-        "tpu_90a",
-        "tpu_85a",
-        "pva",
-        "hips"
-      ],
-      "not_suitable_for": [
-        "pla_cf",
-        "petg_cf",
-        "pa_cf"
-      ],
       "notes": "High-flow nozzle for rapid prototyping and large prints. Sacrifices fine detail for significant speed gains."
     },
     {
@@ -213,28 +79,7 @@
       "hardened": true,
       "material": "hardened_steel",
       "temp_offset": 7,
-      "suitable_for": [
-        "pla_basic",
-        "pla_silk",
-        "pla_matte",
-        "pla_metal",
-        "pla_cf",
-        "petg_basic",
-        "petg_hf",
-        "petg_cf",
-        "abs",
-        "asa",
-        "tpu_95a",
-        "tpu_90a",
-        "tpu_85a",
-        "pa",
-        "pa_cf",
-        "pc",
-        "pet_cf",
-        "hips"
-      ],
-      "not_suitable_for": [],
-      "notes": "High-flow hardened nozzle. Ideal for fast printing with abrasive filaments. Lower thermal conductivity \u2014 temp offset applied."
+      "notes": "High-flow hardened nozzle. Ideal for fast printing with abrasive filaments. Lower thermal conductivity — temp offset applied."
     }
   ]
 }

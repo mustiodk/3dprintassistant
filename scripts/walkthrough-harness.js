@@ -857,6 +857,45 @@ const COMBOS = [
     console.log(`[v1.0.4 HIGH-05] OK chamber_above_material_safe fires on X1E+petg_basic (cap=${matCap}°C); silent on X1C+petg_basic and X1E+pla_basic.`);
   }
 
+  // ─── v1.0.4 — Nozzle min-diameter cleanup + nozzle-side authority drop (HIGH-12 / HIGH-06) ─
+  // TPU 85A on std_0.4: TPU 85A min_diameter=0.6 → guard MUST fire.
+  // Retired cf_small_nozzle MUST NOT fire (it carried the misleading "0.2mm
+  // nozzle will clog immediately" hardcode that fired on any CF-or-bigger
+  // material below min_diameter, not just 0.2mm nozzles).
+  // Warning body must mention selected (0.4mm) and required (0.6mm) sizes —
+  // never the bogus "0.2mm" hardcode.
+  // Nozzle entries must no longer carry suitable_for / not_suitable_for arrays
+  // (material-side nozzle_requirements is authoritative per owner default 5).
+  {
+    const st = stateDefault({ printer: 'x1c', nozzle: 'std_0.4', material: 'tpu_85a' });
+    const ws = Engine.getWarnings(st);
+    const ids = ws.map(w => w.id);
+
+    if (ids.includes('cf_small_nozzle')) {
+      throw new Error(`v1.0.4 HIGH-12: retired cf_small_nozzle still fires; got ${ids.join(',')}`);
+    }
+    if (!ids.includes('nozzle_below_min_diameter')) {
+      throw new Error(`v1.0.4 HIGH-12: expected nozzle_below_min_diameter on x1c+std_0.4+tpu_85a; got ${ids.join(',')}`);
+    }
+    const guardWarn = ws.find(w => w.id === 'nozzle_below_min_diameter');
+    const body = String(guardWarn.text || '') + ' ' + String(guardWarn.detail || '');
+    if (/0\.2\s*mm/.test(body)) {
+      throw new Error(`v1.0.4 HIGH-12: warning body wrongly mentions 0.2mm on tpu_85a+std_0.4: ${body}`);
+    }
+    if (!/0\.4/.test(body) || !/0\.6/.test(body)) {
+      throw new Error(`v1.0.4 HIGH-12: warning body must mention selected (0.4) and required (0.6); got ${body}`);
+    }
+
+    // Spot-check one nozzle for HIGH-06 schema cleanup. Full data sweep runs
+    // in the verification gate (Step 5 node -e oneliner).
+    const sampleNoz = Engine.getNozzle('std_0.4');
+    if (sampleNoz && ('suitable_for' in sampleNoz || 'not_suitable_for' in sampleNoz)) {
+      throw new Error(`v1.0.4 HIGH-06: nozzle ${sampleNoz.id} still carries suitable_for/not_suitable_for after cleanup`);
+    }
+
+    console.log(`[v1.0.4 HIGH-12/HIGH-06] OK nozzle_below_min_diameter parameterized (selected=0.4mm, required=0.6mm); cf_small_nozzle retired; std_0.4 carries no suitable_for/not_suitable_for.`);
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo

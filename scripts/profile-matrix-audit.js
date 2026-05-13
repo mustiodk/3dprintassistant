@@ -277,7 +277,7 @@ const POSTFIX_CASES = [
     warning('petg_open_printer'), noUxMatching(/raw advertised speed/i),
   ]),
   c('postfix-p1s-tpu85-nozzle-diameter', 'P1S + TPU 85A + standard 0.4 warns on nozzle size and keeps TPU speeds low', { printer: 'p1s', material: 'tpu_85a', nozzle: 'std_0.4' }, [
-    warning('nozzle_too_small'), noWarning('tpu_ams_incompatible'), maxProfileNumber('outer_wall_speed', 20),
+    warning('nozzle_below_min_diameter'), noWarning('tpu_ams_incompatible'), maxProfileNumber('outer_wall_speed', 20),
   ]),
   c('postfix-k2-pla-multicolor-cfs-copy', 'Creality K2 + PLA multicolor shows CFS-specific warning', { printer: 'k2', material: 'pla_basic', colors: 'multi_5' }, [
     warning('mcs_tier_cfs_guidance'), noWarning('creality_no_multicolor'), noUxMatching(/open-frame material warning/i),

@@ -198,17 +198,10 @@ const Engine = (() => {
       });
     });
 
-    // Soft: nozzle.not_suitable_for refs (MEDIUM-018). Accept either a
-    // material id or a case-insensitive material.group name.
-    const materialIds = new Set(_materials.map(m => m.id));
-    const materialGroups = new Set(_materials.map(m => m.group && m.group.toLowerCase()).filter(Boolean));
-    _nozzles.forEach(n => {
-      (n.not_suitable_for || []).forEach(ref => {
-        if (!materialIds.has(ref) && !materialGroups.has(String(ref).toLowerCase())) {
-          warnings.push(`nozzle "${n.id}" not_suitable_for references unknown material/group "${ref}"`);
-        }
-      });
-    });
+    // (retired v1.0.4 HIGH-06) Soft: nozzle.not_suitable_for / suitable_for
+    //   schema check — nozzle-side authority dropped per owner default 5.
+    //   Material-side nozzle_requirements is now the sole authority and is
+    //   already validated by the materials/nozzle-requirements check above.
 
     // Soft: max_mvs / k_factor_matrix key alignment (MEDIUM-019 — partial fix)
     _materials.forEach(m => {
@@ -1521,12 +1514,10 @@ const Engine = (() => {
         'A hardened steel nozzle is required — carbon fibers will destroy standard nozzles within hours.'));
     }
 
-    // 6. CF material + 0.2mm nozzle
-    if (material.nozzle_requirements?.min_diameter > 0.2 && nozzle && nozzle.size < material.nozzle_requirements.min_diameter) {
-      warnings.push(w('cf_small_nozzle',
-        `Nozzle too small for ${material.name}.`,
-        `Minimum ${material.nozzle_requirements.min_diameter}mm required — 0.2mm nozzle will clog immediately.`));
-    }
+    // 6. (retired) cf_small_nozzle — merged into warning #17 below
+    //    (nozzle_below_min_diameter) per v1.0.4 HIGH-12. Same condition,
+    //    parameterized body, generic ID. Material-side nozzle_requirements
+    //    is now the sole authority (owner default 5).
 
     // 7. AMS on TPU
     if (material.group === 'TPU' && !material.ams_compatible && colors && colors !== 'single') {
@@ -1769,11 +1760,17 @@ const Engine = (() => {
         `${material.name} warps significantly without enclosure. Use a brim of 10mm+ and print in a draught-free, warm room. Consider an enclosure upgrade.`));
     }
 
-    // 17. Nozzle too small for material (e.g. TPU 85A requires 0.6mm+)
+    // 17. v1.0.4 HIGH-12 — Nozzle below material's required min_diameter.
+    // Generic ID + parameterized body using the actual selected nozzle size
+    // and the actual material-required minimum. Subsumes the retired
+    // cf_small_nozzle. Material-side nozzle_requirements is authoritative
+    // (owner default 5); no per-nozzle suitable_for / not_suitable_for arrays.
     if (nozzle && material.nozzle_requirements?.min_diameter && nozzle.size < material.nozzle_requirements.min_diameter) {
-      warnings.push(w('nozzle_too_small',
-        `${material.name} requires a ${material.nozzle_requirements.min_diameter}mm or larger nozzle.`,
-        `Your selected ${nozzle.size}mm nozzle is too small — the soft material cannot generate enough pressure to flow cleanly and will clog.`));
+      const minDiameter = material.nozzle_requirements.min_diameter;
+      warnings.push(w('nozzle_below_min_diameter',
+        `${material.name} needs at least a ${minDiameter}mm nozzle.`,
+        `Your selected ${nozzle.size}mm nozzle is below ${material.name}'s minimum diameter of ${minDiameter}mm; expect clogging and under-extrusion.`,
+        `Switch to a nozzle ≥ ${minDiameter}mm.`));
     }
 
     // 18. MVS null = nozzle size not supported for this material

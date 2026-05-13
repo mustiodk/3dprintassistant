@@ -124,8 +124,9 @@ function validateNozzles() {
     check(file, isNumber(n.size),     `${ctx}: size must be a number`);
     check(file, isBoolean(n.hardened),`${ctx}: hardened must be a boolean`);
     check(file, isNumber(n.temp_offset), `${ctx}: temp_offset must be a number`);
-    check(file, isArray(n.suitable_for),    `${ctx}: suitable_for must be an array`);
-    check(file, isArray(n.not_suitable_for),`${ctx}: not_suitable_for must be an array`);
+    // v1.0.4 HIGH-06: nozzle-side suitable_for / not_suitable_for arrays
+    // retired — material-side nozzle_requirements is authoritative
+    // (owner default 5).
   });
 }
 
