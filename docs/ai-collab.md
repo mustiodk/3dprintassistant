@@ -148,10 +148,18 @@ To close it, apply ONE of these per test-batch commit:
    expected; collective full-suite green is the proof." This is honest about the
    limit and surfaces it for review.
 
-Either way: the commit body OR test code must surface the RED-discipline posture.
-"Self-reported only" (mentioning the demo in the commit message without any
-code or commit-history artifact) is the gap to avoid — it makes external review
-prove a negative.
+The two postures have different breadcrumb requirements:
+
+- **Inverted-first (rule 1 above):** code breadcrumb or git-history artifact is
+  mandatory. A commit-body-only note is NOT sufficient — the discipline must be
+  auditable from the diff or `git log -p`, not from prose.
+- **Skipped / degenerated RED (rule 2 above):** commit-body note is sufficient
+  and is the only available artifact, since there's no real RED to capture
+  in code.
+
+"Self-reported only" — claiming an inverted-first demo in the commit message
+without any code or commit-history artifact — is the specific gap to avoid. It
+forces external review to prove a negative.
 
 Applies to any cross-platform mirror commit on 3dpa (iOS mirroring web walkthrough,
 or future cross-tool mirrors).
