@@ -1,0 +1,2 @@
+fc3ee6b chore: tighten S8 XCTest mirrors per internal code-review subagent
+350d23f chore: sync v1.0.4 engine + data; add Phase 1 + Phase 1.5 XCTest mirrors

@@ -1,0 +1,612 @@
+diff --git a/docs/ai-collab.md b/docs/ai-collab.md
+index 9eb4bd8..9d58d60 100644
+--- a/docs/ai-collab.md
++++ b/docs/ai-collab.md
+@@ -117,3 +117,41 @@ names, identifying details, or confidential material into external AI tools.
+ - Data/logic changes must include web + iOS UI impact evaluation.
+ - iOS `main` stays push-gated until ready for TestFlight.
+ - Quality over speed.
++
++---
++
++## TDD-RED breadcrumb (recommended when natural RED is degenerate)
++
++When mirroring an already-proven behavior — e.g., adding an iOS XCTest that
++mirrors a green web walkthrough invariant — the natural RED phase is
++degenerate: the test passes on first run because the engine already exhibits
++the behavior. That makes the test functionally a tests-after-the-fact assertion
++with no proof the assertion machinery would have caught a real regression.
++The S8 internal reviewer + the 2026-05-14 Codex audit both flagged this as a
++process gap.
++
++To close it, apply ONE of these per test-batch commit:
++
++1. **Inverted-first on one representative.** Author the first test in the batch
++   with a deliberately-wrong assertion (e.g., `XCTAssertEqual(x, 999, ...)` when
++   you expect `90`), run the test, observe the failure (proves machinery + engine
++   response), then flip to correct. Leave a breadcrumb so the discipline is
++   auditable from `git log` alone:
++   - A `// RED demo verified YYYY-MM-DD: <one-line explanation>` comment on or
++     near the flipped assertion, OR
++   - A tiny pre-commit (1-line wrong assertion) reverted by a follow-up commit,
++     so `git log -p` shows the RED in history.
++
++2. **Skip with explicit commit-body note** for batches where the natural RED is
++   "engine no longer emits this ID" (e.g., retired-ID negative assertions).
++   Write into the commit body: "TDD-RED skipped: test-only, degenerate RED is
++   expected; collective full-suite green is the proof." This is honest about the
++   limit and surfaces it for review.
++
++Either way: the commit body OR test code must surface the RED-discipline posture.
++"Self-reported only" (mentioning the demo in the commit message without any
++code or commit-history artifact) is the gap to avoid — it makes external review
++prove a negative.
++
++Applies to any cross-platform mirror commit on 3dpa (iOS mirroring web walkthrough,
++or future cross-tool mirrors).
+diff --git a/engine.js b/engine.js
+index 50b167b..141b173 100644
+--- a/engine.js
++++ b/engine.js
+@@ -1244,11 +1244,23 @@ const Engine = (() => {
+     // Mirror Task 1's hardening (speed_multiplier): guard against malformed
+     // data with Number.isFinite + > 0.
+     const fanMult = Number.isFinite(env?.fan_multiplier) && env.fan_multiplier > 0 ? env.fan_multiplier : 1.0;
++    // S8.5 reviewer M-3: float-tolerant identity check. `fanMult !== 1.0` strict
++    // equality would mis-classify a floating-point-drift fanMult (e.g., 0.9999999
++    // from future env composition arithmetic) as scaling. Treat anything within
++    // 1e-9 of 1.0 as identity (no scaling applied).
++    const fanMultIsIdentity = Math.abs(fanMult - 1.0) < 1e-9;
+     const fanMaxBase = 100;
+     const fanMaxScaled = Math.round(fanMaxBase * fanMult);
+     const fanMinScaled = bs.cooling_fan_min != null
+       ? Math.round((parseInt(bs.cooling_fan_min) || 0) * fanMult)
+       : null;
++    // S8.5 Codex post-Phase-1 Important #1 — env.fan_multiplier was scoped to
++    // min/max only; overhang fan stayed at raw material default. Same intent
++    // (reduce cooling in cold envs to preserve layer adhesion); scale here too.
++    // BS + text export read this via adv.cooling_fan_overhang.
++    const overhangScaled = bs.cooling_fan_overhang != null
++      ? Math.round((parseInt(bs.cooling_fan_overhang) || 0) * fanMult)
++      : null;
+ 
+     const result = {
+       initial_layer_temp:     `${initNozzle} °C`,
+@@ -1256,7 +1268,7 @@ const Engine = (() => {
+       initial_layer_bed_temp: `${initBed} °C`,
+       other_layers_bed_temp:  `${otherBed} °C`,
+       cooling_fan_min:        bs.cooling_fan_min,
+-      cooling_fan_overhang:   bs.cooling_fan_overhang,
++      cooling_fan_overhang:   overhangScaled,
+       slow_layer_time:        bs.slow_layer_time,
+       pressure_advance:       String(_resolvePA(bs, nozzle) ?? '—'),
+       flow_ratio:             String(bs.flow_ratio       ?? '—'),
+@@ -1284,11 +1296,11 @@ const Engine = (() => {
+         'Bed temperature for layers after the first.',
+         { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' }),
+       fan_max_speed: S(`${fanMaxScaled}`,
+-        fanMult !== 1.0
++        !fanMultIsIdentity
+           ? `Cooling fan reduced to ${Math.round(fanMult * 100)}% of normal for cold environment.`
+           : 'Maximum cooling fan speed.',
+-        { source: fanMult !== 1.0 ? 'rule' : 'default',
+-          ref: fanMult !== 1.0 ? 'env.fan_multiplier' : 'engine:fan_max_default' }),
++        { source: !fanMultIsIdentity ? 'rule' : 'default',
++          ref: !fanMultIsIdentity ? 'env.fan_multiplier' : 'engine:fan_max_default' }),
+       // [IMPL-041 / DQ-1-followup] provenance sidecar. All fields numeric.
+       _prov: {
+         initial_layer_temp:     { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + initial_layer_nozzle_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
+@@ -1296,7 +1308,9 @@ const Engine = (() => {
+         initial_layer_bed_temp: { source: 'calculated', ref: `bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0)${bedFirstLayerEnvAdj > 0 ? ' + env.bed_first_layer_adj' : ''}, clamped to min(material.bed_temp_max, printer.max_bed_temp)` },
+         other_layers_bed_temp:  { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
+         cooling_fan_min:        { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_min' },
+-        cooling_fan_overhang:   { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_overhang' },
++        cooling_fan_overhang:   { source: !fanMultIsIdentity ? 'rule' : 'default',
++                                   ref: !fanMultIsIdentity ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_overhang'
++                                                           : 'materials.json#base_settings.cooling_fan_overhang' },
+         slow_layer_time:        { source: 'default',    ref: 'materials.json#base_settings.slow_layer_time' },
+         pressure_advance:       { source: 'default',    ref: 'materials.json#base_settings.k_factor_matrix[nozzleSize] (fallback .pressure_advance)' },
+         flow_ratio:             { source: 'default',    ref: 'materials.json#base_settings.flow_ratio' },
+@@ -1309,12 +1323,12 @@ const Engine = (() => {
+     // cooling_fan_min key above remains the unscaled material default).
+     if (fanMinScaled != null) {
+       result.fan_min_speed = S(`${fanMinScaled}`,
+-        fanMult !== 1.0
++        !fanMultIsIdentity
+           ? `Minimum cooling fan reduced to ${Math.round(fanMult * 100)}% of normal for cold environment.`
+           : 'Minimum cooling fan speed.',
+-        { source: fanMult !== 1.0 ? 'rule' : 'default',
+-          ref: fanMult !== 1.0 ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_min'
+-                               : 'materials.json#base_settings.cooling_fan_min' });
++        { source: !fanMultIsIdentity ? 'rule' : 'default',
++          ref: !fanMultIsIdentity ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_min'
++                                  : 'materials.json#base_settings.cooling_fan_min' });
+     }
+     return result;
+   }
+@@ -2629,15 +2643,32 @@ const Engine = (() => {
+         { source: 'default', ref: 'materials.json#k_factor_matrix' });
+     }
+ 
+-    // B1. Fan policy output — base fan speed recommendation from material data
+-    const fanMap = { high: '100%', moderate: '50%', low: '25%', off: '0%' };
+-    if (material.fan_policy && fanMap[material.fan_policy]) {
+-      p.fan_speed = S(fanMap[material.fan_policy],
++    // B1. Fan policy output — base fan speed recommendation from material data,
++    // env-scaled by env.fan_multiplier (S8.5 tightening — same intent as the
++    // fan_min/fan_max/cooling_fan_overhang env-scaling: reduce cooling in cold
++    // envs to preserve layer adhesion). The resolved `fan_speed` chip is the
++    // "Fan speed" column rendered in every slicer tab — it must reflect the
++    // env-adjusted recommendation, not the raw material default.
++    const fanMap = { high: 100, moderate: 50, low: 25, off: 0 };
++    if (material.fan_policy && fanMap[material.fan_policy] != null) {
++      // S8.5 M-3: float-tolerant fanMult identity check.
++      const fanMultProfile = Number.isFinite(env?.fan_multiplier) && env.fan_multiplier > 0 ? env.fan_multiplier : 1.0;
++      const fanMultIsIdentity = Math.abs(fanMultProfile - 1.0) < 1e-9;
++      const rawPct = fanMap[material.fan_policy];
++      const scaledPct = Math.round(rawPct * fanMultProfile);
++      const baseWhy =
+         material.fan_policy === 'off'      ? 'Fan off — this material needs slow, even cooling to prevent warping and layer cracking.' :
+         material.fan_policy === 'moderate'  ? 'Moderate fan — balances cooling for dimensional accuracy without causing adhesion issues.' :
+         material.fan_policy === 'high'      ? 'Full fan speed — rapid cooling locks in detail and prevents sagging on overhangs.' :
+-        'Low fan speed — minimal cooling to maintain layer adhesion.',
+-        { source: 'default', ref: 'materials.json#fan_policy' });
++        'Low fan speed — minimal cooling to maintain layer adhesion.';
++      const why = fanMultIsIdentity
++        ? baseWhy
++        : `${baseWhy} Reduced to ${Math.round(fanMultProfile * 100)}% of recommendation for cold environment.`;
++      p.fan_speed = S(`${scaledPct}%`, why,
++        { source: fanMultIsIdentity ? 'default' : 'rule',
++          ref: fanMultIsIdentity
++            ? 'materials.json#fan_policy'
++            : 'env.fan_multiplier × materials.json#fan_policy' });
+     }
+ 
+     // v1.0.4 HIGH-08 — env.force_draft_shield wired to profile output. Cold /
+@@ -3128,9 +3159,12 @@ const Engine = (() => {
+     if (adv.fan_max_speed != null) {
+       filament.fan_max_speed = [String(parseInt(adv.fan_max_speed.value, 10) || 100)];
+     }
+-    // Overhang fan speed (e.g. "80%" → 80)
+-    if (bs.cooling_fan_overhang != null) {
+-      filament.overhang_fan_speed = [String(parseInt(bs.cooling_fan_overhang) || 0)];
++    // Overhang fan speed (e.g. "80%" → 80) — S8.5 Codex Important #1: read
++    // env-scaled adv.cooling_fan_overhang (not the raw bs.cooling_fan_overhang)
++    // so cold/vcold envs export the env.fan_multiplier-scaled value the engine
++    // emits to the Advanced surface.
++    if (adv.cooling_fan_overhang != null) {
++      filament.overhang_fan_speed = [String(parseInt(adv.cooling_fan_overhang) || 0)];
+     }
+     // Slow down below layer time (e.g. "15 s" → 15)
+     if (bs.slow_layer_time != null) {
+diff --git a/scripts/walkthrough-harness.js b/scripts/walkthrough-harness.js
+index 779f3dd..9944d91 100644
+--- a/scripts/walkthrough-harness.js
++++ b/scripts/walkthrough-harness.js
+@@ -657,7 +657,52 @@ const COMBOS = [
+       throw new Error(`v1.0.4 Codex HIGH-01 export: BS filament.fan_max_speed=${bsFanMax} should match env-scaled ${scaledFanMax} (not unscaled 100)`);
+     }
+ 
+-    console.log(`[v1.0.4 P1.5 HIGH-01-export] OK text+BS export use env-scaled fan (${scaledFanMin}/${scaledFanMax}) + enable_draft_shield for cold env`);
++    // 4) S8.5 — overhang fan also env-scaled (Codex post-Phase-1 audit Important #1).
++    // PLA cooling_fan_overhang is 100; env.cold.fan_multiplier=0.9 → expected 90.
++    const scaledOverhang = Math.round(100 * 0.9);
++    if (scaledOverhang !== 90) {
++      throw new Error(`v1.0.4 S8.5 overhang baseline: expected 90 (100×0.9) for PLA+cold; got ${scaledOverhang}`);
++    }
++    // 4a) Text export — Overhang fan speed line must be env-scaled (not raw 100).
++    const overhangLine = txt.match(/Overhang fan speed:\s*(\d+)/);
++    if (!overhangLine) {
++      throw new Error(`v1.0.4 S8.5 overhang export: text export missing "Overhang fan speed:" line`);
++    }
++    const txtOverhang = parseInt(overhangLine[1], 10);
++    if (txtOverhang !== scaledOverhang) {
++      throw new Error(`v1.0.4 S8.5 overhang export: text export Overhang fan speed=${txtOverhang} should match env-scaled ${scaledOverhang} (not unscaled 100)`);
++    }
++    // 4b) BS export overhang_fan_speed[0] env-scaled.
++    const bsOverhang = bs.filament.overhang_fan_speed?.[0];
++    if (parseInt(bsOverhang, 10) !== scaledOverhang) {
++      throw new Error(`v1.0.4 S8.5 overhang export: BS filament.overhang_fan_speed=${bsOverhang} should match env-scaled ${scaledOverhang} (not unscaled 100)`);
++    }
++    // 4c) Advanced surface — getAdvancedFilamentSettings.cooling_fan_overhang must be env-scaled.
++    const advCoolOverhang = parseInt(advCold.cooling_fan_overhang, 10);
++    if (advCoolOverhang !== scaledOverhang) {
++      throw new Error(`v1.0.4 S8.5 overhang Advanced: advCold.cooling_fan_overhang=${advCoolOverhang} should match env-scaled ${scaledOverhang} (not unscaled 100)`);
++    }
++
++    // 5) S8.5 tightening (reviewer I-1) — resolveProfile p.fan_speed must also be
++    //    env-scaled. PLA Basic fan_policy='high' → 100%; env.cold.fan_multiplier=0.9
++    //    → expected 90%. Same intent as fan_min/max/overhang scaling, different
++    //    surface (the labeled "Fan speed" column rendered in every slicer tab).
++    Engine.setActiveSlicer(Engine.getSlicerForPrinter(coldState.printer));
++    const profCold2 = Engine.resolveProfile(coldState);
++    const profFanSpeed = profCold2.fan_speed?.value;
++    if (!profFanSpeed) {
++      throw new Error(`v1.0.4 S8.5 reviewer I-1: PLA+cold profile must emit fan_speed; got ${profFanSpeed}`);
++    }
++    const profFanPct = parseInt(String(profFanSpeed).replace('%', ''), 10);
++    if (profFanPct !== scaledFanMax) {
++      throw new Error(`v1.0.4 S8.5 reviewer I-1: profCold.fan_speed=${profFanSpeed} should be env-scaled ${scaledFanMax}% (PLA fan_policy='high' × env.cold.fan_multiplier=0.9), not unscaled 100%`);
++    }
++    // Provenance flips to 'rule' when scaling actually applies.
++    if (profCold2.fan_speed?.prov?.source !== 'rule') {
++      throw new Error(`v1.0.4 S8.5 reviewer I-1: profCold.fan_speed.prov.source should be 'rule' when env-scaled; got ${profCold2.fan_speed?.prov?.source}`);
++    }
++
++    console.log(`[v1.0.4 P1.5 HIGH-01-export] OK text+BS+Advanced use env-scaled fan (min=${scaledFanMin}, max=${scaledFanMax}, overhang=${scaledOverhang}, profile fan_speed=${profFanPct}%) + enable_draft_shield for cold env`);
+   }
+ 
+   // ─── v1.0.4 — env clamp misattribution (MEDIUM-05) ────────────────────────
+diff --git a/3DPrintAssistant/Engine/EngineService.swift b/3DPrintAssistant/Engine/EngineService.swift
+index aab2362..0afadbb 100644
+--- a/3DPrintAssistant/Engine/EngineService.swift
++++ b/3DPrintAssistant/Engine/EngineService.swift
+@@ -72,8 +72,19 @@ struct AdvancedFilamentSettings {
+     let otherLayersTemp: String
+     let initialLayerBedTemp: String
+     let otherLayersBedTemp: String
++    /// v1.0.4 Phase 1.5 HIGH-01 / S8.5 — env-scaled fan emissions surfaced
++    /// for direct Advanced-surface assertions (per Codex post-Phase-1 audit
++    /// Important #2 — closes the gap that S8 had to cover transitively via
++    /// export tests). All three are Optional because `fan_min_speed` is only
++    /// emitted when `bs.cooling_fan_min` is set, and `cooling_fan_overhang`
++    /// likewise depends on material. Decoder reads S-wrapped `.value` for
++    /// fan_min/max (string) and the env-scaled integer for cooling_fan_overhang.
++    let fanMinSpeed: String?
++    let fanMaxSpeed: String?
++    let coolingFanOverhang: String?
+     /// Keys: "initial_layer_temp", "other_layers_temp",
+-    /// "initial_layer_bed_temp", "other_layers_bed_temp".
++    /// "initial_layer_bed_temp", "other_layers_bed_temp",
++    /// "fan_min_speed", "fan_max_speed", "cooling_fan_overhang".
+     let prov: [String: Provenance]
+ }
+ 
+@@ -666,14 +677,31 @@ final class EngineService: @unchecked Sendable {
+                 otherLayersTemp: "—",
+                 initialLayerBedTemp: "—",
+                 otherLayersBedTemp: "—",
++                fanMinSpeed: nil,
++                fanMaxSpeed: nil,
++                coolingFanOverhang: nil,
+                 prov: [:]
+             )
+         }
++        // v1.0.4 Phase 1.5 HIGH-01 / S8.5: fan_min_speed and fan_max_speed are
++        // S-wrapped — engine returns `{value: "63", why: "...", _prov: {...}}`.
++        // cooling_fan_overhang post-S8.5-F1 is the env-scaled Int directly
++        // (JSCore → JSONSerialization marshals as NSNumber).
++        let fanMin = (obj["fan_min_speed"] as? [String: Any])?["value"] as? String
++        let fanMax = (obj["fan_max_speed"] as? [String: Any])?["value"] as? String
++        let overhang: String? = {
++            if let s = obj["cooling_fan_overhang"] as? String { return s }
++            if let n = obj["cooling_fan_overhang"] as? NSNumber { return String(n.intValue) }
++            return nil
++        }()
+         return AdvancedFilamentSettings(
+             initialLayerTemp: obj["initial_layer_temp"] as? String ?? "—",
+             otherLayersTemp: obj["other_layers_temp"] as? String ?? "—",
+             initialLayerBedTemp: obj["initial_layer_bed_temp"] as? String ?? "—",
+             otherLayersBedTemp: obj["other_layers_bed_temp"] as? String ?? "—",
++            fanMinSpeed: fanMin,
++            fanMaxSpeed: fanMax,
++            coolingFanOverhang: overhang,
+             prov: _decodeProvSidecar(obj["_prov"])
+         )
+     }
+diff --git a/3DPrintAssistant/Engine/engine.js b/3DPrintAssistant/Engine/engine.js
+index 50b167b..141b173 100644
+--- a/3DPrintAssistant/Engine/engine.js
++++ b/3DPrintAssistant/Engine/engine.js
+@@ -1244,11 +1244,23 @@ const Engine = (() => {
+     // Mirror Task 1's hardening (speed_multiplier): guard against malformed
+     // data with Number.isFinite + > 0.
+     const fanMult = Number.isFinite(env?.fan_multiplier) && env.fan_multiplier > 0 ? env.fan_multiplier : 1.0;
++    // S8.5 reviewer M-3: float-tolerant identity check. `fanMult !== 1.0` strict
++    // equality would mis-classify a floating-point-drift fanMult (e.g., 0.9999999
++    // from future env composition arithmetic) as scaling. Treat anything within
++    // 1e-9 of 1.0 as identity (no scaling applied).
++    const fanMultIsIdentity = Math.abs(fanMult - 1.0) < 1e-9;
+     const fanMaxBase = 100;
+     const fanMaxScaled = Math.round(fanMaxBase * fanMult);
+     const fanMinScaled = bs.cooling_fan_min != null
+       ? Math.round((parseInt(bs.cooling_fan_min) || 0) * fanMult)
+       : null;
++    // S8.5 Codex post-Phase-1 Important #1 — env.fan_multiplier was scoped to
++    // min/max only; overhang fan stayed at raw material default. Same intent
++    // (reduce cooling in cold envs to preserve layer adhesion); scale here too.
++    // BS + text export read this via adv.cooling_fan_overhang.
++    const overhangScaled = bs.cooling_fan_overhang != null
++      ? Math.round((parseInt(bs.cooling_fan_overhang) || 0) * fanMult)
++      : null;
+ 
+     const result = {
+       initial_layer_temp:     `${initNozzle} °C`,
+@@ -1256,7 +1268,7 @@ const Engine = (() => {
+       initial_layer_bed_temp: `${initBed} °C`,
+       other_layers_bed_temp:  `${otherBed} °C`,
+       cooling_fan_min:        bs.cooling_fan_min,
+-      cooling_fan_overhang:   bs.cooling_fan_overhang,
++      cooling_fan_overhang:   overhangScaled,
+       slow_layer_time:        bs.slow_layer_time,
+       pressure_advance:       String(_resolvePA(bs, nozzle) ?? '—'),
+       flow_ratio:             String(bs.flow_ratio       ?? '—'),
+@@ -1284,11 +1296,11 @@ const Engine = (() => {
+         'Bed temperature for layers after the first.',
+         { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' }),
+       fan_max_speed: S(`${fanMaxScaled}`,
+-        fanMult !== 1.0
++        !fanMultIsIdentity
+           ? `Cooling fan reduced to ${Math.round(fanMult * 100)}% of normal for cold environment.`
+           : 'Maximum cooling fan speed.',
+-        { source: fanMult !== 1.0 ? 'rule' : 'default',
+-          ref: fanMult !== 1.0 ? 'env.fan_multiplier' : 'engine:fan_max_default' }),
++        { source: !fanMultIsIdentity ? 'rule' : 'default',
++          ref: !fanMultIsIdentity ? 'env.fan_multiplier' : 'engine:fan_max_default' }),
+       // [IMPL-041 / DQ-1-followup] provenance sidecar. All fields numeric.
+       _prov: {
+         initial_layer_temp:     { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + initial_layer_nozzle_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
+@@ -1296,7 +1308,9 @@ const Engine = (() => {
+         initial_layer_bed_temp: { source: 'calculated', ref: `bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0)${bedFirstLayerEnvAdj > 0 ? ' + env.bed_first_layer_adj' : ''}, clamped to min(material.bed_temp_max, printer.max_bed_temp)` },
+         other_layers_bed_temp:  { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
+         cooling_fan_min:        { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_min' },
+-        cooling_fan_overhang:   { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_overhang' },
++        cooling_fan_overhang:   { source: !fanMultIsIdentity ? 'rule' : 'default',
++                                   ref: !fanMultIsIdentity ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_overhang'
++                                                           : 'materials.json#base_settings.cooling_fan_overhang' },
+         slow_layer_time:        { source: 'default',    ref: 'materials.json#base_settings.slow_layer_time' },
+         pressure_advance:       { source: 'default',    ref: 'materials.json#base_settings.k_factor_matrix[nozzleSize] (fallback .pressure_advance)' },
+         flow_ratio:             { source: 'default',    ref: 'materials.json#base_settings.flow_ratio' },
+@@ -1309,12 +1323,12 @@ const Engine = (() => {
+     // cooling_fan_min key above remains the unscaled material default).
+     if (fanMinScaled != null) {
+       result.fan_min_speed = S(`${fanMinScaled}`,
+-        fanMult !== 1.0
++        !fanMultIsIdentity
+           ? `Minimum cooling fan reduced to ${Math.round(fanMult * 100)}% of normal for cold environment.`
+           : 'Minimum cooling fan speed.',
+-        { source: fanMult !== 1.0 ? 'rule' : 'default',
+-          ref: fanMult !== 1.0 ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_min'
+-                               : 'materials.json#base_settings.cooling_fan_min' });
++        { source: !fanMultIsIdentity ? 'rule' : 'default',
++          ref: !fanMultIsIdentity ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_min'
++                                  : 'materials.json#base_settings.cooling_fan_min' });
+     }
+     return result;
+   }
+@@ -2629,15 +2643,32 @@ const Engine = (() => {
+         { source: 'default', ref: 'materials.json#k_factor_matrix' });
+     }
+ 
+-    // B1. Fan policy output — base fan speed recommendation from material data
+-    const fanMap = { high: '100%', moderate: '50%', low: '25%', off: '0%' };
+-    if (material.fan_policy && fanMap[material.fan_policy]) {
+-      p.fan_speed = S(fanMap[material.fan_policy],
++    // B1. Fan policy output — base fan speed recommendation from material data,
++    // env-scaled by env.fan_multiplier (S8.5 tightening — same intent as the
++    // fan_min/fan_max/cooling_fan_overhang env-scaling: reduce cooling in cold
++    // envs to preserve layer adhesion). The resolved `fan_speed` chip is the
++    // "Fan speed" column rendered in every slicer tab — it must reflect the
++    // env-adjusted recommendation, not the raw material default.
++    const fanMap = { high: 100, moderate: 50, low: 25, off: 0 };
++    if (material.fan_policy && fanMap[material.fan_policy] != null) {
++      // S8.5 M-3: float-tolerant fanMult identity check.
++      const fanMultProfile = Number.isFinite(env?.fan_multiplier) && env.fan_multiplier > 0 ? env.fan_multiplier : 1.0;
++      const fanMultIsIdentity = Math.abs(fanMultProfile - 1.0) < 1e-9;
++      const rawPct = fanMap[material.fan_policy];
++      const scaledPct = Math.round(rawPct * fanMultProfile);
++      const baseWhy =
+         material.fan_policy === 'off'      ? 'Fan off — this material needs slow, even cooling to prevent warping and layer cracking.' :
+         material.fan_policy === 'moderate'  ? 'Moderate fan — balances cooling for dimensional accuracy without causing adhesion issues.' :
+         material.fan_policy === 'high'      ? 'Full fan speed — rapid cooling locks in detail and prevents sagging on overhangs.' :
+-        'Low fan speed — minimal cooling to maintain layer adhesion.',
+-        { source: 'default', ref: 'materials.json#fan_policy' });
++        'Low fan speed — minimal cooling to maintain layer adhesion.';
++      const why = fanMultIsIdentity
++        ? baseWhy
++        : `${baseWhy} Reduced to ${Math.round(fanMultProfile * 100)}% of recommendation for cold environment.`;
++      p.fan_speed = S(`${scaledPct}%`, why,
++        { source: fanMultIsIdentity ? 'default' : 'rule',
++          ref: fanMultIsIdentity
++            ? 'materials.json#fan_policy'
++            : 'env.fan_multiplier × materials.json#fan_policy' });
+     }
+ 
+     // v1.0.4 HIGH-08 — env.force_draft_shield wired to profile output. Cold /
+@@ -3128,9 +3159,12 @@ const Engine = (() => {
+     if (adv.fan_max_speed != null) {
+       filament.fan_max_speed = [String(parseInt(adv.fan_max_speed.value, 10) || 100)];
+     }
+-    // Overhang fan speed (e.g. "80%" → 80)
+-    if (bs.cooling_fan_overhang != null) {
+-      filament.overhang_fan_speed = [String(parseInt(bs.cooling_fan_overhang) || 0)];
++    // Overhang fan speed (e.g. "80%" → 80) — S8.5 Codex Important #1: read
++    // env-scaled adv.cooling_fan_overhang (not the raw bs.cooling_fan_overhang)
++    // so cold/vcold envs export the env.fan_multiplier-scaled value the engine
++    // emits to the Advanced surface.
++    if (adv.cooling_fan_overhang != null) {
++      filament.overhang_fan_speed = [String(parseInt(adv.cooling_fan_overhang) || 0)];
+     }
+     // Slow down below layer time (e.g. "15 s" → 15)
+     if (bs.slow_layer_time != null) {
+diff --git a/3DPrintAssistantTests/EngineServiceTests.swift b/3DPrintAssistantTests/EngineServiceTests.swift
+index 098293a..26da5c0 100644
+--- a/3DPrintAssistantTests/EngineServiceTests.swift
++++ b/3DPrintAssistantTests/EngineServiceTests.swift
+@@ -991,16 +991,13 @@ final class EngineServiceTests: XCTestCase {
+         XCTAssertLessThan(strongInner, stdInner, "strong inner should be < standard inner")
+     }
+ 
+-    /// Mirrors walkthrough [v1.0.4 ENV] (HIGH-07/08): cold env raises first-layer bed by +7°C
+-    /// and emits draft_shield enabled.
++    /// Mirrors walkthrough [v1.0.4 ENV] (HIGH-07/08): cold env raises first-layer bed by +7°C,
++    /// reduces fan + overhang by env.fan_multiplier, and emits draft_shield enabled.
+     ///
+-    /// **Scope note:** the web walkthrough also checks `fan_max_speed` reduction via
+-    /// `getAdvancedFilamentSettings`, but the iOS `AdvancedFilamentSettings` Codable struct
+-    /// (3DPrintAssistant/Engine/EngineService.swift:70) exposes only the four temperature fields
+-    /// — it does not surface fan. Extending the struct is outside S8 (Task 8) scope. Fan-multiplier
+-    /// behavior is still covered transitively by `testV104_P1_5_HIGH01_ExportEnvFanDraftShield`,
+-    /// which verifies both the text export (Fan speed (min): 63) and the Bambu Studio export
+-    /// (fan_min_speed=63, fan_max_speed=90) for PLA+cold.
++    /// S8.5 (Codex post-Phase-1 audit Important #1 + #2): direct Advanced-surface assertions
++    /// for fan_min_speed / fan_max_speed / cooling_fan_overhang now possible after extending
++    /// `AdvancedFilamentSettings` Codable struct (`EngineService.swift:70`). No longer relies on
++    /// transitive coverage via the Bambu Studio + text export tests alone.
+     func testV104_T2a_EnvDataLayerCold() async throws {
+         let state = AppState()
+         state.printer = "x1c"
+@@ -1025,6 +1022,33 @@ final class EngineServiceTests: XCTestCase {
+         XCTAssertTrue(draftShield?.value.lowercased().contains("enabled") ?? false,
+                       "draft_shield value should indicate enabled on cold; got \(draftShield?.value ?? "(nil)")")
+ 
++        // S8.5 Codex Important #2 — direct Advanced-surface fan assertions.
++        // Now possible because AdvancedFilamentSettings exposes fanMinSpeed /
++        // fanMaxSpeed / coolingFanOverhang (post-S8.5 Codable extension).
++        let fanMaxCold = try Self.parseFan(advCold.fanMaxSpeed)
++        let fanMinCold = try Self.parseFan(advCold.fanMinSpeed)
++        let overhangCold = try Self.parseFan(advCold.coolingFanOverhang)
++
++        state.environment = "normal"
++        let advNormal2 = try await EngineService.shared.getAdvancedFilamentSettings(state)
++        state.environment = "cold"
++        let fanMaxNormal = try Self.parseFan(advNormal2.fanMaxSpeed)
++        let fanMinNormal = try Self.parseFan(advNormal2.fanMinSpeed)
++        let overhangNormal = try Self.parseFan(advNormal2.coolingFanOverhang)
++
++        XCTAssertLessThan(fanMaxCold, fanMaxNormal,
++                          "Advanced fan_max_speed should drop in cold (env.fan_multiplier=0.9); got cold=\(fanMaxCold), normal=\(fanMaxNormal)")
++        XCTAssertEqual(round(fanMaxCold), round(fanMaxNormal * 0.9), accuracy: 0.01,
++                       "Advanced fan_max_speed env-scaled by 0.9 on cold")
++        XCTAssertEqual(round(fanMinCold), round(fanMinNormal * 0.9), accuracy: 0.01,
++                       "Advanced fan_min_speed env-scaled by 0.9 on cold")
++
++        // S8.5 Codex Important #1 — Advanced cooling_fan_overhang also env-scaled.
++        XCTAssertLessThan(overhangCold, overhangNormal,
++                          "Advanced cooling_fan_overhang should drop in cold (env.fan_multiplier=0.9); got cold=\(overhangCold), normal=\(overhangNormal)")
++        XCTAssertEqual(round(overhangCold), round(overhangNormal * 0.9), accuracy: 0.01,
++                       "Advanced cooling_fan_overhang env-scaled by 0.9 on cold")
++
+         // HIGH-05 banner (tightening I-2): warning copy must NOT lie. If the cold env
+         // emits a warning that mentions "first layer bed +N°C", N must equal the actual
+         // emitted bed delta. Mirrors walkthrough-harness.js:598-608.
+@@ -1199,6 +1223,78 @@ final class EngineServiceTests: XCTestCase {
+                        "retired creality_no_multicolor must NOT fire on Creality empty-MCS (manufacturer-gate regression caught)")
+         XCTAssertTrue(idsCrealityEmpty.contains("mcs_empty_no_multicolor"),
+                       "Creality empty-MCS should still fire mcs_empty_no_multicolor")
++
++        // S8.5 Codex Medium — extend MCS coverage to match web walkthrough breadth.
++        // Mirrors walkthrough-harness.js:821-915 sub-cases that S8's iOS T5 did not reach.
++
++        // (a) AMS-Lite material gate: A1 + ABS (ams_lite_compatible=false) + multi
++        //     MUST fire mcs ams_lite_material_incompat.
++        let amsLiteFire = AppState()
++        amsLiteFire.printer = "a1"
++        amsLiteFire.nozzle = "std_0.4"
++        amsLiteFire.material = "abs"
++        amsLiteFire.colors = "multi_2_4"
++        let warnsAmsLiteFire = try await EngineService.shared.getWarnings(amsLiteFire)
++        let idsAmsLiteFire = warnsAmsLiteFire.map(\.id)
++        XCTAssertTrue(idsAmsLiteFire.contains("ams_lite_material_incompat"),
++                      "A1 + ABS + multi must fire ams_lite_material_incompat; got: \(idsAmsLiteFire)")
++
++        // (b) AMS-Lite compatible material: A1 + PLA Basic + multi
++        //     MUST NOT fire ams_lite_material_incompat.
++        let amsLiteOk = AppState()
++        amsLiteOk.printer = "a1"
++        amsLiteOk.nozzle = "std_0.4"
++        amsLiteOk.material = "pla_basic"
++        amsLiteOk.colors = "multi_2_4"
++        let warnsAmsLiteOk = try await EngineService.shared.getWarnings(amsLiteOk)
++        let idsAmsLiteOk = warnsAmsLiteOk.map(\.id)
++        XCTAssertFalse(idsAmsLiteOk.contains("ams_lite_material_incompat"),
++                       "A1 + PLA Basic + multi must NOT fire ams_lite_material_incompat (compatible material)")
++
++        // (c) CFS tier positive: k2_plus + PLA + multi MUST fire mcs_tier_cfs_guidance.
++        //     Pairs with the existing retired-k2_plus_cfs silence assertion above
++        //     (reuses `idsCfs` from the earlier `cfs` state evaluation in this test).
++        XCTAssertTrue(idsCfs.contains("mcs_tier_cfs_guidance"),
++                      "k2_plus + PLA + multi must fire mcs_tier_cfs_guidance; got: \(idsCfs)")
++
++        // (d) CFS-Lite tier: sparkx_i7 + PLA + multi MUST fire mcs_tier_cfs_guidance
++        //     (same successor ID as CFS, different system label) + retired k2_plus_cfs silent.
++        let cfsLite = AppState()
++        cfsLite.printer = "sparkx_i7"
++        cfsLite.nozzle = "std_0.4"
++        cfsLite.material = "pla_basic"
++        cfsLite.colors = "multi_2_4"
++        let warnsCfsLite = try await EngineService.shared.getWarnings(cfsLite)
++        let idsCfsLite = warnsCfsLite.map(\.id)
++        XCTAssertTrue(idsCfsLite.contains("mcs_tier_cfs_guidance"),
++                      "sparkx_i7 + PLA + multi must fire mcs_tier_cfs_guidance (CFS-Lite system label); got: \(idsCfsLite)")
++        XCTAssertFalse(idsCfsLite.contains("k2_plus_cfs"),
++                       "retired k2_plus_cfs must NOT fire on sparkx_i7 CFS-Lite successor (LOW-01 guard)")
++
++        // (e) Generic non-AMS tier: mk4 + PLA + multi (MMU3 family) MUST fire
++        //     mcs_tier_generic_non_ams_guidance.
++        let generic = AppState()
++        generic.printer = "mk4"
++        generic.nozzle = "std_0.4"
++        generic.material = "pla_basic"
++        generic.colors = "multi_2_4"
++        let warnsGeneric = try await EngineService.shared.getWarnings(generic)
++        let idsGeneric = warnsGeneric.map(\.id)
++        XCTAssertTrue(idsGeneric.contains("mcs_tier_generic_non_ams_guidance"),
++                      "mk4 + PLA + multi must fire mcs_tier_generic_non_ams_guidance; got: \(idsGeneric)")
++
++        // (f) multi_5 empty-MCS: centauri_carbon + PLA + multi_5 MUST suppress
++        //     both prime_tower AND flush_into_infill.
++        let multi5 = AppState()
++        multi5.printer = "centauri_carbon"
++        multi5.nozzle = "std_0.4"
++        multi5.material = "pla_basic"
++        multi5.colors = "multi_5"
++        let profMulti5 = try await EngineService.shared.resolveProfile(multi5)
++        XCTAssertFalse((profMulti5["prime_tower"]?.value.lowercased() ?? "").contains("enabled"),
++                       "multi_5 empty-MCS must NOT emit prime_tower=Enabled; got: \(profMulti5["prime_tower"]?.value ?? "(absent)")")
++        XCTAssertFalse((profMulti5["flush_into_infill"]?.value.lowercased() ?? "").contains("enabled"),
++                       "multi_5 empty-MCS must NOT emit flush_into_infill=Enabled; got: \(profMulti5["flush_into_infill"]?.value ?? "(absent)")")
+     }
+ 
+     /// Mirrors walkthrough [v1.0.4 HIGH-05] + [v1.0.4 P1.5 HIGH-02 chamber-cap branch].
+@@ -1300,6 +1396,14 @@ final class EngineServiceTests: XCTestCase {
+             XCTAssertEqual(String(txt[r]), "63", "text export Fan speed (min) should be env-scaled 63 (70×0.9)")
+         }
+ 
++        // S8.5 Codex Important #1 — text export overhang fan also env-scaled (100×0.9=90 for PLA+cold).
++        let overhangRe = try NSRegularExpression(pattern: #"Overhang fan speed:\s*(\d+)"#)
++        let overhangHit = overhangRe.firstMatch(in: txt, range: NSRange(txt.startIndex..., in: txt))
++        XCTAssertNotNil(overhangHit, "text export must contain 'Overhang fan speed: N' line; first 800 chars:\n\(txt.prefix(800))")
++        if let m = overhangHit, let r = Range(m.range(at: 1), in: txt) {
++            XCTAssertEqual(String(txt[r]), "90", "text export Overhang fan speed should be env-scaled 90 (100×0.9)")
++        }
++
+         let bsMaybe = try await EngineService.shared.exportBambuStudioJSON(state)
+         let bs = try XCTUnwrap(bsMaybe, "exportBambuStudioJSON returned nil for x1c+cold")
+         let draftShield = bs.process["enable_draft_shield"]
+@@ -1313,6 +1417,11 @@ final class EngineServiceTests: XCTestCase {
+                        "BS filament.fan_min_speed[0] should be 63 (env-scaled); got: \(String(describing: bs.filament["fan_min_speed"]))")
+         XCTAssertEqual(bsFanMax, "90",
+                        "BS filament.fan_max_speed[0] should be 90 (env-scaled); got: \(String(describing: bs.filament["fan_max_speed"]))")
++
++        // S8.5 Codex Important #1 — BS export overhang_fan_speed[0] also env-scaled.
++        let bsOverhang = Self.firstFromBSArray(bs.filament["overhang_fan_speed"])
++        XCTAssertEqual(bsOverhang, "90",
++                       "BS filament.overhang_fan_speed[0] should be 90 (env-scaled, 100×0.9); got: \(String(describing: bs.filament["overhang_fan_speed"]))")
+     }
+ 
+     /// Mirrors walkthrough [v1.0.4 P1.5 HIGH-02]: PLA on X1E (active enclosure) + cold:
+@@ -1472,4 +1581,13 @@ final class EngineServiceTests: XCTestCase {
+         guard let arr = x as? NSArray, arr.count > 0 else { return nil }
+         return toIntString(arr[0])
+     }
++
++    /// Helper (S8.5): parse a fan-percentage string ("63", "63%", " 63 %") into Double.
++    /// Throws (via XCTUnwrap) when the field is unavailable — fails the test loudly
++    /// rather than silently treating a missing fan as zero.
++    private static func parseFan(_ s: String?) throws -> Double {
++        let value = try XCTUnwrap(s, "fan field missing — AdvancedFilamentSettings didn't decode it; check engine emission + Codable decoder")
++        let stripped = value.replacingOccurrences(of: "%", with: "").trimmingCharacters(in: .whitespaces)
++        return try XCTUnwrap(Double(stripped), "fan value '\(value)' not numeric")
++    }
+ }

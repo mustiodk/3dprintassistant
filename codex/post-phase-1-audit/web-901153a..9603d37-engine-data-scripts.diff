@@ -1,0 +1,708 @@
+diff --git a/data/materials.json b/data/materials.json
+index 65d70a7..1c63d9c 100644
+--- a/data/materials.json
++++ b/data/materials.json
+@@ -40,6 +40,7 @@
+       "enclosure_required": false,
+       "enclosure_behavior": {
+         "open_door_threshold_bed_temp": 45,
++        "safe_chamber_temp_max": 50,
+         "reason": "PLA softens at 57°C — passive enclosure heats up with bed, causing heat creep and clogs"
+       },
+       "compatible_plates": [
+@@ -145,6 +146,7 @@
+       "enclosure_required": false,
+       "enclosure_behavior": {
+         "open_door_threshold_bed_temp": 45,
++        "safe_chamber_temp_max": 50,
+         "reason": "Same as PLA Basic — passive enclosure overheats with bed >45°C"
+       },
+       "compatible_plates": [
+@@ -243,6 +245,7 @@
+       "enclosure_required": false,
+       "enclosure_behavior": {
+         "open_door_threshold_bed_temp": 45,
++        "safe_chamber_temp_max": 50,
+         "reason": "Same as PLA — keep door open to prevent heat creep"
+       },
+       "compatible_plates": [
+@@ -342,6 +345,7 @@
+       "enclosure_required": false,
+       "enclosure_behavior": {
+         "open_door_threshold_bed_temp": 45,
++        "safe_chamber_temp_max": 50,
+         "reason": "PLA Metal follows PLA chamber limits — open door / remove top cover when bed is above 45°C to prevent heat creep"
+       },
+       "compatible_plates": [
+@@ -449,6 +453,7 @@
+       "enclosure_required": false,
+       "enclosure_behavior": {
+         "open_door_threshold_bed_temp": 45,
++        "safe_chamber_temp_max": 50,
+         "reason": "PLA-CF is still PLA-based — same enclosure rules apply"
+       },
+       "compatible_plates": [
+diff --git a/engine.js b/engine.js
+index 4d6bcc9..50b167b 100644
+--- a/engine.js
++++ b/engine.js
+@@ -1363,11 +1363,20 @@ const Engine = (() => {
+       });
+     }
+ 
+-    // 4. Preheat enclosure if needed + cold environment
++    // 4. Preheat enclosure if needed + cold environment.
++    // v1.0.4 P1.5 HIGH-02 — PLA on enclosed printers wants the door open to
++    // mitigate heat creep; the generic "Preheat enclosure for N minutes" copy
++    // contradicts the open-door guidance item #5 directly below, so suppress
++    // the preheat item for that combo. Scope is intentionally PLA-only
++    // (matches the pla_heat_creep warning gate at engine.js #4); PVA also
++    // carries open_door_threshold_bed_temp but its pre-existing humidity
++    // posture is left untouched by this finding.
+     const needsEnclosure = mat.enclosure_required || (mat.enclosure_behavior && mat.enclosure_behavior.enclosure_required);
+     const coldEnv = state.environment === 'cold' || state.environment === 'vcold';
+     const hasEnclosure = printer && printer.enclosure !== 'none';
+-    if (hasEnclosure && (needsEnclosure || coldEnv)) {
++    const openDoorThreshold = mat.enclosure_behavior && mat.enclosure_behavior.open_door_threshold_bed_temp;
++    const plaHeatCreepPair = mat.group === 'PLA' && hasEnclosure && openDoorThreshold != null;
++    if (hasEnclosure && (needsEnclosure || coldEnv) && !plaHeatCreepPair) {
+       const minutes = env ? (env.preheat_minutes || 15) : 15;
+       items.push({
+         text:     `Preheat enclosure for ${minutes} minutes before starting`,
+@@ -1379,7 +1388,6 @@ const Engine = (() => {
+     }
+ 
+     // 5. Enclosure open for PLA-type materials on enclosed printers
+-    const openDoorThreshold = mat.enclosure_behavior && mat.enclosure_behavior.open_door_threshold_bed_temp;
+     if (openDoorThreshold != null && hasEnclosure) {
+       items.push({
+         text:     `Open front door + remove top glass panel`,
+@@ -1499,8 +1507,13 @@ const Engine = (() => {
+         'PETG prints better with stable ambient temperature. Consider a DIY enclosure or warm room to avoid layer separation.'));
+     }
+ 
+-    // 4. PLA + passive enclosure (heat creep warning)
+-    if (material.group === 'PLA' && printer && printer.enclosure === 'passive' &&
++    // 4. PLA + enclosed printer (heat creep warning).
++    // v1.0.4 P1.5 HIGH-02 — extended from passive-only to any enclosed printer
++    // (passive OR active-heated). Active-chamber printers like X1E heat the
++    // chamber above PLA's softening point; the open-door guidance is needed
++    // symmetrically. Pairs with the chamber_above_material_safe guard for
++    // active-chamber printers (now firing for PLA after the data fix).
++    if (material.group === 'PLA' && printer && printer.enclosure !== 'none' &&
+         material.enclosure_behavior?.open_door_threshold_bed_temp != null) {
+       warnings.push(w('pla_heat_creep',
+         'PLA + enclosed printer:',
+@@ -1622,12 +1635,50 @@ const Engine = (() => {
+           if ((env.nozzle_adj || 0) > 0) parts.push(`nozzle +${env.nozzle_adj}°C`);
+           if ((env.bed_adj || 0) > 0)    parts.push(`bed +${env.bed_adj}°C`);
+           if ((env.bed_first_layer_adj || 0) > 0) {
+-            // Put first-layer bed in its own warning so the +N°C number stands
+-            // alone — keeps the assertion-friendly contract that any "+N°C
+-            // first-layer bed" claim matches the emitted bed_first_layer_adj.
++            // v1.0.4 P1.5 MEDIUM-01 — compute effective post-clamp delta using
++            // the same math getAdvancedFilamentSettings applies (see line
++            // ~1227 onwards). When the requested bed_first_layer_adj is
++            // partially or fully clipped by min(material bed_temp_max,
++            // printer max_bed_temp), the warning copy switches from the
++            // historical "+N°C applied" claim to an honest "requested but
++            // clipped" framing — keeps users from acting on a delta that
++            // didn't actually land. Attribution discipline parity with
++            // MEDIUM-05's nozzle-side env_compensation_capped_by_material.
++            const bsBed = material.base_settings;
++            const isPETGBed = material.group === 'PETG';
++            const bedAdjEnv = env.bed_adj || 0;
++            const requestedAdj = env.bed_first_layer_adj;
++            const initBedNoEnv = bsBed.bed_temp_base + bedAdjEnv + (bsBed.initial_layer_bed_offset || 0) + (isPETGBed ? 5 : 0);
++            const initBedWithEnv = initBedNoEnv + requestedAdj;
++            const matBedCap = bsBed.bed_temp_max;
++            const prnBedCap = printer && printer.max_bed_temp != null ? printer.max_bed_temp : Infinity;
++            const bedCap = Math.min(matBedCap, prnBedCap);
++            const effectiveAdj = Math.min(initBedWithEnv, bedCap) - Math.min(initBedNoEnv, bedCap);
++            // capSource: the else-branch dereferences `printer.name`, but it
++            // is only reachable when `matBedCap > prnBedCap`, which requires
++            // `prnBedCap` to be a finite number — i.e., `printer && printer
++            // .max_bed_temp != null`. So `printer.name` is always safe here.
++            const capSource = matBedCap <= prnBedCap
++              ? `${material.name}'s ${matBedCap}°C bed cap`
++              : `${printer.name}'s ${prnBedCap}°C bed cap`;
++            let bedFirstText, bedFirstDetail;
++            if (effectiveAdj === requestedAdj) {
++              // Full apply — keep historical copy contract: the "+N°C applied"
++              // claim matches the emitted bed_first_layer_adj.
++              bedFirstText = `${env.name} first-layer bed compensation: +${requestedAdj}°C applied to first-layer bed temperature.`;
++              bedFirstDetail = 'Improves first-layer adhesion when the chamber is cool. Bed returns to base temp from layer 2 onwards.';
++            } else if (effectiveAdj <= 0) {
++              // Fully clipped — base initial-layer target already at/over cap.
++              bedFirstText = `${env.name} first-layer bed compensation: +${requestedAdj}°C requested but fully clipped by ${capSource}.`;
++              bedFirstDetail = `The base initial-layer bed target is already at the cap, so the env first-layer boost emits +0°C effective. Switching to a less-compensating environment will not raise the bed further on this combo.`;
++            } else {
++              // Partially clipped — emit honest applied delta + requested delta.
++              bedFirstText = `${env.name} first-layer bed compensation: +${effectiveAdj}°C applied to first-layer bed (requested +${requestedAdj}°C, partially clipped by ${capSource}).`;
++              bedFirstDetail = `The requested env delta exceeds the bed cap; the emitted first-layer bed reflects ${effectiveAdj}°C of compensation, not ${requestedAdj}°C.`;
++            }
+             warnings.push(w(`env_${env.id}_bed_first_layer`,
+-              `${env.name} first-layer bed compensation: +${env.bed_first_layer_adj}°C applied to first-layer bed temperature.`,
+-              'Improves first-layer adhesion when the chamber is cool. Bed returns to base temp from layer 2 onwards.',
++              bedFirstText,
++              bedFirstDetail,
+               ''));
+           }
+           if (env.first_layer_speed_multiplier != null && env.first_layer_speed_multiplier < 1.0) {
+@@ -1639,6 +1690,24 @@ const Engine = (() => {
+             : msg;
+           warnings.push(w(`env_${env.id}_${i}`, text, '', ''));
+         } else {
++          // v1.0.4 P1.5 HIGH-02 — material-aware suppression of subsequent
++          // env warnings that contradict the open-door heat-creep guidance.
++          // PLA on enclosed printers must NOT be told to keep the door closed
++          // or to preheat a sealed enclosure. Other verbatim env warnings
++          // (e.g. humidity advisories) pass through unchanged.
++          // Scope is intentionally PLA-only (matches the pla_heat_creep gate
++          // at warning #4 + the checklist suppression at getChecklist #4);
++          // PVA also carries open_door_threshold_bed_temp but its
++          // pre-existing humidity posture is left untouched.
++          // NOTE: regex couples to current env.json copy. If env.json copy is
++          // ever rewritten, re-verify these patterns or replace this with a
++          // `kind`-tagged warning structure (see ROADMAP follow-up).
++          const plaHeatCreepPair = material.group === 'PLA'
++            && printer && printer.enclosure !== 'none'
++            && material.enclosure_behavior?.open_door_threshold_bed_temp != null;
++          if (plaHeatCreepPair && /door closed|preheat the enclosure|preheat \(/i.test(msg)) {
++            return;
++          }
+           warnings.push(w(`env_${env.id}_${i}`, msg, '', ''));
+         }
+       });
+@@ -1706,8 +1775,14 @@ const Engine = (() => {
+     if (printer && printer.max_bed_temp != null && material.base_settings) {
+       const bs          = material.base_settings;
+       const bedAdj      = env ? (env.bed_adj || 0) : 0;
++      // v1.0.4 P1.5 MEDIUM-01 — include bed_first_layer_adj so the cap-warning
++      // fires when env compensation pushes the initial-layer bed past the
++      // printer cap. Matches getAdvancedFilamentSettings' actual clamp math
++      // (see line ~1227). Attribution discipline parity with MEDIUM-05's
++      // nozzle-side env handling.
++      const bedFirstLayerEnvAdj = env && Number.isFinite(env.bed_first_layer_adj) ? env.bed_first_layer_adj : 0;
+       const isPETG      = material.group === 'PETG';
+-      const initTarget  = bs.bed_temp_base + bedAdj + (bs.initial_layer_bed_offset || 0) + (isPETG ? 5 : 0);
++      const initTarget  = bs.bed_temp_base + bedAdj + (bs.initial_layer_bed_offset || 0) + (isPETG ? 5 : 0) + bedFirstLayerEnvAdj;
+       const otherTarget = bs.bed_temp_base + bedAdj;
+       const highestTarget = Math.max(initTarget, otherTarget);
+ 
+@@ -2674,7 +2749,8 @@ const Engine = (() => {
+     brim_width:                'brim_width',
+     ironing:                   'ironing_type',
+     slow_down_tall:            'enable_height_slowdown',
+-    // TODO(v1.0.4-export): draft_shield → enable_draft_shield mapping missing. See ROADMAP "IR-deferred export-path findings".
++    // v1.0.4 Phase 1.5 HIGH-01: env-driven draft_shield must reach BS process export.
++    draft_shield:              'enable_draft_shield',
+   };
+ 
+   // BS fields that need array wrapping: ["value"] instead of "value"
+@@ -2925,7 +3001,7 @@ const Engine = (() => {
+       // Boolean-like toggles
+       if (engineKey === 'arc_fitting' || engineKey === 'avoid_crossing_walls' ||
+           engineKey === 'only_one_wall_top' || engineKey === 'infill_combination' ||
+-          engineKey === 'slow_down_tall') {
++          engineKey === 'slow_down_tall' || engineKey === 'draft_shield') {
+         process[bsKey] = /enabled|1|true/i.test(String(raw)) ? '1' : '0';
+         return;
+       }
+@@ -3043,11 +3119,14 @@ const Engine = (() => {
+     const mvsVal = bs.max_mvs?.[String(nozzle.size)];
+     if (mvsVal)  filament.filament_max_volumetric_speed = [String(parseFloat(mvsVal))];
+ 
+-    // Fan speeds
+-    // TODO(v1.0.4-export): env.fan_multiplier scaling not applied here. See ROADMAP "IR-deferred export-path findings".
+-    if (bs.cooling_fan_min != null) {
+-      filament.fan_min_speed = [String(parseInt(bs.cooling_fan_min) || 0)];
+-      filament.fan_max_speed = ['100'];
++    // Fan speeds — v1.0.4 Phase 1.5 HIGH-01: read env-scaled fan_min_speed /
++    // fan_max_speed from getAdvancedFilamentSettings so cold/vcold envs export
++    // the same env.fan_multiplier-scaled values the engine emits to the live UI.
++    if (adv.fan_min_speed != null) {
++      filament.fan_min_speed = [String(parseInt(adv.fan_min_speed.value, 10) || 0)];
++    }
++    if (adv.fan_max_speed != null) {
++      filament.fan_max_speed = [String(parseInt(adv.fan_max_speed.value, 10) || 100)];
+     }
+     // Overhang fan speed (e.g. "80%" → 80)
+     if (bs.cooling_fan_overhang != null) {
+@@ -3128,13 +3207,14 @@ const Engine = (() => {
+       }
+       lines.push('');
+ 
+-      // Fan settings
+-      const hasFan = filament.cooling_fan != null || adv.cooling_fan_min != null
++      // Fan settings — v1.0.4 Phase 1.5 HIGH-01: read env-scaled fan_min_speed
++      // (S-wrapped), not the raw cooling_fan_min material default.
++      const hasFan = filament.cooling_fan != null || adv.fan_min_speed != null
+                   || adv.cooling_fan_overhang != null || adv.slow_layer_time != null;
+       if (hasFan) {
+         lines.push('  FAN SETTINGS');
+         if (filament.cooling_fan != null)      lines.push(`    Part cooling fan:        ${filament.cooling_fan}`);
+-        if (adv.cooling_fan_min != null)       lines.push(`    Fan speed (min):         ${adv.cooling_fan_min}`);
++        if (adv.fan_min_speed != null)         lines.push(`    Fan speed (min):         ${adv.fan_min_speed.value}%`);
+         if (adv.cooling_fan_overhang != null)  lines.push(`    Overhang fan speed:      ${adv.cooling_fan_overhang}`);
+         if (adv.slow_layer_time != null)       lines.push(`    Min layer time:          ${adv.slow_layer_time}`);
+         lines.push('');
+diff --git a/scripts/profile-matrix-audit.js b/scripts/profile-matrix-audit.js
+index 7ac642a..a97ea33 100644
+--- a/scripts/profile-matrix-audit.js
++++ b/scripts/profile-matrix-audit.js
+@@ -143,7 +143,7 @@ const CASES = [
+     noWarning('k2_plus_cfs'),
+   ]),
+   c('creality-k2plus-multicolor-cfs', 'K2 Plus + multicolor shows CFS warning', { printer: 'k2_plus', material: 'pla_basic', colors: 'multi_5' }, [
+-    warning('mcs_tier_cfs_guidance'),
++    warning('mcs_tier_cfs_guidance'), noWarning('k2_plus_cfs'),
+   ]),
+   c('anycubic-kobrax-multicolor', 'Anycubic Kobra X + multicolor uses ACE metadata without unknown-printer warning', { printer: 'kobra_x', material: 'pla_basic', colors: 'multi_5' }, [
+     printerField('multi_color_systems', ['ace']), noWarning('missing_printer'),
+@@ -280,7 +280,7 @@ const POSTFIX_CASES = [
+     warning('nozzle_below_min_diameter'), noWarning('tpu_ams_incompatible'), maxProfileNumber('outer_wall_speed', 20),
+   ]),
+   c('postfix-k2-pla-multicolor-cfs-copy', 'Creality K2 + PLA multicolor shows CFS-specific warning', { printer: 'k2', material: 'pla_basic', colors: 'multi_5' }, [
+-    warning('mcs_tier_cfs_guidance'), noWarning('creality_no_multicolor'), noUxMatching(/open-frame material warning/i),
++    warning('mcs_tier_cfs_guidance'), noWarning('creality_no_multicolor'), noWarning('k2_plus_cfs'), noUxMatching(/open-frame material warning/i),
+   ]),
+   c('postfix-p2s-pc-bed-110-boundary', 'Bambu P2S + PC clamps bed to 110C and avoids open-frame copy', { printer: 'p2s', material: 'pc' }, [
+     advancedBed('110 °C', '110 °C'), warning('printer_max_bed_temp_clamped'), noWarning('printer_bed_temp_incompatible'), noUxMatching(/open-frame material warning/i),
+diff --git a/scripts/validate-data.js b/scripts/validate-data.js
+index 9d8b2d1..848bed8 100644
+--- a/scripts/validate-data.js
++++ b/scripts/validate-data.js
+@@ -107,6 +107,29 @@ function validateMaterials() {
+       check(file, isNumber(bs.pressure_advance), `${bsc}: pressure_advance must be a number`);
+       check(file, isNumber(bs.flow_ratio),       `${bsc}: flow_ratio must be a number`);
+     }
++
++    // v1.0.4 P1.5 HIGH-02 — load-bearing enclosure_behavior fields. Both
++    // fields are optional, but when present they must be numeric and within
++    // a sane range. A typo (e.g. safe_chamber_max_temp) would silently
++    // disable the HIGH-02 / HIGH-05 chamber-safe-cap guard otherwise.
++    if (isObject(m.enclosure_behavior)) {
++      const eb  = m.enclosure_behavior;
++      const ebc = `${ctx}.enclosure_behavior`;
++      if (eb.safe_chamber_temp_max != null) {
++        check(file, isNumber(eb.safe_chamber_temp_max) && eb.safe_chamber_temp_max >= 30 && eb.safe_chamber_temp_max <= 90,
++          `${ebc}: safe_chamber_temp_max must be a number in [30, 90]°C (got ${eb.safe_chamber_temp_max})`);
++      }
++      if (eb.open_door_threshold_bed_temp != null) {
++        check(file, isNumber(eb.open_door_threshold_bed_temp) && eb.open_door_threshold_bed_temp >= 30 && eb.open_door_threshold_bed_temp <= 90,
++          `${ebc}: open_door_threshold_bed_temp must be a number in [30, 90]°C (got ${eb.open_door_threshold_bed_temp})`);
++      }
++    }
++    // Also accept the top-level form the engine reads as fallback
++    // (mat.safe_chamber_temp_max). Same range check.
++    if (m.safe_chamber_temp_max != null) {
++      check(file, isNumber(m.safe_chamber_temp_max) && m.safe_chamber_temp_max >= 30 && m.safe_chamber_temp_max <= 90,
++        `${ctx}: safe_chamber_temp_max (top-level) must be a number in [30, 90]°C (got ${m.safe_chamber_temp_max})`);
++    }
+   });
+ }
+ 
+diff --git a/scripts/walkthrough-harness.js b/scripts/walkthrough-harness.js
+index 1e330b4..779f3dd 100644
+--- a/scripts/walkthrough-harness.js
++++ b/scripts/walkthrough-harness.js
+@@ -609,6 +609,57 @@ const COMBOS = [
+     console.log(`[v1.0.4 ENV] OK bed_first_layer_adj=+${Math.round(bedCold - bedNormal)}°C, fan reduced, draft_shield emitted, warning copy matches emit`);
+   }
+ 
++  // ─── v1.0.4 Phase 1.5 — Codex HIGH-01 export-path env-fan + draft_shield ──
++  // Phase 1.5 Codex audit (2026-05-13) found that text export + Bambu export
++  // bypass the env-scaled fan_min_speed/fan_max_speed engine emissions and the
++  // BAMBU_PROCESS_MAP lacks draft_shield → enable_draft_shield. Live export
++  // buttons (app.js:814-846) ship these unscaled values to users.
++  {
++    const base = { printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic',
++                   useCase: ['functional'], surface: 'standard', strength: 'standard',
++                   speed: 'balanced', support: 'none', colors: 'single',
++                   userLevel: 'intermediate', special: [], build_plate: 'textured_pei',
++                   profileMode: 'safe' };
++    const coldState = { ...base, environment: 'cold' };
++
++    // Baseline: PLA Basic cooling_fan_min = 70%, fan_max = 100, env.cold.fan_multiplier = 0.9.
++    // Engine-side env-scaled emission: fan_min_speed = round(70 × 0.9) = 63, fan_max_speed = 90.
++    const advCold = Engine.getAdvancedFilamentSettings(coldState);
++    const scaledFanMin = parseInt(advCold.fan_min_speed.value, 10);
++    const scaledFanMax = parseInt(advCold.fan_max_speed.value, 10);
++    if (scaledFanMin !== 63) throw new Error(`v1.0.4 Codex HIGH-01 baseline: expected fan_min_speed=63 (70×0.9) for PLA+cold; got ${scaledFanMin}`);
++    if (scaledFanMax !== 90) throw new Error(`v1.0.4 Codex HIGH-01 baseline: expected fan_max_speed=90 (100×0.9) for PLA+cold; got ${scaledFanMax}`);
++
++    // 1) Text export must surface the env-scaled fan min (not the raw 70%).
++    const txt = Engine.formatProfileAsText(coldState);
++    if (!txt) throw new Error(`v1.0.4 Codex HIGH-01 export: formatProfileAsText returned null for x1c+cold`);
++    const fanMinLine = txt.match(/Fan speed \(min\):\s*([\d]+)/);
++    if (!fanMinLine) throw new Error(`v1.0.4 Codex HIGH-01 export: text export missing "Fan speed (min):" line`);
++    const txtFanMin = parseInt(fanMinLine[1], 10);
++    if (txtFanMin !== scaledFanMin) {
++      throw new Error(`v1.0.4 Codex HIGH-01 export: text export Fan speed (min)=${txtFanMin} should match env-scaled ${scaledFanMin} (not unscaled 70)`);
++    }
++
++    // 2) Bambu process export must include enable_draft_shield for cold env.
++    const bs = Engine.exportBambuStudioJSON(coldState);
++    if (!bs) throw new Error(`v1.0.4 Codex HIGH-01 export: exportBambuStudioJSON returned null for x1c+cold`);
++    if (bs.process.enable_draft_shield !== '1') {
++      throw new Error(`v1.0.4 Codex HIGH-01 export: BS process.enable_draft_shield should be '1' for cold env; got ${JSON.stringify(bs.process.enable_draft_shield)}`);
++    }
++
++    // 3) Bambu filament export must apply env.fan_multiplier (not raw material default).
++    const bsFanMin = bs.filament.fan_min_speed?.[0];
++    const bsFanMax = bs.filament.fan_max_speed?.[0];
++    if (parseInt(bsFanMin, 10) !== scaledFanMin) {
++      throw new Error(`v1.0.4 Codex HIGH-01 export: BS filament.fan_min_speed=${bsFanMin} should match env-scaled ${scaledFanMin} (not unscaled 70)`);
++    }
++    if (parseInt(bsFanMax, 10) !== scaledFanMax) {
++      throw new Error(`v1.0.4 Codex HIGH-01 export: BS filament.fan_max_speed=${bsFanMax} should match env-scaled ${scaledFanMax} (not unscaled 100)`);
++    }
++
++    console.log(`[v1.0.4 P1.5 HIGH-01-export] OK text+BS export use env-scaled fan (${scaledFanMin}/${scaledFanMax}) + enable_draft_shield for cold env`);
++  }
++
+   // ─── v1.0.4 — env clamp misattribution (MEDIUM-05) ────────────────────────
+   {
+     // PLA Basic on A1 + vcold (PLA max_nozzle=230). Env wants +10°C → 230 + initial offset
+@@ -743,6 +794,25 @@ const COMBOS = [
+     if (profEmpty.prime_tower && /enabled/i.test(String(profEmpty.prime_tower.value || ''))) {
+       throw new Error(`v1.0.4 MEDIUM-01: empty-MCS must NOT emit prime_tower=Enabled; got ${profEmpty.prime_tower.value}`);
+     }
++    // v1.0.4 P1.5 LOW-01 — retired Creality-only no-multicolor warning must
++    // NOT fire alongside the generalized mcs_empty_no_multicolor (the
++    // Creality-specific check was retired in S4 when MCS tiers landed).
++    // Two cases pair this guard so it actually exercises the manufacturer-
++    // gated retirement: the centauri_carbon (Elegoo) successor catches the
++    // generalized re-introduction; the ender3_v3_se (Creality manufacturer)
++    // successor catches a *manufacturer-gated* re-introduction that would
++    // otherwise slip past the Elegoo case alone.
++    if (emptyIds.includes('creality_no_multicolor')) {
++      throw new Error(`v1.0.4 P1.5 LOW-01: retired creality_no_multicolor still fires on empty-MCS (Elegoo) successor case; got ${emptyIds.join(',')}`);
++    }
++    const stEmptyCreality = { ...baseMCS, printer: 'ender3_v3_se', material: 'pla_basic', colors: 'multi_2_4' };
++    const emptyCrealityIds = wIds(stEmptyCreality);
++    if (!emptyCrealityIds.includes('mcs_empty_no_multicolor')) {
++      throw new Error(`v1.0.4 P1.5 LOW-01: Creality empty-MCS (ender3_v3_se) successor MUST fire mcs_empty_no_multicolor; got ${emptyCrealityIds.join(',')}`);
++    }
++    if (emptyCrealityIds.includes('creality_no_multicolor')) {
++      throw new Error(`v1.0.4 P1.5 LOW-01: retired creality_no_multicolor still fires on Creality empty-MCS (ender3_v3_se) successor case — manufacturer-gated regression caught; got ${emptyCrealityIds.join(',')}`);
++    }
+ 
+     // 2) AMS LITE MATERIAL GATE: A1 (ams_lite) + ABS (ams_compatible:true but ams_lite_compatible:false) + multi MUST warn 'ams_lite_material_incompat'.
+     const stLite = { ...baseMCS, printer: 'a1', material: 'abs', colors: 'multi_2_4' };
+@@ -774,6 +844,11 @@ const COMBOS = [
+     if (!cfsIds.includes('mcs_tier_cfs_guidance')) {
+       throw new Error(`v1.0.4 (cfs tier): k2_plus+pla+multi must fire 'mcs_tier_cfs_guidance'; got ${cfsIds.join(',')}`);
+     }
++    // v1.0.4 P1.5 LOW-01 — retired k2_plus_cfs must NOT fire on the CFS
++    // successor positive case (subsumed by mcs_tier_cfs_guidance in S4).
++    if (cfsIds.includes('k2_plus_cfs')) {
++      throw new Error(`v1.0.4 P1.5 LOW-01: retired k2_plus_cfs still fires on K2 Plus CFS successor case; got ${cfsIds.join(',')}`);
++    }
+ 
+     // 6) CFS LITE sysLabel branch (sparkx_i7): sparkx_i7 + pla_basic + multi MUST also fire 'mcs_tier_cfs_guidance'
+     // (exercises the cfs_lite branch in the sysLabel ternary — same ID, different printer/system label).
+@@ -782,6 +857,12 @@ const COMBOS = [
+     if (!cfsLiteIds.includes('mcs_tier_cfs_guidance')) {
+       throw new Error(`v1.0.4 (cfs_lite tier): sparkx_i7+pla+multi must fire 'mcs_tier_cfs_guidance'; got ${cfsLiteIds.join(',')}`);
+     }
++    // v1.0.4 P1.5 LOW-01 — retired k2_plus_cfs must NOT fire on the CFS-Lite
++    // successor positive case either (different printer/system label, same
++    // generalized successor warning).
++    if (cfsLiteIds.includes('k2_plus_cfs')) {
++      throw new Error(`v1.0.4 P1.5 LOW-01: retired k2_plus_cfs still fires on sparkx_i7 CFS-Lite successor case; got ${cfsLiteIds.join(',')}`);
++    }
+ 
+     // 7) GENERIC NON-AMS tier (mk4 with mmu3): must fire 'mcs_tier_generic_non_ams_guidance'.
+     const stGeneric = { ...baseMCS, printer: 'mk4', material: 'pla_basic', colors: 'multi_2_4' };
+@@ -806,7 +887,7 @@ const COMBOS = [
+       throw new Error(`v1.0.4 (multi_5 empty-MCS): centauri_carbon+multi_5 must NOT emit flush_into_infill=Enabled; got ${profEmpty5.flush_into_infill.value}`);
+     }
+ 
+-    console.log(`[v1.0.4 MCS] OK empty-MCS warn+suppress; ams_lite gates; ams_like preserves prime_tower; cfs/cfs_lite/generic_non_ams advisories fire; multi_5 suppression on empty-MCS works. empty prime_tower=${profEmpty.prime_tower?.value || '(absent)'}, ams_like prime_tower=${profAMS.prime_tower?.value}, cfs ids=${cfsIds.length}, generic ids=${genericIds.length}`);
++    console.log(`[v1.0.4 MCS] OK empty-MCS warn+suppress; ams_lite gates; ams_like preserves prime_tower; cfs/cfs_lite/generic_non_ams advisories fire; multi_5 suppression on empty-MCS works; retired IDs (creality_no_multicolor / k2_plus_cfs) silent on successor cases (LOW-01). empty prime_tower=${profEmpty.prime_tower?.value || '(absent)'}, ams_like prime_tower=${profAMS.prime_tower?.value}, cfs ids=${cfsIds.length}, generic ids=${genericIds.length}`);
+   }
+ 
+   // ─── v1.0.4 — Chamber safe-cap guard (HIGH-05) ─────────────────────────────
+@@ -846,15 +927,138 @@ const COMBOS = [
+       throw new Error(`v1.0.4 HIGH-05: X1C+petg_basic (no active chamber) must NOT fire chamber_above_material_safe; got ${silentNoActiveIds.join(',')}`);
+     }
+ 
+-    const stSilentNoCap = stateDefault({
++    // v1.0.4 P1.5 HIGH-02: post-fix, X1E + PLA Basic MUST fire the guard
++    // (PLA-family now carries safe_chamber_temp_max=50 < X1E max_chamber=60).
++    // The original "silent on no-safe-cap" case is replaced by X1C+pla_basic
++    // (no active-chamber → guard silent regardless of material cap).
++    const stFirePLA = stateDefault({
+       printer: 'x1e', nozzle: 'std_0.4', material: 'pla_basic',
+     });
+-    const silentNoCapIds = Engine.getWarnings(stSilentNoCap).map(w => w.id);
+-    if (silentNoCapIds.includes('chamber_above_material_safe')) {
+-      throw new Error(`v1.0.4 HIGH-05: X1E+pla_basic (material has no safe cap) must NOT fire chamber_above_material_safe; got ${silentNoCapIds.join(',')}`);
++    const firePLAWarns = Engine.getWarnings(stFirePLA);
++    const firePLAIds = firePLAWarns.map(w => w.id);
++    if (!firePLAIds.includes('chamber_above_material_safe')) {
++      throw new Error(`v1.0.4 P1.5 HIGH-02: X1E+pla_basic must fire chamber_above_material_safe; got ${firePLAIds.join(',')}`);
++    }
++    const pla = Engine.getMaterial('pla_basic');
++    const plaCap = pla?.safe_chamber_temp_max ?? pla?.enclosure_behavior?.safe_chamber_temp_max;
++    if (plaCap !== 50) {
++      throw new Error(`v1.0.4 P1.5 HIGH-02: pla_basic safe_chamber_temp_max expected 50, got ${plaCap}`);
++    }
++    const plaGuard = firePLAWarns.find(w => w.id === 'chamber_above_material_safe');
++    if (!/50°C/.test(plaGuard.text)) {
++      throw new Error(`v1.0.4 P1.5 HIGH-02: guard text must reference 50°C cap for PLA; got "${plaGuard.text}"`);
++    }
++
++    const stSilentNoActivePLA = stateDefault({
++      printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic',
++    });
++    const silentNoActivePLAIds = Engine.getWarnings(stSilentNoActivePLA).map(w => w.id);
++    if (silentNoActivePLAIds.includes('chamber_above_material_safe')) {
++      throw new Error(`v1.0.4 P1.5 HIGH-02: X1C+pla_basic (no active chamber) must NOT fire chamber_above_material_safe; got ${silentNoActivePLAIds.join(',')}`);
+     }
+ 
+-    console.log(`[v1.0.4 HIGH-05] OK chamber_above_material_safe fires on X1E+petg_basic (cap=${matCap}°C); silent on X1C+petg_basic and X1E+pla_basic.`);
++    console.log(`[v1.0.4 HIGH-05] OK chamber_above_material_safe fires on X1E+petg_basic (cap=${matCap}°C) and X1E+pla_basic (cap=${plaCap}°C); silent on X1C+petg_basic and X1C+pla_basic (no active chamber).`);
++  }
++
++  // ─── v1.0.4 P1.5 — HIGH-02 PLA cold/chamber safety (Option B) ──────────────
++  // PLA on enclosed/active-heated printers must NOT be told to keep the door
++  // closed during cold-env compensation; instead it must get the positive
++  // open-door / remove-top-glass guidance + the chamber safe-cap guard. The
++  // generic cold-env "Preheat enclosure 15 min" copy contradicts the heat-creep
++  // mitigation and must be suppressed for the same material/printer pair.
++  //
++  // Non-regression: PETG (no open_door_threshold_bed_temp) on X1E + cold MUST
++  // still receive the verbatim "Keep door closed" copy — the suppression is
++  // material-aware, not env-aware.
++  {
++    // PLA on X1E (active-heated, enclosure='active') + cold env.
++    const stPlaColdActive = stateDefault({
++      printer: 'x1e', nozzle: 'std_0.4', material: 'pla_basic', environment: 'cold',
++    });
++    const plaColdWarns = Engine.getWarnings(stPlaColdActive);
++    const plaColdIds = plaColdWarns.map(w => w.id);
++    const plaColdText = plaColdWarns.map(w => `${w.text} ${w.detail || ''}`).join(' || ');
++
++    // (a) Extended pla_heat_creep MUST fire (was passive-only; Option B extends to active).
++    if (!plaColdIds.includes('pla_heat_creep')) {
++      throw new Error(`v1.0.4 P1.5 HIGH-02: pla_heat_creep MUST fire on X1E+PLA+cold (active enclosure extension); got ${plaColdIds.join(',')}`);
++    }
++
++    // (b) NO warning text on PLA+enclosed pair may say "Keep door closed".
++    if (/Keep door closed/i.test(plaColdText)) {
++      throw new Error(`v1.0.4 P1.5 HIGH-02: PLA + enclosed + cold MUST NOT carry "Keep door closed" copy; warnings text = ${plaColdText}`);
++    }
++
++    // (c) Checklist MUST NOT include "Preheat enclosure" for PLA-family + enclosed
++    //     (contradicts the open-door guidance the same checklist provides next).
++    const plaChecklist = Engine.getChecklist(stPlaColdActive);
++    const plaChecklistText = plaChecklist.map(c => c.text).join(' || ');
++    if (/Preheat enclosure/i.test(plaChecklistText)) {
++      throw new Error(`v1.0.4 P1.5 HIGH-02: PLA + enclosed + cold MUST NOT include "Preheat enclosure" checklist item; got = ${plaChecklistText}`);
++    }
++    // (d) Existing "Open front door + remove top glass panel" item MUST still appear
++    //     (this is the positive guidance — without it the user gets no door direction at all).
++    if (!/Open front door/i.test(plaChecklistText)) {
++      throw new Error(`v1.0.4 P1.5 HIGH-02: PLA + enclosed + cold MUST include "Open front door" checklist item; got = ${plaChecklistText}`);
++    }
++
++    // (e) Non-regression on passive-enclosure path: PLA + P1S (passive) + cold
++    //     must still fire pla_heat_creep (existing behavior).
++    const stPlaColdPassive = stateDefault({
++      printer: 'p1s', nozzle: 'std_0.4', material: 'pla_basic', environment: 'cold',
++    });
++    const plaColdPassiveIds = Engine.getWarnings(stPlaColdPassive).map(w => w.id);
++    if (!plaColdPassiveIds.includes('pla_heat_creep')) {
++      throw new Error(`v1.0.4 P1.5 HIGH-02 non-regression: pla_heat_creep must still fire on P1S+PLA+cold (passive enclosure); got ${plaColdPassiveIds.join(',')}`);
++    }
++
++    // (f) Non-regression: PETG (no open_door_threshold_bed_temp) on X1E + cold
++    //     MUST still carry the "Keep door closed" copy — suppression is
++    //     material-aware (PLA-only), not blanket env-aware.
++    const stPetgColdActive = stateDefault({
++      printer: 'x1e', nozzle: 'std_0.4', material: 'petg_basic', environment: 'cold',
++    });
++    const petgColdText = Engine.getWarnings(stPetgColdActive)
++      .map(w => `${w.text} ${w.detail || ''}`).join(' || ');
++    if (!/Keep door closed/i.test(petgColdText)) {
++      throw new Error(`v1.0.4 P1.5 HIGH-02 non-regression: PETG (no open_door_threshold) on X1E+cold MUST still carry "Keep door closed" copy; got = ${petgColdText}`);
++    }
++
++    // (g) Non-regression: PVA (carries open_door_threshold_bed_temp but is
++    //     out of HIGH-02 scope) on X1C + cold MUST still carry the verbatim
++    //     "Keep door closed" copy — suppression predicate must NOT broaden
++    //     to all materials with open_door_threshold. Pre-existing PVA
++    //     humidity posture is preserved.
++    const stPvaColdEnclosed = stateDefault({
++      printer: 'x1c', nozzle: 'std_0.4', material: 'pva', environment: 'cold',
++    });
++    const pvaColdText = Engine.getWarnings(stPvaColdEnclosed)
++      .map(w => `${w.text} ${w.detail || ''}`).join(' || ');
++    if (!/Keep door closed/i.test(pvaColdText)) {
++      throw new Error(`v1.0.4 P1.5 HIGH-02 scope guard: PVA on X1C+cold MUST still carry "Keep door closed" (HIGH-02 is PLA-only); got = ${pvaColdText}`);
++    }
++
++    // (h) vcold pin: PLA + X1E + vcold MUST suppress vcold's "Extended preheat
++    //     (20 min)" copy (the `preheat \(` regex clause exists specifically
++    //     for this string). pla_heat_creep MUST still fire. Pins the regex
++    //     against future env.json copy edits drifting silently.
++    const stPlaVcoldActive = stateDefault({
++      printer: 'x1e', nozzle: 'std_0.4', material: 'pla_basic', environment: 'vcold',
++    });
++    const plaVcoldWarns = Engine.getWarnings(stPlaVcoldActive);
++    const plaVcoldIds = plaVcoldWarns.map(w => w.id);
++    const plaVcoldText = plaVcoldWarns.map(w => `${w.text} ${w.detail || ''}`).join(' || ');
++    if (!plaVcoldIds.includes('pla_heat_creep')) {
++      throw new Error(`v1.0.4 P1.5 HIGH-02 vcold: pla_heat_creep MUST fire on X1E+PLA+vcold; got ${plaVcoldIds.join(',')}`);
++    }
++    if (/Extended preheat/i.test(plaVcoldText)) {
++      throw new Error(`v1.0.4 P1.5 HIGH-02 vcold: PLA + enclosed + vcold MUST NOT carry "Extended preheat" copy; warnings text = ${plaVcoldText}`);
++    }
++    if (/Preheat the enclosure/i.test(plaVcoldText)) {
++      throw new Error(`v1.0.4 P1.5 HIGH-02 vcold: PLA + enclosed + vcold MUST NOT carry "Preheat the enclosure" copy; warnings text = ${plaVcoldText}`);
++    }
++
++    console.log(`[v1.0.4 P1.5 HIGH-02] OK PLA on X1E (active) + cold/vcold: pla_heat_creep fires; no "Keep door closed"/"Extended preheat"/"Preheat the enclosure"; no "Preheat enclosure" in checklist; "Open front door" still present. Passive (P1S) regression clean. PETG + PVA non-regressions: "Keep door closed" preserved (PLA-only scope).`);
+   }
+ 
+   // ─── v1.0.4 — Nozzle min-diameter cleanup + nozzle-side authority drop (HIGH-12 / HIGH-06) ─
+@@ -874,6 +1078,13 @@ const COMBOS = [
+     if (ids.includes('cf_small_nozzle')) {
+       throw new Error(`v1.0.4 HIGH-12: retired cf_small_nozzle still fires; got ${ids.join(',')}`);
+     }
++    // v1.0.4 P1.5 LOW-01 — retired nozzle_too_small must NOT fire on the
++    // successor positive case (TPU 85A + std_0.4). Subsumed by
++    // nozzle_below_min_diameter in S5; this guard prevents a regression
++    // from silently re-introducing the retired ID alongside the successor.
++    if (ids.includes('nozzle_too_small')) {
++      throw new Error(`v1.0.4 P1.5 LOW-01: retired nozzle_too_small still fires alongside nozzle_below_min_diameter; got ${ids.join(',')}`);
++    }
+     if (!ids.includes('nozzle_below_min_diameter')) {
+       throw new Error(`v1.0.4 HIGH-12: expected nozzle_below_min_diameter on x1c+std_0.4+tpu_85a; got ${ids.join(',')}`);
+     }
+@@ -893,7 +1104,121 @@ const COMBOS = [
+       throw new Error(`v1.0.4 HIGH-06: nozzle ${sampleNoz.id} still carries suitable_for/not_suitable_for after cleanup`);
+     }
+ 
+-    console.log(`[v1.0.4 HIGH-12/HIGH-06] OK nozzle_below_min_diameter parameterized (selected=0.4mm, required=0.6mm); cf_small_nozzle retired; std_0.4 carries no suitable_for/not_suitable_for.`);
++    console.log(`[v1.0.4 HIGH-12/HIGH-06] OK nozzle_below_min_diameter parameterized (selected=0.4mm, required=0.6mm); retired cf_small_nozzle + nozzle_too_small silent on successor case (LOW-01); std_0.4 carries no suitable_for/not_suitable_for.`);
++  }
++
++  // ─── v1.0.4 P1.5 — MEDIUM-01 First-layer bed-clamp attribution honesty ────
++  // Pre-fix: env_${env.id}_bed_first_layer warning claimed "+N°C applied"
++  // whenever env.bed_first_layer_adj > 0, regardless of whether bedCap clipped
++  // the requested delta. Also: printer_max_bed_temp_clamped initTarget math
++  // excluded bed_first_layer_adj, so cap-warnings underreported when env
++  // compensation pushed past the printer bed cap.
++  //
++  // Post-fix:
++  //   - env_..._bed_first_layer warning computes effective post-clamp delta
++  //     and switches to "requested but clipped" copy when partially/fully
++  //     clipped; keeps "+N°C applied" copy when delta lands cleanly.
++  //   - printer_max_bed_temp_clamped initTarget includes bed_first_layer_adj,
++  //     mirroring getAdvancedFilamentSettings' computation — attribution
++  //     discipline parity with MEDIUM-05's nozzle-side env-attribution.
++  {
++    // (a) PETG + X1C + cold: material cap (PETG 85°C) fully clips +7°C env.
++    //     initBedNoEnv = 75+0+5+5 = 85 (already at PETG cap);
++    //     initBedWithEnv = 92, clamped to 85;
++    //     effective applied = 0.
++    //     Warning copy MUST indicate "requested but clipped" and MUST NOT
++    //     claim "+7°C applied".
++    const stPetgX1cCold = stateDefault({
++      printer: 'x1c', nozzle: 'std_0.4', material: 'petg_basic', environment: 'cold',
++    });
++    const petgX1cWarns = Engine.getWarnings(stPetgX1cCold);
++    const petgX1cBed = petgX1cWarns.find(w => w.id === 'env_cold_bed_first_layer');
++    if (!petgX1cBed) {
++      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PETG+X1C+cold must still emit env_cold_bed_first_layer warning; got ids ${petgX1cWarns.map(w=>w.id).join(',')}`);
++    }
++    if (/\+7°C applied/i.test(petgX1cBed.text)) {
++      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PETG+X1C+cold warning still claims "+7°C applied" despite material cap fully clipping; text = "${petgX1cBed.text}"`);
++    }
++    if (!/requested.+clip/i.test(petgX1cBed.text)) {
++      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PETG+X1C+cold warning must indicate "requested but clipped" framing; text = "${petgX1cBed.text}"`);
++    }
++
++    // (b) PLA + X1C + cold: no clipping. PLA bedCap = min(65, 110) = 65;
++    //     initBedNoEnv = 55+0+0+0 = 55; initBedWithEnv = 62 ≤ 65.
++    //     Effective applied = +7°C. Copy MUST keep "+7°C applied" and MUST
++    //     NOT mention clipping (non-regression).
++    const stPlaX1cCold = stateDefault({
++      printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', environment: 'cold',
++    });
++    const plaX1cWarns = Engine.getWarnings(stPlaX1cCold);
++    const plaX1cBed = plaX1cWarns.find(w => w.id === 'env_cold_bed_first_layer');
++    if (!plaX1cBed) {
++      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PLA+X1C+cold must still emit env_cold_bed_first_layer (no clip); got ids ${plaX1cWarns.map(w=>w.id).join(',')}`);
++    }
++    if (!/\+7°C applied/i.test(plaX1cBed.text)) {
++      throw new Error(`v1.0.4 P1.5 MEDIUM-01 non-regression: PLA+X1C+cold (no clip) MUST keep "+7°C applied" copy; text = "${plaX1cBed.text}"`);
++    }
++    if (/clip/i.test(plaX1cBed.text)) {
++      throw new Error(`v1.0.4 P1.5 MEDIUM-01 non-regression: PLA+X1C+cold (no clip) MUST NOT mention clipping; text = "${plaX1cBed.text}"`);
++    }
++    // Same combo: PLA + X1C + cold MUST NOT fire printer_max_bed_temp_clamped
++    // (X1C bed cap 110 is generous; PLA initTarget post-env = 62 ≤ 110).
++    if (plaX1cWarns.map(w=>w.id).includes('printer_max_bed_temp_clamped')) {
++      throw new Error(`v1.0.4 P1.5 MEDIUM-01 non-regression: PLA+X1C+cold MUST NOT fire printer_max_bed_temp_clamped; got ${plaX1cWarns.map(w=>w.id).join(',')}`);
++    }
++
++    // (c) Pair-fix coverage: PETG + Kobra 3 Max + cold. Kobra 3 Max
++    //     max_bed_temp = 90; PETG initTarget(no env) = 85 ≤ 90 so cap-warning
++    //     historically did NOT fire even though env compensation actually
++    //     pushed past the printer cap. Including bed_first_layer_adj in the
++    //     initTarget math makes initTarget(with env) = 92 > 90 → fires.
++    //     Attribution discipline parity with MEDIUM-05.
++    const stPetgKobraCold = stateDefault({
++      printer: 'kobra_3_max', nozzle: 'std_0.4', material: 'petg_basic', environment: 'cold',
++    });
++    const petgKobraIds = Engine.getWarnings(stPetgKobraCold).map(w => w.id);
++    if (!petgKobraIds.includes('printer_max_bed_temp_clamped')) {
++      throw new Error(`v1.0.4 P1.5 MEDIUM-01 pair: PETG+Kobra 3 Max+cold MUST fire printer_max_bed_temp_clamped (env compensation pushes initTarget=92 past Kobra's 90°C bed cap); got ${petgKobraIds.join(',')}`);
++    }
++
++    // (d) Non-regression: PETG + X1C + cold MUST NOT fire
++    //     printer_max_bed_temp_clamped — material cap is binding, not printer.
++    //     X1C max_bed_temp = 110; PETG initTarget post-env = 92 ≤ 110. The
++    //     env warning rewrite at (a) is what conveys the material-side clip.
++    if (petgX1cWarns.map(w=>w.id).includes('printer_max_bed_temp_clamped')) {
++      throw new Error(`v1.0.4 P1.5 MEDIUM-01 non-regression: PETG+X1C+cold MUST NOT fire printer_max_bed_temp_clamped (X1C 110°C bed cap is generous; material cap is the binding constraint); got ${petgX1cWarns.map(w=>w.id).join(',')}`);
++    }
++
++    // (e) Partial-clip branch coverage: PLA Basic + X1C + vcold.
++    //     vcold has bed_adj=5 and bed_first_layer_adj=10. PLA bed_temp_base=55,
++    //     bed_temp_max=65, initial_layer_bed_offset=0, not isPETG.
++    //     initBedNoEnv = 55+5+0+0 = 60.
++    //     initBedWithEnv = 60+10 = 70.
++    //     bedCap = min(65, 110 X1C cap) = 65.
++    //     effectiveAdj = min(70,65) - min(60,65) = 65 - 60 = 5.
++    //     Requested +10°C; only +5°C lands — partial clip branch must fire.
++    //     This is the ONLY naturally-reachable partial-clip combo with current
++    //     env + materials data, so the harness pins the branch's copy shape
++    //     against future drift (added per code-review subagent's "branch is
++    //     dead-untested today" Important finding).
++    const stPlaX1cVcold = stateDefault({
++      printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', environment: 'vcold',
++    });
++    const plaVcoldBed = Engine.getWarnings(stPlaX1cVcold).find(w => w.id === 'env_vcold_bed_first_layer');
++    if (!plaVcoldBed) {
++      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PLA+X1C+vcold must emit env_vcold_bed_first_layer (partial-clip); got warnings from vcold combo`);
++    }
++    if (!/\+5°C applied/i.test(plaVcoldBed.text)) {
++      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PLA+X1C+vcold (partial clip) MUST report "+5°C applied"; text = "${plaVcoldBed.text}"`);
++    }
++    if (!/requested \+10°C/i.test(plaVcoldBed.text)) {
++      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PLA+X1C+vcold (partial clip) MUST report "requested +10°C"; text = "${plaVcoldBed.text}"`);
++    }
++    if (!/partially clip/i.test(plaVcoldBed.text)) {
++      throw new Error(`v1.0.4 P1.5 MEDIUM-01: PLA+X1C+vcold (partial clip) MUST contain "partially clip"; text = "${plaVcoldBed.text}"`);
++    }
++
++    console.log(`[v1.0.4 P1.5 MEDIUM-01] OK env_*_bed_first_layer reflects post-clamp truth across all three branches: fully-clipped PETG+X1C+cold says "requested but clipped"; un-clipped PLA+X1C+cold keeps "+7°C applied"; partial-clip PLA+X1C+vcold says "+5°C applied (requested +10°C, partially clipped...)". printer_max_bed_temp_clamped now fires on PETG+Kobra 3 Max+cold via env contribution to initTarget; non-regression on PLA+X1C and PETG+X1C printer-cap-clamp paths.`);
+   }
+ 
+   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline

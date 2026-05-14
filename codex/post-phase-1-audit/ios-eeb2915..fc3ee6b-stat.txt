@@ -1,0 +1,5 @@
+ 3DPrintAssistant/Data/materials.json           |   5 +
+ 3DPrintAssistant/Data/nozzles.json             | 165 +-------
+ 3DPrintAssistant/Engine/engine.js              | 537 +++++++++++++++++++++----
+ 3DPrintAssistantTests/EngineServiceTests.swift | 513 +++++++++++++++++++++++
+ 4 files changed, 985 insertions(+), 235 deletions(-)

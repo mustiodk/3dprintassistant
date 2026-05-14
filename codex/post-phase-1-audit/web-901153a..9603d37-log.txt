@@ -1,0 +1,17 @@
+9603d37 docs: wrap S8 v1.0.4 Phase 2.1 — iOS sync + 11 XCTest mirrors (Phase 2.1 closes)
+2994d3b docs: wrap S7-3 v1.0.4 Phase 1.5 MEDIUM-01 — Phase 1.5 CLOSES; S8 prep
+58d919b fix: tighten P1.5 MEDIUM-01 — partial-clip branch coverage + safety comment
+243be51 fix: first-layer bed-clamp attribution honesty (P1.5 MEDIUM-01)
+8787bc1 docs: wrap S7-4 v1.0.4 Phase 1.5 LOW-01 — close + S7-3 prep
+bc9c655 test: tighten P1.5 LOW-01 — Creality empty-MCS sub-case + console.log symmetry
+d863635 test: harden contract for retired warning IDs (P1.5 LOW-01)
+28089e5 docs: wrap S7-2 v1.0.4 Phase 1.5 HIGH-02 — close + S7-3 prep
+f2aa84f fix: tighten P1.5 HIGH-02 — narrow PLA-only scope + vcold pin + schema guard
+a4b8873 fix: PLA-aware cold/chamber safety guidance (P1.5 HIGH-02)
+ef0250c docs: lock S7-N skill-discipline directive into NEXT-SESSION
+f7d5207 docs: wrap S7-1 v1.0.4 Phase 1.5 HIGH-01 — close + S7-2 prep
+eaf3f09 fix: wire env-fan + draft_shield through live web export surfaces (P1.5 HIGH-01)
+fe2964e docs: capture Codex v1.0.4 Phase 1.5 audit response
+d6df6d3 docs: wrap S6 v1.0.4 Phase 1.5 — Codex audit packet prepped
+690519e chore: prep v1.0.4 Phase 1.5 Codex audit packet (owner-gated dispatch)
+e36a91b docs: wrap S5 v1.0.4 impl — Tasks 6 + 7 shipped; Phase 1 complete
