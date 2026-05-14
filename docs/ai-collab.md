@@ -117,3 +117,41 @@ names, identifying details, or confidential material into external AI tools.
 - Data/logic changes must include web + iOS UI impact evaluation.
 - iOS `main` stays push-gated until ready for TestFlight.
 - Quality over speed.
+
+---
+
+## TDD-RED breadcrumb (recommended when natural RED is degenerate)
+
+When mirroring an already-proven behavior — e.g., adding an iOS XCTest that
+mirrors a green web walkthrough invariant — the natural RED phase is
+degenerate: the test passes on first run because the engine already exhibits
+the behavior. That makes the test functionally a tests-after-the-fact assertion
+with no proof the assertion machinery would have caught a real regression.
+The S8 internal reviewer + the 2026-05-14 Codex audit both flagged this as a
+process gap.
+
+To close it, apply ONE of these per test-batch commit:
+
+1. **Inverted-first on one representative.** Author the first test in the batch
+   with a deliberately-wrong assertion (e.g., `XCTAssertEqual(x, 999, ...)` when
+   you expect `90`), run the test, observe the failure (proves machinery + engine
+   response), then flip to correct. Leave a breadcrumb so the discipline is
+   auditable from `git log` alone:
+   - A `// RED demo verified YYYY-MM-DD: <one-line explanation>` comment on or
+     near the flipped assertion, OR
+   - A tiny pre-commit (1-line wrong assertion) reverted by a follow-up commit,
+     so `git log -p` shows the RED in history.
+
+2. **Skip with explicit commit-body note** for batches where the natural RED is
+   "engine no longer emits this ID" (e.g., retired-ID negative assertions).
+   Write into the commit body: "TDD-RED skipped: test-only, degenerate RED is
+   expected; collective full-suite green is the proof." This is honest about the
+   limit and surfaces it for review.
+
+Either way: the commit body OR test code must surface the RED-discipline posture.
+"Self-reported only" (mentioning the demo in the commit message without any
+code or commit-history artifact) is the gap to avoid — it makes external review
+prove a negative.
+
+Applies to any cross-platform mirror commit on 3dpa (iOS mirroring web walkthrough,
+or future cross-tool mirrors).
