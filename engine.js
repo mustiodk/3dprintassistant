@@ -1244,6 +1244,11 @@ const Engine = (() => {
     // Mirror Task 1's hardening (speed_multiplier): guard against malformed
     // data with Number.isFinite + > 0.
     const fanMult = Number.isFinite(env?.fan_multiplier) && env.fan_multiplier > 0 ? env.fan_multiplier : 1.0;
+    // S8.5 reviewer M-3: float-tolerant identity check. `fanMult !== 1.0` strict
+    // equality would mis-classify a floating-point-drift fanMult (e.g., 0.9999999
+    // from future env composition arithmetic) as scaling. Treat anything within
+    // 1e-9 of 1.0 as identity (no scaling applied).
+    const fanMultIsIdentity = Math.abs(fanMult - 1.0) < 1e-9;
     const fanMaxBase = 100;
     const fanMaxScaled = Math.round(fanMaxBase * fanMult);
     const fanMinScaled = bs.cooling_fan_min != null
@@ -1291,11 +1296,11 @@ const Engine = (() => {
         'Bed temperature for layers after the first.',
         { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' }),
       fan_max_speed: S(`${fanMaxScaled}`,
-        fanMult !== 1.0
+        !fanMultIsIdentity
           ? `Cooling fan reduced to ${Math.round(fanMult * 100)}% of normal for cold environment.`
           : 'Maximum cooling fan speed.',
-        { source: fanMult !== 1.0 ? 'rule' : 'default',
-          ref: fanMult !== 1.0 ? 'env.fan_multiplier' : 'engine:fan_max_default' }),
+        { source: !fanMultIsIdentity ? 'rule' : 'default',
+          ref: !fanMultIsIdentity ? 'env.fan_multiplier' : 'engine:fan_max_default' }),
       // [IMPL-041 / DQ-1-followup] provenance sidecar. All fields numeric.
       _prov: {
         initial_layer_temp:     { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + initial_layer_nozzle_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
@@ -1303,9 +1308,9 @@ const Engine = (() => {
         initial_layer_bed_temp: { source: 'calculated', ref: `bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0)${bedFirstLayerEnvAdj > 0 ? ' + env.bed_first_layer_adj' : ''}, clamped to min(material.bed_temp_max, printer.max_bed_temp)` },
         other_layers_bed_temp:  { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
         cooling_fan_min:        { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_min' },
-        cooling_fan_overhang:   { source: fanMult !== 1.0 ? 'rule' : 'default',
-                                   ref: fanMult !== 1.0 ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_overhang'
-                                                        : 'materials.json#base_settings.cooling_fan_overhang' },
+        cooling_fan_overhang:   { source: !fanMultIsIdentity ? 'rule' : 'default',
+                                   ref: !fanMultIsIdentity ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_overhang'
+                                                           : 'materials.json#base_settings.cooling_fan_overhang' },
         slow_layer_time:        { source: 'default',    ref: 'materials.json#base_settings.slow_layer_time' },
         pressure_advance:       { source: 'default',    ref: 'materials.json#base_settings.k_factor_matrix[nozzleSize] (fallback .pressure_advance)' },
         flow_ratio:             { source: 'default',    ref: 'materials.json#base_settings.flow_ratio' },
@@ -1318,12 +1323,12 @@ const Engine = (() => {
     // cooling_fan_min key above remains the unscaled material default).
     if (fanMinScaled != null) {
       result.fan_min_speed = S(`${fanMinScaled}`,
-        fanMult !== 1.0
+        !fanMultIsIdentity
           ? `Minimum cooling fan reduced to ${Math.round(fanMult * 100)}% of normal for cold environment.`
           : 'Minimum cooling fan speed.',
-        { source: fanMult !== 1.0 ? 'rule' : 'default',
-          ref: fanMult !== 1.0 ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_min'
-                               : 'materials.json#base_settings.cooling_fan_min' });
+        { source: !fanMultIsIdentity ? 'rule' : 'default',
+          ref: !fanMultIsIdentity ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_min'
+                                  : 'materials.json#base_settings.cooling_fan_min' });
     }
     return result;
   }
@@ -2638,15 +2643,32 @@ const Engine = (() => {
         { source: 'default', ref: 'materials.json#k_factor_matrix' });
     }
 
-    // B1. Fan policy output — base fan speed recommendation from material data
-    const fanMap = { high: '100%', moderate: '50%', low: '25%', off: '0%' };
-    if (material.fan_policy && fanMap[material.fan_policy]) {
-      p.fan_speed = S(fanMap[material.fan_policy],
+    // B1. Fan policy output — base fan speed recommendation from material data,
+    // env-scaled by env.fan_multiplier (S8.5 tightening — same intent as the
+    // fan_min/fan_max/cooling_fan_overhang env-scaling: reduce cooling in cold
+    // envs to preserve layer adhesion). The resolved `fan_speed` chip is the
+    // "Fan speed" column rendered in every slicer tab — it must reflect the
+    // env-adjusted recommendation, not the raw material default.
+    const fanMap = { high: 100, moderate: 50, low: 25, off: 0 };
+    if (material.fan_policy && fanMap[material.fan_policy] != null) {
+      // S8.5 M-3: float-tolerant fanMult identity check.
+      const fanMultProfile = Number.isFinite(env?.fan_multiplier) && env.fan_multiplier > 0 ? env.fan_multiplier : 1.0;
+      const fanMultIsIdentity = Math.abs(fanMultProfile - 1.0) < 1e-9;
+      const rawPct = fanMap[material.fan_policy];
+      const scaledPct = Math.round(rawPct * fanMultProfile);
+      const baseWhy =
         material.fan_policy === 'off'      ? 'Fan off — this material needs slow, even cooling to prevent warping and layer cracking.' :
         material.fan_policy === 'moderate'  ? 'Moderate fan — balances cooling for dimensional accuracy without causing adhesion issues.' :
         material.fan_policy === 'high'      ? 'Full fan speed — rapid cooling locks in detail and prevents sagging on overhangs.' :
-        'Low fan speed — minimal cooling to maintain layer adhesion.',
-        { source: 'default', ref: 'materials.json#fan_policy' });
+        'Low fan speed — minimal cooling to maintain layer adhesion.';
+      const why = fanMultIsIdentity
+        ? baseWhy
+        : `${baseWhy} Reduced to ${Math.round(fanMultProfile * 100)}% of recommendation for cold environment.`;
+      p.fan_speed = S(`${scaledPct}%`, why,
+        { source: fanMultIsIdentity ? 'default' : 'rule',
+          ref: fanMultIsIdentity
+            ? 'materials.json#fan_policy'
+            : 'env.fan_multiplier × materials.json#fan_policy' });
     }
 
     // v1.0.4 HIGH-08 — env.force_draft_shield wired to profile output. Cold /

@@ -683,7 +683,26 @@ const COMBOS = [
       throw new Error(`v1.0.4 S8.5 overhang Advanced: advCold.cooling_fan_overhang=${advCoolOverhang} should match env-scaled ${scaledOverhang} (not unscaled 100)`);
     }
 
-    console.log(`[v1.0.4 P1.5 HIGH-01-export] OK text+BS+Advanced use env-scaled fan (min=${scaledFanMin}, max=${scaledFanMax}, overhang=${scaledOverhang}) + enable_draft_shield for cold env`);
+    // 5) S8.5 tightening (reviewer I-1) — resolveProfile p.fan_speed must also be
+    //    env-scaled. PLA Basic fan_policy='high' → 100%; env.cold.fan_multiplier=0.9
+    //    → expected 90%. Same intent as fan_min/max/overhang scaling, different
+    //    surface (the labeled "Fan speed" column rendered in every slicer tab).
+    Engine.setActiveSlicer(Engine.getSlicerForPrinter(coldState.printer));
+    const profCold2 = Engine.resolveProfile(coldState);
+    const profFanSpeed = profCold2.fan_speed?.value;
+    if (!profFanSpeed) {
+      throw new Error(`v1.0.4 S8.5 reviewer I-1: PLA+cold profile must emit fan_speed; got ${profFanSpeed}`);
+    }
+    const profFanPct = parseInt(String(profFanSpeed).replace('%', ''), 10);
+    if (profFanPct !== scaledFanMax) {
+      throw new Error(`v1.0.4 S8.5 reviewer I-1: profCold.fan_speed=${profFanSpeed} should be env-scaled ${scaledFanMax}% (PLA fan_policy='high' × env.cold.fan_multiplier=0.9), not unscaled 100%`);
+    }
+    // Provenance flips to 'rule' when scaling actually applies.
+    if (profCold2.fan_speed?.prov?.source !== 'rule') {
+      throw new Error(`v1.0.4 S8.5 reviewer I-1: profCold.fan_speed.prov.source should be 'rule' when env-scaled; got ${profCold2.fan_speed?.prov?.source}`);
+    }
+
+    console.log(`[v1.0.4 P1.5 HIGH-01-export] OK text+BS+Advanced use env-scaled fan (min=${scaledFanMin}, max=${scaledFanMax}, overhang=${scaledOverhang}, profile fan_speed=${profFanPct}%) + enable_draft_shield for cold env`);
   }
 
   // ─── v1.0.4 — env clamp misattribution (MEDIUM-05) ────────────────────────
