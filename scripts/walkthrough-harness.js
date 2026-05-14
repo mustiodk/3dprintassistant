@@ -657,7 +657,33 @@ const COMBOS = [
       throw new Error(`v1.0.4 Codex HIGH-01 export: BS filament.fan_max_speed=${bsFanMax} should match env-scaled ${scaledFanMax} (not unscaled 100)`);
     }
 
-    console.log(`[v1.0.4 P1.5 HIGH-01-export] OK text+BS export use env-scaled fan (${scaledFanMin}/${scaledFanMax}) + enable_draft_shield for cold env`);
+    // 4) S8.5 — overhang fan also env-scaled (Codex post-Phase-1 audit Important #1).
+    // PLA cooling_fan_overhang is 100; env.cold.fan_multiplier=0.9 → expected 90.
+    const scaledOverhang = Math.round(100 * 0.9);
+    if (scaledOverhang !== 90) {
+      throw new Error(`v1.0.4 S8.5 overhang baseline: expected 90 (100×0.9) for PLA+cold; got ${scaledOverhang}`);
+    }
+    // 4a) Text export — Overhang fan speed line must be env-scaled (not raw 100).
+    const overhangLine = txt.match(/Overhang fan speed:\s*(\d+)/);
+    if (!overhangLine) {
+      throw new Error(`v1.0.4 S8.5 overhang export: text export missing "Overhang fan speed:" line`);
+    }
+    const txtOverhang = parseInt(overhangLine[1], 10);
+    if (txtOverhang !== scaledOverhang) {
+      throw new Error(`v1.0.4 S8.5 overhang export: text export Overhang fan speed=${txtOverhang} should match env-scaled ${scaledOverhang} (not unscaled 100)`);
+    }
+    // 4b) BS export overhang_fan_speed[0] env-scaled.
+    const bsOverhang = bs.filament.overhang_fan_speed?.[0];
+    if (parseInt(bsOverhang, 10) !== scaledOverhang) {
+      throw new Error(`v1.0.4 S8.5 overhang export: BS filament.overhang_fan_speed=${bsOverhang} should match env-scaled ${scaledOverhang} (not unscaled 100)`);
+    }
+    // 4c) Advanced surface — getAdvancedFilamentSettings.cooling_fan_overhang must be env-scaled.
+    const advCoolOverhang = parseInt(advCold.cooling_fan_overhang, 10);
+    if (advCoolOverhang !== scaledOverhang) {
+      throw new Error(`v1.0.4 S8.5 overhang Advanced: advCold.cooling_fan_overhang=${advCoolOverhang} should match env-scaled ${scaledOverhang} (not unscaled 100)`);
+    }
+
+    console.log(`[v1.0.4 P1.5 HIGH-01-export] OK text+BS+Advanced use env-scaled fan (min=${scaledFanMin}, max=${scaledFanMax}, overhang=${scaledOverhang}) + enable_draft_shield for cold env`);
   }
 
   // ─── v1.0.4 — env clamp misattribution (MEDIUM-05) ────────────────────────

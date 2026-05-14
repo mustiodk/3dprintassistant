@@ -1249,6 +1249,13 @@ const Engine = (() => {
     const fanMinScaled = bs.cooling_fan_min != null
       ? Math.round((parseInt(bs.cooling_fan_min) || 0) * fanMult)
       : null;
+    // S8.5 Codex post-Phase-1 Important #1 — env.fan_multiplier was scoped to
+    // min/max only; overhang fan stayed at raw material default. Same intent
+    // (reduce cooling in cold envs to preserve layer adhesion); scale here too.
+    // BS + text export read this via adv.cooling_fan_overhang.
+    const overhangScaled = bs.cooling_fan_overhang != null
+      ? Math.round((parseInt(bs.cooling_fan_overhang) || 0) * fanMult)
+      : null;
 
     const result = {
       initial_layer_temp:     `${initNozzle} °C`,
@@ -1256,7 +1263,7 @@ const Engine = (() => {
       initial_layer_bed_temp: `${initBed} °C`,
       other_layers_bed_temp:  `${otherBed} °C`,
       cooling_fan_min:        bs.cooling_fan_min,
-      cooling_fan_overhang:   bs.cooling_fan_overhang,
+      cooling_fan_overhang:   overhangScaled,
       slow_layer_time:        bs.slow_layer_time,
       pressure_advance:       String(_resolvePA(bs, nozzle) ?? '—'),
       flow_ratio:             String(bs.flow_ratio       ?? '—'),
@@ -1296,7 +1303,9 @@ const Engine = (() => {
         initial_layer_bed_temp: { source: 'calculated', ref: `bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0)${bedFirstLayerEnvAdj > 0 ? ' + env.bed_first_layer_adj' : ''}, clamped to min(material.bed_temp_max, printer.max_bed_temp)` },
         other_layers_bed_temp:  { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
         cooling_fan_min:        { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_min' },
-        cooling_fan_overhang:   { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_overhang' },
+        cooling_fan_overhang:   { source: fanMult !== 1.0 ? 'rule' : 'default',
+                                   ref: fanMult !== 1.0 ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_overhang'
+                                                        : 'materials.json#base_settings.cooling_fan_overhang' },
         slow_layer_time:        { source: 'default',    ref: 'materials.json#base_settings.slow_layer_time' },
         pressure_advance:       { source: 'default',    ref: 'materials.json#base_settings.k_factor_matrix[nozzleSize] (fallback .pressure_advance)' },
         flow_ratio:             { source: 'default',    ref: 'materials.json#base_settings.flow_ratio' },
@@ -3128,9 +3137,12 @@ const Engine = (() => {
     if (adv.fan_max_speed != null) {
       filament.fan_max_speed = [String(parseInt(adv.fan_max_speed.value, 10) || 100)];
     }
-    // Overhang fan speed (e.g. "80%" → 80)
-    if (bs.cooling_fan_overhang != null) {
-      filament.overhang_fan_speed = [String(parseInt(bs.cooling_fan_overhang) || 0)];
+    // Overhang fan speed (e.g. "80%" → 80) — S8.5 Codex Important #1: read
+    // env-scaled adv.cooling_fan_overhang (not the raw bs.cooling_fan_overhang)
+    // so cold/vcold envs export the env.fan_multiplier-scaled value the engine
+    // emits to the Advanced surface.
+    if (adv.cooling_fan_overhang != null) {
+      filament.overhang_fan_speed = [String(parseInt(adv.cooling_fan_overhang) || 0)];
     }
     // Slow down below layer time (e.g. "15 s" → 15)
     if (bs.slow_layer_time != null) {
