@@ -166,7 +166,8 @@ function validateEnvironment() {
     check(file, isString(e.name),             `${ctx}: name must be a non-empty string`);
     check(file, isNumber(e.nozzle_adj),       `${ctx}: nozzle_adj must be a number`);
     check(file, isNumber(e.bed_adj),          `${ctx}: bed_adj must be a number`);
-    check(file, isNumber(e.fan_multiplier),   `${ctx}: fan_multiplier must be a number`);
+    check(file, isNumber(e.fan_multiplier) && e.fan_multiplier > 0 && e.fan_multiplier <= 1,
+                                              `${ctx}: fan_multiplier must be a number in (0, 1] (got ${e.fan_multiplier})`);
     check(file, isBoolean(e.humidity_warning),`${ctx}: humidity_warning must be a boolean`);
     check(file, isArray(e.warnings),          `${ctx}: warnings must be an array`);
   });
