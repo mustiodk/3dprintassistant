@@ -1242,8 +1242,10 @@ const Engine = (() => {
 
     // v1.0.4 HIGH-07 — fan_multiplier from env scales cooling fan emission.
     // Mirror Task 1's hardening (speed_multiplier): guard against malformed
-    // data with Number.isFinite + > 0.
-    const fanMult = Number.isFinite(env?.fan_multiplier) && env.fan_multiplier > 0 ? env.fan_multiplier : 1.0;
+    // data with Number.isFinite + > 0. S9 M1: also clamp <= 1 to mirror
+    // validate-data.js (0, 1] schema range; defensive fallback to 1.0 keeps
+    // a future malformed > 1 from over-scaling fan past 100%.
+    const fanMult = Number.isFinite(env?.fan_multiplier) && env.fan_multiplier > 0 && env.fan_multiplier <= 1 ? env.fan_multiplier : 1.0;
     // S8.5 reviewer M-3: float-tolerant identity check. `fanMult !== 1.0` strict
     // equality would mis-classify a floating-point-drift fanMult (e.g., 0.9999999
     // from future env composition arithmetic) as scaling. Treat anything within
@@ -2652,7 +2654,8 @@ const Engine = (() => {
     const fanMap = { high: 100, moderate: 50, low: 25, off: 0 };
     if (material.fan_policy && fanMap[material.fan_policy] != null) {
       // S8.5 M-3: float-tolerant fanMult identity check.
-      const fanMultProfile = Number.isFinite(env?.fan_multiplier) && env.fan_multiplier > 0 ? env.fan_multiplier : 1.0;
+      // S9 M1: clamp <= 1 to mirror validate-data.js (0, 1] range.
+      const fanMultProfile = Number.isFinite(env?.fan_multiplier) && env.fan_multiplier > 0 && env.fan_multiplier <= 1 ? env.fan_multiplier : 1.0;
       const fanMultIsIdentity = Math.abs(fanMultProfile - 1.0) < 1e-9;
       const rawPct = fanMap[material.fan_policy];
       const scaledPct = Math.round(rawPct * fanMultProfile);
