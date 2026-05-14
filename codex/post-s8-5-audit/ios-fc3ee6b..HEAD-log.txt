@@ -1,0 +1,3 @@
+fd4761a chore: sync engine post-S8.5-tightening (web 6e06404 — p.fan_speed env-scaling)
+6970c86 test: extend testV104_T5_PracticalMCSTiers MCS coverage breadth (S8.5 Codex Medium)
+fef685e chore: sync engine post-F1 + extend AdvancedFilamentSettings Codable for fan        (S8.5 Codex Important #1 + #2)

@@ -1,0 +1,4 @@
+5838ee4 docs: wrap S8.5 v1.0.4 Codex post-Phase-1 audit remediation + new audit packet
+6e06404 fix: tighten S8.5 — env-scale resolveProfile p.fan_speed (reviewer I-1) + float-tolerant fanMult identity check (reviewer M-3)
+be5c4e8 docs: TDD-RED breadcrumb convention in ai-collab.md (S8.5 Codex Low)
+b3111cf fix: env-scale cooling_fan_overhang across all surfaces (S8.5 Codex Important #1)

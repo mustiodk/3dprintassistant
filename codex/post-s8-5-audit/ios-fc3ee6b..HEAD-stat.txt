@@ -1,0 +1,4 @@
+ 3DPrintAssistant/Engine/EngineService.swift    |  30 +++++-
+ 3DPrintAssistant/Engine/engine.js              |  70 +++++++++----
+ 3DPrintAssistantTests/EngineServiceTests.swift | 136 +++++++++++++++++++++++--
+ 3 files changed, 208 insertions(+), 28 deletions(-)

@@ -12,18 +12,15 @@ A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger 
 
 # Cold-start: 3D Print Assistant — S9 (post-Codex-clean-pass), v1.0.4 Phase 2.2 / Task 9
 
-## PREREQUISITE: Codex re-audit must be dispatched + returned clean
+## PREREQUISITE: Codex re-audit response is already present — read it first
 
-Before any S9 work:
+**Codex response file landed 2026-05-15 at:**
+`codex/post-s8-5-audit/codex-2026-05-15-post-s8-5-audit-response.md` (committed as untouched-by-Claude — owner wanted fresh eyes next session). Codex also dropped diff/log/stat helpers in the same dir.
 
-1. Owner manually dispatched `codex/post-s8-5-audit/codex-2026-05-15-post-s8-5-audit-packet.md` against Codex.
-2. Codex placed its response at `codex/post-s8-5-audit/codex-2026-05-15-post-s8-5-audit-response.md`.
-3. **READ THE RESPONSE IN FULL FIRST.** Decide:
-   - **Clean pass** (0 Critical, 0 Important): proceed to S9 below.
-   - **Important+:** STOP. Branch to S8.6 tightening cycle — fix the new findings, prepare another audit packet, re-dispatch. Do NOT jump to S9 mechanics with unresolved Important findings.
-   - **Medium / Low only:** evaluate per-finding; default to "fix if cheap, defer with explicit note otherwise."
-
-If no Codex response file exists yet, ask the owner to dispatch first.
+**READ THE RESPONSE IN FULL FIRST.** Decide:
+- **Clean pass** (0 Critical, 0 Important): proceed to S9 below.
+- **Important+:** STOP. Branch to S8.6 tightening cycle — fix the new findings, prepare another audit packet, re-dispatch. Do NOT jump to S9 mechanics with unresolved Important findings.
+- **Medium / Low only:** evaluate per-finding; default to "fix if cheap, defer with explicit note otherwise."
 
 ## Required skills — invoke at cold-start
 

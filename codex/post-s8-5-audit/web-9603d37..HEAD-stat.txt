@@ -1,0 +1,19 @@
+ .../codex-2026-05-14-post-phase-1-audit-packet.md  |  340 +++++
+ ...codex-2026-05-14-post-phase-1-audit-response.md |   35 +
+ .../ios-eeb2915..fc3ee6b-log.txt                   |    2 +
+ .../ios-eeb2915..fc3ee6b-stat.txt                  |    5 +
+ codex/post-phase-1-audit/ios-eeb2915..fc3ee6b.diff | 1614 ++++++++++++++++++++
+ .../web-901153a..9603d37-engine-data-scripts.diff  |  708 +++++++++
+ .../web-901153a..9603d37-log.txt                   |   17 +
+ .../web-901153a..9603d37-stat.txt                  |   21 +
+ .../codex-2026-05-15-post-s8-5-audit-packet.md     |  248 +++
+ .../v1.0.4-since-post-phase-1-codex.diff           |  612 ++++++++
+ docs/ai-collab.md                                  |   38 +
+ docs/planning/ROADMAP.md                           |    4 +-
+ ...-15-cowork-appdev-v1.0.4-s8-5-codex-findings.md |  126 ++
+ docs/sessions/INDEX.md                             |    2 +
+ docs/sessions/NEXT-SESSION.md                      |  180 ++-
+ .../2026-05-15-s8-5-codex-findings-remediation.md  |  859 +++++++++++
+ engine.js                                          |   70 +-
+ scripts/walkthrough-harness.js                     |   47 +-
+ 18 files changed, 4814 insertions(+), 114 deletions(-)
