@@ -1,6 +1,6 @@
 # Next session - cold-start prompt (3dpa web + iOS)
 
-**Last updated:** 2026-05-14 after v1.0.4 S7-3 close. **Phase 1.5 is CLOSED — all 4 owner-triaged web findings shipped** (HIGH-01 ✅ + HIGH-02 ✅ + MEDIUM-01 ✅ + LOW-01 ✅). Web `main` at the close-commit successor of `58d919b`. iOS `main` still at `eeb2915` (untouched since 2026-04-27 era — Phase 2 gate stays active until S9 wraps). **S8 cold-starts on Phase 2.1 / Task 8: byte-identical engine + data sync to iOS + XCTest mirroring + one iOS local commit (no push).**
+**Last updated:** 2026-05-14 after v1.0.4 S8 close. **Phase 2.1 is CLOSED — iOS now mirrors web's Phase 1 + Phase 1.5 surface byte-identically.** Web `main` at the close-commit successor of `2994d3b`. iOS `main` local-only at `fc3ee6b` (2 commits ahead of `origin/main` = `eeb2915`). **S9 cold-starts on Phase 2.2 / Task 9: UI screenshot walkthrough + MARKETING_VERSION 1.0.3 → 1.0.4 bump + 5-point ship-ready handoff. After S9 passes the 5-point check, owner manually dispatches TestFlight.**
 
 A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger B / explicit owner ask.
 
@@ -8,125 +8,143 @@ A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger 
 
 >>> START >>>
 
-# Cold-start: 3D Print Assistant — S8, v1.0.4 Phase 2.1 / Task 8 (iOS engine + data sync)
+# Cold-start: 3D Print Assistant — S9, v1.0.4 Phase 2.2 / Task 9 (UI walkthrough + ship)
 
 ## Required skills — invoke at cold-start
 
-The Phase 2.1 surface is mechanical sync (byte-identical `cp`) but **not pure copy** — XCTest assertions need to be mirrored / added for the v1.0.4 surface, and the engine.js + data files must be confirmed byte-identical post-sync via `diff`. Per `superpowers:using-superpowers`, the rule is "invoke relevant skills BEFORE any response or action." Load:
+Phase 2.2 is the ship gate for the v1.0.4 arc. The surface is small (UI screenshot walkthrough + a 2-line `MARKETING_VERSION` bump + one more iOS local commit) but the gate is meaningful: the 5-point ship-ready check is what unblocks the owner-manual TestFlight dispatch. Per `superpowers:using-superpowers`, "invoke relevant skills BEFORE any response or action." Load:
 
 1. **`superpowers:using-superpowers`** — meta-discipline.
-2. **`superpowers:writing-plans`** — Phase 2.1 has more surface than a single-finding remediation (engine + data + XCTest); a brief plan slice is worthwhile.
+2. **`superpowers:writing-plans`** — Phase 2.2 has discrete sub-steps (UITest run, version bump, xcodegen, commit, 5-point handoff) worth a brief plan slice.
 3. **`superpowers:executing-plans`** — plan-checkpoint discipline.
-4. **`superpowers:requesting-code-review`** — dispatch a code-review subagent on the iOS local commit before declaring Phase 2.1 done. Validated across S7-2 / S7-4 / S7-3 — caught real Important findings each time. Don't skip.
-5. **`superpowers:systematic-debugging`** — XCTest failures during sync are likely; this is the fallback when GREEN doesn't land cleanly.
-6. **`superpowers:test-driven-development`** — for any new XCTest assertions that need to mirror walkthrough behaviors.
+4. **`superpowers:requesting-code-review`** — dispatch a code-review subagent on the final iOS local commit before declaring 5-point check passed. **Validated 4-for-4 across S7-2/S7-4/S7-3/S8** — caught real coverage gaps each session.
+5. **`superpowers:systematic-debugging`** — fallback if UITest fails or version bump misbehaves.
+6. **`superpowers:test-driven-development`** — for any new iOS test additions (notably the S8 carry-forward: extending `AdvancedFilamentSettings` Codable struct + re-extending T2a for fan).
 7. **`superpowers:verification-before-completion`** — rigid; no completion claims without fresh evidence.
 
-Load all seven via the `Skill` tool at the start of S8. Announce each as it loads.
+Load all seven via the `Skill` tool at the start of S9. Announce each as it loads.
 
 ## Read First, In This Order
 
-Follow Trigger C from the canonical protocol. Show progress while reading. Confirm current state, locked next step, and risks before making changes. Read:
+Follow Trigger C from the canonical protocol. Show progress while reading (`[🟩...⬜ N%]` bar — feedback memory: `progress_bar_every_phase`). Confirm current state, locked next step, and risks before making changes. Read:
 
 1. `/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md`
 2. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/CLAUDE.md`
-3. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant-ios/CLAUDE.md` (iOS project rules; check the cross-device UITest workflow + simulator-build context)
+3. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant-ios/CLAUDE.md` (iOS project rules — pay attention to `ScreenCaptureUITests` workflow + simulator-build `CODE_SIGNING_ALLOWED=NO` context)
 4. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/3dpa-context.md`
 5. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/planning/ROADMAP.md`
 6. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/INDEX.md`
-7. Last three session logs, in full (newest first — all three are S7-N Phase 1.5 commits):
+7. Last three session logs, in full (newest first):
+   - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-14-cowork-appdev-v1.0.4-s8-ios-sync.md`
    - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-14-cowork-appdev-v1.0.4-s7-3-medium-01.md`
    - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-14-cowork-appdev-v1.0.4-s7-4-low-01.md`
-   - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-13-cowork-appdev-v1.0.4-s7-2-high-02.md`
 8. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/NEXT-SESSION.md` (this file)
-9. Task-specific files (THIS IS THE WORK — Phase 2.1 iOS sync):
-   - **Canonical v1.0.4 plan Task 8:** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/superpowers/plans/2026-05-13-v1.0.4-config-impact.md` — Phase 2.1 / Task 8 section (engine + data byte-identical sync + iOS XCTest).
-   - **iOS XCTest target current state:** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant-ios/3DPrintAssistantTests/` — current count was 64 tests (per S7-1 log; verify before adding). Identify which tests mirror engine behaviors that v1.0.4 changed (env compensation, MCS tiers, nozzle min-diameter, chamber safe-cap, PLA heat-creep / cold-chamber safety, bed-clamp attribution).
-   - **Codex audit response (reference for what behaviors landed):** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/codex/v1.0.4-audit/codex-2026-05-13-v1.0.4-audit-response.md` — all 4 Phase 1.5 findings.
+9. Task-specific files (THIS IS THE WORK — Phase 2.2 ship gate):
+   - **Canonical v1.0.4 plan Task 9:** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/superpowers/plans/2026-05-13-v1.0.4-config-impact.md` — Phase 2.2 / Task 9 section.
+   - **S8 plan** (for context on what just shipped): `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/superpowers/plans/2026-05-14-s8-phase-2-1-ios-sync.md`.
+   - **iOS project.yml:** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant-ios/project.yml` — locate `MARKETING_VERSION: 1.0.3`.
+   - **iOS ScreenCaptureUITests:** `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant-ios/3DPrintAssistantUITests/` — verify pattern + outputs at `/tmp/ui-review/`.
 
 ## Current State
 
-- **v1.0.3 is live worldwide on the App Store.** Remote overlay `content_version=2026051202` ships i7 under Creality / i Series.
-- **v1.0.4 Phase 1 COMPLETE (7/7 web tasks).** 11 cumulative v1.0.4 walkthrough OK lines.
-- **v1.0.4 Phase 1.5 CLOSED:** HIGH-01 ✅ (S7-1, `eaf3f09`) + HIGH-02 ✅ (S7-2, `a4b8873` + `f2aa84f`) + LOW-01 ✅ (S7-4, `d863635` + `bc9c655`) + MEDIUM-01 ✅ (S7-3, `243be51` + `58d919b`).
-- **Web `main`** at the close-commit successor of `58d919b` (run `git log --oneline -2` at session start to confirm exact HEAD).
-- **iOS `main` at `eeb2915`** (untouched since 2026-04-27 era — about 18 days of web changes to sync). Phase 2 gate active.
-- **Phase shape:** Phase 1 ✅ → Phase 1.5 CLOSED ✅ → **S8 Phase 2.1 / Task 8 (THIS SESSION)** → S9 Phase 2.2 / Task 9 → owner manually dispatches TestFlight.
+- **v1.0.3 is live worldwide on the App Store.** Remote overlay `content_version=2026051202` adds i7 under Creality / i Series.
+- **v1.0.4 Phase 1 COMPLETE** (7/7 web tasks shipped; 11 cumulative walkthrough OK lines).
+- **v1.0.4 Phase 1.5 CLOSED** (HIGH-01 ✅ + HIGH-02 ✅ + MEDIUM-01 ✅ + LOW-01 ✅).
+- **v1.0.4 Phase 2.1 CLOSED.** iOS HEAD `fc3ee6b` (local-only) carries byte-identical engine + data from web HEAD `2994d3b`; 11 new `testV104_*` mirror tests in `EngineServiceTests.swift`; iOS XCTest 96 → 107 unit (108 incl. ScreenCaptureUITests); all green.
+- **Web `main`** at the close-commit successor of `2994d3b` (run `git log --oneline -2` at session start to confirm exact HEAD — should be a docs-only commit titled `docs: wrap S8 ...`).
+- **iOS `main` LOCAL** at `fc3ee6b` — 2 commits ahead of `origin/main` (`eeb2915`). Phase 2 gate: do not push until 5-point check passes.
+- **Phase shape:** Phase 1 ✅ → Phase 1.5 CLOSED ✅ → Phase 2.1 CLOSED ✅ → **S9 Phase 2.2 / Task 9 (THIS SESSION)** → owner manually dispatches TestFlight.
 
-## Recommended First Lane — S8 Phase 2.1 / Task 8 (iOS engine + data sync)
+## Recommended First Lane — S9 Phase 2.2 / Task 9 (UI walkthrough + ship)
 
-### What "Task 8" actually means
+### What "Task 9" actually means
 
-From the canonical v1.0.4 plan: **byte-identical sync of `engine.js` + `data/*.json` from web → iOS**, plus XCTest target updates so the iOS test suite continues to assert the same behaviors the web walkthrough harness asserts. The sync itself is mechanical `cp`; the XCTest layer requires deliberate updates because XCTest assertions don't auto-mirror the walkthrough.
+From the canonical v1.0.4 plan: run the iOS UI screenshot walkthrough (`ScreenCaptureUITests/testCaptureAllScreens`) to confirm no visible regression from the new engine + data, bump `MARKETING_VERSION` from `1.0.3` to `1.0.4`, regenerate the Xcode project file via `xcodegen`, land a second iOS local commit, run the 5-point ship-ready check, and hand off to the owner for manual TestFlight dispatch.
 
 ### Concrete surface
 
-1. **`cp` the source files:**
-   - `engine.js` → `3dprintassistant-ios/3DPrintAssistant/Resources/Engine/engine.js` (verify exact destination via existing iOS structure).
-   - `data/*.json` → `3dprintassistant-ios/3DPrintAssistant/Resources/Data/*.json` (or equivalent — check actual path in iOS bundle structure).
-   - **Verify byte-identity** via `diff` post-cp. The "byte-identical" rule is load-bearing for behavior parity.
+1. **(Optional but recommended) S8 carry-forward fan extension** — small additive Codable change at `3DPrintAssistant/Engine/EngineService.swift:70-78` to add `fan_min_speed` + `fan_max_speed` to `AdvancedFilamentSettings`, plus decoder. Then re-extend `testV104_T2a_EnvDataLayerCold` to assert fan reduction on the Advanced surface (closes the only iOS-side coverage gap in the v1.0.4 mirror). Owner decision: do this in S9 or defer to v1.0.5. If doing it in S9, land it BEFORE the version bump so the test suite is 100% mirrored before ship.
 
-2. **XCTest update inventory.** Walk through what's NEW in v1.0.4 (Phase 1 + Phase 1.5) that didn't exist at iOS HEAD `eeb2915`:
-   - Strength `speed_multiplier` wiring (S2 Task 1, HIGH-09 / HIGH-04).
-   - Env data layer + cold-warning copy fix + env clamp attribution (S2 Task 2, HIGH-07/08 + MEDIUM-05).
-   - Physical printer × nozzle guard (S2 Task 3, HIGH-01).
-   - Physical printer × plate guard + material plate range (S3 Task 4, HIGH-02 / HIGH-03).
-   - 5-tier MCS resolver (S4 Task 5).
-   - Chamber safe-cap guard (S5 Task 6, HIGH-05) — extended to PLA in S7-2.
-   - Nozzle min-diameter cleanup + nozzle-side authority drop (S5 Task 7, HIGH-12 / HIGH-06).
-   - Phase 1.5 HIGH-01: env-fan / draft_shield wired through live export surfaces.
-   - Phase 1.5 HIGH-02: PLA cold/chamber safety (safe_chamber_temp_max on PLA-family + pla_heat_creep extended to active enclosures + getChecklist + env-warning material-aware filter).
-   - Phase 1.5 LOW-01: retired-warning-ID negative assertions (test-only — no engine surface change).
-   - Phase 1.5 MEDIUM-01: bed-clamp attribution honesty (env first-layer bed warning rewrite + printer_max_bed_temp_clamped initTarget includes bed_first_layer_adj).
+2. **UI screenshot walkthrough** — run the existing pattern from iOS CLAUDE.md:
+   ```bash
+   cd /Users/mragile.io/Documents/Claude/Projects/3dprintassistant-ios && \
+     xcodebuild test-without-building -project 3DPrintAssistant.xcodeproj \
+       -scheme 3DPrintAssistant \
+       -destination 'platform=iOS Simulator,id=5F8312F5-B1C2-46C8-8DE3-E9355475DCAF' \
+       -derivedDataPath build \
+       -only-testing:3DPrintAssistantUITests/ScreenCaptureUITests/testCaptureAllScreens \
+       CODE_SIGNING_ALLOWED=NO
+   ```
+   The id `5F8312F5-B1C2-46C8-8DE3-E9355475DCAF` is the iPhone 17 Pro simulator (verified in S8). Spot-check the resulting `/tmp/ui-review/pro/01-home.png` through `09-checklist.png` for any visible regression from the new engine + data (e.g., new warnings rendered weirdly, profile values displayed unexpectedly).
 
-   For each, decide: (a) does an existing XCTest cover it (post-`cp`)?; (b) does it need a new test mirroring a walkthrough harness assertion?; (c) is it pure-web (export-surface stuff Codex caught) that has no iOS analog and stays uncovered?
+3. **Bump `MARKETING_VERSION` 1.0.3 → 1.0.4** in `project.yml`:
+   ```bash
+   sed -i.bak 's/MARKETING_VERSION: 1\.0\.3/MARKETING_VERSION: 1.0.4/g' project.yml && \
+     rm project.yml.bak && \
+     xcodegen generate && \
+     grep -n 'MARKETING_VERSION' 3DPrintAssistant.xcodeproj/project.pbxproj | head -4
+   ```
+   Expected: `MARKETING_VERSION = 1.0.4;` lines present in `project.pbxproj`.
 
-3. **Run iOS XCTest** post-sync + post-new-tests. Expect: 64 tests → some N >= 64 (depends on additions). Must be all green. Use whichever local Xcode / xcodebuild command is documented in iOS CLAUDE.md.
+4. **Second iOS local commit** — covers `project.yml` + regenerated `3DPrintAssistant.xcodeproj/project.pbxproj` (+ optionally the AdvancedFilamentSettings + T2a re-extension if that was bundled). Subject: `chore: bump MARKETING_VERSION to 1.0.4 + UI walkthrough fixtures (S9)` or similar.
 
-4. **ONE iOS local commit.** Subject line should follow the existing convention (check `git log --oneline` on iOS HEAD for examples). Body: list the sync + each XCTest addition. **No push.** Phase 2 gate remains until S9's 5-point ship-ready check passes.
+5. **Internal code-review subagent on the second commit** — same pattern as S8 (4-for-4 streak). SHA range = `fc3ee6b..<new HEAD>`. Tightening commit if reviewer surfaces Important findings.
+
+6. **5-point ship-ready check:**
+   - [ ] All planned changes for v1.0.4 are landed (Phase 1 + Phase 1.5 + Phase 2.1 + Phase 2.2 carry-forwards).
+   - [ ] iOS XCTest green (107 unit + 1 UI = 108 minimum; possibly more if T2a is re-extended).
+   - [ ] Web walkthrough harness green (11 cumulative v1.0.4 OK lines + curated + DQ-2 + matrix-audit + validate-data — same gate as Phase 1.5 sessions).
+   - [ ] `MARKETING_VERSION` bumped to 1.0.4 + xcodegen regenerated `.pbxproj`.
+   - [ ] Owner ready to dispatch TestFlight via `gh workflow run testflight.yml --ref main` from iOS repo.
+
+7. **Trigger A close.** Session log → INDEX prepend (mark Phase 2.2 closed) → ROADMAP header/queue update → NEXT-SESSION regen for post-v1.0.4 lane (TestFlight monitoring; v1.0.4 → v1.0.5 planning) → memory sweep → vault sweep → self-check.
+
+8. **Owner-manual TestFlight dispatch.** After the 5-point check passes and the owner confirms, owner runs `gh workflow run testflight.yml --ref main` from the iOS repo. iOS push to `origin/main` happens as part of the ship sequence (typically right before or right after the TestFlight dispatch, depending on owner preference — both `fc3ee6b` and the S9 commit need to be on `origin/main` before TestFlight builds against them).
 
 ### Stop conditions / blockers
 
-- iOS XCTest fails on a behavior that web walkthrough asserts is correct → likely a data-shape decode issue (iOS Codable layer); diagnose carefully before patching. The "forgiving Codable layer" standing rule (3dpa-context.md #9) usually handles additive fields without changes, but breaking data-shape changes might need iOS adjustment.
-- A web behavior has no clean iOS-side test surface (e.g., harness directly tests `formatProfileAsText` which iOS might not expose) → surface to owner before working around it.
-- iOS XCTest target / project structure changed materially since iOS HEAD `eeb2915` (unlikely but possible if a forgotten WIP commit landed) → confirm clean state first.
+- **UI walkthrough surfaces a visible regression** — read the regressing screen's view + recent engine/data changes; diagnose before fixing. The 11 XCTest mirrors won't catch a visual issue (e.g., warning copy length blowing out the card on iPhone SE).
+- **`xcodegen generate` fails** or `project.pbxproj` doesn't show `MARKETING_VERSION = 1.0.4;` after — `xcodegen` is finicky about `project.yml` indentation; check the diff first.
+- **Reviewer surfaces Critical or 3+ Important findings** — pause; this likely means the v1.0.4 surface has structural issues that warrant owner adjudication, not autonomous remediation.
+- **5-point check item fails** (e.g., a regression test goes red on web after `git pull`) — pause; do not hand off to owner with a known-broken state.
 
 ### Procedure
 
-1. **`git status` in web + iOS.** Confirm clean state. Web HEAD post-S7-3 close-commit; iOS HEAD `eeb2915`.
-2. **Read iOS CLAUDE.md + tests target structure.** Understand the test naming convention + the engine bridge.
-3. **`cp` web engine.js + data/*.json → iOS** in one batch.
-4. **`diff -q` byte-identity check** post-cp.
-5. **XCTest update pass.** For each new v1.0.4 behavior in the inventory above: locate the existing test (if any), add new assertions if needed. TDD-RED first when adding genuinely new tests.
-6. **Run iOS XCTest.** Expect all green. Use the documented local command from iOS CLAUDE.md.
-7. **Internal code review subagent on the resulting iOS local commit.** SHA range will be iOS HEAD pre-commit → iOS HEAD after. Stress: byte-identity correctness, XCTest coverage gaps, any web-only behaviors that should have iOS analogs.
-8. **Tightening commit if reviewer surfaces Important findings** (matches S7-2 / S7-4 / S7-3 pattern).
-9. **NO push.** Phase 2 gate.
-10. **Trigger A close.** Session log → INDEX prepend → ROADMAP header/queue update → NEXT-SESSION regen for S9 (Phase 2.2 / Task 9 UI walkthrough + MARKETING_VERSION bump + 5-point ship-ready handoff) → memory sweep → vault sweep → self-check.
+1. **`git status` in web + iOS.** Confirm clean state. Web HEAD = S8 close commit; iOS HEAD `fc3ee6b`, local ahead of origin/main by 2.
+2. **Read project.yml + iOS CLAUDE.md UITest pattern** in full.
+3. **(Optional) S8 fan-coverage carry-forward:** decide with owner whether to land in S9 or defer.
+4. **Run ScreenCaptureUITests** + spot-check generated PNGs.
+5. **Bump MARKETING_VERSION via sed + xcodegen generate.** Verify `.pbxproj` shows 1.0.4.
+6. **Stage + commit** as second iOS local commit.
+7. **Dispatch internal code-review subagent** on `fc3ee6b..HEAD` SHA range; triage findings.
+8. **Optional tightening commit** if Important findings.
+9. **Run the 5-point ship-ready check** explicitly — produce a checklist with current state for each item.
+10. **Surface "ready for owner TestFlight dispatch"** to owner with the 5-point checklist visible.
+11. **NO autonomous push.** Owner authorizes push + TestFlight dispatch.
+12. **Trigger A close** after owner confirms ship-ready (or after the iOS push lands, whichever comes first).
 
 ## Scope Rules
 
-- **iOS local commits only.** Phase 2 gate active. `git push` is blocked until S9 + 5-point ship-ready check.
-- **Byte-identical web → iOS.** The "web is master, iOS mirrors" rule is the architectural foundation. Verify post-cp via `diff -q`.
-- **Internal code review subagent between impl and tightening.** Pattern is now 3-for-3 on Phase 1.5; keep using it.
-- **TDD-first for new XCTest assertions.** Rigid where applicable.
-- **Verification before completion.** No completion claims without fresh evidence (iOS XCTest output, byte-identity diff output).
-- **Trigger A close runs at session end** — Phase 1.5 closed; S8 wrap regenerates NEXT-SESSION for S9.
-- **Stop conditions that abort + Trigger B:** dirty working tree before commit; iOS XCTest fails after sync and the root cause isn't trivial; iOS project structure has unexpectedly drifted.
+- **iOS push is owner-authorized only.** Phase 2 gate stays active through the 5-point check; owner decides whether the autonomy contract permits autonomous push after the check passes, or whether the push is owner-manual.
+- **TestFlight dispatch is always owner-manual** per the standing-rule autonomy contract.
+- **Byte-identity holds** — no further engine.js / data edits in S9 unless the carry-forward fan-Codable extension is bundled.
+- **Internal code review subagent between impl and tightening.** Pattern is 4-for-4; keep using it.
+- **TDD-first** for the fan-Codable carry-forward if bundled.
+- **Verification before completion.** No "ready for ship" claims without fresh evidence of each 5-point item.
+- **Trigger A close runs at session end** — Phase 2.2 closure + post-v1.0.4 lane regen.
 
-## S7-3 carry-forward (relevant for S8 and beyond)
+## S8 carry-forward (relevant for S9)
 
-- **Math duplication in engine.js (3×) — Reviewer Important #1 + #2 from S7-3.** When the iOS sync lands the new bed-clamp logic, the duplication risk transitions from "web-only" to "web + iOS both copies have it." Filed as MEDIUM follow-up before any next bed-formula touch. Lift the `_computeInitBedTarget(state)` helper + data-drive `(isPETG ? 5 : 0)` at the same time.
-- **profile-matrix-audit env-axis blind spot — Reviewer Minor #6 from S7-3.** The 47196-config sweep only runs `environment: 'normal'`. The new MEDIUM-01 surfaces (env first-layer bed warning copy branches, printer_max_bed_temp_clamped on cold/vcold) are entirely outside that sweep. Backlog hygiene; would catch future regressions cheaply.
-- **Smoke assertion: emitted `bed_temperature_initial_layer` equals env-warning's claimed effective bed value — Reviewer Hidden assumption #1.** Single combo would pin the duplication-drift between getAdvancedFilamentSettings and the env warning. Land alongside the helper extraction.
-- **Visual mobile-card check on warning text length — Reviewer Minor #7.** Partial-clip wording (~140 chars) is the longest new copy in the v1.0.4 arc. Visual smoke before next release; specifically the smallest mobile breakpoint where chip/warning cards live.
-- **Shared `RETIRED_IDS` const array (S7-4 follow-up).** Multi-arc audit beyond v1.0.4 scope; still deferred.
-- **Internal code-review subagent caught a substantive Important finding for the THIRD consecutive Phase 1.5 session.** S7-2 → PVA scope creep; S7-4 → Creality empty-MCS mis-targeting; S7-3 → partial-clip branch dead-untested. Three-for-three pattern reinforces the standing-rule: for any multi-branch / multi-surface remediation, dispatch the reviewer between impl and tightening commits BEFORE push.
+- **AdvancedFilamentSettings fan-Codable extension (PRIMARY S9 OPTION).** `3DPrintAssistant/Engine/EngineService.swift:70-78` — add `fan_min_speed` + `fan_max_speed` (both String, matching the existing temperature-field pattern). Decoder at `EngineService.swift:357+` needs the new keys in the `_ProfileParamWire` decode or equivalent path. Then re-extend `testV104_T2a_EnvDataLayerCold` (line ~991 in EngineServiceTests.swift) to assert fan reduction directly via `advCold.fan_max_speed`. Small, additive, low-risk; closes the only iOS-side v1.0.4 mirror gap. **Bundle in S9 unless owner defers.**
+- **TDD-RED breadcrumb pattern** (reviewer M-4 from S8). Either leave a `// RED demo verified YYYY-MM-DD` comment in tests where the demo ran, OR do the RED in a tiny separate commit before flipping. Closes the "self-reported only" gap.
+- **Exact-IDs-over-substring-matchers discipline** (now codified as a feedback memory after S8). Apply when adding any new iOS test that mirrors a web warning-ID assertion — grep web source for the exact ID first, mirror with `==` or `.contains(exactId)`, not speculative substring filters.
 
-## After S8
+## After S9
 
-- **S9 — Phase 2.2 / Task 9.** UI screenshot walkthrough on iOS Simulator; `sed`/`xcodegen` MARKETING_VERSION bump 1.0.3 → 1.0.4; second iOS local commit (project.yml + .pbxproj + UI-walkthrough fixtures if any); 5-point ship-ready handoff. After S9 closes and the 5-point check passes, **owner manually dispatches TestFlight** via `gh workflow run testflight.yml --ref main`.
-- **Owner-manual TestFlight gate.** No autonomous TestFlight per the autonomy contract.
+- **TestFlight monitoring.** Once the v1.0.4 TestFlight build is dispatched and the binary lands, monitor for Apple review acceptance + on-device behavior.
+- **v1.0.4 → v1.0.5 transition.** Deferred v1.0.4 findings (Codex MEDIUM-02 + OBSERVATION-01 per Phase 1.5 triage) move into v1.0.5 scope. The deferred IR backlog + DQ-3/4/5 also remain candidates depending on owner priority.
+- **S7-3 carry-forwards still pending** (math duplication 3× in engine.js, profile-matrix-audit env-axis blind spot, smoke assertion for emitted-vs-claimed bed parity, mobile-card warning text length check). Land before any next bed-formula touch or as a v1.0.5 hygiene pass.
+- **Shared `RETIRED_IDS` const array** (S7-4 carry-forward). Multi-arc audit; still deferred.
 
 <<< END <<<
 
