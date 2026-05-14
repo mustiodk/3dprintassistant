@@ -1,0 +1,8 @@
+ docs/ai-collab.md                                  |  16 +-
+ docs/planning/ROADMAP.md                           |   4 +-
+ ...5-15-cowork-appdev-v1.0.4-s8-7-codex-cleanup.md | 113 ++++++++
+ docs/sessions/INDEX.md                             |   2 +
+ docs/sessions/NEXT-SESSION.md                      |  84 +++---
+ .../2026-05-15-s8-7-codex-post-s8-5-cleanup.md     | 302 +++++++++++++++++++++
+ scripts/validate-data.js                           |   3 +-
+ 7 files changed, 467 insertions(+), 57 deletions(-)

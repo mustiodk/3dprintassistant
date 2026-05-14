@@ -1,0 +1,171 @@
+=== WEB DIFF (d9e58fa..HEAD) — code + data only ===
+diff --git a/docs/ai-collab.md b/docs/ai-collab.md
+index 9d58d60..fdd1b63 100644
+--- a/docs/ai-collab.md
++++ b/docs/ai-collab.md
+@@ -148,10 +148,18 @@ To close it, apply ONE of these per test-batch commit:
+    expected; collective full-suite green is the proof." This is honest about the
+    limit and surfaces it for review.
+ 
+-Either way: the commit body OR test code must surface the RED-discipline posture.
+-"Self-reported only" (mentioning the demo in the commit message without any
+-code or commit-history artifact) is the gap to avoid — it makes external review
+-prove a negative.
++The two postures have different breadcrumb requirements:
++
++- **Inverted-first (rule 1 above):** code breadcrumb or git-history artifact is
++  mandatory. A commit-body-only note is NOT sufficient — the discipline must be
++  auditable from the diff or `git log -p`, not from prose.
++- **Skipped / degenerated RED (rule 2 above):** commit-body note is sufficient
++  and is the only available artifact, since there's no real RED to capture
++  in code.
++
++"Self-reported only" — claiming an inverted-first demo in the commit message
++without any code or commit-history artifact — is the specific gap to avoid. It
++forces external review to prove a negative.
+ 
+ Applies to any cross-platform mirror commit on 3dpa (iOS mirroring web walkthrough,
+ or future cross-tool mirrors).
+diff --git a/scripts/validate-data.js b/scripts/validate-data.js
+index 848bed8..f324ea0 100644
+--- a/scripts/validate-data.js
++++ b/scripts/validate-data.js
+@@ -166,7 +166,8 @@ function validateEnvironment() {
+     check(file, isString(e.name),             `${ctx}: name must be a non-empty string`);
+     check(file, isNumber(e.nozzle_adj),       `${ctx}: nozzle_adj must be a number`);
+     check(file, isNumber(e.bed_adj),          `${ctx}: bed_adj must be a number`);
+-    check(file, isNumber(e.fan_multiplier),   `${ctx}: fan_multiplier must be a number`);
++    check(file, isNumber(e.fan_multiplier) && e.fan_multiplier > 0 && e.fan_multiplier <= 1,
++                                              `${ctx}: fan_multiplier must be a number in (0, 1] (got ${e.fan_multiplier})`);
+     check(file, isBoolean(e.humidity_warning),`${ctx}: humidity_warning must be a boolean`);
+     check(file, isArray(e.warnings),          `${ctx}: warnings must be an array`);
+   });
+
+=== iOS DIFF (fd4761a..HEAD) ===
+diff --git a/3DPrintAssistant/Utils/Strings.swift b/3DPrintAssistant/Utils/Strings.swift
+index 59f8cb9..a915ec3 100644
+--- a/3DPrintAssistant/Utils/Strings.swift
++++ b/3DPrintAssistant/Utils/Strings.swift
+@@ -132,6 +132,7 @@ enum Strings {
+         static let otherLayersBedTemp     = "Other layers bed"
+         static let coolingFan   = "Cooling fan"
+         static let minFanSpeed  = "Min fan speed"
++        static let fanOverhang  = "Overhang fan"
+         static let maxVolumetric = "Max volumetric speed"
+         static let buildPlate   = "Build plate"
+         static let amsCompat    = "AMS compatible"
+diff --git a/3DPrintAssistant/Views/Output/FilamentSettingsView.swift b/3DPrintAssistant/Views/Output/FilamentSettingsView.swift
+index 21e8823..36b8a3a 100644
+--- a/3DPrintAssistant/Views/Output/FilamentSettingsView.swift
++++ b/3DPrintAssistant/Views/Output/FilamentSettingsView.swift
+@@ -52,11 +52,33 @@ struct FilamentSettingsView: View {
+         case "cooling":
+             VStack(spacing: 0) {
+                 if let fan = filProfile?.coolingFan {
++                    // Material default ceiling row — matches web app.js:1242 (always shown).
+                     ParamRow(label: Strings.FilamentTab.coolingFan,
+                              value: fan,
+                              prov: filProfile?.prov["cooling_fan"],
+                              showProv: isAdvanced)
+-                    if let fanMin = filProfile?.coolingFanMin {
++                    if isAdvanced, let adv = advancedSettings {
++                        // v1.0.4 S8.7 — Codex post-S8.5 audit Medium #1: Advanced mode
++                        // renders env-scaled values from advancedSettings (state-aware,
++                        // mirrors web app.js:1244-1253), NOT raw state-less filProfile.
++                        // Pinned by EngineServiceTests.testV104_S8_7_CoolingUI_AdvancedSourceIsEnvScaled.
++                        if let fanMin = adv.fanMinSpeed {
++                            RowDivider()
++                            ParamRow(label: Strings.FilamentTab.minFanSpeed,
++                                     value: fanMin,
++                                     note: "Fan ramps up from min to full over the first few layers",
++                                     prov: adv.prov["fan_min_speed"],
++                                     showProv: true)
++                        }
++                        if let overhang = adv.coolingFanOverhang {
++                            RowDivider()
++                            ParamRow(label: Strings.FilamentTab.fanOverhang,
++                                     value: overhang,
++                                     prov: adv.prov["cooling_fan_overhang"],
++                                     showProv: true)
++                        }
++                    } else if let fanMin = filProfile?.coolingFanMin {
++                        // Simple mode: fall back to material default (no env scaling).
+                         RowDivider()
+                         ParamRow(label: Strings.FilamentTab.minFanSpeed,
+                                  value: fanMin,
+diff --git a/3DPrintAssistantTests/EngineServiceTests.swift b/3DPrintAssistantTests/EngineServiceTests.swift
+index 26da5c0..1e2d055 100644
+--- a/3DPrintAssistantTests/EngineServiceTests.swift
++++ b/3DPrintAssistantTests/EngineServiceTests.swift
+@@ -1071,6 +1071,48 @@ final class EngineServiceTests: XCTestCase {
+         }
+     }
+ 
++    /// S8.7 — Codex post-S8.5 audit Medium #1: pins the contract that
++    /// FilamentSettingsView's cooling tab depends on in Advanced mode.
++    ///
++    /// The view's Advanced cooling section reads `advancedSettings.fanMinSpeed`
++    /// and `advancedSettings.coolingFanOverhang` (env-scaled, state-aware) instead
++    /// of `filProfile.coolingFanMin` and `filProfile.coolingFan` (state-less,
++    /// material default). T2a already verifies env-vs-env scaling; this test
++    /// asserts the orthogonal property that the two sources DISAGREE on a real
++    /// env. If a future refactor accidentally points the view back at filProfile
++    /// in cold env, this test catches the silent regression even though the
++    /// bridge math is correct.
++    ///
++    /// RED demo verified 2026-05-15: first authored with XCTAssertGreaterThan
++    /// (claimed env-scaled > raw, which is wrong — cold REDUCES fan). xcodebuild
++    /// test surfaced: `XCTAssertGreaterThan failed: ("63.0") is not greater
++    /// than ("70.0")`. Flipped to XCTAssertLessThan. Proves matcher machinery
++    /// would catch a real regression of the cooling-UI source-of-truth.
++    func testV104_S8_7_CoolingUI_AdvancedSourceIsEnvScaled() async throws {
++        let state = AppState()
++        state.printer = "x1c"
++        state.nozzle = "std_0.4"
++        state.material = "pla_basic"
++        state.environment = "cold"
++
++        let advanced = try await EngineService.shared.getAdvancedFilamentSettings(state)
++        let rawOpt   = try await EngineService.shared.getFilamentProfile(state.material)
++        let raw      = try XCTUnwrap(rawOpt, "getFilamentProfile must return a profile for pla_basic")
++
++        let scaledMin = try Self.parseFan(advanced.fanMinSpeed)
++        let rawMin    = try Self.parseFan(raw.coolingFanMin)
++        XCTAssertLessThan(scaledMin, rawMin,
++                          "FilamentSettingsView Advanced cooling must render env-scaled fanMinSpeed (\(scaledMin)) " +
++                          "from advancedSettings, NOT raw coolingFanMin (\(rawMin)) from filProfile. " +
++                          "If equal, the env multiplier isn't reaching the cooling-tab UI for PLA+cold+x1c.")
++
++        let scaledOverhang = try Self.parseFan(advanced.coolingFanOverhang)
++        let rawOverhang    = try Self.parseFan(raw.coolingFan)
++        XCTAssertLessThan(scaledOverhang, rawOverhang,
++                          "FilamentSettingsView Advanced cooling must render env-scaled coolingFanOverhang " +
++                          "(\(scaledOverhang)) from advancedSettings, NOT raw coolingFan (\(rawOverhang)) from filProfile.")
++    }
++
+     /// Mirrors walkthrough [v1.0.4 MEDIUM-05]: env-driven clamp attributed via env_compensation_capped_by_material.
+     /// Tightened (review M-2) from substring match to web's exact regex pattern.
+     func testV104_T2b_EnvClampMisattribution() async throws {
+@@ -1201,6 +1243,22 @@ final class EngineServiceTests: XCTestCase {
+         let profAMS = try await EngineService.shared.resolveProfile(ams)
+         XCTAssertNotNil(profAMS["prime_tower"],
+                         "ams_like tier must preserve prime_tower emission")
++        // S8.7 — Codex post-S8.5 audit Low #2: mirror web walkthrough-harness.js:876-884.
++        // x1c (full AMS) is a positive system-type-differentiation case: it must NOT
++        // fire ams_lite-specific or empty-MCS warnings. iOS T5 previously asserted only
++        // prime_tower presence here; these two negative assertions close the parity gap.
++        //
++        // RED demo verified 2026-05-15 on the ams_lite_material_incompat assertion:
++        // inverted to XCTAssertTrue, xcodebuild surfaced
++        // `XCTAssertTrue failed - x1c+PLA+multi_2_4 fired warnings: [pla_heat_creep]`
++        // (no ams_lite warning present, as expected). Flipped to XCTAssertFalse. Proves
++        // matcher would catch a real regression if x1c started firing ams_lite warnings.
++        let warnsAMS = try await EngineService.shared.getWarnings(ams)
++        let idsAMS = warnsAMS.map(\.id)
++        XCTAssertFalse(idsAMS.contains("ams_lite_material_incompat"),
++                       "x1c (ams_like) must NOT fire ams_lite-specific warning; got ids: \(idsAMS)")
++        XCTAssertFalse(idsAMS.contains("mcs_empty_no_multicolor"),
++                       "x1c (ams_like) must NOT fire empty-MCS warning; got ids: \(idsAMS)")
+ 
+         let cfs = AppState()
+         cfs.printer = "k2_plus"

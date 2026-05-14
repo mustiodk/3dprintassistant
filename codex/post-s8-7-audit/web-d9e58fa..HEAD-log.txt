@@ -1,0 +1,3 @@
+872e05f docs: wrap v1.0.4 S8.7 — Codex post-S8.5 re-audit cleanup
+48304d3 fix: validate fan_multiplier range (0, 1] (Codex Medium #2)
+746244e docs: clarify TDD-RED breadcrumb convention (Codex Low #1)

@@ -1,0 +1,2 @@
+ad46fd3 test: mirror x1c AMS-like must-not-fire warnings in T5 (Codex Low #2)
+41c9956 fix: render env-scaled fan values in Advanced cooling UI (Codex Medium #1)
