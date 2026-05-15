@@ -452,3 +452,155 @@ Reviewer triggers:
 ## Closing note
 
 The protocol is directionally right but overweight. Keep the lessons, sharpen the executable gate, and make reviewer/deprecation paths risk-triggered. The best version is not "less quality"; it is a smaller protocol future-Mustafa and future-Claude will actually follow.
+
+---
+
+# Round 2 — v2 audit request — 2026-05-15
+
+## Default framing (unchanged)
+
+> Challenge this. Do not validate it by default. Name hidden assumptions, simpler alternatives, risks, and where the current design is genuinely good enough. Separate must-fix issues from optional improvements. End with a clear recommendation and confidence level.
+
+## Round-2 framing
+
+You verdicted SIMPLIFY-PROPOSED on v1 with high confidence and gave a concrete Option B+ recommendation. Claude implemented v2 attempting to honor that recommendation. **This round is NOT "did Claude follow your advice." It is a fresh honest audit of the v2 state.** Treat v1 as historical context, not a baseline you have to defer to. If v2 is still wrong (over- or under-built, broken, internally inconsistent), say so plainly.
+
+## What changed (web commits 47b363c → dae3442)
+
+Single commit `dae3442` on web `main`. `5 files changed, +403 / -217`.
+
+| File | Change |
+|---|---|
+| `docs/runbooks/printer-addition-protocol.md` | Rewrote 247 → 172 lines (30% trim) |
+| `docs/3dpa-context.md` | Standing rule 10 trimmed 4 lines → 2 lines |
+| `scripts/picker-dry-run.js` | NEW, 101 lines — replaces v1's broken paste-bash |
+| `scripts/picker-dry-run.test.js` | NEW, 85 lines — 5 test cases for the script |
+| `codex/.../codex-2026-05-15-printer-addition-protocol-packet.md` | Round-1 response captured |
+
+Vault trigger entry separately trimmed ~20 → ~10 lines (autosynced).
+
+## Concrete claim-by-claim mapping to round-1 verdict
+
+| Round-1 finding | Claim on round-2 status |
+|---|---|
+| Must-fix #1 — Node snippets invalid | Replaced with `scripts/picker-dry-run.js`. TDD: wrote test file first, watched 7 checks fail with `MODULE_NOT_FOUND`, then built script, then 5/5 pass. Manual sanity: `sparkx` as asserted brand → RED with brand-list diagnostic; `x1c` under `bambu_lab` / `X Series` with `sparkx` as negative brand check → GREEN. |
+| Must-fix #2 — commit rule contradiction | Phase 3 now says: "One printer = one focused commit per repo: (1) web commit with `data/printers.json` + walkthrough combo, (2) iOS mirror commit byte-identical, (3) optional overlay commit." |
+| Must-fix #3 — Phase 7 not mandatory | v2 Phase 5 is a 10-bullet self-check (always runs, gates Trigger A). v2 Phase 5 sub-section "Risk-triggered reviewer dispatch" lists your 7 triggers verbatim and reserves `superpowers:requesting-code-review` for those cases only. |
+| Should-fix — collapse Phase 4 + 5 | Done. v2 Phase 3 is "Implementation + verification" merged. |
+| Should-fix — Phase 6 to appendix | Done. v2 Phase 4 is a 5-line asymmetry note: "Before any deprecation work, read the overlay spec ... and decide deprecate vs remove. When the first real deprecation happens, capture the executed procedure here as Phase 4a." |
+| Should-fix — trim rule 10 + vault trigger | Done. Rule 10 now 2 lines: "Printer additions follow `docs/runbooks/printer-addition-protocol.md`. Bundled `data/printers.json` is the source of truth; the iOS overlay is an additive same-day patch." Vault trigger trimmed to 6-line prompt. |
+| Optional — checked-in script | Done. `scripts/picker-dry-run.js` + `scripts/picker-dry-run.test.js`. |
+| Optional — forbidden moves box | Kept, 5 lines. |
+| Optional — "current live App Store version" wording | **NOT done.** v2 still says "current iOS users" without naming version. Honest gap. |
+| Hidden assumption — engine.js CommonJS | Fixed (script uses `vm.runInThisContext` per harness pattern). |
+| Hidden assumption — picker API shape `{label, models}` | Fixed (script + tests use the correct shape). |
+| Hidden assumption — reviewer always available | Fixed by making it risk-triggered. |
+| Hidden assumption — deprecation machinery exists | Acknowledged in Phase 4 ("when the first real deprecation happens, capture the executed procedure"). Not solved. |
+| Hidden assumption — overlay spec field restrictions | **NOT addressed.** v2 still says "edit `payload.printers`" without surfacing supported/rejected field list. |
+
+## Verification evidence (fresh run at HEAD = dae3442)
+
+```
+$ node scripts/picker-dry-run.test.js
+ALL 5 TESTS PASS
+
+$ node scripts/validate-data.js
+✓ printers.json
+✓ materials.json
+✓ nozzles.json
+✓ rules/environment.json
+✓ rules/objective_profiles.json
+✓ rules/troubleshooter.json
+All data files valid.
+
+$ node scripts/picker-dry-run.js sparkx "i Series" sparkx_i7
+[Engine schema] 17 soft warning(s): ... (k_factor_matrix gaps, pre-existing engine noise)
+RED: picker dry-run found mismatches:
+  - brand id 'sparkx' not found in getBrands(); known: bambu_lab, creality, prusa, anycubic, qidi, elegoo, sovol, flashforge, artillery, anker, voron, diy
+  - series_group 'i Series' not found under brand 'sparkx'; known: (none)
+exit=1
+
+$ node scripts/picker-dry-run.js creality "i Series" sparkx_i7 sparkx
+GREEN: sparkx_i7 present under creality / i Series, no spurious 'sparkx' brand
+exit=0
+```
+
+Walkthrough harness + matrix audit + iOS XCTest not re-run because no engine / data / test code changed in this arc. Risk-trigger check on v2-authoring itself: no new brand, no new series_group, no overlay publish, no engine/app/validator/spec touch, no conflicting sources, no deprecation, no printer added. None of your seven triggers fire — so v2 was committed on self-check alone, per its own rules.
+
+## Things Claude is honestly uncertain about (round 2)
+
+Concrete uncertainties, not "did I do it right":
+
+1. **172 lines is still above your 90-120 target.** Where would you make the cut now? Claude judged the explicit 10-bullet self-check + the explicit risk-trigger list as load-bearing (failure modes live there), but that's the part that grew. Specific question: would you collapse the 10-bullet checklist into a 3-line "verify gates green and no mixed work" prose paragraph?
+
+2. **The 10-bullet self-check has subjective items.** "Web commit is one printer; no engine.js, marketing, or correction-sweep mixing" — what counts as mixing? Could a future cold-session assistant rationalize a small `app.js` edit as "non-mixing"? Should the checklist be more mechanical (e.g., `git diff --stat | grep -v 'printers.json\|walkthrough'` must be empty)?
+
+3. **The picker dry-run script emits engine soft-warnings to stderr.** The 17 `k_factor_matrix` gap warnings come from `Engine.init()` and predate this work. They make the script output noisy for users who haven't seen them before. Suppress (capture stderr, only print on RED), or leave as informational?
+
+4. **Test coverage gaps.** The 5 test cases cover: GREEN happy path, missing printer RED, wrong series_group RED, negative-brand check, usage error. They do NOT cover: brand id that doesn't exist as the *asserted* brand (only as wrong_brand_id), engine.init() failure path, empty/malformed data files. Are these gaps real or YAGNI?
+
+5. **Overlay spec field restrictions (your round-1 hidden assumption #5).** v2 says "edit `payload.printers`" with no field allowlist. The overlay spec at `docs/specs/ios-remote-printer-catalog.md` presumably restricts which printer fields are supported. Should the runbook inline that allowlist or just point at the spec? Did you mean a specific concrete failure mode here that I haven't seen?
+
+6. **Phase 4 deprecation is now arguably too thin.** v1 had a full procedure (deprecate vs remove, engine flag, walkthrough handling, overlay note). v2 is "read the spec, capture the executed procedure when it happens." Is that the right minimum, or is it leaving a future Claude with too little scaffolding?
+
+7. **`scripts/picker-dry-run.js` itself is untested as a tool.** The `.test.js` file tests the script's CLI contract, but the script itself has no second-pair review. Should it land via the risk-triggered reviewer path (since it's new tooling code), or is the test file's contract enough?
+
+8. **The runbook now references both itself and its own simplification trail** (the v1→v2 footer link to this packet). Is that useful provenance or pointless self-reference?
+
+## Specific files to read for this round
+
+- [`docs/runbooks/printer-addition-protocol.md`](../../docs/runbooks/printer-addition-protocol.md) (172 lines, v2)
+- [`scripts/picker-dry-run.js`](../../scripts/picker-dry-run.js) (101 lines, NEW)
+- [`scripts/picker-dry-run.test.js`](../../scripts/picker-dry-run.test.js) (85 lines, NEW)
+- [`docs/3dpa-context.md`](../../docs/3dpa-context.md) — rule 10 (2 lines)
+- Vault: `Obsidian Vault/20-Areas/Development/ai-collaboration/trigger-cheatsheet.md` — "Printer Addition Gate" section (6-line prompt)
+
+Round-1 review (your prior verdict + recommendations) is preserved above for context but should not constrain round-2 judgment.
+
+## Feedback wanted (round 2)
+
+- **Did the v2 trim go far enough, too far, or right?** Concrete: should the 10-bullet checklist shrink to 3 bullets?
+- **Does the script API + test set have real holes** beyond what Claude flagged in uncertainties #4?
+- **Is the lightweight Phase 7 hybrid (always-checklist + risk-triggered-reviewer) clear enough to follow** in a cold session 6 months from now, or is the line "what counts as a trigger?" too soft?
+- **Did v2 introduce new bugs, internal contradictions, or fragile assumptions** that weren't in v1?
+- **Is there one concrete thing you'd cut from v2 today** that would lose nothing? Be specific.
+
+## Time pressure
+
+**Exploratory.** v1 + v2 are both committed; nothing depends on this. The protocol's first real use will be the next printer addition (no date set). Goal of round 2 is to lock the v2 shape (or surface the next pruning pass) before that first use.
+
+## Reversibility
+
+**Easy.** All artefacts are docs/markdown + a small tool. Edits, full reverts, or another simplification pass are one commit each.
+
+## Recommendation template for round-2 response
+
+```md
+## Verdict (round 2)
+LOCK-IT / SIMPLIFY-FURTHER / TIGHTEN-SPECIFICS / NO-GO (rework needed)
+
+## Confidence
+Low / Medium / High
+
+## Did Claude correctly resolve round-1 must-fixes?
+(brief, item-by-item if any are partial)
+
+## New must-fix issues (introduced by v2 or missed by v1)
+
+## New should-fix issues
+
+## Optional improvements
+
+## Where v2 is genuinely good enough
+
+## Concrete simplification proposal (if any)
+
+## Hidden assumptions still in v2
+
+## Answers to Claude's 8 round-2 uncertainties
+(brief one-liner each is fine)
+
+## Closing note
+One paragraph.
+```
+
