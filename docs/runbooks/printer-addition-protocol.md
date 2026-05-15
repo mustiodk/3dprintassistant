@@ -8,7 +8,9 @@ mishap (2026-05-10) and the SPARKX i7 → Creality i7 taxonomy fix (2026-05-12).
 picker dry-run script, merged the verification phases, made reviewer dispatch
 risk-triggered instead of mandatory. See
 [`codex/printer-addition-protocol-review/codex-2026-05-15-printer-addition-protocol-packet.md`](../../codex/printer-addition-protocol-review/codex-2026-05-15-printer-addition-protocol-packet.md)
-for the full simplification trail.
+for the full simplification trail. v4 (2026-05-15) added Phase 1 step 0
+(FDM-only scope check) after a Photon Mono M7 Pro request surfaced the implicit
+assumption.
 
 ## Mental model (read first — load-bearing)
 
@@ -23,6 +25,15 @@ for the full simplification trail.
 
 ## Phase 1 — Taxonomy decision (before editing any file)
 
+0. **FDM-only scope check.** 3dpa generates **FDM (filament extrusion)** slicer
+   profiles only. The engine routes to `bambu_studio` / `prusaslicer` /
+   `orcaslicer`; materials are thermoplastics; nozzles and retraction are
+   first-class concepts. Decline any candidate that is **resin (MSLA / LCD /
+   SLA / DLP)**, **powder-bed (SLS / MJF)**, or any other non-FDM technology
+   — e.g. Anycubic Photon line, Elegoo Saturn / Mars, Formlabs Form, Phrozen
+   Sonic, Creality Halot. No plans for resin or other non-FDM support; log
+   the decline and stop. If the requester also runs an FDM printer, offer to
+   add that one instead.
 1. **Record sources.** Vault clipping paths or manufacturer URL. Paths go in the
    commit body. No second-hand recollection.
 2. **Decide four fields:**
