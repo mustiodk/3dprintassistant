@@ -56,12 +56,27 @@ const Engine = globalThis.__Engine;
 
 // ─── Run ─────────────────────────────────────────────────────────────────────
 (async () => {
+  // Capture engine.init()'s pre-existing soft-warning chatter (k_factor_matrix
+  // gaps, etc.). It's informational and unrelated to picker shape. On GREEN
+  // we drop it; on RED we re-emit so it's available for debugging.
+  const captured = [];
+  const origWarn = console.warn;
+  const origLog  = console.log;
+  console.warn = (...a) => captured.push(a.join(' '));
+  console.log  = (...a) => captured.push(a.join(' '));
+
   try {
     await Engine.init();
   } catch (e) {
+    console.warn = origWarn;
+    console.log  = origLog;
+    if (captured.length) captured.forEach(line => process.stderr.write(line + '\n'));
     console.error(`RED: Engine.init() threw: ${e.message}`);
     process.exit(1);
   }
+
+  console.warn = origWarn;
+  console.log  = origLog;
 
   const failures = [];
 
@@ -94,6 +109,9 @@ const Engine = globalThis.__Engine;
     console.log(`GREEN: ${printerId} present under ${brandId} / ${seriesGroup}${wrongBrandNote}`);
     process.exit(0);
   } else {
+    // RED: flush captured init warnings to stderr (debugging context) then
+    // emit the failure report on stdout.
+    if (captured.length) captured.forEach(line => process.stderr.write(line + '\n'));
     console.log('RED: picker dry-run found mismatches:');
     for (const f of failures) console.log(`  - ${f}`);
     process.exit(1);

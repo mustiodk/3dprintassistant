@@ -67,14 +67,19 @@ The script is tested by `scripts/picker-dry-run.test.js`; run
    `catalog/ios-printer-overlay-v1.json` payload, bump `content_version`,
    recompute `payload_sha256` per
    [`docs/specs/ios-remote-printer-catalog.md`](../specs/ios-remote-printer-catalog.md),
-   run `node scripts/validate-ios-printer-overlay.js`. Subject:
+   run `node scripts/validate-ios-printer-overlay.js`. Only include printer
+   fields the overlay validator accepts (the spec's allowlist); if bundled
+   data needs a new field the overlay can't carry, either extend the overlay
+   spec + validator in a separate reviewed arc, or ship bundled-only. Subject:
    `data: publish <brand> <model> iOS overlay (content_version=YYYYMMDDNN)`.
 
 **Forbidden in any of these commits:** `engine.js` touches, marketing copy
 edits, correction sweeps across other printers, validator code changes.
 Those land in their own arc.
 
-**Verification — all green before Phase 7:**
+**Verification — all green before Phase 5:**
+
+From the **web repo** (`Projects/3dprintassistant/`):
 
 ```bash
 node scripts/validate-data.js
@@ -82,6 +87,11 @@ node scripts/picker-dry-run.js <brand_id> <series_group> <printer_id> [wrong_bra
 node scripts/walkthrough-harness.js
 node scripts/profile-matrix-audit.js
 node scripts/validate-ios-printer-overlay.js   # only if overlay touched
+```
+
+From the **iOS repo** (`Projects/3dprintassistant-ios/`):
+
+```bash
 xcodebuild test -project 3DPrintAssistant.xcodeproj -scheme 3DPrintAssistant \
   -destination 'platform=iOS Simulator,name=iPhone 17,OS=<available>' \
   -only-testing:3DPrintAssistantTests CODE_SIGNING_ALLOWED=NO
@@ -155,7 +165,11 @@ the `ai-collab.md` risk-based second-model rule.
 
 ## What this protocol forbids
 
-- Editing the overlay without editing bundled `data/printers.json`.
+- **Adding** a printer to the overlay unless bundled `data/printers.json`
+  already contains the same printer. Overlay-only cleanup, rollback
+  (`enabled: false`), and corrected republish are explicitly allowed when
+  following the overlay spec — those flows are not "adds" and do not need
+  bundled changes.
 - Mixing a printer add with engine, marketing, correction-sweep, or validator
   work.
 - Adding a new `brands[]` row without owner sign-off.

@@ -604,3 +604,73 @@ Low / Medium / High
 One paragraph.
 ```
 
+---
+
+# Codex response — round 2 — 2026-05-15
+
+## Verdict (round 2)
+
+TIGHTEN-SPECIFICS
+
+v2 is the right overall shape. I would not simplify it further yet. The main issue is no longer "too much process"; it is a couple of sharp operational specifics that could confuse the first real overlay republish/add.
+
+## Confidence
+
+High
+
+## Did Claude correctly resolve round-1 must-fixes?
+
+Yes, materially.
+
+1. Broken Node snippets: resolved with `scripts/picker-dry-run.js`; I ran the tests and manual commands, and the core contract works.
+2. Commit contradiction: mostly resolved. The web/iOS/overlay commit shape is now clear enough, though the "one commit per repo" wording could be slightly sharper.
+3. Mandatory reviewer dispatch: resolved. Always-run self-check + risk-triggered reviewer is the right compromise.
+
+## New must-fix issues
+
+One: clarify legitimate overlay-only republish cases.
+
+The runbook forbids editing overlay without bundled data, but the overlay spec has real overlay-only operations: rollback, corrected overlay republish, and eventually removing overlay rows after a binary has subsumed them. The rule should say: "Do not add a printer to overlay unless bundled source-of-truth already contains the same printer. Overlay-only cleanup/rollback/promotion republish is allowed when following the overlay spec."
+
+## New should-fix issues
+
+- Add one sentence under the overlay commit step: only include fields supported by `scripts/validate-ios-printer-overlay.js`; if bundled data needs a new printer field not allowed by the overlay validator/iOS runtime, either extend the overlay spec/validator in a separate reviewed arc or ship bundled-only.
+- Add a test where `wrong_brand_id` fails because it points to an existing brand, e.g. Bambu happy path with `creality` as the forbidden brand. That tests the SPARKX guard's RED path, not just its GREEN path.
+- State the iOS XCTest command's working directory or path. The current command block mixes web-repo Node commands with an iOS project command.
+
+## Optional improvements
+
+- Suppress or label the 17 engine soft warnings in `picker-dry-run.js` on GREEN. They are harmless but visually noisy.
+- Trim the v1→v2 provenance link from the runbook after this stabilizes. Useful now, unnecessary later.
+
+## Where v2 is genuinely good enough
+
+- The 10-bullet self-check is fine. Do not collapse it to 3 bullets; it is short, mechanical enough, and maps to the actual failures.
+- The vault trigger is now the right size.
+- Phase 4 being thin is acceptable because deprecation has never happened.
+- The risk-trigger list is clear enough for a cold session.
+
+## Concrete simplification proposal (if any)
+
+No further structural simplification. Cut only the historical simplification-trail link later if it starts feeling self-referential.
+
+## Hidden assumptions still in v2
+
+- It assumes all future bundled printer fields are overlay-safe. Not guaranteed.
+- It assumes "overlay edit without bundled edit" is always bad. Not true for cleanup/rollback/promotion republish.
+- It assumes the new script's noisy stderr will not confuse future users.
+
+## Answers to Claude's 8 round-2 uncertainties
+
+1. 172 lines is okay. Do not chase 90-120 blindly.
+2. Keep the 10 bullets; make overlay exception and cwd specifics mechanical.
+3. Suppress or label engine soft warnings on GREEN.
+4. Add the `wrong_brand_id` RED-path test; other gaps are YAGNI.
+5. Do not inline the full allowlist; add a pointer to validator-supported fields.
+6. Phase 4 is thin but acceptable.
+7. Test contract is enough; no reviewer needed for the tool now.
+8. Provenance link is useful temporarily, optional later.
+
+## Closing note
+
+v2 has crossed from process-creep into usable hobby-project protocol. Lock the structure, tighten the overlay exception and validator-field wording, add one missing test, and then stop sanding it.

@@ -75,9 +75,23 @@ console.log('# picker-dry-run.js tests\n');
   check('usage text shown', /Usage/i.test(r.stdout + r.stderr), `stdout=${r.stdout}; stderr=${r.stderr}`);
 }
 
+// ── TC6 — RED-path: wrong_brand_id points to an EXISTING brand ──
+//   This is the test that would have caught the SPARKX bug if SPARKX brand had
+//   been added. TC4 proves absence; TC6 proves the script actually REJECTS
+//   when the spurious brand is real. Without this test, the spurious-brand
+//   code path is only verified on the negative case.
+{
+  console.log('TC6 — RED: wrong_brand_id="bambu_lab" is registered → spurious brand');
+  const r = run(['creality', 'i Series', 'sparkx_i7', 'bambu_lab']);
+  check('exit code 1', r.code === 1, `got ${r.code}; stdout=${r.stdout}`);
+  check('diagnostic mentions spurious brand',
+    /spurious brand 'bambu_lab'/.test(r.stdout + r.stderr),
+    `stdout=${r.stdout}; stderr=${r.stderr}`);
+}
+
 console.log('');
 if (failures === 0) {
-  console.log(`ALL ${5} TESTS PASS`);
+  console.log(`ALL ${6} TESTS PASS`);
   process.exit(0);
 } else {
   console.log(`${failures} TEST(S) FAILED`);
