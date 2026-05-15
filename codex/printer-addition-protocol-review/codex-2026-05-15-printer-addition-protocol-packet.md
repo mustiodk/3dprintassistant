@@ -377,3 +377,78 @@ One paragraph capturing the overall recommendation in plain language.
 - For risk disagreements, prefer the simpler reversible option unless evidence supports the more complex one.
 
 **Default framing reminder:** Challenge this. Do not validate it by default.
+
+---
+
+# Codex response — 2026-05-15
+
+## Verdict
+
+SIMPLIFY-PROPOSED
+
+247 lines is too heavy as the default path for a solo hobby project. The underlying controls are right; the artefact is over-expanded and has one concrete correctness bug in its pasted dry-run commands.
+
+## Confidence
+
+High
+
+## Must-fix issues
+
+1. **The Phase 1/2 Node snippets are invalid as written.** `require('./engine.js')` does not expose `init`, `getBrands`, or `getPrintersByBrand`; I ran it and it fails. The existing harness loads `engine.js` via `vm` with `fetch` / `localStorage` polyfills. Also, `getPrintersByBrand()` returns an array of `{ label, models }`, not `.groups[].printers`. Relevant surfaces: `docs/runbooks/printer-addition-protocol.md` Phase 2 and `engine.js` picker API around `getBrands()` / `getPrintersByBrand()`.
+
+2. **The commit rule contradicts itself.** Phase 3 says "each step is its own commit" but walkthrough coverage is "same commit as step 1." Make the rule: one printer add = one focused web commit, one focused iOS mirror commit, optional separate overlay commit.
+
+3. **Phase 7 should not be mandatory for every printer add.** It conflicts with the project's risk-based second-model guidance in `docs/3dpa-context.md` and is the most likely route-around point.
+
+## Should-fix issues
+
+- Collapse Phase 4 and Phase 5. Live overlay confirmation is a conditional verification bullet, not a standalone phase.
+- Move Phase 6 deprecation/removal out of the default path. Keep a short warning in the runbook; put the full detail in an appendix or write it when the first deprecation happens.
+- Trim Standing Rule 10 and the vault trigger. They currently duplicate the runbook and lock in the heavy version across multiple surfaces.
+
+## Optional improvements
+
+- Check in `scripts/picker-dry-run.js <brand_id> <series_group> <printer_id> [wrong_brand_id]`. This turns the most important new gate into a reusable tool instead of a fragile pasted one-liner.
+- Keep a shortened "forbidden moves" box. It is redundant, but useful as a red-flag summary for cold-session assistants.
+- Replace hard-coded "iOS 1.0.3" wording with "current live App Store version."
+
+## Where the design is genuinely good enough
+
+- The mental model is load-bearing and should stay: bundled data is source of truth; overlay is additive, temporary, and iOS-only.
+- The taxonomy step is exactly the right root-cause fix for the SPARKX/i7 miss.
+- The picker dry-run is the right test, once implemented correctly.
+- The no-mixed-work rule is the right fix for the X2D/Bambu correction sweep problem.
+
+## Recommended simplification
+
+Use Option B+, not A or pure C.
+
+Target about 90-120 lines:
+
+1. Keep: Background, Mental Model, Taxonomy Decision.
+2. Replace Phase 2 with a checked-in script and one command.
+3. Merge Phases 3-5 into "Implementation + Verification."
+4. Replace Phase 6 with a 5-line "Deprecation is asymmetric; use appendix/spec before removal" note.
+5. Replace Phase 7 with "Escalate to reviewer when risk triggers fire."
+
+Reviewer triggers:
+
+- new brand
+- new `series_group`
+- overlay publish to current iOS users
+- engine / app / validator / spec changes
+- conflicting sources
+- deprecation / removal
+- more than one printer in the same session
+
+## Hidden assumptions surfaced
+
+- The runbook assumes `engine.js` is CommonJS-importable. It is not.
+- It assumes the picker API shape incorrectly.
+- It assumes third-party reviewer dispatch is always available and worth blocking wrap-up on.
+- It assumes deprecation machinery exists or can be safely invented at first use.
+- It assumes "three surfaces agree" is always straightforward, but the overlay spec restricts supported fields and rejects unsupported optional fields.
+
+## Closing note
+
+The protocol is directionally right but overweight. Keep the lessons, sharpen the executable gate, and make reviewer/deprecation paths risk-triggered. The best version is not "less quality"; it is a smaller protocol future-Mustafa and future-Claude will actually follow.

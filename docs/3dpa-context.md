@@ -184,7 +184,7 @@ These rules are binding for any AI peer working on 3dpa — Codex, Gemini, or fu
 7. **Provenance everywhere.** Any new emission from `resolveProfile` (or sister functions) must carry a `prov: { source, ref }` sidecar — vendor / default / rule / calculated.
 8. **TestFlight is manual-dispatch only.** Don't dispatch autonomously; owner gates each TestFlight build.
 9. **Locked schema additivity.** When adding fields to data files (printers/materials/nozzles), make additions additive — existing entries must keep working without the new field. The iOS Codable layer is forgiving (null/missing decodes cleanly), but only because we keep changes additive.
-10. **Printer additions follow the printer-addition protocol.** See `docs/runbooks/printer-addition-protocol.md`. Bundled `data/printers.json` is the source of truth; the iOS overlay is an additive same-day patch, not an alternative. Taxonomy decided + picker dry-run verified before any file edit; one printer = one commit per surface (web bundled → walkthrough → iOS bundled → overlay); Phase 7 self-check via `superpowers:requesting-code-review` gates Trigger A wrap-up. Deprecation is asymmetric — overlay cannot retract shipped-bundled entries.
+10. **Printer additions follow `docs/runbooks/printer-addition-protocol.md`.** Bundled `data/printers.json` is the source of truth; the iOS overlay is an additive same-day patch.
 
 ---
 

@@ -1,247 +1,172 @@
 # Printer Addition Protocol
 
-Use whenever adding, republishing, or deprecating a printer in 3dpa. Applies to both
-overlay-only shipments (current iOS users between binaries) and bundled-only adds
-(printers that ride the next binary).
+Use whenever adding, republishing, or deprecating a printer in 3dpa.
 
-## Background — why this exists
+**Background.** Authored after the post-mortem of the X2D / H2D Pro overlay-only
+mishap (2026-05-10) and the SPARKX i7 → Creality i7 taxonomy fix (2026-05-12). v2
+(2026-05-15) trimmed per Codex review: replaced paste-bash with a checked-in
+picker dry-run script, merged the verification phases, made reviewer dispatch
+risk-triggered instead of mandatory. See
+[`codex/printer-addition-protocol-review/codex-2026-05-15-printer-addition-protocol-packet.md`](../../codex/printer-addition-protocol-review/codex-2026-05-15-printer-addition-protocol-packet.md)
+for the full simplification trail.
 
-Authored after the post-mortem of the first two post-overlay-system printer additions
-(2026-05-10 X2D / H2D Pro, 2026-05-12 SPARKX i7 → Creality i7). Both went sideways:
-overlay was treated as an alternative to bundled data, taxonomy was wrong for the i7
-("SPARKX" brand instead of Creality → i Series), validator was structurally unable to
-allow same-day adds until mid-flight rework. Owner caught the i7 placement after it
-shipped. This protocol closes those gaps.
+## Mental model (read first — load-bearing)
 
-## Mental model (read first)
-
-- **Source of truth = bundled data.** Web reads `data/printers.json`. iOS reads its
-  own copy at `3DPrintAssistant/Data/printers.json` (byte-identical mirror) plus the
-  overlay merged on top.
-- **Overlay is an additive same-day patch**, not an alternative path. Current iOS
-  binary users see overlay entries until the next binary subsumes them into bundled.
-- **A printer addition is "done" only when all three surfaces agree.** Web bundled,
-  iOS bundled, and (if shipping overlay-only) the live overlay must agree on id,
-  manufacturer, series_group, and every spec field.
-- **An overlay cannot delete a bundled printer in already-shipped iOS.** Deprecation
-  removes from bundled going forward; for shipped binaries the printer remains until
-  users update.
-
----
+- **Source of truth = bundled data.** Web reads `data/printers.json`. iOS reads
+  its own copy at `3DPrintAssistant/Data/printers.json` (byte-identical mirror)
+  plus the overlay merged on top.
+- **Overlay = additive same-day patch**, not an alternative path. Current iOS
+  binary users see overlay entries until the next binary subsumes them.
+- **Done = all three surfaces agree** on id, manufacturer, series_group, every spec field.
+- **Overlay cannot retract a bundled entry from a shipped iOS binary.**
+  Deprecation is asymmetric (see Phase 4).
 
 ## Phase 1 — Taxonomy decision (before editing any file)
 
-1. **Record sources.** Vault clipping paths, manufacturer URL, FAQ, store listing.
-   No second-hand recollection. Source paths go in the commit body and the session
-   plan.
+1. **Record sources.** Vault clipping paths or manufacturer URL. Paths go in the
+   commit body. No second-hand recollection.
 2. **Decide four fields:**
-   - **`manufacturer`** — must match an existing brand id unless this is genuinely a
-     new manufacturer. Check existing brands:
-     ```bash
-     node -e "(async()=>{const e=require('./engine.js');await e.init();console.log(e.getBrands().map(b=>b.id));})()"
-     ```
-   - **`series_group`** — the picker sub-header label under the brand. Look at
-     siblings in `data/printers.json` for the same manufacturer; do not invent.
-   - **`id`** — internal stable id, `snake_case`. Once published in an overlay it
-     CANNOT change.
-   - **`name`** — picker row label.
-3. **Sanity question.** *Where does the manufacturer themselves put this product on
-   their site/store?* If your decision disagrees, stop and re-check before coding.
-4. **New-brand rule.** Adding a new `brands[]` row is a discrete owner-gated event
-   (last real one was years ago). When in doubt, find the existing brand and use
-   `series_group` for sub-categorization.
+   - `manufacturer` — must match an existing brand id unless owner has explicitly
+     approved a new `brands[]` row. Last legitimate new brand was years ago; new
+     brands are rare.
+   - `series_group` — the picker sub-header label under the brand. Reuse a
+     sibling's label; do not invent.
+   - `id` — stable internal id, `snake_case`. Once published in an overlay, it
+     cannot change.
+   - `name` — picker row label.
+3. **Sanity question.** Where does the manufacturer themselves put this on their
+   site/store? If your decision disagrees with that, stop and re-check.
 
----
+## Phase 2 — Picker dry-run (pre-commit gate)
 
-## Phase 2 — Picker dry-run (before any commit)
-
-Build a tiny Node script that loads the engine *after* your bundled edit and asserts
-the picker shape. This catches taxonomy errors that the data validator cannot see:
+After editing `data/printers.json`, before committing, run:
 
 ```bash
-node -e "(async()=>{
-  const e=require('./engine.js');
-  await e.init();
-  const brand=e.getPrintersByBrand('<expected_brand_id>');
-  const group=(brand.groups||[]).find(g=>g.label==='<expected_series_group>');
-  console.assert(group,'series_group missing');
-  console.assert(group.printers.some(p=>p.id==='<new_id>'),'printer missing in group');
-  console.assert(!e.getBrands().some(b=>b.id==='<wrong_brand_id>'),'spurious brand');
-  console.log('picker dry-run GREEN');
-})()"
+node scripts/picker-dry-run.js <brand_id> <series_group> <printer_id> [wrong_brand_id]
 ```
 
-If it red-lines, your taxonomy is wrong — not your code. Return to Phase 1.
+Example: `node scripts/picker-dry-run.js creality "i Series" sparkx_i7 sparkx`
 
----
+GREEN = proceed to Phase 3. RED = taxonomy is wrong, return to Phase 1. The
+optional `wrong_brand_id` arg asserts that a specific brand id does **not**
+exist — use it whenever sources contain a misleading brand cue (the SPARKX/i7
+class of bug).
 
-## Phase 3 — Edit surfaces in order (additions)
+The script is tested by `scripts/picker-dry-run.test.js`; run
+`node scripts/picker-dry-run.test.js` if you touch the script itself.
 
-Each step is its own commit. No bundling with unrelated work (correction sweeps,
-marketing copy, validator tweaks, engine.js touches).
+## Phase 3 — Implementation + verification
 
-1. **Web bundled.** Add the printer entry to `data/printers.json`. Run the Phase 2
-   dry-run. Run the Standard Gate from `./profile-data-change-test-protocol.md`.
-   Commit: `data: add <brand> <model> (<series_group>)`.
-2. **Walkthrough coverage.** Add at least one combo to
-   `scripts/walkthrough-harness.js` covering the new printer with a representative
-   material + nozzle. Same commit as step 1 — never separated by more than one commit.
-3. **iOS bundled mirror.**
-   ```bash
-   cp data/printers.json ../3dprintassistant-ios/3DPrintAssistant/Data/printers.json
-   ```
-   Run iOS XCTest. Commit in the iOS repo:
-   `data: sync printers.json — add <brand> <model>`.
-4. **Overlay publish (only if shipping to current iOS users):**
-   - Edit `catalog/ios-printer-overlay-v1.json`: add the printer entry to
-     `payload.printers`. Leave `payload.brands` empty unless the brand is also new
-     (owner-gated; see Phase 1 step 4).
-   - Bump `content_version` to today's `YYYYMMDDNN` (NN = sequence).
-   - Refresh `generated_at`.
-   - Recompute `payload_sha256` per the overlay spec
-     (`../specs/ios-remote-printer-catalog.md`).
-   - Run `node scripts/validate-ios-printer-overlay.js`.
-   - Commit: `data: publish <brand> <model> iOS overlay (content_version=YYYYMMDDNN)`.
+**Commits.** One printer = one focused commit per repo:
 
----
+1. **Web commit** — `data/printers.json` + `scripts/walkthrough-harness.js`
+   combo for the new printer. Subject: `data: add <brand> <model> (<series_group>)`.
+2. **iOS mirror commit** — byte-identical `cp` of `data/printers.json` to the
+   iOS bundled copy. Subject: `data: sync printers.json — add <brand> <model>`.
+3. **Overlay commit (only if shipping to current iOS users)** — edit
+   `catalog/ios-printer-overlay-v1.json` payload, bump `content_version`,
+   recompute `payload_sha256` per
+   [`docs/specs/ios-remote-printer-catalog.md`](../specs/ios-remote-printer-catalog.md),
+   run `node scripts/validate-ios-printer-overlay.js`. Subject:
+   `data: publish <brand> <model> iOS overlay (content_version=YYYYMMDDNN)`.
 
-## Phase 4 — Verification gates
+**Forbidden in any of these commits:** `engine.js` touches, marketing copy
+edits, correction sweeps across other printers, validator code changes.
+Those land in their own arc.
 
-All of these must be green before Phase 7:
-
-- `node scripts/validate-data.js` — green.
-- `node scripts/validate-ios-printer-overlay.js` — green (only if overlay touched).
-- `node scripts/walkthrough-harness.js` — green; new combo passes.
-- `node scripts/profile-matrix-audit.js` — green; 0 broad failures.
-- iOS XCTest — green.
-- Phase 2 picker dry-run — green.
-- **Owner visual check** — open the web app and confirm the picker shows the printer
-  under the expected brand → series_group. If wrong: STOP, fix taxonomy, replay Phase 3.
-
-## Phase 5 — Live overlay confirmation (only if Phase 3 step 4 ran)
-
-After web push + Cloudflare deploy:
+**Verification — all green before Phase 7:**
 
 ```bash
-curl -s https://3dprintassistant.com/catalog/ios-printer-overlay-v1.json | jq '{content_version, hash_ok: true, printers: .payload.printers|map(.id)}'
+node scripts/validate-data.js
+node scripts/picker-dry-run.js <brand_id> <series_group> <printer_id> [wrong_brand_id]
+node scripts/walkthrough-harness.js
+node scripts/profile-matrix-audit.js
+node scripts/validate-ios-printer-overlay.js   # only if overlay touched
+xcodebuild test -project 3DPrintAssistant.xcodeproj -scheme 3DPrintAssistant \
+  -destination 'platform=iOS Simulator,name=iPhone 17,OS=<available>' \
+  -only-testing:3DPrintAssistantTests CODE_SIGNING_ALLOWED=NO
 ```
 
-Confirm `content_version` matches what you just published. Spot-check on a current
-iOS 1.0.3 device or simulator: relaunch, verify the printer appears in the picker.
+**Owner visual picker check** — required if (a) the overlay was published OR
+(b) a new brand row was added OR (c) a new `series_group` was introduced. Open
+the running web app and confirm the printer appears under the expected
+brand → series_group. If wrong: STOP, fix taxonomy, replay Phase 3.
 
----
+**Live overlay confirmation** — only if Phase 3 step 3 ran. After web push +
+Cloudflare deploy:
 
-## Phase 6 — Deprecation / removal
+```bash
+curl -s https://3dprintassistant.com/catalog/ios-printer-overlay-v1.json \
+  | jq '{content_version, printers: .payload.printers|map(.id)}'
+```
 
-Removing a printer is rarer than adding one. The overlay cannot retract what is
-already bundled in shipped iOS binaries, so removal is asymmetric.
+Confirm `content_version` matches what you published.
 
-### Decide first: deprecate vs remove
+## Phase 4 — Deprecation / removal (asymmetric)
 
-- **Deprecate** — keep the id, hide from picker, document EOL. Use when the printer
-  was ever publicly available; preserves stored profiles and shareable URLs.
-- **Remove** — delete from bundled going forward. Only use when the printer entry
-  was a mistake or never publicly used.
+The overlay cannot retract what is already bundled in shipped iOS binaries.
+Removing a printer is rare and requires care. **Before any deprecation work,
+read the overlay spec at
+[`docs/specs/ios-remote-printer-catalog.md`](../specs/ios-remote-printer-catalog.md)
+and decide deprecate (keep id, hide from picker, preserve stored profiles) vs
+remove (mistake / never-public only).** When the first real deprecation
+happens, capture the executed procedure here as Phase 4a.
 
-### Deprecation procedure
+## Phase 5 — Self-check (10-bullet checklist; gates Trigger A wrap-up)
 
-1. **Web bundled.** Add `"deprecated": true` + `"deprecation_note": "<reason>"` to
-   the printer entry. Engine (`engine.js`) and `app.js` filter out deprecated entries
-   from `getBrands()` / `getPrintersByBrand()` for new-state picker rendering but
-   keep them resolvable for stored state (so an old saved profile still resolves).
-   - If engine support for the `deprecated` flag does not yet exist, add it in a
-     separate prior commit (`feat: filter deprecated printers from picker`).
-2. **Walkthrough.** Move the printer's combo to a `deprecated_combos[]` section or
-   delete it; do not let a deprecated printer block the matrix.
-3. **iOS bundled mirror.** `cp` as in Phase 3 step 3. iOS XCTest green.
-4. **Overlay.** Generally no overlay action — current iOS users continue to see the
-   bundled entry until the next binary. If absolutely needed, an overlay entry can
-   carry the same `deprecated: true` flag to push the EOL state to current iOS users
-   ahead of the next binary; this requires overlay-spec support and is a deliberate
-   choice.
-5. **Phase 4 verification gates** apply unchanged.
+Run through this list before declaring the session complete. Every line must
+be `[x]` or have an explicit reason it does not apply. If any line is `[ ]`,
+the wrap-up is blocked.
 
-### Removal procedure (mistake / never-public only)
+- [ ] Sources cited in plan or commit body (path or URL).
+- [ ] Taxonomy matches existing brand picker; new `brands[]` row, if any, has
+      explicit owner sign-off.
+- [ ] Phase 2 picker dry-run output captured in commit body or session log.
+- [ ] Web commit is one printer; no `engine.js`, marketing, or correction-sweep
+      mixing.
+- [ ] iOS mirror commit byte-identical (`diff -q web iOS` exit 0).
+- [ ] Overlay commit (if any): `content_version` bumped, `payload_sha256`
+      recomputed, validator green.
+- [ ] `validate-data` + `walkthrough-harness` + `profile-matrix-audit` + iOS
+      XCTest all green at HEAD.
+- [ ] No `engine.js`, `app.js`, validator, or spec file edited in printer
+      commits.
+- [ ] Owner visual picker check OK (only if overlay touched, new brand, or new
+      series_group).
+- [ ] Live overlay URL confirms published `content_version` (only if overlay
+      was deployed).
 
-1. Confirm with owner that no shipped iOS binary has carried this id publicly.
-   If it has, the removal becomes a deprecation per above.
-2. Delete the entry from `data/printers.json`, walkthrough combo if any, and iOS
-   bundled mirror. Each repo gets its own commit.
-3. Overlay: if the id was ever published in an overlay, ship one final overlay with
-   the entry removed (NOT a deprecation flag — actual removal). Bump
-   `content_version`. Validator's bundled-baseline file is also updated to reflect
-   the removal once iOS ships a binary without it.
+### Risk-triggered reviewer dispatch
 
----
+Escalate to `superpowers:requesting-code-review` against the printer-add diff
+when **any** of these fire:
 
-## Phase 7 — Self-check via 3rd-party reviewer (gates Trigger A wrap-up)
+- New `brands[]` row added.
+- New `series_group` introduced under an existing brand.
+- Overlay publish to current iOS users (not bundled-only).
+- `engine.js`, `app.js`, validator, or overlay spec touched anywhere in the
+  diff.
+- Sources conflicted on a key spec field.
+- Deprecation or removal (Phase 4).
+- More than one printer added in the same session.
 
-**Do not start Trigger A until Phase 7 returns GO.**
-
-Use the `superpowers:requesting-code-review` skill to dispatch an independent reviewer
-subagent against the diff. This is the same 7-for-7 pattern from the v1.0.4 arc.
-
-### Reviewer scope
-
-Diff range = the printer-addition commits across both repos since the last clean
-HEAD. Include:
-
-- Web: `data/printers.json`, `catalog/ios-printer-overlay-v1.json`,
-  `scripts/walkthrough-harness.js`, any `app.js` / `engine.js` touch.
-- iOS: `3DPrintAssistant/Data/printers.json`, any test changes.
-
-### Reviewer checklist (paste into the dispatch prompt)
-
-1. **Taxonomy.** Manufacturer + series_group present and consistent across web
-   bundled, iOS bundled, overlay (if touched), walkthrough, and any UI copy. No
-   accidental new brand.
-2. **Source attribution.** Commit bodies cite at least one source path/URL per
-   non-trivial spec field. No "I remember reading."
-3. **Surface lockstep.** Web bundled, iOS bundled, and overlay (if touched) carry
-   identical specs for the new printer. Hash recomputed if overlay edited.
-4. **Commit shape.** One printer = one commit per surface. No bundled correction
-   sweeps, marketing copy edits, validator changes, or engine touches mixed in.
-5. **Picker dry-run.** Evidence of Phase 2 script run captured in the session plan
-   or commit body.
-6. **Verification gates.** Phase 4 evidence captured: validate-data, overlay
-   validator, walkthrough, matrix-audit, iOS XCTest, owner visual check.
-7. **Deprecation (only if Phase 6 ran).** Engine-side filtering coherent; old saved
-   state still resolves; no broken walkthrough.
-8. **No spurious damage.** Diff does not silently rename ids, alter unrelated
-   printer fields, or change engine behavior.
-
-### Outcomes
-
-- **GO (0 Critical / 0 Important)** → proceed to Trigger A wrap-up.
-- **Important+** → tighten in a follow-up commit, re-run Phase 4, re-dispatch
-  reviewer. Wrap-up stays gated.
-- **Medium / Minor** → owner decision: ship now and carry to next release, or
-  tighten before wrap-up.
-
-The session is not "complete" until the reviewer returns GO.
-
----
+If none of those fire, the self-check above is sufficient. This aligns with
+the `ai-collab.md` risk-based second-model rule.
 
 ## What this protocol forbids
 
-- Editing the overlay without editing bundled.
-- Adding a printer in the same commit as engine / data correction / marketing edits.
-- Adding a new `brands[]` row without explicit owner sign-off.
+- Editing the overlay without editing bundled `data/printers.json`.
+- Mixing a printer add with engine, marketing, correction-sweep, or validator
+  work.
+- Adding a new `brands[]` row without owner sign-off.
 - Trusting a single source for taxonomy.
-- Treating "validator passes" as taxonomy verification — the validator does not
-  know about brand pickers.
-- Running Trigger A before Phase 7 reviewer returns GO.
-
----
+- Running Trigger A wrap-up before Phase 5 self-check is fully `[x]` (and
+  reviewer dispatch returned GO, if triggered).
 
 ## Cross-references
 
-- Overlay system spec: `../specs/ios-remote-printer-catalog.md`
-- Validator: `../../scripts/validate-ios-printer-overlay.js`
-- Shipped iOS catalog baseline (validator input):
-  `../../catalog/ios-bundled-catalog-baselines.json`
-- Standard data-change gate: `./profile-data-change-test-protocol.md`
-- Standing rules: `../3dpa-context.md`
-- Trigger A close protocol: `/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md`
-- Vault trigger entry: `Obsidian Vault/20-Areas/Development/ai-collaboration/trigger-cheatsheet.md` →
-  "Printer Addition Gate" under "3dpa Work Gates".
+- Overlay system spec: [`../specs/ios-remote-printer-catalog.md`](../specs/ios-remote-printer-catalog.md)
+- Standard data-change gate: [`./profile-data-change-test-protocol.md`](./profile-data-change-test-protocol.md)
+- Standing rules: [`../3dpa-context.md`](../3dpa-context.md) (rule 10)
+- Vault trigger: `Obsidian Vault/20-Areas/Development/ai-collaboration/trigger-cheatsheet.md` → "Printer Addition Gate"
+- v1 → v2 simplification trail: [`../../codex/printer-addition-protocol-review/codex-2026-05-15-printer-addition-protocol-packet.md`](../../codex/printer-addition-protocol-review/codex-2026-05-15-printer-addition-protocol-packet.md)
