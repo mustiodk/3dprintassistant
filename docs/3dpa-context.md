@@ -70,6 +70,7 @@ Web supports English + Danish. Strings live at `locales/en.json` and `locales/da
 | `getAdvancedFilamentSettings(state)` | split temps + extrusion params | Advanced-mode filament panel |
 | `getFilamentProfile(materialId)` | display data for material panel | Notes, drying, build-plate compat |
 | `getCompatibleNozzles(materialId)` | `[{ id, name, compatible }]` | Dims incompatible nozzles |
+| `getCompatibleNozzlesForPrinter(materialId, printerId)` | `[{ id, name, compatible }]` | Material × printer-aware filtering on top of `getCompatibleNozzles` |
 | `getSymptoms()` / `getTroubleshootingTips(symptomId, state)` | symptom list + ranked causes/fixes | Troubleshooter |
 | `calcPurgeVolumes(slots, materialGroup)` | `{ matrix, mult, tip }` | AMS flush volume calculator |
 | `calcPrintTime({ height_mm, ... }, state)` | `{ low, mid, high }` | Print time estimate |
@@ -77,6 +78,8 @@ Web supports English + Danish. Strings live at `locales/en.json` and `locales/da
 | `getSlicerForPrinter(printerId)` | `'bambu_studio'` \| `'prusaslicer'` \| `'orcaslicer'` | Slicer routing |
 | `getFilamentTabs(mode)` / `getSlicerTabs(slicerId)` / `getSlicerDisplayName(id)` | tab structures + display names | Slicer-aware UI |
 | `exportProfile(state, profile)` | JSON string | Reference export — currently disabled in UI |
+
+**Known asymmetry (v1.0.4 OBSERVATION-01).** `getCompatibleNozzlesForPrinter` is a public exported helper (`engine.js:2726` exported at `engine.js:3520`). The parallel `getCompatiblePlatesForPrinter` is intentionally **absent** — plate-printer compatibility is enforced exclusively via the warning-time guard inside `getWarnings(state)`. This is acceptable for v1.0.4 because no web/iOS surface has a plate picker that would consume a list. Promote to a public helper only when such a picker is built; expanding the API preemptively is YAGNI. Source: Codex 2026-05-13 v1.0.4 audit OBSERVATION-01 accept-criterion.
 
 **App state shape** (canonical):
 
