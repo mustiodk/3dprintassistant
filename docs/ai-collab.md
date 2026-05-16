@@ -163,3 +163,13 @@ forces external review to prove a negative.
 
 Applies to any cross-platform mirror commit on 3dpa (iOS mirroring web walkthrough,
 or future cross-tool mirrors).
+
+
+### When AI-collaboration mismatches surface
+
+Reviewer-vs-reviewer disagreements, implementer-vs-reviewer drift, surprising
+skill outcomes, or bridge/Codex overrules of a judgment call are captured
+per the cross-project findings protocol at
+[`../../ai-operating-model/docs/findings/README.md`](../../ai-operating-model/docs/findings/README.md).
+Capture lives there — not here — so per-project docs don't drift from the
+canonical rule.
