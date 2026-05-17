@@ -1,6 +1,6 @@
 # Next session - cold-start prompt (3dpa web + iOS)
 
-**Last updated:** 2026-05-15 after the printer-addition-protocol trial close (Photon Mono M7 Pro declined; runbook v4 shipped; new v1.0.5 carry added). **Owner-stated next action:** Musti will test v1.0.4 on-device via TestFlight and report back whether v1.0.4 is ready to submit for App Store review. The next session is therefore **gated on Musti's TestFlight verdict** — Lane A only fires if v1.0.4 is GO; Lane B if a regression surfaces; Lane C is the v1.0.5 hygiene cold-start fallback.
+**Last updated:** 2026-05-17 after the resin-scaling discovery kickoff close. The PoC charter ("no new claim escapes a bridge round") requires bridge round 2 on `problem-statement.md` v3 before any downstream artifact cites it. Owner has been informed that v1.0.4 TestFlight submission is unblocked but parked behind the PoC pivot — pick it back up whenever owner directs.
 
 A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger B / explicit owner ask.
 
@@ -8,143 +8,83 @@ A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger 
 
 >>> START >>>
 
-# Cold-start: 3D Print Assistant — v1.0.4 review-readiness decision
+# Cold-start: 3D Print Assistant — resin-scaling PoC continuation (bridge round 2 + Gate 1 drafting)
 
 ## Required skills — invoke at cold-start
 
-1. `superpowers:using-superpowers`
-2. `superpowers:writing-plans`
-3. `superpowers:executing-plans`
-4. `superpowers:test-driven-development`
-5. `superpowers:verification-before-completion`
-6. `superpowers:systematic-debugging` (only if Lane B fires — i.e., owner found a regression)
-7. `superpowers:requesting-code-review` (only if Lane B's fix touches engine / data / shared infra)
+1. `superpowers:using-superpowers` (already loaded by SessionStart hook)
+2. `superpowers:writing-plans` — Gate 1 desk research is plan-shaped
+3. `superpowers:verification-before-completion` — any claim about resin slicer behavior needs primary-source verification
 
-Load skills 1-5 at cold-start. Announce each.
+Skip TDD / debugging — no code in this session.
 
 ## Read First, In This Order
 
 Follow Trigger C. Show the `[🟩...⬜ N%]` progress bar at every phase. Confirm current state + locked next step + risks before any file edit.
 
-1. `/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md`
-2. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/CLAUDE.md`
-3. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant-ios/CLAUDE.md`
-4. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/3dpa-context.md`
-5. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/planning/ROADMAP.md`
-6. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/INDEX.md`
-7. Last three session logs (newest first):
+1. `/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md` — top-level rules.
+2. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/CLAUDE.md` — project rules.
+3. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/3dpa-context.md` — evergreen.
+4. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/planning/ROADMAP.md` — note: Active Work Queue now includes "Resin-scaling discovery (PoC, docs-only)" as the active item.
+5. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/INDEX.md` — last 3 bullets in particular.
+6. **PoC meta-track (load-bearing for this session):**
+   - `/Users/mragile.io/Documents/Claude/Projects/ai-operating-model/docs/autonomy-poc-2026-05-resin/charter.md`
+   - `/Users/mragile.io/Documents/Claude/Projects/ai-operating-model/docs/autonomy-poc-2026-05-resin/scorecard.md`
+   - `/Users/mragile.io/Documents/Claude/Projects/ai-operating-model/docs/autonomy-poc-2026-05-resin/bridge-rounds/round-1-analysis.md`
+7. **The resin foundation document (v3):**
+   - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/resin-scaling/problem-statement.md` — **read §2 first (audience reframe is load-bearing)**, then the rest in order
+8. Last 3 session logs (newest first):
+   - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-17-cowork-appdev-resin-scaling-poc-kickoff.md`
    - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-15-cowork-appdev-printer-addition-protocol-trial.md`
    - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-15-cowork-appdev-printer-addition-protocol.md`
-   - `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/2026-05-15-cowork-appdev-v1.0.4-s9-bug-free-ship.md`
-8. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/NEXT-SESSION.md` (this file)
-9. **If Lane A fires (v1.0.4 GO):** the iOS push gate + App Store submission flow notes in `Projects/CLAUDE.md` Standing Rules.
-10. **If Lane B fires (regression):** the relevant area's spec or session log per Musti's report.
+9. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/NEXT-SESSION.md` (this file)
 
-## Current State (verify at session start)
+## Current state (verify at session start)
 
-- **Web HEAD `6314fda` pushed.** Runbook v4 live. `git log --oneline -3` should show `6314fda` → `8339a2a` → `9754c47` on `origin/main`.
-- **iOS HEAD `c99a797` pushed.** v1.0.4 on TestFlight ([run 25892826819](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25892826819)).
-- **Working tree clean** in both repos.
-- **No work in flight.**
-- **Photon Mono M7 Pro request closed** — decline note in trial session log; v4 protocol blocks future resin asks at Phase 1 step 0.
+- **Web HEAD** — last close commit on `main`; resin-scaling work is in `docs/resin-scaling/` (committed). Run `git log --oneline -5` to confirm. Working tree should be clean.
+- **iOS HEAD** `c99a797` (untouched). v1.0.4 on TestFlight ([run 25892826819](https://github.com/mustiodk3dprintassistant-ios/actions/runs/25892826819)). v1.0.4 → App Store review submission remains parked — owner pivot to PoC has it on hold.
+- **PoC findings to date:** K1-1 (worker.js self-own) + K4-1 (audience-as-users) — both `open`, both filed at `ai-operating-model/docs/findings/`. Don't re-litigate; they're load-bearing for the autonomy ceiling answer.
+- **Survey v1 PARKED** — kept for general-feedback-pattern reference, NOT used for resin discovery. v3 §2 audience reframe is why.
+- **Backup pre-launch:** `Claude/backups/claude-snapshot-2026-05-17.tar.gz` + `memory-snapshot-2026-05-17.tar.gz` + `recovery-2026-05-17.md`.
 
-## Lane A — v1.0.4 → App Store review submission (fires only if Musti returns GO)
+## Two paths for this session (pick one or sequence both)
 
-### Step 0 — Confirm GO
+### Path A — Bridge round 2 on v3 (REQUIRED before path B)
 
-Musti must explicitly say "v1.0.4 is ready to submit for review" (or equivalent). If verdict is unclear, ask before proceeding.
+Per PoC charter: no new claim escapes a bridge round. v3 has substantial new claims:
+- 7 new couplings (C9–C15) with t-shirt sizing
+- Reframed gates (2 gates, ordered by cost-to-answer)
+- Expanded success-target spectrum (A–G, 7 options)
+- Gate-result × outcome matrix in §7 (4 named outcomes including "park")
+- Load-bearing §2 audience reframe
 
-### Step 1 — Pre-submission verification
+**Action:** invoke `bridge` from `Projects/3dprintassistant/` (verify cwd explicitly per scorecard note) with a task prompt that:
+- Names v3 as the artifact under review
+- Pressure-tests v3's own §9 open questions (audience-reframe consistency through §4 Gate 2 spectrum, t-shirt sizing defensibility, gate-matrix orthogonality, "park" outcome too-easy criterion, line-ref freshness, residual institutional-context tension, off-axis spectrum completeness)
+- Asks Codex specifically to verify the §5 line refs (since some are post-bridge-round-1 additions: C9 engine.js:370, C10 engine.js:2969, C11 locales/en.json:15, C12 functions/api/analytics.js:29, C13 index.html:7, C14 app-store-metadata.md:39, C15 PrinterCatalogProvider.swift:254)
+- Does NOT re-litigate D1/D2/D3 (settled)
 
-From `Projects/3dprintassistant-ios/`:
+Expected wall-time: ~13–15 min. Output: `ai-operating-model/docs/autonomy-poc-2026-05-resin/bridge-rounds/bridge-2026-MM-DD-...md`. Write a `round-2-analysis.md` after.
 
-```bash
-git log --oneline origin/main..HEAD   # must be empty (no unpushed commits)
-git status                            # must be clean
-xcodebuild -project 3DPrintAssistant.xcodeproj -scheme 3DPrintAssistant -showBuildSettings | grep MARKETING_VERSION
-# must show 1.0.4
-```
+### Path B — Draft technical-differences.md (Gate 1 desk research)
 
-From `Projects/3dprintassistant/`:
+Only after Path A clears v3 to be cited. Gate 1 (wizard-frame fit) is desk-researchable; primary sources include:
+- Chitubox / Lychee / Prusa SL1 slicer documentation (parameter surfaces)
+- Anycubic Photon Workshop / Elegoo Voxeldance Tango (manufacturer-bundled tools)
+- Resin-printing community wisdom (FacFox, AmeraLabs, Siraya Tech docs)
+- Owner-side primary sources: any resin-printing reference material the owner already has
 
-```bash
-git log --oneline origin/main..HEAD   # must be empty
-git status                            # must be clean
-```
+The artifact `docs/resin-scaling/technical-differences.md` should quantify (rough fractions, not precise): what % of "what a resin user wants to tune" is settings-only (advisable by 3dpa's existing wizard) vs geometry-driven (not advisable without STL ingestion). Gate 1's answer feeds Gate 2.
 
-### Step 2 — App Store Connect submission
-
-This is a **manual ASC workflow**, not a CLI step in this repo. Musti drives it.
-
-Suggested checklist to walk through with Musti:
-- Open App Store Connect → 3D Print Assistant → "iOS App" → "1.0.4 Prepare for Submission."
-- Confirm build `1.0.4` selected from TestFlight processed builds.
-- Update "What's New in This Version" (see "Suggested release notes" below).
-- Confirm screenshots / metadata require no changes (no new UI surfaces in v1.0.4).
-- Confirm encryption export compliance unchanged.
-- Submit for review.
-
-### Step 3 — Suggested release notes (Musti edits to taste)
-
-```
-- Improved cold/warm environment compensation accuracy.
-- More honest first-layer bed temperature warnings.
-- Cooling settings now follow environment scaling in Advanced mode.
-- Quality + behind-the-scenes reliability improvements.
-```
-
-### Step 4 — Post-submission
-
-- Update ROADMAP "Active Release" header to v1.0.4 "Submitted for review YYYY-MM-DD."
-- Light-touch session log; this is a hand-off step, not a code arc.
-
-## Lane B — Regression fix arc (fires only if Musti returns NO-GO)
-
-### Step 0 — Capture the regression
-
-Treat Musti's report as a bug report. Ask for:
-- Specific reproduction steps.
-- Device / iOS version.
-- Whether the regression existed in v1.0.3 (to know if it's new or pre-existing).
-- Screenshots / video if visible.
-
-### Step 1 — Triage
-
-- If the regression is in shared engine / data: web fix first, then iOS sync (per standing rule 2 in `docs/3dpa-context.md`).
-- If the regression is iOS-only (UI / Codable / view-model): iOS-only commit.
-
-### Step 2 — Fix arc
-
-Follow `superpowers:systematic-debugging` + `test-driven-development`. One finding = one commit per platform. Bump iOS to `1.0.5` if a binary refresh is needed, or stay on `1.0.4` only if the fix is safe to slip into the same TestFlight build before submission (rare).
-
-### Step 3 — Re-verify
-
-Full gate: validate-data + walkthrough + matrix-audit + iOS XCTest. Re-dispatch TestFlight if iOS rebuild.
-
-## Lane C — v1.0.5 hygiene pass cold-start (fallback if Lane A and Lane B both park)
-
-See `docs/sessions/2026-05-15-cowork-appdev-v1.0.4-s9-bug-free-ship.md` "Next session" for the carry-forward bundle. The bundle now includes:
-
-- Helper extraction across 4 math-duplication sites
-- m2 test rename
-- Min-1 PLA + PETG + ABS slow_layer_time test coverage
-- Min-2 NSNumber decoder cleanup
-- Magic constants
-- Mobile-card warning text length check
-- Smoke assertion for emit-vs-claim parity
-- Shared `RETIRED_IDS` const
-- Walkthrough hardcoded baseline
-- MEDIUM-02 packet-text accuracy decision
-- **NEW: FDM-only scope copy on a user-facing surface** — owner-pick web About / footer / iOS Settings; phrase as "FDM (filament extrusion) only today; MSLA / resin out of scope (future implementation)" to preserve optionality vs. the runbook's harder operational "no plans" stance.
-
-Cold-starting v1.0.5 should treat the bundle as a triage exercise first (pick 3-5 to ship, defer the rest) — not a flat 11-item plan.
+**Note:** owner reframe means primary sources are for the *owner's* learning + tuning needs, not for serving 3dpa's user base.
 
 ## Scope Rules
 
-- **Wait for Musti's verdict before firing any lane.** Don't preemptively run xcodebuild or open ASC in this cold-start; ask first.
-- **iOS push gate stays.** v1.0.4 is on TestFlight + about to be submitted for review; do not push any new iOS commit until v1.0.5 ship-readiness.
-- **One finding = one commit per platform** (Lane B).
-- **Verification-before-completion is rigid.** Any "v1.0.4 is GO" claim needs evidence (Musti's words count; xcodebuild output for build settings counts; "I think it's fine" does not).
+- **No live engine / data / UI touches.** PoC discovery is docs-only. Hard stop.
+- **No iOS push** (iOS untouched anyway; v1.0.4 push gate still holds for the parked submission).
+- **Findings + scorecard update in real time** per charter.
+- **Owner-asks queue: surface in batches, not inline.**
+- **One finding = one commit per platform** when work eventually lands.
 - **Trigger A close runs at session end.**
 
 <<< END <<<
