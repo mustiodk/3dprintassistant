@@ -1681,15 +1681,18 @@ const Engine = (() => {
             if (effectiveAdj === requestedAdj) {
               // Full apply — keep historical copy contract: the "+N°C applied"
               // claim matches the emitted bed_first_layer_adj.
-              bedFirstText = `${env.name} first-layer bed compensation: +${requestedAdj}°C applied to first-layer bed temperature.`;
+              // v1.0.5: env.name prefix stripped — the consolidated env_*_0
+              // warning that follows already carries env framing; leading both
+              // banners with the same env name read as duplicated chrome.
+              bedFirstText = `First-layer bed compensation: +${requestedAdj}°C applied to first-layer bed temperature.`;
               bedFirstDetail = 'Improves first-layer adhesion when the chamber is cool. Bed returns to base temp from layer 2 onwards.';
             } else if (effectiveAdj <= 0) {
               // Fully clipped — base initial-layer target already at/over cap.
-              bedFirstText = `${env.name} first-layer bed compensation: +${requestedAdj}°C requested but fully clipped by ${capSource}.`;
+              bedFirstText = `First-layer bed compensation: +${requestedAdj}°C requested but fully clipped by ${capSource}.`;
               bedFirstDetail = `The base initial-layer bed target is already at the cap, so the env first-layer boost emits +0°C effective. Switching to a less-compensating environment will not raise the bed further on this combo.`;
             } else {
               // Partially clipped — emit honest applied delta + requested delta.
-              bedFirstText = `${env.name} first-layer bed compensation: +${effectiveAdj}°C applied to first-layer bed (requested +${requestedAdj}°C, partially clipped by ${capSource}).`;
+              bedFirstText = `First-layer bed compensation: +${effectiveAdj}°C applied to first-layer bed (requested +${requestedAdj}°C, partially clipped by ${capSource}).`;
               bedFirstDetail = `The requested env delta exceeds the bed cap; the emitted first-layer bed reflects ${effectiveAdj}°C of compensation, not ${requestedAdj}°C.`;
             }
             warnings.push(w(`env_${env.id}_bed_first_layer`,

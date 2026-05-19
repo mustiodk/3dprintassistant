@@ -1266,6 +1266,53 @@ const COMBOS = [
     console.log(`[v1.0.4 P1.5 MEDIUM-01] OK env_*_bed_first_layer reflects post-clamp truth across all three branches: fully-clipped PETG+X1C+cold says "requested but clipped"; un-clipped PLA+X1C+cold keeps "+7°C applied"; partial-clip PLA+X1C+vcold says "+5°C applied (requested +10°C, partially clipped...)". printer_max_bed_temp_clamped now fires on PETG+Kobra 3 Max+cold via env contribution to initTarget; non-regression on PLA+X1C and PETG+X1C printer-cap-clamp paths.`);
   }
 
+  // ─── v1.0.5 — env-name prefix dedupe on bed-first-layer warning ──────────
+  // Bug (owner-reported 2026-05-19, screenshot): when an env triggers BOTH
+  // the dedicated bed-first-layer warning (MEDIUM-01) AND the consolidated
+  // env-compensation warning (nozzle / bed / first-layer-speed), both banners
+  // led with the same `${env.name}` prefix — e.g. two consecutive warnings
+  // both starting with "Cold garage (5–15°C)". The bed-first-layer banner
+  // doesn't need to carry env framing because the consolidated banner that
+  // follows already does. Fix: strip the env.name prefix from the three
+  // MEDIUM-01 attribution-honesty branches in engine.js. Consolidated banner
+  // keeps the env prefix as the canonical "this is from <env>" framing.
+  {
+    // Probe all three MEDIUM-01 attribution branches at the same combos used
+    // above. Assert each text does NOT start with env.name. Each combo also
+    // emits a consolidated env warning, so this is the dedup contract.
+    const cases = [
+      { label: 'fully-clipped (PETG+X1C+cold)', envId: 'cold', envName: 'Cold garage (5–15°C)',
+        state: stateDefault({ printer: 'x1c', nozzle: 'std_0.4', material: 'petg_basic', environment: 'cold' }),
+        bedWarningId: 'env_cold_bed_first_layer' },
+      { label: 'full-apply (PLA+X1C+cold)', envId: 'cold', envName: 'Cold garage (5–15°C)',
+        state: stateDefault({ printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', environment: 'cold' }),
+        bedWarningId: 'env_cold_bed_first_layer' },
+      { label: 'partial-clip (PLA+X1C+vcold)', envId: 'vcold', envName: 'Very cold (<5°C)',
+        state: stateDefault({ printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', environment: 'vcold' }),
+        bedWarningId: 'env_vcold_bed_first_layer' },
+    ];
+    for (const c of cases) {
+      const warns = Engine.getWarnings(c.state);
+      const bed = warns.find(w => w.id === c.bedWarningId);
+      if (!bed) {
+        throw new Error(`v1.0.5 env-prefix-dedupe: ${c.label} must emit ${c.bedWarningId}; got ids ${warns.map(w=>w.id).join(',')}`);
+      }
+      if (bed.text.startsWith(c.envName)) {
+        throw new Error(`v1.0.5 env-prefix-dedupe: ${c.label} bed warning MUST NOT start with env.name "${c.envName}"; text = "${bed.text}"`);
+      }
+      // Pair contract: the consolidated banner exists for this combo and DOES
+      // carry the env.name prefix — that's the surface the dedup defers to.
+      const consolidated = warns.find(w => w.id === `env_${c.envId}_0`);
+      if (!consolidated) {
+        throw new Error(`v1.0.5 env-prefix-dedupe: ${c.label} must also emit consolidated env_${c.envId}_0 warning (pair contract); got ids ${warns.map(w=>w.id).join(',')}`);
+      }
+      if (!consolidated.text.startsWith(c.envName)) {
+        throw new Error(`v1.0.5 env-prefix-dedupe: ${c.label} consolidated warning MUST keep env.name prefix "${c.envName}" (the bed warning defers to it); text = "${consolidated.text}"`);
+      }
+    }
+    console.log(`[v1.0.5 env-prefix-dedupe] OK env_*_bed_first_layer no longer duplicates env.name prefix across all three MEDIUM-01 branches; consolidated env_*_0 warning keeps the env framing.`);
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo
