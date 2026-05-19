@@ -1,6 +1,6 @@
 # Next session - cold-start prompt (3dpa web + iOS)
 
-**Last updated:** 2026-05-19 after env-prefix-dedupe bug fix wrap (Trigger A). Three viable lanes — owner-pick at cold-start. PoC paths still valid; v1.0.5 hygiene continuation is now newly available with one item shipped; v1.0.4 → ASC submission lane remains parked, gated on owner's TestFlight verdict.
+**Last updated:** 2026-05-19 after env-prefix-dedupe bug fix wrap (Trigger A) + mid-session ride-along into v1.0.4 TestFlight. Three viable lanes — owner-pick at cold-start. PoC paths still valid; v1.0.5 carry bundle reverts to all items pending (the dedupe fix shipped under v1.0.4, not v1.0.5); v1.0.4 → ASC submission lane is now nearer-term — pending [TestFlight run 26125919796](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/26125919796) acceptance + owner on-device test.
 
 A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger B / explicit owner ask.
 
@@ -47,7 +47,7 @@ Follow Trigger C. Show `[🟩...⬜ N%]` progress bar at every phase. Confirm cu
 ## Current state (verify at session start)
 
 - **Web HEAD** `46334e6` (pushed; Cloudflare auto-deploys). Run `git log --oneline -3` + `git status` to confirm. Working tree should be clean post-wrap.
-- **iOS HEAD** `e2985f1` — 1 ahead of `origin/main` (`c99a797`). Local-only per push gate. v1.0.4 on TestFlight ([run 25892826819](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25892826819)); v1.0.5 carry bundle has 1 item shipped (env-prefix-dedupe) with the rest pending.
+- **iOS HEAD** `ed08507` — pushed to `origin/main` (amended from `e2985f1` pre-push to reflect v1.0.4 ride-along). v1.0.4 has a NEW TestFlight build pending acceptance: [run 26125919796](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/26125919796) (env-prefix-dedupe included). Prior v1.0.4 build was [run 25892826819](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25892826819). v1.0.5 carry bundle all-items-pending.
 - **PoC state (unchanged from 2026-05-17 evening):** 3 K1 + 1 K4 + K3 sub-component of K1-3 (all `open`, mitigation candidates pending owner direction). v4 problem-statement is foundation-correct in shape; v5 mechanical pass queued (1 MUST-FIX + 8 SHOULD-FIX + 3 OPTIONAL).
 - **Bug-fix state (just shipped):** bed-first-layer warning no longer leads with `${env.name}` across all 3 MEDIUM-01 attribution branches; consolidated env_*_0 warning retains env framing as canonical surface. Walkthrough new `v1.0.5 env-prefix-dedupe` block + MEDIUM-01 non-regression both OK; iOS XCTest 110/110 with new mirror test.
 
@@ -81,14 +81,14 @@ env-prefix-dedupe shipped to web; iOS local-only. Carry bundle still has:
 
 Pick next item by impact-vs-effort. Helper extraction is the biggest piece; FDM-only scope copy is the smallest.
 
-### Lane C — v1.0.4 → App Store review submission
+### Lane C — v1.0.4 → App Store review submission (nearer-term post-ride-along)
 
-Gated on owner's TestFlight verdict for [run 25892826819](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25892826819). If GO: manual ASC workflow. If regression: focused fix arc (no version bump unless ship is blocked).
+Gated on owner's TestFlight verdict for [run 26125919796](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/26125919796) (the NEW v1.0.4 build with env-prefix-dedupe included; supersedes [25892826819](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25892826819) for testing purposes — both at MARKETING_VERSION 1.0.4, newer build number wins). If build accepted + on-device test GO: manual ASC submission workflow. If regression: focused fix arc inside v1.0.4 (no version bump unless ship is blocked).
 
 ## Scope Rules
 
 - **No live engine / data / UI touches** if Lane A picked (PoC discovery remains docs-only).
-- **No iOS push** unless v1.0.5 declared ship-ready (current iOS at `e2985f1`, 1 ahead — pushing now would partially ship v1.0.5 with the rest of the carry bundle missing).
+- **No iOS push** for any v1.0.5 carry item unless v1.0.5 declared ship-ready (env-prefix-dedupe rode into v1.0.4 as an owner-directed exception; the rest of the carry bundle stays gated per the standing iOS push gate).
 - **Bridge cwd discipline** still applies if any bridge invocation happens (Path C captures the rule; if landed before bridge, scope is deliberate).
 - **Findings + scorecard update in real time** per charter (Lane A only).
 - **One finding = one commit per platform.**
