@@ -236,7 +236,7 @@ These are Claude/Codex review findings explicitly classified as **not release bl
 
 ## Standing Planning Rules
 
-> Rules that affect planning decisions specifically. Engine / data behavior rules live in [`../3dpa-context.md`](../3dpa-context.md); session-lifecycle / project-organization rules live in `/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md`.
+> Rules that affect planning decisions specifically. Engine / data behavior rules live in [`../3dpa-context.md`](../3dpa-context.md); session-lifecycle / project-organization rules live in `/Users/mragile.io/dev/Claude/Projects/CLAUDE.md`.
 
 - **Web is master; iOS mirrors `engine.js` + `data/*.json` byte-identical.** Walkthrough harness + iOS XCTest re-run after every engine/data edit.
 - **Data/logic-change evaluation (mandatory).** Every engine/data improvement must include an evaluation of whether web + iOS UI need changes to best use it.

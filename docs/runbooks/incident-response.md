@@ -28,7 +28,7 @@ Solo-dev scope — intentionally short. When the app breaks, the goal is **stop 
 Auto-deploys from the `main` branch. Roll back with a revert commit:
 
 ```bash
-cd ~/Documents/Claude/Projects/3dprintassistant
+cd ~/dev/Claude/Projects/3dprintassistant
 git log --oneline -5                     # find the bad SHA
 git revert <bad-sha> --no-edit
 git push origin main                      # Cloudflare redeploys in ~30s
