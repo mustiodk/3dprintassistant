@@ -21,11 +21,11 @@ A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger 
 
 Follow Trigger C. Show `[🟩...⬜ N%]` progress bar at every phase. Confirm current state + locked next step + risks before any file edit.
 
-1. `/Users/mragile.io/Documents/Claude/Projects/CLAUDE.md` — top-level rules.
-2. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/CLAUDE.md` — project rules.
-3. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/3dpa-context.md` — evergreen.
-4. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/planning/ROADMAP.md` — Active Work Queue.
-5. `/Users/mragile.io/Documents/Claude/Projects/3dprintassistant/docs/sessions/INDEX.md` — top 4 bullets.
+1. `/Users/mragile.io/dev/Claude/Projects/CLAUDE.md` — top-level rules.
+2. `/Users/mragile.io/dev/Claude/Projects/3dprintassistant/CLAUDE.md` — project rules.
+3. `/Users/mragile.io/dev/Claude/Projects/3dprintassistant/docs/3dpa-context.md` — evergreen.
+4. `/Users/mragile.io/dev/Claude/Projects/3dprintassistant/docs/planning/ROADMAP.md` — Active Work Queue.
+5. `/Users/mragile.io/dev/Claude/Projects/3dprintassistant/docs/sessions/INDEX.md` — top 4 bullets.
 6. Last 3 session logs (newest first):
    - `docs/sessions/2026-05-20-cowork-appdev-v1.0.4-asc-submit.md`
    - `docs/sessions/2026-05-19-cowork-appdev-bedfirstlayer-env-prefix-dedupe.md`

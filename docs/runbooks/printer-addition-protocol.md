@@ -172,7 +172,8 @@ when **any** of these fire:
 - More than one printer added in the same session.
 
 If none of those fire, the self-check above is sufficient. This aligns with
-the `ai-collab.md` risk-based second-model rule.
+the risk-based second-model rule in
+[`../../../ai-operating-model/docs/ai-collab.md`](../../../ai-operating-model/docs/ai-collab.md).
 
 ## What this protocol forbids
 

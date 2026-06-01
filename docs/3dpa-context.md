@@ -191,7 +191,9 @@ These rules are binding for any AI peer working on 3dpa — Codex, Gemini, or fu
 ## AI collaboration context
 
 The retired AI Operating Model pilot left one useful lightweight reference:
-`docs/ai-collab.md`. Treat it as tool-routing guidance, not a mandatory process.
+[`../../ai-operating-model/docs/ai-collab.md`](../../ai-operating-model/docs/ai-collab.md)
+for optional, risk-based cross-project tool routing. 3dpa-specific overlay rules
+live in [`../CLAUDE.md`](../CLAUDE.md) and remain binding project rules.
 
 - **Codex** is the primary builder for repo work, implementation, tests,
   commits, and release flow.
@@ -230,7 +232,7 @@ If a reviewer or researcher needs more than what's here:
 - **Recent decisions:** `docs/sessions/INDEX.md` + last 3 session logs in full.
 - **Implementation specs:** `docs/specs/` (e.g. `IMPL-041-data-quality-phase.md` for Phase DQ).
 - **Prior reviews:** `docs/reviews/2026-04-20-internal/` (the 59-finding internal review) and `3dprintassistant-ios/docs/reviews/2026-04-23-high-003-codex/` (a 3-pass external Codex review).
-- **AI collaboration rules in full:** `docs/ai-collab.md`.
+- **AI collaboration routing:** [`../../ai-operating-model/docs/ai-collab.md`](../../ai-operating-model/docs/ai-collab.md), plus the 3dpa overlay in [`../CLAUDE.md`](../CLAUDE.md).
 - **iOS-specific operational context:** `3dprintassistant-ios/CLAUDE.md` — cross-device UITest workflow, simulator-build `CODE_SIGNING_ALLOWED=NO` rationale, planning pointers. **Engine API + app-state shape are owned by THIS file (`docs/3dpa-context.md`)** — iOS CLAUDE.md does NOT duplicate them.
 
 ---
