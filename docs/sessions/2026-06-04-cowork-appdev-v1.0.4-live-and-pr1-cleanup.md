@@ -47,6 +47,7 @@
 - **Findings sweep:** 0 K1/K2/K3/K4. No skill/tool overrule, no reviewer disagreement, no protocol confusion. (Investigation was straight `gh` + file reads; recommendation matrix worked as designed and owner agreed.)
 - **Lesson-spotter:** compact mode, no candidates — routine investigation + docs update, no owner correction / repeated tool failure / painful-repeat signal.
 - **v1.0.5 hygiene (Lane B) is now fully open** — iOS push gate still applies (no push until v1.0.5 ship-ready), but the v1.0.4-review hold is gone.
+- **Owner-accepted exception (wrap not 100% green on `claude-projects`):** the CLAUDE.md/AGENTS.md hot-cache edit committed as `906d9e7` on branch `codex/workspace-readiness-dashboard-aiom` (no upstream), NOT on `main` — because the owner was running a **parallel Codex session** applying workspace-doctor to personal-dashboard, which left that repo checked out on the codex branch with active WIP. Owner directed: **leave it; the Codex session will reconcile when done.** So the hot-cache table change is not yet on `origin/main` for claude-projects. 3dprintassistant (the core wrap deliverables) + claude-sync (memory) + obsidian-vault all pushed clean.
 
 ## Next session
 

@@ -43,6 +43,7 @@ Follow Trigger C. Show `[🟩...⬜ N%]` progress bar at every phase. Confirm cu
 - **Web HEAD** — run `git log --oneline -3` + `git status` to confirm; clean post-wrap.
 - **iOS work is open again** — push gate still applies (no iOS push to `main` until the next version is ship-ready for TestFlight).
 - **0 open PRs / 0 open issues** on the web repo (stale Cloudflare autoconfig PR #1 closed 2026-06-04). If a new autoconfig PR appears, just close it — no clean Cloudflare toggle exists.
+- **Owner-accepted exception (carry-over):** the 2026-06-04 CLAUDE.md/AGENTS.md hot-cache "v1.0.4 live" edit is committed as `906d9e7` on the `codex/workspace-readiness-dashboard-aiom` branch of claude-projects (a parallel Codex workspace-doctor session), **not on `main`**. Owner directed leaving it for the Codex session to reconcile. If at next cold-start the hot-cache table still doesn't show v1.0.4-live on `main`, that commit hasn't been merged yet.
 
 ## Lanes (owner-pick; Lane W parallel-safe with anything)
 
