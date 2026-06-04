@@ -57,7 +57,7 @@ Path A: v5 mechanical pass on `problem-statement.md` (1 MUST-FIX + 8 SHOULD-FIX 
 Carry bundle: helper extraction (4 math-dup sites), m2 test rename, Min-1 slow_layer_time coverage, Min-2 NSNumber decoder cleanup, magic constants, mobile-card warning length check, emit-vs-claim smoke assertion, shared `RETIRED_IDS` const, walkthrough hardcoded baseline, MEDIUM-02 packet-text decision, FDM-only scope copy. Pick by impact-vs-effort. **No iOS push** until v1.0.5 ship-ready (push gate).
 
 ### Hygiene — memory consolidation (DONE 2026-06-04)
-Full `consolidate-memory` pass completed: 3dpa file slimmed; 9 files' migration-stale `Documents/Claude` paths fixed; MEMORY.md stale project-map replaced with a hot-cache pointer; zero merges/retirements (clusters verified distinct). **Remaining open item:** `memory/glossary.md` is referenced by CLAUDE.md but doesn't exist — decide create-vs-repoint.
+Full `consolidate-memory` pass completed: 3dpa file slimmed; 9 files' migration-stale `Documents/Claude` paths fixed; MEMORY.md stale project-map replaced with a hot-cache pointer; misnamed `feedback_vault_cold_start.md` → `feedback_trigger_d_vault_catchup.md`; zero merges/retirements (clusters verified distinct). Note: an earlier "glossary.md missing / bad memory pointer" finding was a self-inflicted error (conflated two memory dirs) — **reverted**; `glossary.md` lives at `Projects/memory/glossary.md` and `memory/projects/` is correct. **Open observation:** two parallel memory systems (auto-memory `~/.claude/.../memory/` vs project hot-cache `Projects/memory/`) partially duplicate project notes — owner decision whether to unify/dedupe.
 
 ## Scope Rules
 
