@@ -43,7 +43,7 @@ Follow Trigger C. Show `[🟩...⬜ N%]` progress bar at every phase. Confirm cu
 - **Web HEAD** — run `git log --oneline -3` + `git status` to confirm; clean post-wrap.
 - **iOS work is open again** — push gate still applies (no iOS push to `main` until the next version is ship-ready for TestFlight).
 - **0 open PRs / 0 open issues** on the web repo (stale Cloudflare autoconfig PR #1 closed 2026-06-04). If a new autoconfig PR appears, just close it — no clean Cloudflare toggle exists.
-- **Owner-accepted exception (carry-over):** the 2026-06-04 CLAUDE.md/AGENTS.md hot-cache "v1.0.4 live" edit is committed as `906d9e7` on the `codex/workspace-readiness-dashboard-aiom` branch of claude-projects (a parallel Codex workspace-doctor session), **not on `main`**. Owner directed leaving it for the Codex session to reconcile. If at next cold-start the hot-cache table still doesn't show v1.0.4-live on `main`, that commit hasn't been merged yet.
+- **claude-projects clean (resolved 2026-06-04):** the v1.0.4-live hot-cache edit (`906d9e7`) + memory-pointer fix (`de9b23f`) are both on `origin/main`; the parallel Codex workspace-doctor branch was merged. No carry-over. (Leftover ref `codex/workspace-readiness-dashboard-aiom` is a harmless merged pointer — prune anytime.)
 
 ## Lanes (owner-pick; Lane W parallel-safe with anything)
 
@@ -57,7 +57,7 @@ Path A: v5 mechanical pass on `problem-statement.md` (1 MUST-FIX + 8 SHOULD-FIX 
 Carry bundle: helper extraction (4 math-dup sites), m2 test rename, Min-1 slow_layer_time coverage, Min-2 NSNumber decoder cleanup, magic constants, mobile-card warning length check, emit-vs-claim smoke assertion, shared `RETIRED_IDS` const, walkthrough hardcoded baseline, MEDIUM-02 packet-text decision, FDM-only scope copy. Pick by impact-vs-effort. **No iOS push** until v1.0.5 ship-ready (push gate).
 
 ### Hygiene — memory consolidation (small, high-value)
-`memory/project_3dprintassistant.md` is a stale 2026-04-03 snapshot (flagged inline with a status header 2026-06-04). Run `anthropic-skills:consolidate-memory` or a manual pass to bring it (and any sibling staleness) current.
+`memory/project_3dprintassistant.md` was slimmed to a portable decode + pointers 2026-06-04 (drift cause: superseded by ROADMAP + `3dpa-context.md` + hot-cache, no feedback loop). **Sibling memory files may have the same drift** — a broader `anthropic-skills:consolidate-memory` pass across `memory/` is the open follow-up.
 
 ## Scope Rules
 
