@@ -56,8 +56,8 @@ Path A: v5 mechanical pass on `problem-statement.md` (1 MUST-FIX + 8 SHOULD-FIX 
 ### Lane B — v1.0.5 hygiene continuation
 Carry bundle: helper extraction (4 math-dup sites), m2 test rename, Min-1 slow_layer_time coverage, Min-2 NSNumber decoder cleanup, magic constants, mobile-card warning length check, emit-vs-claim smoke assertion, shared `RETIRED_IDS` const, walkthrough hardcoded baseline, MEDIUM-02 packet-text decision, FDM-only scope copy. Pick by impact-vs-effort. **No iOS push** until v1.0.5 ship-ready (push gate).
 
-### Hygiene — memory consolidation (small, high-value)
-`memory/project_3dprintassistant.md` was slimmed to a portable decode + pointers 2026-06-04 (drift cause: superseded by ROADMAP + `3dpa-context.md` + hot-cache, no feedback loop). **Sibling memory files may have the same drift** — a broader `anthropic-skills:consolidate-memory` pass across `memory/` is the open follow-up.
+### Hygiene — memory consolidation (DONE 2026-06-04)
+Full `consolidate-memory` pass completed: 3dpa file slimmed; 9 files' migration-stale `Documents/Claude` paths fixed; MEMORY.md stale project-map replaced with a hot-cache pointer; zero merges/retirements (clusters verified distinct). **Remaining open item:** `memory/glossary.md` is referenced by CLAUDE.md but doesn't exist — decide create-vs-repoint.
 
 ## Scope Rules
 
