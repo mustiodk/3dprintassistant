@@ -251,6 +251,26 @@ export async function onRequestPost({ request, env }) {
     return jsonResponse(400, { ok: false, error: "no_field_values" }, cors);
   }
 
+  // Tee missing-printer requests to the intake queue for the Printer Intake
+  // Scout. Stores the raw structured fields (the Scout does its own triage /
+  // dedupe / FDM scope check). Fail-open: a KV error must never block the
+  // Discord post or the success response — the feedback path is authoritative.
+  // Dormant until the PRINTER_INTAKE KV namespace is bound in wrangler.toml.
+  if (payload.category === "missingPrinter" && env.PRINTER_INTAKE) {
+    try {
+      const id = `req:${Date.now()}:${crypto.randomUUID().slice(0, 8)}`;
+      await env.PRINTER_INTAKE.put(id, JSON.stringify({
+        fields: rawFields,
+        email: typeof payload.email === "string" ? payload.email : null,
+        context: payload.context || {},
+        appSource: isIOS ? "ios" : "web",
+        receivedAt: new Date().toISOString(),
+      }), { expirationTtl: 60 * 60 * 24 * 90 }); // 90-day safety expiry
+    } catch (_) {
+      // swallow — intake queue is best-effort, feedback delivery is not
+    }
+  }
+
   // Optional reply-to email (sanitised same as other values)
   const email = typeof payload.email === "string"
     ? stripDiscordMentions(payload.email.trim())
