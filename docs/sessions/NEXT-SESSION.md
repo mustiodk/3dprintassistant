@@ -1,73 +1,48 @@
-# Next session - cold-start prompt (3dpa web + iOS)
+# NEXT-SESSION — 3dpa
 
-**Last updated:** 2026-06-04 after v1.0.4 was confirmed **live on the App Store** (Trigger A close). The "no active iOS work until the review verdict lands" hold is **lifted** — all lanes below are open (Lane B v1.0.5 hygiene included). Owner-pick at cold-start.
+**Purpose:** kickoff prompt for the next 3dpa session.
 
-A stale file between sessions is acceptable. Regenerated on Trigger A / Trigger B / explicit owner ask.
+**Last updated:** 2026-06-12 wrap (printer-intake). The active concrete task is the **Printer Intake Scout build** (Phase 2 of the missing-printer automation). Phase 1 (the feedback tee) is committed local-only and intentionally unpushed (owner: no deploy yet). The Scout's spec is the two ai-om agent contracts.
+
+**Other open lanes (not locked — see ROADMAP for the full picture):** resin-scaling PoC v5 mechanical pass; v1.0.5 hygiene carries; web output-panel UX deep-dive. Owner-pick if not continuing the Scout.
+
+**One-line summary:** Build `scripts/printer-intake-scout.js` — the deterministic core of the missing-printer Scout — against fixtures. No live infra needed to start.
 
 ---
 
 >>> START >>>
 
-# Cold-start: 3D Print Assistant — v1.0.4 live; lanes open
+Read in order before coding:
+1. `Projects/CLAUDE.md` (or `AGENTS.md`) — top-level rules.
+2. `Projects/3dprintassistant/CLAUDE.md` — 3dpa architecture (engine/app separation, data flow).
+3. `Projects/3dprintassistant/docs/3dpa-context.md` — evergreen context.
+4. `Projects/3dprintassistant/docs/runbooks/printer-addition-protocol.md` — the manual process the Scout half-automates (Phase 1 taxonomy + FDM scope, Phase 2 picker dry-run).
+5. `Projects/3dprintassistant/docs/specs/ios-remote-printer-catalog.md` — overlay mechanics (the ship path).
+6. **The spec:** `Projects/ai-operating-model/docs/agents/printer-intake-scout.md` + `printer-addition-assistant.md` — the two contracts.
+7. This session's log: `Projects/3dprintassistant/docs/sessions/2026-06-12-cowork-appdev-printer-intake.md`.
 
-## Required skills — invoke at cold-start
+**Today's task:** Write `Projects/3dprintassistant/scripts/printer-intake-scout.js` — the Scout's **deterministic core**, runnable against a fixture queue (no KV, no live infra). It must:
+- read intake entries from a fixture JSON file (same shape the `feedback.js` tee writes: `{fields:[{label,value}], email, context, appSource, receivedAt}`);
+- map fields → brand/model;
+- **dedupe** against `data/printers.json` (69 printers / 12 brands);
+- **FDM scope-check** — decline known resin/non-FDM (blocklist of resin brands + model-line keywords: Photon, Saturn, Mars, Form, Sonic, Halot, …); the Anycubic Photon Mono M7 Pro example must land in `declined-non-fdm`;
+- **triage** everything that fails the promotion gate (brand+model+confirmed novel FDM) into buckets: `unactionable` / `incomplete` / `unverified-model` / `declined-non-fdm` / `duplicate`. Note: `unverified-model` confirmation needs research (in-session), so the unattended core emits `needs-research` for brand+model+novel+non-resin, leaving the confirm step to the assisted pass;
+- **in-queue dedupe** (collapse repeat requests for the same printer, with a count);
+- write a **run report JSON** (counts per outcome + the triage list) and one **candidate skeleton** per `needs-research` item.
 
-1. `superpowers:using-superpowers` (already loaded by SessionStart hook)
-2. **For Lane W (web-only `[CRITICAL-001-followup]`):** `superpowers:test-driven-development` (Worker behavior change).
-3. **For Lane A (PoC continuation):** `superpowers:verification-before-completion` (v5 line-refs) / `superpowers:writing-plans` (Gate 1 desk research).
-4. **For Lane B (v1.0.5 hygiene):** `superpowers:test-driven-development`.
-5. **For Hygiene (memory consolidation):** `anthropic-skills:consolidate-memory`.
+Add a fixture (`scripts/fixtures/printer-intake-sample.json`) with a mix: a valid novel FDM printer, a duplicate, a resin (Photon), a brand-only, an empty. Add a small test (match the style of `scripts/picker-dry-run.test.js`). Keep `engine.js`/`app.js` untouched.
 
-## Read First, In This Order
+**Scope guardrails:**
+- Deterministic only — NO spec research / LLM calls in the script (that's the in-session Assistant step).
+- Read-only on `printers.json`; the Scout never commits or mutates source-of-truth.
+- Do not touch the feedback tee (already committed) or `wrangler.toml` (owner infra step, pending).
 
-Follow Trigger C. Show `[🟩...⬜ N%]` progress bar at every phase. Confirm current state + locked next step + risks before any file edit.
+**Process:** progress bar on multi-step work; one-finding-one-commit; run the test green before declaring done; this is a new local script — committing is fine, web push stays gated on owner go (the deploy is a later infra step).
 
-1. `/Users/mragile.io/dev/Claude/Projects/CLAUDE.md` — top-level rules.
-2. `/Users/mragile.io/dev/Claude/Projects/3dprintassistant/CLAUDE.md` — project rules.
-3. `/Users/mragile.io/dev/Claude/Projects/3dprintassistant/docs/3dpa-context.md` — evergreen.
-4. `/Users/mragile.io/dev/Claude/Projects/3dprintassistant/docs/planning/ROADMAP.md` — Active Work Queue.
-5. `/Users/mragile.io/dev/Claude/Projects/3dprintassistant/docs/sessions/INDEX.md` — top 4 bullets.
-6. Last 3 session logs (newest first):
-   - `docs/sessions/2026-06-04-cowork-appdev-v1.0.4-live-and-pr1-cleanup.md`
-   - `docs/sessions/2026-05-20-cowork-appdev-v1.0.4-asc-submit.md`
-   - `docs/sessions/2026-05-19-cowork-appdev-bedfirstlayer-env-prefix-dedupe.md`
-7. **Lane-specific (load only the picked lane's docs):**
-   - Lane W: `functions/api/feedback.js` (Worker) + ROADMAP `[CRITICAL-001-followup]` entry.
-   - Lane A: `ai-operating-model/docs/autonomy-poc-2026-05-resin/` (charter, scorecard, round-3-analysis) + `docs/resin-scaling/problem-statement.md` (v4) + the two open K1 findings.
-   - Lane B: ROADMAP v1.0.5 carry bundle list.
-   - Hygiene: `memory/project_3dprintassistant.md` + `memory/MEMORY.md` index.
-
-## Current state (verify at session start)
-
-- **v1.0.4 is LIVE on the App Store** (owner-confirmed 2026-06-04; submitted 2026-05-20, build `202605192119`, no App Privacy change). Supersedes 1.0.3. iOS HEAD `a2c1bc3` (docs-only migration commits on top of the v1.0.4 ship commit `ed08507`).
-- **Web HEAD** — run `git log --oneline -3` + `git status` to confirm; clean post-wrap.
-- **iOS work is open again** — push gate still applies (no iOS push to `main` until the next version is ship-ready for TestFlight).
-- **0 open PRs / 0 open issues** on the web repo (stale Cloudflare autoconfig PR #1 closed 2026-06-04). If a new autoconfig PR appears, just close it — no clean Cloudflare toggle exists.
-- **claude-projects clean (resolved 2026-06-04):** the v1.0.4-live hot-cache edit (`906d9e7`) + memory-pointer fix (`de9b23f`) are both on `origin/main`; the parallel Codex workspace-doctor branch was merged. No carry-over. (Leftover ref `codex/workspace-readiness-dashboard-aiom` is a harmless merged pointer — prune anytime.)
-
-## Lanes (owner-pick; Lane W parallel-safe with anything)
-
-### Lane W — web-only `[CRITICAL-001-followup]`
-Route iOS feedback to a separate Discord channel: branch on `payload.context.appSource === "ios"` in `functions/api/feedback.js` → new `DISCORD_WEBHOOK_URL_IOS` env var. ~15 LoC + new Cloudflare secret + new webhook + redeploy. No iOS binary change. Bundle `[LOW-011]` (web feedback email visibility) if doing a web pass.
-
-### Lane A — Resin PoC continuation (docs-only)
-Path A: v5 mechanical pass on `problem-statement.md` (1 MUST-FIX + 8 SHOULD-FIX + 3 OPTIONAL; no bridge R4 needed). Path B: Gate 1 desk research (`technical-differences.md`). Path C: `bridge/CLAUDE.md` cwd-scope standing-rule preamble (~10 min, pairs with A/B).
-
-### Lane B — v1.0.5 hygiene continuation
-Carry bundle: helper extraction (4 math-dup sites), m2 test rename, Min-1 slow_layer_time coverage, Min-2 NSNumber decoder cleanup, magic constants, mobile-card warning length check, emit-vs-claim smoke assertion, shared `RETIRED_IDS` const, walkthrough hardcoded baseline, MEDIUM-02 packet-text decision, FDM-only scope copy. Pick by impact-vs-effort. **No iOS push** until v1.0.5 ship-ready (push gate).
-
-### Hygiene — memory consolidation (DONE 2026-06-04)
-Full `consolidate-memory` pass completed: 3dpa file slimmed; 9 files' migration-stale `Documents/Claude` paths fixed; MEMORY.md stale project-map replaced with a hot-cache pointer; misnamed `feedback_vault_cold_start.md` → `feedback_trigger_d_vault_catchup.md`; zero merges/retirements (clusters verified distinct). Note: an earlier "glossary.md missing / bad memory pointer" finding was a self-inflicted error (conflated two memory dirs) — **reverted**; `glossary.md` lives at `Projects/memory/glossary.md` and `memory/projects/` is correct. **Open observation:** two parallel memory systems (auto-memory `~/.claude/.../memory/` vs project hot-cache `Projects/memory/`) partially duplicate project notes — owner decision whether to unify/dedupe.
-
-## Scope Rules
-
-- **No live engine/data/UI touches** if Lane A picked (PoC stays docs-only).
-- **No iOS push** for v1.0.5 carry items until v1.0.5 declared ship-ready.
-- **One finding = one commit per platform.**
-- **Trigger A close runs at session end.**
+**Standing rules:** verify real paths before mutating; match tool weight to task (this is a focused script, not a framework); the iOS push gate is irrelevant here (no iOS binary touched).
 
 <<< END <<<
 
----
+## Maintenance Note
 
-**Maintenance note:** Regenerated on Trigger A / Trigger B / explicit owner ask per the lifecycle protocol.
+Regenerated on Trigger A / Trigger B / explicit owner ask only. A stale NEXT-SESSION between sessions is acceptable. **Phase 1 tee commit `2995ece` is intentionally unpushed** — not drift.
