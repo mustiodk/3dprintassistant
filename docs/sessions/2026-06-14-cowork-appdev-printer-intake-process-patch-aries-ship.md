@@ -106,6 +106,19 @@ iOS (`3dprintassistant-ios`, **local only — push gate**): `7cf5b73` data: sync
   edits this session → no protocol-file drift introduced.
 - **iOS push gate:** iOS `main` is 3 commits ahead of origin (Aries add + the two
   prior net-revert commits). Stays local until the next TestFlight-ready push.
+- **Verify-before-mutate summary (Trigger A):** 4 flags, all false positives —
+  every flagged write was a brand-new file create or a `/tmp` download, not a
+  mutation on an unverified missing/broken/stale premise; each was verified inline
+  in the same turn (git status / ls / grep showing the target was new and nothing
+  clobbered).
+
+```
+verify-before-mutate ledger: 4 flags (0 resolved, 2 ignored), 1 destructive-core, 65 unclassified
+  - [ignored] Bash  .../aries-manual.pdf          — curl download to /tmp; later ls confirmed nothing in Projects
+  - [ignored] Write .../plans/2026-06-13-printer-intake-process-patch-and-aries-rerun.md — new untracked plan (Gate 0); never tracked
+  - [open]    Write .../sessions/2026-06-14-...-aries-ship.md — new untracked session log; git status '??'
+  - [open]    Write .../memory/feedback_gated_plan_first_for_substantial_work.md — new memory file; ls/grep showed no prior/duplicate
+```
 
 ## Next session
 
