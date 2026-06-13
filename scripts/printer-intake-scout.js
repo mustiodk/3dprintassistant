@@ -357,6 +357,29 @@ function classify(entry, cat) {
     }, base);
   }
 
+  // (e2) cross-brand match — a KNOWN but wrong brand: the model exists under a
+  // DIFFERENT existing brand than the (recognised) brand the request gave. Model
+  // names are largely brand-unique, so this is almost always a wrong-brand entry
+  // for an EXISTING printer (e.g. "Prusa Ender-3 V3" → Creality's ender3_v3), not
+  // a novel one. Flag as a duplicate with the mismatch instead of minting a
+  // spurious candidate under the wrong brand. Gated on brandKnown: an UNKNOWN new
+  // brand whose model happens to collide with a generic existing id (e.g. a new
+  // brand's "M5" vs AnkerMake M5) stays a new-brand candidate, not a false dup.
+  // (Model-only requests never reach here: a single global match is resolved +
+  // caught above; a multi-match returns `incomplete` earlier.)
+  const crossMatches = brandKnown ? (cat.globalModelIndex.get(norm(model)) || []) : [];
+  if (crossMatches.length) {
+    const m = crossMatches[0];
+    return Object.assign({
+      outcome: 'duplicate',
+      reason: `model matches bundled '${m.id}' under brand '${m.manufacturer}', but the request gives `
+            + `brand '${resolvedBrandId}' — likely a wrong-brand entry for an existing printer; verify`,
+      resolved: { manufacturer: resolvedBrandId, manufacturerInferred: inferred, model },
+      matchedPrinter: { id: m.id, name: m.name, manufacturer: m.manufacturer },
+      brandMismatch: { requested: resolvedBrandId, actual: m.manufacturer },
+    }, base);
+  }
+
   // (f) novel → candidate stream (needs-research). FDM is NOT confirmed here.
   const sug = suggestId(resolvedBrandId, model, cat);
   return Object.assign({
@@ -686,6 +709,7 @@ async function main() {
       request: it.request,                 // PII-safe
       resolved: it.resolved || null,
       matchedPrinter: it.matchedPrinter || null,
+      brandMismatch: it.brandMismatch || null,
       isNewBrand: !!it.isNewBrand,
       fdmStatus: it.fdmStatus || null,
       idCollision: !!it.idCollision,

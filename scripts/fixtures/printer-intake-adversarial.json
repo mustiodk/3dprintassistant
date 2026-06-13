@@ -48,5 +48,16 @@
     "appSource": "web",
     "receivedAt": "2026-06-13T09:03:00.000Z",
     "_key": "req:adv:newbrand"
+  },
+  {
+    "fields": [
+      { "id": "brand", "label": "Brand", "value": "Prusa" },
+      { "id": "model", "label": "Model", "value": "Ender-3 V3" }
+    ],
+    "email": null,
+    "context": {},
+    "appSource": "web",
+    "receivedAt": "2026-06-13T09:04:00.000Z",
+    "_key": "req:adv:wrongbrand"
   }
 ]

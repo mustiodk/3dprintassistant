@@ -205,8 +205,18 @@ let adv, advRaw;
   console.log('TC16 — adversarial counts');
   const c = (adv && adv.counts) || {};
   check('needs_research = 2', c.needs_research === 2, `got ${c.needs_research}`);
-  check('duplicate = 2', c.duplicate === 2, `got ${c.duplicate}`);
+  check('duplicate = 3', c.duplicate === 3, `got ${c.duplicate}`);
   check('parse_error = 1', c.parse_error === 1, `got ${c.parse_error}`);
+}
+
+{
+  console.log('TC24 — wrong-brand: a real model under the wrong brand is caught as duplicate (not a spurious candidate)');
+  const items = (adv && adv.items) || [];
+  const wb = items.find(i => /ender.?3 ?v3/i.test(i.request && i.request.model || '') && /prusa/i.test(i.request && i.request.brand || ''));
+  check('Prusa/Ender-3 V3 present', !!wb, 'missing');
+  check('classified as duplicate (not needs-research)', wb && wb.outcome === 'duplicate', `got ${wb && wb.outcome}`);
+  check('matched the real Creality printer ender3_v3', wb && wb.matchedPrinter && wb.matchedPrinter.id === 'ender3_v3', `got ${wb && JSON.stringify(wb.matchedPrinter)}`);
+  check('brandMismatch flags requested vs actual', wb && wb.brandMismatch && wb.brandMismatch.requested === 'prusa' && wb.brandMismatch.actual === 'creality', `got ${wb && JSON.stringify(wb.brandMismatch)}`);
 }
 
 // ── KV-path tests via a fake wrangler (offline, no Cloudflare) ──
