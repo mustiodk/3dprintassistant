@@ -254,6 +254,59 @@ xcodebuild test -project 3DPrintAssistant.xcodeproj -scheme 3DPrintAssistant \
   -only-testing:3DPrintAssistantTests CODE_SIGNING_ALLOWED=NO
 ```
 
+**Data-only iOS XCTest waiver.** When full Xcode is unavailable on the running
+machine (e.g. `xcodebuild` points at `CommandLineTools` and no
+`/Applications/Xcode*.app` is installed), the iOS XCTest gate above MAY be waived
+for a printer add **only** when **all** of these hold:
+
+- the change touches **no** `engine.js`, no Swift, no data **schema** — i.e. only
+  values in existing `printers.json` fields, **no new data keys** — and no
+  validator or spec file;
+- the iOS bundled `printers.json` is **byte-identical** to web
+  (`diff -q web iOS` exit 0);
+- every web engine gate is green (`validate-data`, `picker-dry-run`,
+  `walkthrough-harness`, `profile-matrix-audit`), plus the overlay validator when
+  the overlay is touched.
+
+Rationale — iOS exercises `printers.json` on two surfaces, both covered for a
+value-only add:
+
+1. **Engine behavior.** iOS runs the **same `engine.js` bytes** via
+   JavaScriptCore over the **same `printers.json` bytes**, so a value-only edit in
+   existing fields produces a result identical to the green web walkthrough.
+2. **Swift-native `Codable` decode** (`Printer.swift`). Additive *values* in
+   existing keys cannot break decoding. Per `docs/3dpa-context.md` standing
+   rule #9 ("Locked schema additivity"), the iOS Codable layer decodes
+   null/missing fields cleanly **because we keep changes additive** — that safety
+   holds only for value-only edits within existing keys. A *new key* is exactly
+   what rule #9 does not promise, which is why it is a void condition below
+   (appending a value to an existing array field, e.g. a `notes[]` line, is a
+   value add, not a new key).
+
+**Void conditions — waiver does NOT apply, real XCTest is required.** Any of:
+an `engine.js`, Swift, data-schema, validator, or spec change; a **new data
+key**; or a **new enumerated value in an engine-/iOS-branched field** (`series`,
+`enclosure`, `extruder_type`). A new free-string label that nothing branches on
+(a new `series_group`, or a new brand `name` / `id`) is a value add, not a void
+condition. In any void case, run XCTest on CI or a Mac with full Xcode before
+shipping; never waive.
+
+**Overlay publish is compatible with the waiver, but the overlay validator is
+not.** Whenever the overlay is touched, `node scripts/validate-ios-printer-overlay.js`
+is a **required, non-waivable** gate. It is the sanctioned proxy for the iOS
+overlay validate / merge / decode path (`PrinterCatalogProvider`): it enforces
+the field allowlist, types, enum allowlists, `payload_sha256`, `content_version`,
+and `min_app_version` vs the iOS `MARKETING_VERSION` — a strict superset of the
+forgiving Swift decode, so a green overlay validator guarantees the iOS merge +
+`Codable` round-trip succeeds. The data-only waiver substitutes only for the
+*bundled-mirror* XCTest; it never substitutes for the overlay validator.
+
+**Logging.** When the waiver is used, state it explicitly in the commit body and
+session log — which web gates ran, the `diff -q` byte-identical result, and that
+iOS XCTest was waived as data-only — never silently. The waiver substitutes for
+*local* XCTest only; it is not a substitute for XCTest when any void condition
+fires.
+
 **Owner visual picker check** — required if (a) the overlay was published OR
 (b) a new brand row was added OR (c) a new `series_group` was introduced. Open
 the running web app and confirm the printer appears under the expected
@@ -295,7 +348,10 @@ the wrap-up is blocked.
 - [ ] Overlay commit (if any): `content_version` bumped, `payload_sha256`
       recomputed, validator green.
 - [ ] `validate-data` + `walkthrough-harness` + `profile-matrix-audit` + iOS
-      XCTest all green at HEAD.
+      XCTest all green at HEAD — OR, for a data-only add (no engine / Swift /
+      schema / new-data-key change), the **data-only iOS XCTest waiver** is
+      invoked and logged: web gates green + `diff -q` byte-identical stand in for
+      local XCTest, and the void conditions were checked and none fired.
 - [ ] No `engine.js`, `app.js`, validator, or spec file edited in printer
       commits.
 - [ ] Owner visual picker check OK (only if overlay touched, new brand, or new

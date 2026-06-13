@@ -319,3 +319,26 @@ names this rather than hiding it and points to a non-blocking follow-up — surf
 HIGH-012 copy for `app-cap` accelerations — which touches engine/UI and must land
 in its own reviewed change, not a printer-add. This is the user-visible
 "data-quality warning" lever for app-capped fields.
+
+### A2 — Data-only iOS XCTest waiver
+
+The protocol hard-required iOS XCTest before Phase 5, but full Xcode is not
+installed on the running machine, so XCTest cannot run locally. The protocol now
+permits a **narrowly-scoped data-only waiver**: for adds that touch no
+`engine.js` / Swift / data-schema / new-data-key / validator / spec and are
+byte-identical web↔iOS (`diff -q` clean), the web engine gates + overlay
+validator stand in for local XCTest.
+
+Sound on both iOS surfaces for a value-only add: (1) iOS runs the same
+`engine.js` bytes over the same `printers.json` bytes, so engine output matches
+the green web walkthrough; (2) the Swift `Codable` decode is safe for additive
+values in existing keys per `3dpa-context.md` standing rule #9 (additivity holds
+*because* changes stay value-only — a new key is not promised, hence a void
+condition). **Void conditions** (any engine/Swift/schema/validator/spec change, a
+new data key, or a new engine-branched enum value in `series`/`enclosure`/
+`extruder_type`) require real XCTest on CI or a full-Xcode Mac. When an overlay
+is published the Node overlay validator is a required, non-waivable proxy for the
+iOS `PrinterCatalogProvider` validate/merge/decode path (a strict superset of the
+forgiving Swift decode). The waiver is always logged, never silent, and relaxes
+only the *local* bundled-mirror XCTest — never the overlay validator or XCTest
+when a void condition fires.
