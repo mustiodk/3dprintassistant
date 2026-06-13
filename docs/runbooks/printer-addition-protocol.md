@@ -59,6 +59,10 @@ Each drafted field is one of:
   Inferred values on profile/safety fields require a risk flag and review, but
   cannot make a candidate `ship-ready`.
 - `low-confidence` — missing, contradictory, weakly sourced, or based on silence.
+- `app-cap` — a narrowly-scoped exception for `max_acceleration` only (see
+  "App-side acceleration cap" below): a conservative app-side ceiling used when
+  no manufacturer acceleration figure exists. Does not block `ship-ready` when
+  its four conditions plus reviewer GO all hold; never valid for any other field.
 
 Profile/safety-critical fields are:
 `series`, `enclosure`, `active_chamber_heating`, `max_chamber_temp` if present or proposed,
@@ -79,6 +83,59 @@ A low-confidence profile/safety-critical field blocks `ship-ready`.
 before promotion beyond `needs-research`. `max_nozzle_temp` and `max_bed_temp`
 must be sourced from manufacturer data unless explicitly approved after conflict
 review.
+
+#### App-side acceleration cap (`max_acceleration` only)
+
+`max_acceleration` is the one profile/safety-critical field that may ship without
+a manufacturer-sourced value, via an explicitly-labeled conservative **app-side
+cap**. The exception exists because, unlike every other field in the list,
+`max_acceleration` is **advisory-only** in the engine: it is read solely by the
+HIGH-012 bedslinger warning copy (`engine.js`, `"<printer> tops out at <X> mm/s²
+acceleration…"`) and never clamps an emitted value (emitted accelerations come
+from `objective_profiles` material/tier maps with their own caps). A conservative
+cap can therefore only make that advisory more cautious; it cannot push any
+emitted acceleration into an unsafe range. No other field has this property, so
+the exception is **acceleration-only** — every other unpublished profile/safety
+field stays `low-confidence` and blocks `ship-ready`.
+
+An `app-cap` `max_acceleration` may ship only when **all four** hold:
+
+1. **Documented null-source sweep.** Manufacturer (product page, manual, spec
+   sheet, firmware/software profile), reseller, and community source classes
+   were all checked and none publishes an acceleration figure. Record the
+   sources checked (paths/URLs) in the commit body and candidate packet — a
+   silent "couldn't find one" is not sufficient.
+2. **Conservative value vs. siblings.** The value is at or below the **lowest
+   `max_acceleration` already shipped in the same engine bucket** (e.g.
+   `bedslinger`) — that lowest sibling ceiling is the hard floor, not a target.
+   Name the sibling(s) compared against in the commit body. A value above any
+   sibling's ceiling is not an app cap and is rejected.
+3. **Required `notes[]` provenance line.** The printer object carries a `notes[]`
+   line naming the value a conservative app-side cap used because no manufacturer
+   maximum was published — never presented as a manufacturer spec.
+4. **Reviewer GO.** App-cap use is a mandatory reviewer-dispatch trigger (see
+   Phase 5 → Risk-triggered reviewer dispatch).
+
+**Honesty limitation (named, not hidden).** The HIGH-012 bedslinger warning
+renders this value verbatim as `"<printer> tops out at <X> mm/s²"` with no
+provenance qualifier, so an app cap is shown to the user as if it were the
+printer's hardware ceiling. Conditions 1–4 make this *safe* (a defensible
+conservative ceiling, never an inflated one) but not fully *honest* — a cap set
+below the printer's true capability understates the machine. The app-cap path
+accepts this because the field is advisory-only and the conservative value keeps
+the advice correct, but the gap is real and is named here rather than glossed.
+Closing it fully is a separate, non-blocking follow-up: surface the `notes[]`
+provenance to users (the deferred Phase 2.7b notes-rendering) and/or hedge the
+HIGH-012 copy for `app-cap` accelerations (e.g. "no published figure —
+conservative estimate"). Both touch `engine.js` / UI and must land in their own
+reviewed change, never inside a printer-add arc.
+
+If any condition is missing, `max_acceleration` is `low-confidence` and blocks
+`ship-ready`. `app-cap` is valid for `max_acceleration` and nothing else; it
+never licenses shipping any other unpublished profile/safety-critical field.
+Enforcement is reviewer-gated, not validator-gated: no data validator carries
+acceleration provenance (the overlay allowlist rejects a provenance key), so the
+Phase 5 reviewer trigger is the control that confirms conditions 1–4.
 
 ### Outcome classes
 
@@ -261,6 +318,7 @@ when **any** of these fire:
 - Any `inferred` value for `series`, `enclosure`, `active_chamber_heating`,
   `extruder_type`, `max_nozzle_temp`, or `max_bed_temp`.
 - Non-obvious `corexy` / `bedslinger` mapping.
+- App-side acceleration cap (`app-cap`) used for an unpublished `max_acceleration`.
 - `false` value for feature booleans based only on missing mentions.
 - Manufacturer-vs-manufacturer conflict.
 - Deprecation or removal (Phase 4).

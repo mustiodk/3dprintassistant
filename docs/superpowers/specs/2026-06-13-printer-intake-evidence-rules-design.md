@@ -285,3 +285,37 @@ Engine/data-model impact:
 - No live catalog, overlay, or iOS bundled data changes.
 - Final repo state is committed, pushed for web/ai-om docs as appropriate, and
   sync hold is released.
+
+## Addendum — post-Aries-rehearsal hardening (2026-06-13)
+
+The Voxelab Aries delivery rehearsal returned NO-GO on two gaps that the rules
+above did not yet cover. Both are added to the canonical protocol
+(`docs/runbooks/printer-addition-protocol.md`) and the agent contracts.
+
+### A1 — App-side acceleration cap for unpublished `max_acceleration`
+
+`max_acceleration` is profile/safety-critical, but some legitimate FDM printers
+(typically older / budget machines) have no manufacturer-published acceleration
+figure. The protocol now permits an explicitly-labeled conservative **app-side
+cap** in the existing `max_acceleration` field, gated by four conditions
+(documented null-source sweep, conservative value vs. siblings, required
+`notes[]` provenance line, reviewer GO) and a new reviewer trigger.
+
+This is sound and acceleration-only because `max_acceleration` is **advisory-only
+in the engine** — read solely by the HIGH-012 bedslinger warning copy, never a
+clamp on emitted accelerations. A conservative cap can only make that advisory
+more cautious. No new JSON key, no engine/validator/schema change (a structured
+provenance key would be rejected by the overlay allowlist and is out of scope);
+the manufacturer-vs-app-cap separation lives at the protocol/evidence layer.
+Every other unpublished profile/safety-critical field stays `low-confidence` and
+blocks `ship-ready`.
+
+**Named honesty limitation.** The HIGH-012 warning renders the value as
+`"<printer> tops out at <X> mm/s²"` with no provenance hedge, so an app cap reads
+to the user as the printer's ceiling. This is safe (conservative, never
+inflated) but understates a machine whose real ceiling is higher. The protocol
+names this rather than hiding it and points to a non-blocking follow-up — surface
+`notes[]` to users (deferred Phase 2.7b notes-rendering) and/or hedge the
+HIGH-012 copy for `app-cap` accelerations — which touches engine/UI and must land
+in its own reviewed change, not a printer-add. This is the user-visible
+"data-quality warning" lever for app-capped fields.
