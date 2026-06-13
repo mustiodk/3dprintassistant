@@ -543,14 +543,37 @@ function newerThan(a, b) { return Date.parse(a) > Date.parse(b); } // a, b must 
 // resolved dir path — that false-refused the documented staging dir — and (b)
 // gitignore coverage alone does NOT imply asset-ignore coverage (e.g.
 // `bambu configs/` is gitignored but still served).
+// Canonicalize a path even if its leaf doesn't exist yet: realpath the nearest
+// existing ancestor (resolving symlinks AND the true on-disk casing on a
+// case-insensitive FS), then re-append the missing tail. This closes the macOS
+// case-insensitive bypass (`/repo/../3DPrintAssistant/data`) and the symlink
+// bypass — both would otherwise read as "outside the repo".
+function realCanon(p) {
+  let cur = path.resolve(p);
+  const tail = [];
+  for (;;) {
+    try {
+      const real = fs.realpathSync.native(cur);
+      return tail.length ? path.join(real, ...tail) : real;
+    } catch (_) {
+      const parent = path.dirname(cur);
+      if (parent === cur) return path.resolve(p); // reached FS root; nothing resolved
+      tail.unshift(path.basename(cur));
+      cur = parent;
+    }
+  }
+}
+
 function assertSafeOutDir(outDir) {
-  const abs = path.resolve(outDir);
-  const insideRepo = abs === ROOT || abs.startsWith(ROOT + path.sep);
-  if (!insideRepo) return;                               // outside repo: safe
-  if (abs === path.resolve(DEFAULT_STAGING)) return;     // approved staging dir: safe
-  console.error(`STOP: refusing --out '${outDir}' — inside the repo, only the approved staging dir `
-    + `(${path.relative(ROOT, DEFAULT_STAGING)}/, which is gitignored AND asset-ignored) may receive `
-    + `output. Use that, or a path outside the repo. Candidate skeletons can contain requester notes.`);
+  const abs = realCanon(outDir);
+  const root = realCanon(ROOT);
+  const insideRepo = abs === root || abs.startsWith(root + path.sep);
+  if (!insideRepo) return;                          // genuinely outside repo: safe
+  if (abs === realCanon(DEFAULT_STAGING)) return;   // approved staging dir: safe
+  console.error(`STOP: refusing --out '${outDir}' — it resolves inside the repo (served as assets); `
+    + `only the approved staging dir (${path.relative(ROOT, DEFAULT_STAGING)}/, which is gitignored AND `
+    + `asset-ignored) may receive in-repo output. Use that, or a path outside the repo. Candidate `
+    + `skeletons can contain requester notes.`);
   process.exit(2);
 }
 

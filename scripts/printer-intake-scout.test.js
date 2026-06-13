@@ -265,6 +265,34 @@ let adv, advRaw;
   // "bambu configs/" is in .gitignore but NOT in .assetsignore — must still be refused.
   const r = run(['--queue', SAMPLE, '--out', path.join(__dirname, '..', 'bambu configs', 'printer-intake-out')]);
   check('exit code 2', r.code === 2, `got ${r.code}; stdout=${r.stdout}`);
+  check('error explains the refusal', /staging|refusing --out/i.test(r.stdout + r.stderr), `stderr=${r.stderr}`);
+}
+
+{
+  console.log('TC22 — --out safety: a path OUTSIDE the repo is accepted + writes artifacts');
+  const outDir = path.join(os.tmpdir(), `pi-out-${process.pid}`);
+  try { fs.rmSync(outDir, { recursive: true, force: true }); } catch (_) {}
+  const r = run(['--queue', ADV, '--out', outDir]);
+  check('exit 0 (outside-repo accepted)', r.code === 0, `got ${r.code}; stderr=${r.stderr}`);
+  check('run-report.json written outside repo', fs.existsSync(path.join(outDir, 'run-report.json')), 'missing');
+  try { fs.rmSync(outDir, { recursive: true, force: true }); } catch (_) {}
+}
+
+{
+  console.log('TC23 — --out safety: a symlink/aliased path resolving INTO the repo is refused (canonicalization)');
+  // A symlink in /tmp pointing at the repo-served data/ dir must be refused —
+  // proves realpathSync canonicalization (also covers the macOS case bypass path).
+  const link = path.join(os.tmpdir(), `pi-link-${process.pid}`);
+  try { fs.rmSync(link, { force: true }); } catch (_) {}
+  let made = false;
+  try { fs.symlinkSync(path.join(__dirname, '..', 'data'), link); made = true; } catch (_) {}
+  if (made) {
+    const r = run(['--queue', SAMPLE, '--out', path.join(link, 'leak')]);
+    check('exit code 2 (symlink-into-repo refused)', r.code === 2, `got ${r.code}; stdout=${r.stdout}`);
+    try { fs.rmSync(link, { force: true }); } catch (_) {}
+  } else {
+    check('symlink test skipped (could not create symlink)', true);
+  }
 }
 
 console.log('');
