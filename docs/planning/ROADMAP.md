@@ -76,11 +76,21 @@
   choice, and conflicting-source review. **Evidence-rules hardening complete
   2026-06-13:** source hierarchy, conflict handling, confidence rules, assisted
   outcome classes, and deterministic Scout skeleton policy are now codified
-  before real backlog seeding. **Next:** seed the real Discord backlog into
-  remote KV and run the Scout end to end; Aries should become an assisted
-  `needs-source-resolution` / `needs-owner-taxonomy` packet, while Photon should
-  remain `declined-non-fdm`. Ship-path web-only via `data/printers.json` +
-  additive iOS overlay; no TestFlight/app-version step for printer adds.
+  before real backlog seeding. **Aries delivery rehearsal attempted 2026-06-13
+  and returned NO-GO at risk review:** owner approved Voxelab as a new brand and
+  conservative `bedslinger` bucket, and the reviewer accepted taxonomy, bed-temp
+  conflict handling, overlay sort-order tie, and the nozzle-cap audit fix; the
+  ship was reverted because `max_acceleration` remains unsourced under the
+  hardened profile/safety-critical rule, and local iOS XCTest is unavailable
+  without full Xcode. Plan/outcome:
+  [`docs/superpowers/plans/2026-06-13-voxelab-aries-printer-add.md`](../superpowers/plans/2026-06-13-voxelab-aries-printer-add.md).
+  **Next:** before seeding the real Discord backlog, decide whether to add a
+  reviewed app-side acceleration-cap/protocol path for old printers with missing
+  manufacturer acceleration data, and add either a non-TestFlight iOS unit-test
+  path or an explicit data-only overlay XCTest waiver rule. After those process
+  decisions are green, seed the real backlog; Photon should still remain
+  `declined-non-fdm`. Ship-path for printer adds remains web bundled data +
+  additive iOS overlay, with no TestFlight/app-version step for current users.
   FDM-only Phase 1.0 governs (resin auto-declined). `[Web + automation]`
 - **Resin-scaling discovery (PoC, docs-only)** — started 2026-05-17 as a multi-goal Proof of Concept: (1) substantive resin sub-project discovery producing decision-grade material, (2) testing bridge as a multi-round quality amplifier, (3) honest autonomy ceiling probe. Resin product artifacts live at `docs/resin-scaling/` (**v4 problem-statement.md current** + parked survey v1); PoC meta-track lives at `../../../ai-operating-model/docs/autonomy-poc-2026-05-resin/` (charter, scorecard, 3 bridge-rounds + 3 round-analyses, owner-asks). **Audience is the owner, not 3dpa users.** v4 §7 is an Option A decision tree with Gate 2 evaluated first (Step 1 owner pick → Step 2 5 branches → Step 3 park rules with 4-week charter clock → Step 4 success criterion); §5 has a "Fires if" column making conditional-cost framing visible. **3 bridge rounds complete:** R1 changed v2's foundation, R2 caught structural+mechanical in v3, R3 caught only mechanical in v4 (1 MUST-FIX + 8 SHOULD-FIX). **v5 mechanical pass queued** but no R4 needed (mechanical fixes don't introduce new claims). 3 K1 findings filed across the arc documenting the operational autonomy ceiling; 1 K3 finding (bridge cwd-scope contract). Off-limits during discovery: live engine / data / UI changes to FDM product. **Next: owner-pick v5 mechanical pass + Gate 1 (`technical-differences.md`) desk research + `bridge/CLAUDE.md` cwd-scope standing rule preamble.** `[Web docs only]`
 - **v1.0.3 batch items 2 / 5** — see Active Release section above.

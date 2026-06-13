@@ -10,6 +10,59 @@
 
 ---
 
+## Execution Outcome - NO-GO
+
+Execution reached the risk-triggered review gate and stopped. Aries is **not**
+present in web bundled data, the iOS overlay, or the iOS bundled mirror at final
+HEAD for this session.
+
+The attempted shipping commits were reverted after review:
+
+- Web data: `3e381e0` reverted by `aa0826e`
+- Web overlay: `af121ad` reverted by `2d1561b`
+- iOS mirror: `63c291c` reverted by `8c38d02`
+
+The reviewer returned NO-GO for two blockers:
+
+1. `max_acceleration` is profile/safety-critical under
+   `docs/runbooks/printer-addition-protocol.md`, and the proposed `5000` value
+   was not source-resolved. Treating it as a "3dpa app-side cap" would require
+   a reviewed schema/protocol change that separates app caps from manufacturer
+   maximums. Evidence checked after review:
+   - Official Aries manual PDF: no acceleration value found.
+   - Archived Aries firmware `Aries Firmware V1.1.3.zip`: no readable
+     Aries-specific acceleration config found.
+   - Archived VoxelMaker `default-fdm.cfg`: generic, disabled acceleration block
+     (`accX=2000`, `accY=2000`, `accZ=200`, `accA=4000`, `enable=false`) but no
+     Aries-specific machine max.
+   - Community Cura profile: print/travel speeds only, no acceleration.
+   - Community/Facebook search snippet with `M201 X500...`: not manufacturer
+     authority and not enough for a profile/safety-critical field.
+2. iOS XCTest could not run locally. `xcodebuild` points to
+   `/Library/Developer/CommandLineTools`, and no `/Applications/Xcode*.app` is
+   installed. The current protocol still requires iOS XCTest before Phase 5.
+
+Review accepted these parts as non-blocking:
+
+- Voxelab new-brand owner approval.
+- `voxelab` / `aries` / `Aries Series` taxonomy.
+- Conservative `bedslinger` bucket as an engine compatibility/tuning bucket.
+- Manufacturer manual 110 C bed max overriding reseller 100 C.
+- Temporary iOS overlay sort-order tie with existing DIY (`sort_order: 12`),
+  because overlay is additive and the next binary can carry the bundled
+  `diy: 13` order.
+- The audit-harness fix in `cd834c8`, which aligns broad-sweep nozzle-cap
+  expectations with the existing engine policy: below material minimum is hard
+  incompatibility; below preferred/base but still inside safe range is a clamp
+  warning.
+
+**Next natural step:** decide whether to add a reviewed `app_acceleration_cap`
+style field/protocol path for old printers with missing manufacturer max
+acceleration, or keep the current hard rule and leave Aries blocked until a
+source-backed max acceleration is found. Separately, add a non-TestFlight iOS
+unit-test path or an explicit data-only overlay XCTest waiver rule before the
+next printer add reaches the publish gate.
+
 ## Scope And Decisions
 
 **Owner approvals already received:**
