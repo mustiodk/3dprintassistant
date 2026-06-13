@@ -61,11 +61,11 @@ Each drafted field is one of:
 - `low-confidence` — missing, contradictory, weakly sourced, or based on silence.
 
 Profile/safety-critical fields are:
-`series`, `enclosure`, `active_chamber_heating`, `max_chamber_temp` if present,
+`series`, `enclosure`, `active_chamber_heating`, `max_chamber_temp` if present or proposed,
 `extruder_type`, `max_nozzle_temp`, `max_bed_temp`, `max_speed`,
 `max_acceleration`, `available_nozzle_sizes`, `available_plates`,
 `multi_color_systems`, `has_lidar`, `has_camera`,
-`open_door_threshold_bed_temp` if present, and `notes` when they contain
+`open_door_threshold_bed_temp` if present or proposed, and `notes` when they contain
 warnings, material limits, or operating constraints.
 
 Boolean absence is not proof. A `false` value needs official/manual evidence,
