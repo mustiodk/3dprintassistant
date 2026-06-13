@@ -1,6 +1,11 @@
 .DS_Store
 .claude/
 node_modules/
+.wrangler/
+
+# Printer Intake Scout — local secret config + run state (never commit).
+scripts/.printer-intake.local.json
+scripts/.printer-intake.watermark.json
 
 # Personal scratch — owner keeps these locally; not part of the public repo.
 bambu configs/

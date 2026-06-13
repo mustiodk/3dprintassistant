@@ -16,8 +16,11 @@ const SAMPLE  = path.join(__dirname, 'fixtures', 'printer-intake-sample.json');
 const EMPTY   = path.join(__dirname, 'fixtures', 'printer-intake-empty.json');
 const MISSING = path.join(__dirname, 'fixtures', '__does_not_exist__.json');
 
-function run(args) {
-  const r = spawnSync('node', [SCRIPT, ...args], { encoding: 'utf8' });
+function run(args, env) {
+  const r = spawnSync('node', [SCRIPT, ...args], {
+    encoding: 'utf8',
+    env: env ? Object.assign({}, process.env, env) : process.env,
+  });
   return { code: r.status, stdout: r.stdout || '', stderr: r.stderr || '' };
 }
 
@@ -125,6 +128,23 @@ let report;
   check('exit code 2', r.code === 2, `got ${r.code}`);
   check('error mentions the queue', /queue|not found|ENOENT|read/i.test(r.stdout + r.stderr),
     `stdout=${r.stdout}; stderr=${r.stderr}`);
+}
+
+// ── TC9 — kv source with no token → stop condition, exit 2 ──
+{
+  console.log('TC9 — kv source, no token configured → exit 2, error mentions token');
+  // point --config at a nonexistent file and blank CF_API_TOKEN so no token resolves
+  const r = run(['--source', 'kv', '--config', MISSING, '--no-watermark'], { CF_API_TOKEN: '' });
+  check('exit code 2', r.code === 2, `got ${r.code}; stdout=${r.stdout}`);
+  check('error mentions token', /token/i.test(r.stdout + r.stderr), `stderr=${r.stderr}`);
+}
+
+// ── TC10 — unknown --source → stop condition, exit 2 ──
+{
+  console.log('TC10 — unknown --source value → exit 2');
+  const r = run(['--source', 'banana']);
+  check('exit code 2', r.code === 2, `got ${r.code}`);
+  check('error mentions source', /source/i.test(r.stdout + r.stderr), `stderr=${r.stderr}`);
 }
 
 console.log('');

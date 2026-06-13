@@ -44,13 +44,23 @@ const ROOT = path.join(__dirname, '..');
 // ─── Args ────────────────────────────────────────────────────────────────────
 function parseArgs(argv) {
   const out = {
+    source: 'fixtures',                 // 'fixtures' | 'kv'
     queue: path.join(__dirname, 'fixtures', 'printer-intake-sample.json'),
+    config: path.join(__dirname, '.printer-intake.local.json'),
+    watermarkFile: path.join(__dirname, '.printer-intake.watermark.json'),
+    useWatermark: true,
+    resetWatermark: false,
     out: null,
     quiet: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--queue') out.queue = argv[++i];
+    if (a === '--source') out.source = argv[++i];
+    else if (a === '--queue') out.queue = argv[++i];
+    else if (a === '--config') out.config = argv[++i];
+    else if (a === '--watermark-file') out.watermarkFile = argv[++i];
+    else if (a === '--no-watermark') out.useWatermark = false;
+    else if (a === '--reset-watermark') out.resetWatermark = true;
     else if (a === '--out') out.out = argv[++i];
     else if (a === '--quiet') out.quiet = true;
     else if (a === '-h' || a === '--help') { out.help = true; }
@@ -59,11 +69,28 @@ function parseArgs(argv) {
   return out;
 }
 
+// Known, non-secret Cloudflare resource ids (namespace id is also committed in
+// wrangler.toml). Only the API token is secret — it comes from env / the
+// gitignored config file. Override any of these via env or --config.
+const DEFAULT_ACCOUNT_ID   = '038ac75563c82b3641d1626510938c1b';
+const DEFAULT_NAMESPACE_ID = 'f3d89a4e70a34e3fab1c0f7676efebb5';
+
 function usage() {
-  console.error('Usage: node scripts/printer-intake-scout.js [--queue <path>] [--out <dir>] [--quiet]');
+  console.error('Usage: node scripts/printer-intake-scout.js [options]');
+  console.error('');
+  console.error('  --source <fixtures|kv>   intake source (default: fixtures)');
+  console.error('  --queue <path>           fixtures source: queue JSON file');
+  console.error('  --config <path>          kv source: secret config (default: scripts/.printer-intake.local.json)');
+  console.error('  --watermark-file <path>  kv source: persisted watermark state');
+  console.error('  --no-watermark           kv source: do not read/advance the watermark');
+  console.error('  --reset-watermark        kv source: ignore the existing watermark this run');
+  console.error('  --out <dir>              also write run-report.json + candidate-*.json files');
+  console.error('  --quiet                  print a one-line summary instead of the full report');
   console.error('');
   console.error('Triages teed missing-printer feedback into a run report + candidate skeletons.');
-  console.error('Deterministic only — no research / LLM / KV. Read-only on printers.json.');
+  console.error('Deterministic triage only — no research / LLM. Read-only on printers.json.');
+  console.error('kv source reads the live PRINTER_INTAKE queue via the Cloudflare API; the');
+  console.error('secret token comes from env CF_API_TOKEN or the gitignored --config file.');
 }
 
 // ─── Normalisation helpers ───────────────────────────────────────────────────
@@ -363,34 +390,144 @@ function candidateSkeleton(item) {
   };
 }
 
+// ─── Secret config (kv source) ───────────────────────────────────────────────
+// Resolution order per field: env var → gitignored config file → known default.
+// Only the API token is secret; it has no default and must be supplied.
+function loadConfig(configPath) {
+  let fileCfg = {};
+  try {
+    fileCfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  } catch (_) { /* file optional — env may supply everything */ }
+  const token = process.env.CF_API_TOKEN || fileCfg.cfApiToken || fileCfg.token || null;
+  const accountId = process.env.CF_ACCOUNT_ID || fileCfg.accountId || DEFAULT_ACCOUNT_ID;
+  const namespaceId = process.env.CF_KV_NAMESPACE_ID || fileCfg.namespaceId || DEFAULT_NAMESPACE_ID;
+  return { token, accountId, namespaceId };
+}
+
+// ─── Live KV read (Cloudflare KV REST API) ───────────────────────────────────
+// List all keys (cursor-paginated), GET each value, parse the stored entry JSON.
+// Throws on any API/HTTP failure so main can stop without advancing the watermark.
+async function kvFetchEntries(cfg) {
+  const base = `https://api.cloudflare.com/client/v4/accounts/${cfg.accountId}/storage/kv/namespaces/${cfg.namespaceId}`;
+  const headers = { Authorization: `Bearer ${cfg.token}` };
+
+  // 1) list keys (paginate via cursor)
+  const keys = [];
+  let cursor = '';
+  do {
+    const url = `${base}/keys?limit=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error(`KV keys list failed: HTTP ${res.status} ${res.statusText}`);
+    const body = await res.json();
+    if (!body.success) throw new Error(`KV keys list error: ${JSON.stringify(body.errors)}`);
+    for (const k of body.result || []) keys.push(k.name);
+    cursor = (body.result_info && body.result_info.cursor) || '';
+  } while (cursor);
+
+  // 2) fetch each value, parse the stored entry
+  const entries = [];
+  for (const name of keys) {
+    const res = await fetch(`${base}/values/${encodeURIComponent(name)}`, { headers });
+    if (!res.ok) throw new Error(`KV value get failed for '${name}': HTTP ${res.status}`);
+    const text = await res.text();
+    try {
+      const entry = JSON.parse(text);
+      entry._key = name;
+      entries.push(entry);
+    } catch (_) {
+      // a value we cannot parse is surfaced as an unactionable-shaped entry so
+      // it still appears in triage instead of being silently dropped.
+      entries.push({ _key: name, fields: [], _parseError: true });
+    }
+  }
+  return entries;
+}
+
+// ─── Watermark ───────────────────────────────────────────────────────────────
+function readWatermark(file) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
+  catch (_) { return { lastReceivedAt: null }; }
+}
+function writeWatermark(file, lastReceivedAt) {
+  fs.writeFileSync(file, JSON.stringify({ lastReceivedAt, updatedAt: null }, null, 2) + '\n');
+}
+function maxReceivedAt(entries) {
+  let max = null;
+  for (const e of entries) {
+    const r = e && e.receivedAt;
+    if (typeof r === 'string' && (max === null || r > max)) max = r;
+  }
+  return max;
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
-function main() {
+async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) { usage(); process.exit(0); }
 
-  // Read the queue (stop condition: unreadable / not a JSON array → exit 2).
-  let raw;
-  try {
-    raw = fs.readFileSync(args.queue, 'utf8');
-  } catch (e) {
-    console.error(`STOP: cannot read intake queue '${args.queue}': ${e.code || e.message}`);
-    process.exit(2);
-  }
-  let queue;
-  try {
-    queue = JSON.parse(raw);
-  } catch (e) {
-    console.error(`STOP: intake queue '${args.queue}' is not valid JSON: ${e.message}`);
-    process.exit(2);
-  }
-  if (!Array.isArray(queue)) {
-    console.error(`STOP: intake queue '${args.queue}' is not a JSON array`);
+  let entries = [];
+  const sourceMeta = { source: args.source };
+  let watermarkToAdvance = null; // set on a successful kv run when watermark enabled
+
+  if (args.source === 'fixtures') {
+    // Read the queue file (stop condition: unreadable / not a JSON array → exit 2).
+    let raw;
+    try {
+      raw = fs.readFileSync(args.queue, 'utf8');
+    } catch (e) {
+      console.error(`STOP: cannot read intake queue '${args.queue}': ${e.code || e.message}`);
+      process.exit(2);
+    }
+    let queue;
+    try {
+      queue = JSON.parse(raw);
+    } catch (e) {
+      console.error(`STOP: intake queue '${args.queue}' is not valid JSON: ${e.message}`);
+      process.exit(2);
+    }
+    if (!Array.isArray(queue)) {
+      console.error(`STOP: intake queue '${args.queue}' is not a JSON array`);
+      process.exit(2);
+    }
+    sourceMeta.queue = args.queue;
+    entries = queue;
+  } else if (args.source === 'kv') {
+    const cfg = loadConfig(args.config);
+    if (!cfg.token) {
+      console.error('STOP: kv source needs an API token. Set env CF_API_TOKEN or put '
+        + `{ "cfApiToken": "..." } in ${args.config} (gitignored).`);
+      process.exit(2);
+    }
+    const wm = (args.useWatermark && !args.resetWatermark)
+      ? readWatermark(args.watermarkFile) : { lastReceivedAt: null };
+    let fetched;
+    try {
+      fetched = await kvFetchEntries(cfg);
+    } catch (e) {
+      console.error(`STOP: ${e.message}`); // do not advance the watermark on failure
+      process.exit(2);
+    }
+    // process only entries newer than the watermark
+    entries = wm.lastReceivedAt
+      ? fetched.filter(e => typeof e.receivedAt === 'string' && e.receivedAt > wm.lastReceivedAt)
+      : fetched;
+    sourceMeta.namespaceId = cfg.namespaceId;
+    sourceMeta.totalKeys = fetched.length;
+    sourceMeta.newSinceWatermark = entries.length;
+    sourceMeta.watermarkIn = wm.lastReceivedAt;
+    if (args.useWatermark) {
+      const newMax = maxReceivedAt(fetched);
+      watermarkToAdvance = (newMax && (!wm.lastReceivedAt || newMax > wm.lastReceivedAt))
+        ? newMax : wm.lastReceivedAt;
+    }
+  } else {
+    console.error(`STOP: unknown --source '${args.source}' (expected 'fixtures' or 'kv')`);
     process.exit(2);
   }
 
   const cat = loadCatalog();
 
-  const classified = queue.map(e => classify(e, cat));
+  const classified = entries.map(e => classify(e, cat));
   const items = collapse(classified);
 
   const counts = {
@@ -440,8 +577,8 @@ function main() {
   const report = {
     tool: 'printer-intake-scout',
     version: 1,
-    queue: args.queue,
-    queueCount: queue.length,
+    source: sourceMeta,
+    queueCount: entries.length,
     counts,
     inQueueCollapses,
     candidates: candidateFiles,
@@ -464,9 +601,16 @@ function main() {
     fs.writeFileSync(path.join(args.out, 'run-report.json'), JSON.stringify(report, null, 2) + '\n');
   }
 
+  // Advance the watermark only after a successful kv run (never on a failed
+  // fetch — that path exits 2 above before reaching here).
+  if (args.source === 'kv' && args.useWatermark && watermarkToAdvance !== null) {
+    writeWatermark(args.watermarkFile, watermarkToAdvance);
+    report.source.watermarkOut = watermarkToAdvance;
+  }
+
   if (args.quiet) {
     const c = counts;
-    console.log(`scout: ${queue.length} in → ${c.needs_research} needs-research, `
+    console.log(`scout: ${entries.length} in → ${c.needs_research} needs-research, `
       + `${c.duplicate} dup, ${c.declined_non_fdm} declined, ${c.incomplete} incomplete, `
       + `${c.unactionable} unactionable`);
   } else {
@@ -475,4 +619,7 @@ function main() {
   process.exit(0);
 }
 
-main();
+main().catch(e => {
+  console.error(`STOP: unexpected error: ${e && e.message ? e.message : e}`);
+  process.exit(2);
+});
