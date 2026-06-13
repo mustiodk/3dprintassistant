@@ -19,6 +19,7 @@ const EMPTY   = path.join(__dirname, 'fixtures', 'printer-intake-empty.json');
 const ADV     = path.join(__dirname, 'fixtures', 'printer-intake-adversarial.json');
 const MISSING = path.join(__dirname, 'fixtures', '__does_not_exist__.json');
 const FAKEWRANGLER = path.join(__dirname, 'fixtures', 'fake-wrangler.js');
+const STAGING = path.join(__dirname, '.printer-intake-out'); // the approved (gitignored + asset-ignored) --out dir
 try { fs.chmodSync(FAKEWRANGLER, 0o755); } catch (_) {} // ensure executable for execFileSync
 
 function run(args, env) {
@@ -179,7 +180,7 @@ let adv, advRaw;
   check('a parse-error item exists', !!pe, 'none');
   check('counts.parse_error >= 1', adv && adv.counts && adv.counts.parse_error >= 1, `got ${adv && adv.counts && adv.counts.parse_error}`);
   check('report.errors is non-empty', adv && Array.isArray(adv.errors) && adv.errors.length >= 1, `got ${adv && adv.errors && adv.errors.length}`);
-  check('an error references the bad key', adv && (adv.errors || []).some(e => /corrupt/.test(JSON.stringify(e))), `errors=${JSON.stringify(adv && adv.errors)}`);
+  check('parse-error carries the bad key in a structured field', adv && (adv.errors || []).some(e => e.type === 'parse-error' && /corrupt/.test(String(e.key || ''))), `errors=${JSON.stringify(adv && adv.errors)}`);
 }
 
 {
@@ -236,10 +237,34 @@ let adv, advRaw;
 }
 
 {
-  console.log('TC19 — --out safety: a non-gitignored in-repo path is refused (git check-ignore based)');
+  console.log('TC19 — --out safety: a non-gitignored in-repo path is refused');
   const r = run(['--queue', SAMPLE, '--out', path.join(__dirname, '..', 'public-leak-dir')]);
   check('exit code 2', r.code === 2, `got ${r.code}`);
-  check('error explains the refusal', /gitignored|refusing --out/i.test(r.stdout + r.stderr), `stderr=${r.stderr}`);
+  check('error explains the refusal', /staging|refusing --out/i.test(r.stdout + r.stderr), `stderr=${r.stderr}`);
+}
+
+{
+  console.log('TC20 — --out safety: the approved staging dir is ACCEPTED + writes PII-safe artifacts');
+  try { fs.rmSync(STAGING, { recursive: true, force: true }); } catch (_) {}
+  const r = run(['--queue', ADV, '--out', STAGING]); // ADV contains the PII entry
+  check('exit 0 (staging path accepted)', r.code === 0, `got ${r.code}; stderr=${r.stderr}`);
+  const reportPath = path.join(STAGING, 'run-report.json');
+  check('run-report.json written', fs.existsSync(reportPath), 'missing');
+  if (fs.existsSync(reportPath)) {
+    const txt = fs.readFileSync(reportPath, 'utf8');
+    check('run-report.json has NO raw email', !/leak@example\.com/.test(txt), 'RAW EMAIL in run-report.json');
+    check('run-report.json has NO raw note text', !/123 Main Street/.test(txt), 'RAW NOTE in run-report.json');
+  }
+  const cands = fs.existsSync(STAGING) ? fs.readdirSync(STAGING).filter(f => f.startsWith('candidate-')) : [];
+  check('candidate skeleton(s) written', cands.length >= 1, `got ${cands.length}`);
+  try { fs.rmSync(STAGING, { recursive: true, force: true }); } catch (_) {}
+}
+
+{
+  console.log('TC21 — --out safety: gitignored-but-served path is refused (asset-ignore gap closed)');
+  // "bambu configs/" is in .gitignore but NOT in .assetsignore — must still be refused.
+  const r = run(['--queue', SAMPLE, '--out', path.join(__dirname, '..', 'bambu configs', 'printer-intake-out')]);
+  check('exit code 2', r.code === 2, `got ${r.code}; stdout=${r.stdout}`);
 }
 
 console.log('');

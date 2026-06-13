@@ -493,6 +493,13 @@ function kvFetchViaWrangler(cfg, opts) {
   catch (e) { throw new Error(`could not parse wrangler key list output: ${e.message}`); }
 
   const entries = [], errors = [];
+  // The wrangler CLI auto-paginates `kv key list`, but guard against a future
+  // change (or a per-page cap) silently truncating a large queue: surface it.
+  if (keys.length >= 1000) {
+    errors.push({ type: 'kv-list-page-cap', count: keys.length,
+      note: 'wrangler returned >=1000 keys — if the CLI ever stops auto-paginating, '
+          + 'entries beyond the first page would be missed. Verify coverage.' });
+  }
   for (const name of keys) {
     let valOut;
     try { valOut = runWrangler(['kv', 'key', 'get', '--namespace-id', cfg.namespaceId, name], cfg, opts); }
@@ -525,24 +532,26 @@ function maxReceivedAt(entries) {
 function newerThan(a, b) { return Date.parse(a) > Date.parse(b); } // a, b must be validTs
 
 // ─── --out safety ────────────────────────────────────────────────────────────
-// Refuse to write PII-bearing artifacts (candidate skeletons carry requester
-// notes) into a committable/servable location. A path OUTSIDE the repo is fine.
-// A path INSIDE the repo is allowed ONLY if git actually ignores it — verified
-// with `git check-ignore`, not a name heuristic (so `public/printer-intake-out`
-// or `foo/.printer-intake-x` cannot sneak through).
+// Candidate skeletons carry raw requester notes, and the repo root is served as
+// Cloudflare assets, so PII-bearing output must never land somewhere committable
+// OR servable. Two safe cases only:
+//   - any path OUTSIDE the repo (not committed, not served), or
+//   - the single approved in-repo staging dir, which is BOTH gitignored AND
+//     asset-ignored (scripts/.printer-intake-out/, covered by `scripts/**`).
+// Anything else inside the repo is refused. A whitelist is used rather than a
+// `git check-ignore` probe because (a) git's dir-only rules don't match the bare
+// resolved dir path — that false-refused the documented staging dir — and (b)
+// gitignore coverage alone does NOT imply asset-ignore coverage (e.g.
+// `bambu configs/` is gitignored but still served).
 function assertSafeOutDir(outDir) {
   const abs = path.resolve(outDir);
   const insideRepo = abs === ROOT || abs.startsWith(ROOT + path.sep);
-  if (!insideRepo) return; // not committed, not served
-  let ignored = false;
-  try { execFileSync('git', ['check-ignore', '-q', abs], { cwd: ROOT }); ignored = true; }
-  catch (_) { ignored = false; } // exit 1 (not ignored) or error → treat as unsafe
-  if (!ignored) {
-    console.error(`STOP: refusing --out '${outDir}' — it is inside the repo and NOT gitignored. `
-      + `Candidate skeletons can contain requester notes (and the repo root is served as `
-      + `assets). Use scripts/.printer-intake-out/ (default-safe) or a path outside the repo.`);
-    process.exit(2);
-  }
+  if (!insideRepo) return;                               // outside repo: safe
+  if (abs === path.resolve(DEFAULT_STAGING)) return;     // approved staging dir: safe
+  console.error(`STOP: refusing --out '${outDir}' — inside the repo, only the approved staging dir `
+    + `(${path.relative(ROOT, DEFAULT_STAGING)}/, which is gitignored AND asset-ignored) may receive `
+    + `output. Use that, or a path outside the repo. Candidate skeletons can contain requester notes.`);
+  process.exit(2);
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
