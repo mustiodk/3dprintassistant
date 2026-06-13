@@ -11,7 +11,8 @@
     { "id": "artillery",  "name": "Artillery",    "sort_order": 9,  "primary": false, "default_slicer": "orcaslicer" },
     { "id": "anker",      "name": "AnkerMake",    "sort_order": 10, "primary": false, "default_slicer": "orcaslicer" },
     { "id": "voron",      "name": "Voron",        "sort_order": 11, "primary": false, "default_slicer": "orcaslicer" },
-    { "id": "diy",        "name": "DIY / Other",  "sort_order": 12, "primary": false, "default_slicer": "orcaslicer" }
+    { "id": "voxelab",    "name": "Voxelab",      "sort_order": 12, "primary": false, "default_slicer": "orcaslicer" },
+    { "id": "diy",        "name": "DIY / Other",  "sort_order": 13, "primary": false, "default_slicer": "orcaslicer" }
   ],
   "printers": [
     {
@@ -1463,6 +1464,32 @@
       "available_nozzle_sizes": [0.4],
       "open_door_threshold_bed_temp": 45,
       "notes": ["Ultra-compact \u2014 120\u00d7120\u00d7120mm", "Klipper firmware"]
+    },
+    {
+      "id": "aries",
+      "name": "Aries",
+      "manufacturer": "voxelab",
+      "series": "bedslinger",
+      "series_group": "Aries Series",
+      "enclosure": "none",
+      "active_chamber_heating": false,
+      "extruder_type": "bowden",
+      "max_nozzle_temp": 250,
+      "max_bed_temp": 110,
+      "max_speed": 180,
+      "max_acceleration": 5000,
+      "has_lidar": false,
+      "has_camera": false,
+      "multi_color_systems": [],
+      "available_plates": ["smooth_glass"],
+      "available_nozzle_sizes": [0.4],
+      "open_door_threshold_bed_temp": null,
+      "notes": [
+        "Open-frame Ender-5-style Cartesian cube, mapped to the conservative bedslinger tuning bucket",
+        "Official Voxelab manual: FDM, 200x200x200mm, 0.4mm standard nozzle, 1.75mm PLA/ABS/PETG, 250C nozzle max, 110C bed max, <=180mm/s",
+        "Glass build plate; single 0.4mm nozzle (other sizes not listed in the manual)",
+        "max_acceleration 5000 is a conservative app-side cap (no manufacturer acceleration figure is published by Voxelab) - not a claimed manufacturer maximum"
+      ]
     },
     {
       "id": "ratrig_vcore4",
