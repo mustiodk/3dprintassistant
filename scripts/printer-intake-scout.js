@@ -475,6 +475,25 @@ function candidateSkeleton(item) {
     note: 'Deterministic Scout output. FDM + specs UNVERIFIED — the Printer '
         + 'Addition Assistant must confirm the printer is FDM and research every '
         + 'field from authoritative sources before this can ship.',
+    evidencePolicy: {
+      scoutLimitations: 'Deterministic Scout cannot promote a request to ship-ready; assisted source research and owner/reviewer gates are required.',
+      sourceAuthority: [
+        'Manufacturer authority: official product page, manual, spec sheet, support/wiki, or manufacturer software profile',
+        'Distributor/reseller authority: corroborates naming/availability but does not override manufacturer safety/profile fields',
+        'Independent review/community evidence: may inform mechanical clues but does not override manufacturer data',
+        'Requester text: context only, never a spec source',
+      ],
+      fieldConfidence: ['confirmed', 'inferred', 'low-confidence'],
+      assistedOnlyOutcomes: [
+        'unverified-model',
+        'needs-source-resolution',
+        'needs-owner-taxonomy',
+        'needs-taxonomy-decision',
+        'blocked',
+        'ship-ready',
+      ],
+      conflictRule: 'Manufacturer data outranks reseller/review/community data only when model/revision/region clearly matches; conflicts on profile/safety fields require review before shipping.',
+    },
     request: item.request,                 // PII-safe (hashed email, no raw email)
     requesterNote: item._private.notes,    // research context; private staging only
     contact: {

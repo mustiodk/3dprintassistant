@@ -268,6 +268,24 @@ let adv, advRaw;
   }
   const cands = fs.existsSync(STAGING) ? fs.readdirSync(STAGING).filter(f => f.startsWith('candidate-')) : [];
   check('candidate skeleton(s) written', cands.length >= 1, `got ${cands.length}`);
+  if (cands.length >= 1) {
+    const cand = JSON.parse(fs.readFileSync(path.join(STAGING, cands[0]), 'utf8'));
+    const ep = cand.evidencePolicy || {};
+    check('candidate skeleton carries evidencePolicy', !!cand.evidencePolicy,
+      `got ${JSON.stringify(cand)}`);
+    check('evidencePolicy says Scout cannot ship-ready',
+      /cannot promote/i.test(ep.scoutLimitations || ''),
+      `got ${JSON.stringify(ep)}`);
+    check('evidencePolicy lists manufacturer authority first',
+      Array.isArray(ep.sourceAuthority)
+        && /Manufacturer authority/.test(ep.sourceAuthority[0] || ''),
+      `got ${JSON.stringify(ep.sourceAuthority)}`);
+    check('evidencePolicy lists assisted-only outcomes',
+      Array.isArray(ep.assistedOnlyOutcomes)
+        && ep.assistedOnlyOutcomes.includes('needs-source-resolution')
+        && ep.assistedOnlyOutcomes.includes('ship-ready'),
+      `got ${JSON.stringify(ep.assistedOnlyOutcomes)}`);
+  }
   try { fs.rmSync(STAGING, { recursive: true, force: true }); } catch (_) {}
 }
 
