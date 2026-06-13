@@ -335,7 +335,10 @@
         return;
       }
       if (value) {
-        fields.push({ label: T(f.labelKey), value });
+        // Include the stable field `id` (brand/model/notes/…) alongside the
+        // translated label. The Discord embed uses `label`; the Printer Intake
+        // Scout prefers `id` so its field mapping is locale-proof.
+        fields.push({ id: f.id, label: T(f.labelKey), value });
       }
     }
     if (fields.length === 0) {
