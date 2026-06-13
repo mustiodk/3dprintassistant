@@ -1,18 +1,10 @@
 {
-  "content_version": 2026061301,
+  "content_version": 2026051202,
   "enabled": true,
-  "generated_at": "2026-06-13T15:12:33.724Z",
+  "generated_at": "2026-05-12T19:57:07.724Z",
   "min_app_version": "1.0.3",
   "payload": {
-    "brands": [
-      {
-        "id": "voxelab",
-        "name": "Voxelab",
-        "sort_order": 12,
-        "primary": false,
-        "default_slicer": "orcaslicer"
-      }
-    ],
+    "brands": [],
     "printers": [
       {
         "id": "sparkx_i7",
@@ -48,39 +40,9 @@
           "Quick-swap hardened hotend — 0.4mm installed, 0.2/0.6/0.8 available",
           "ABS, ASA, PC, PA and other high-temperature filaments are not recommended on the open frame"
         ]
-      },
-      {
-        "id": "aries",
-        "name": "Aries",
-        "manufacturer": "voxelab",
-        "series": "bedslinger",
-        "series_group": "Aries Series",
-        "enclosure": "none",
-        "active_chamber_heating": false,
-        "extruder_type": "bowden",
-        "max_nozzle_temp": 250,
-        "max_bed_temp": 110,
-        "max_speed": 180,
-        "max_acceleration": 5000,
-        "has_lidar": false,
-        "has_camera": false,
-        "multi_color_systems": [],
-        "available_plates": [
-          "smooth_glass"
-        ],
-        "available_nozzle_sizes": [
-          0.4
-        ],
-        "open_door_threshold_bed_temp": null,
-        "notes": [
-          "Open-frame Ender-5-style Cartesian cube mapped to the conservative bedslinger tuning bucket",
-          "Official manual lists FDM, 200x200x200mm build volume, 250 C nozzle, 110 C bed and 180 mm/s max speed",
-          "Manual lists 0.4mm standard nozzle and glass build plate; other nozzle sizes not confirmed",
-          "Conservative 5000 mm/s^2 app acceleration cap used because manufacturer max acceleration was not published"
-        ]
       }
     ]
   },
-  "payload_sha256": "43ea4450a40e415dcf5d41e83f468672fcc19b30af9769e82ee85c39fa7ba6f4",
+  "payload_sha256": "1c3f219b8e0a397ff82ab83b68dda1d0598368fcee0bb5c1bb8dc994b43727ad",
   "schema_version": 1
 }
