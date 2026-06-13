@@ -572,9 +572,13 @@ function invariantChecks(r) {
     failures.push(`inner_wall_speed ${inner} exceeds printer max_speed ${p.max_speed}`);
   }
 
-  if (p.max_nozzle_temp != null && bs.nozzle_temp_base != null && p.max_nozzle_temp < bs.nozzle_temp_base) {
+  if (p.max_nozzle_temp != null && bs.nozzle_temp_min != null && p.max_nozzle_temp < bs.nozzle_temp_min) {
     if (!r.warnings.some((w) => w.id === 'printer_max_nozzle_temp')) {
-      failures.push('printer_max_nozzle_temp warning missing when printer cannot reach material base nozzle temp');
+      failures.push('printer_max_nozzle_temp warning missing when printer cannot reach material minimum nozzle temp');
+    }
+  } else if (p.max_nozzle_temp != null && bs.nozzle_temp_base != null && p.max_nozzle_temp < bs.nozzle_temp_base) {
+    if (!r.warnings.some((w) => w.id === 'printer_max_nozzle_temp_clamped')) {
+      failures.push('printer_max_nozzle_temp_clamped warning missing when printer clamps below material base nozzle temp');
     }
   }
 
