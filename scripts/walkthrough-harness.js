@@ -489,6 +489,9 @@ const COMBOS = [
 
   { id: 11, label: 'Creality i7 / SPARKX + 0.4 hardened + PLA-CF + Standard/Balanced (new open-frame bedslinger)',
     state: stateDefault({ printer: 'sparkx_i7', nozzle: 'hrd_0.4', material: 'pla_cf' }) },
+
+  { id: 12, label: 'Voxelab Aries + 0.4 std + ABS + Standard/Balanced (legacy Bowden open-frame cube)',
+    state: stateDefault({ printer: 'aries', nozzle: 'std_0.4', material: 'abs' }) },
 ];
 
 // ─── Main ───────────────────────────────────────────────────────────────────
