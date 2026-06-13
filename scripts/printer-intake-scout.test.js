@@ -14,6 +14,7 @@ const path = require('path');
 const SCRIPT  = path.join(__dirname, 'printer-intake-scout.js');
 const SAMPLE  = path.join(__dirname, 'fixtures', 'printer-intake-sample.json');
 const EMPTY   = path.join(__dirname, 'fixtures', 'printer-intake-empty.json');
+const ADV     = path.join(__dirname, 'fixtures', 'printer-intake-adversarial.json');
 const MISSING = path.join(__dirname, 'fixtures', '__does_not_exist__.json');
 
 function run(args, env) {
@@ -130,13 +131,12 @@ let report;
     `stdout=${r.stdout}; stderr=${r.stderr}`);
 }
 
-// ── TC9 — kv source with no token → stop condition, exit 2 ──
+// ── TC9 — kv source, failing wrangler → stop condition, exit 2 (no silent empty) ──
 {
-  console.log('TC9 — kv source, no token configured → exit 2, error mentions token');
-  // point --config at a nonexistent file and blank CF_API_TOKEN so no token resolves
-  const r = run(['--source', 'kv', '--config', MISSING, '--no-watermark'], { CF_API_TOKEN: '' });
+  console.log('TC9 — kv source, failing wrangler (/bin/false) → exit 2, no watermark advance');
+  const r = run(['--source', 'kv', '--no-watermark', '--reset-watermark', '--wrangler-bin', '/bin/false']);
   check('exit code 2', r.code === 2, `got ${r.code}; stdout=${r.stdout}`);
-  check('error mentions token', /token/i.test(r.stdout + r.stderr), `stderr=${r.stderr}`);
+  check('error mentions wrangler/kv list', /wrangler|kv key list|failed/i.test(r.stdout + r.stderr), `stderr=${r.stderr}`);
 }
 
 // ── TC10 — unknown --source → stop condition, exit 2 ──
@@ -145,6 +145,63 @@ let report;
   const r = run(['--source', 'banana']);
   check('exit code 2', r.code === 2, `got ${r.code}`);
   check('error mentions source', /source/i.test(r.stdout + r.stderr), `stderr=${r.stderr}`);
+}
+
+// ── Adversarial fixture (covers the hostile-review findings) ──
+let adv, advRaw;
+{
+  console.log('TC11 — adversarial: model-only "X1 Carbon" deduped against catalog (ambiguous family token)');
+  const r = run(['--queue', ADV]);
+  advRaw = r.stdout;
+  adv = parse(r.stdout);
+  check('exit 0 + parses', r.code === 0 && adv !== null, `code=${r.code}`);
+  const x1 = (adv && adv.items || []).find(i => /x1 carbon/i.test(i.request && i.request.model || '') && !i.request.brand);
+  check('model-only X1 Carbon is a duplicate', x1 && x1.outcome === 'duplicate', `got ${x1 && x1.outcome}`);
+  check('matched bundled printer x1c', x1 && x1.matchedPrinter && x1.matchedPrinter.id === 'x1c', `got ${x1 && JSON.stringify(x1.matchedPrinter)}`);
+}
+
+{
+  console.log('TC12 — adversarial: "not a resin printer" in NOTES must NOT trigger an FDM decline');
+  const e5 = (adv && adv.items || []).find(i => /ender.?5 ?s1/i.test(i.request && i.request.model || ''));
+  check('Ender-5 S1 present', !!e5, 'missing');
+  check('NOT declined-non-fdm', e5 && e5.outcome !== 'declined-non-fdm', `got ${e5 && e5.outcome}`);
+  check('is needs-research', e5 && e5.outcome === 'needs-research', `got ${e5 && e5.outcome}`);
+  check('fdmStatus is unconfirmed (honest)', e5 && e5.fdmStatus === 'unconfirmed', `got ${e5 && e5.fdmStatus}`);
+}
+
+{
+  console.log('TC13 — adversarial: unparseable KV value is surfaced, not swallowed');
+  const pe = (adv && adv.items || []).find(i => i.outcome === 'parse-error');
+  check('a parse-error item exists', !!pe, 'none');
+  check('counts.parse_error >= 1', adv && adv.counts && adv.counts.parse_error >= 1, `got ${adv && adv.counts && adv.counts.parse_error}`);
+  check('report.errors is non-empty', adv && Array.isArray(adv.errors) && adv.errors.length >= 1, `got ${adv && adv.errors && adv.errors.length}`);
+  check('an error references the bad key', adv && (adv.errors || []).some(e => /corrupt/.test(JSON.stringify(e))), `errors=${JSON.stringify(adv && adv.errors)}`);
+}
+
+{
+  console.log('TC14 — adversarial: PII (raw email + note text) never appears in the report');
+  check('no raw email in stdout', !/leak@example\.com/.test(advRaw), 'RAW EMAIL LEAKED');
+  check('no raw note text in stdout', !/123 Main Street/.test(advRaw), 'RAW NOTE LEAKED');
+  const p1 = (adv && adv.items || []).find(i => /p1s/i.test(i.request && i.request.model || ''));
+  check('email reduced to a hash', p1 && p1.request.hasEmail === true && typeof p1.request.emailHash === 'string' && p1.request.emailHash.length > 0, `got ${p1 && JSON.stringify(p1.request)}`);
+  check('notes reduced to presence/length', p1 && p1.request.hasNotes === true && p1.request.notesLength > 0 && p1.request.notes === undefined, `got ${p1 && JSON.stringify(p1.request)}`);
+}
+
+{
+  console.log('TC15 — adversarial: global id collision ("M5" vs AnkerMake m5) is prefixed + flagged');
+  const m5 = (adv && adv.items || []).find(i => /newco/i.test(i.request && i.request.brand || ''));
+  check('NewCo M5 is needs-research', m5 && m5.outcome === 'needs-research', `got ${m5 && m5.outcome}`);
+  check('flagged as new brand', m5 && m5.isNewBrand === true, `got ${m5 && m5.isNewBrand}`);
+  check('suggestedId is NOT bare "m5"', m5 && m5.resolved && m5.resolved.suggestedId !== 'm5', `got ${m5 && m5.resolved && m5.resolved.suggestedId}`);
+  check('idCollision flagged', m5 && m5.idCollision === true, `got ${m5 && m5.idCollision}`);
+}
+
+{
+  console.log('TC16 — adversarial counts');
+  const c = (adv && adv.counts) || {};
+  check('needs_research = 2', c.needs_research === 2, `got ${c.needs_research}`);
+  check('duplicate = 2', c.duplicate === 2, `got ${c.duplicate}`);
+  check('parse_error = 1', c.parse_error === 1, `got ${c.parse_error}`);
 }
 
 console.log('');

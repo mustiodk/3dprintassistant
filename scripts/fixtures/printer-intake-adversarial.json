@@ -1,0 +1,52 @@
+[
+  {
+    "fields": [
+      { "id": "model", "label": "Model", "value": "X1 Carbon" }
+    ],
+    "email": null,
+    "context": {},
+    "appSource": "web",
+    "receivedAt": "2026-06-13T09:00:00.000Z",
+    "_key": "req:adv:1"
+  },
+  {
+    "fields": [
+      { "id": "brand", "label": "Brand", "value": "Creality" },
+      { "id": "model", "label": "Model", "value": "Ender-5 S1" },
+      { "id": "notes", "label": "Notes (optional)", "value": "Just so you know this is definitely NOT a resin printer." }
+    ],
+    "email": null,
+    "context": {},
+    "appSource": "web",
+    "receivedAt": "2026-06-13T09:01:00.000Z",
+    "_key": "req:adv:2"
+  },
+  {
+    "_parseError": true,
+    "_key": "req:adv:corrupt",
+    "fields": []
+  },
+  {
+    "fields": [
+      { "id": "brand", "label": "Brand", "value": "Bambu Lab" },
+      { "id": "model", "label": "Model", "value": "P1S" },
+      { "id": "notes", "label": "Notes (optional)", "value": "I live at 123 Main Street, please email me" }
+    ],
+    "email": "leak@example.com",
+    "context": {},
+    "appSource": "web",
+    "receivedAt": "2026-06-13T09:02:00.000Z",
+    "_key": "req:adv:pii"
+  },
+  {
+    "fields": [
+      { "id": "brand", "label": "Brand", "value": "NewCo" },
+      { "id": "model", "label": "Model", "value": "M5" }
+    ],
+    "email": null,
+    "context": {},
+    "appSource": "web",
+    "receivedAt": "2026-06-13T09:03:00.000Z",
+    "_key": "req:adv:newbrand"
+  }
+]
