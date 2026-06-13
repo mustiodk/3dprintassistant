@@ -3,9 +3,11 @@
 node_modules/
 .wrangler/
 
-# Printer Intake Scout — local secret config + run state (never commit).
+# Printer Intake Scout — local secret config, run state, and staging output
+# (run reports + candidate skeletons can contain requester notes — never commit).
 scripts/.printer-intake.local.json
 scripts/.printer-intake.watermark.json
+scripts/.printer-intake-out/
 
 # Personal scratch — owner keeps these locally; not part of the public repo.
 bambu configs/

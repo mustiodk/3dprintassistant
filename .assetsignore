@@ -8,3 +8,7 @@
 wrangler.noanalytics.tmp.toml
 node_modules
 node_modules/**
+# Server-side Node tooling — never served to the web. Covers the Printer Intake
+# Scout, its secret config / watermark / staging output, and test fixtures.
+scripts
+scripts/**
