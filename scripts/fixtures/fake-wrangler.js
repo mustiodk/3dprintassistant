@@ -3,8 +3,8 @@
 // the real --source kv code path (list → get → parse → classify → watermark)
 // OFFLINE, with no Cloudflare account. Pointed at via --wrangler-bin.
 //
-// Recognises: `kv key list --namespace-id <ns>`  → JSON array of {name}
-//             `kv key get  --namespace-id <ns> <key>` → the stored value
+// Recognises: `kv key list --remote --namespace-id <ns>`  → JSON array of {name}
+//             `kv key get  --remote --namespace-id <ns> <key>` → the stored value
 //
 // The canned queue deliberately includes a normal entry, a malformed value, and
 // an entry with no receivedAt, so the tests can assert error-surfacing + the
@@ -31,6 +31,10 @@ const VALUES = {
 };
 
 const a = process.argv.slice(2);
+if (!a.includes('--remote')) {
+  process.stderr.write('fake-wrangler: live KV reads must pass --remote');
+  process.exit(1);
+}
 if (a[0] === 'kv' && a[1] === 'key' && a[2] === 'list') {
   process.stdout.write(JSON.stringify(Object.keys(VALUES).map(name => ({ name }))));
   process.exit(0);

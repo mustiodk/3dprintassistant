@@ -537,7 +537,7 @@ function runWrangler(args, cfg, opts) {
 function kvFetchViaWrangler(cfg, opts) {
   let listOut;
   try {
-    listOut = runWrangler(['kv', 'key', 'list', '--namespace-id', cfg.namespaceId], cfg, opts);
+    listOut = runWrangler(['kv', 'key', 'list', '--remote', '--namespace-id', cfg.namespaceId], cfg, opts);
   } catch (e) {
     throw new Error(`wrangler kv key list failed (auth / namespace?): ${firstLine(e.stderr || e.message)}`);
   }
@@ -555,7 +555,7 @@ function kvFetchViaWrangler(cfg, opts) {
   }
   for (const name of keys) {
     let valOut;
-    try { valOut = runWrangler(['kv', 'key', 'get', '--namespace-id', cfg.namespaceId, name], cfg, opts); }
+    try { valOut = runWrangler(['kv', 'key', 'get', '--remote', '--namespace-id', cfg.namespaceId, name], cfg, opts); }
     catch (e) { errors.push({ type: 'kv-get-failed', key: name, reason: firstLine(e.stderr || e.message) }); continue; }
     try { const entry = JSON.parse(valOut); entry._key = name; entries.push(entry); }
     catch (_) { entries.push({ _key: name, _parseError: true, fields: [] }); }

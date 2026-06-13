@@ -1,12 +1,45 @@
 # Handover → Codex: activate the live printer-intake tee
 
-**Date:** 2026-06-13 · **From:** Claude Code session · **Status:** Scout shipped; the
-live KV tee is deployed + bound but **not writing at runtime**. This is the last mile.
+**Date:** 2026-06-13 · **From:** Claude Code session · **Status:** RESOLVED by
+Codex follow-up on 2026-06-13. The deployed Worker was writing remote KV; the
+false negative came from Wrangler reads without `--remote`.
 
-## The one goal
-Make the **deployed** Cloudflare Worker `3dprintassistant` actually write
-`missingPrinter` feedback into the `PRINTER_INTAKE` KV namespace. Everything else
-is done.
+## Resolution
+
+Root cause: the read/diagnostic path used `wrangler kv key list/get --namespace-id
+...` without `--remote`. With Wrangler 4.100.0 that queried local/default KV and
+returned an empty list, while the deployed Worker had successfully written to
+remote KV.
+
+Fix:
+
+- `scripts/printer-intake-scout.js` now passes `--remote` for live KV `list` and
+  `get`.
+- `scripts/fixtures/fake-wrangler.js` now rejects KV reads unless `--remote` is
+  present, giving a TDD regression guard.
+- Temporary Worker logging was removed; cleaned Worker redeployed as version
+  `a55212e9-7998-4d20-a902-108dcb3a021c`.
+- Smoke keys were deleted; live remote queue verified empty.
+
+Verification:
+
+- `wrangler tail` on diagnostic version `167b9963-4ae8-4364-9023-b0b1f9517534`
+  logged `hasPrinterIntake:true`, `printerIntakeType:"object"`, and `putOk:true`
+  for key `req:1781353403790:2bd71120`.
+- `npx wrangler kv key get --remote --namespace-id
+  f3d89a4e70a34e3fab1c0f7676efebb5 req:1781353403790:2bd71120` returned the
+  smoke payload.
+- `node scripts/printer-intake-scout.js --source kv --no-watermark --quiet`
+  first saw 7 smoke entries, then after cleanup saw `0 in`.
+- `node scripts/printer-intake-scout.test.js` passed.
+
+Do not re-run this handover unless the tee regresses. Future KV diagnostics must
+use `--remote`.
+
+## Original brief (superseded)
+
+The section below is retained as historical context for the diagnostic path that
+led to the fix.
 
 ## Confirmed facts (do NOT re-tread these)
 - **Scout code is complete, tested (28 unit tests + 38/43 QA), reviewed (sub-agent
@@ -88,7 +121,7 @@ curl -s -X POST https://3dprintassistant.com/api/feedback -H "Content-Type: appl
   -H "Origin: https://3dprintassistant.com" \
   -d "{\"category\":\"missingPrinter\",\"fields\":[{\"id\":\"brand\",\"label\":\"Brand\",\"value\":\"DeploySmoke\"},{\"id\":\"model\",\"label\":\"Model\",\"value\":\"$S\"}],\"email\":null,\"context\":{}}"
 # then poll (KV list is eventually-consistent — wait up to ~2 min):
-CLOUDFLARE_ACCOUNT_ID=$ACC npx wrangler kv key list --namespace-id $NS
+CLOUDFLARE_ACCOUNT_ID=$ACC npx wrangler kv key list --remote --namespace-id $NS
 # get each key and look for $S; delete the smoke entry when done.
 ```
 Note: `Date.now()`/`date +%s` is fine here (this is a shell/handover, not a Workflow script).
