@@ -17,6 +17,7 @@ const SCRIPT  = path.join(__dirname, 'printer-intake-scout.js');
 const SAMPLE  = path.join(__dirname, 'fixtures', 'printer-intake-sample.json');
 const EMPTY   = path.join(__dirname, 'fixtures', 'printer-intake-empty.json');
 const ADV     = path.join(__dirname, 'fixtures', 'printer-intake-adversarial.json');
+const ROBUST  = path.join(__dirname, 'fixtures', 'printer-intake-robustness.json');
 const MISSING = path.join(__dirname, 'fixtures', '__does_not_exist__.json');
 const FAKEWRANGLER = path.join(__dirname, 'fixtures', 'fake-wrangler.js');
 const STAGING = path.join(__dirname, '.printer-intake-out'); // the approved (gitignored + asset-ignored) --out dir
@@ -303,6 +304,34 @@ let adv, advRaw;
   } else {
     check('symlink test skipped (could not create symlink)', true);
   }
+}
+
+// ── Input robustness (#6 brand-in-model, #7 non-FDM acronym in notes) ──
+{
+  console.log('TC25-28 — input robustness: brand-in-model + non-FDM acronym in notes');
+  const r = run(['--queue', ROBUST]);
+  const rep = parse(r.stdout);
+  check('exit 0 + parses', r.code === 0 && rep !== null, `code=${r.code}`);
+  const byKey = {};
+  for (const it of (rep && rep.items) || []) for (const k of (it.requestKeys && it.requestKeys.length ? it.requestKeys : [it.request.key])) byKey[k] = it;
+
+  // TC25 — "Prusa MK4S" in the model field → brand extracted → duplicate of mk4s
+  const d = byKey['rb:brand-in-model-dup'];
+  check('TC25 brand-in-model dup → duplicate', d && d.outcome === 'duplicate', `got ${d && d.outcome}`);
+  check('TC25 matched mk4s', d && d.matchedPrinter && d.matchedPrinter.id === 'mk4s', `got ${d && JSON.stringify(d.matchedPrinter)}`);
+
+  // TC26 — "Bambu Lab H2 Mini" in the model field → brand extracted → novel needs-research under bambu_lab
+  const n = byKey['rb:brand-in-model-novel'];
+  check('TC26 brand-in-model novel → needs-research', n && n.outcome === 'needs-research', `got ${n && n.outcome}`);
+  check('TC26 manufacturer extracted = bambu_lab', n && n.resolved && n.resolved.manufacturer === 'bambu_lab', `got ${n && n.resolved && n.resolved.manufacturer}`);
+
+  // TC27 — "SLS" acronym in notes → declined-non-fdm
+  const s = byKey['rb:sls-in-notes'];
+  check('TC27 SLS-in-notes → declined-non-fdm', s && s.outcome === 'declined-non-fdm', `got ${s && s.outcome}`);
+
+  // TC28 — "not a resin printer" in notes must STILL not decline (regression guard for #7)
+  const g = byKey['rb:resin-word-not-declined'];
+  check('TC28 "not a resin printer" note NOT declined', g && g.outcome !== 'declined-non-fdm', `got ${g && g.outcome}`);
 }
 
 console.log('');

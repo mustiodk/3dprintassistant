@@ -195,13 +195,22 @@ const RESIN_MODEL_KEYWORDS = [
 const NON_FDM_TECH_PATTERNS = [
   /\bresin\b/, /\bmsla\b/, /\bsla\b/, /\bdlp\b/, /\bsls\b/, /\bmjf\b/, /\blcd printer\b/,
 ];
-function fdmDecline(brand, model) {
+// Acronyms unambiguous enough to also trust inside free-text NOTES. The soft
+// words "resin"/"sla" are deliberately NOT scanned in notes — a note like "not a
+// resin printer" must never trigger a decline. These acronyms are virtually never
+// written negated/innocently in a printer request ("it's an SLS machine").
+const NON_FDM_NOTE_ACRONYMS = [/\bsls\b/, /\bmjf\b/, /\bmsla\b/, /\bdlp\b/];
+function fdmDecline(brand, model, notes) {
   const hay = `${brand} ${model}`.toLowerCase();
   for (const kw of RESIN_MODEL_KEYWORDS) {
     if (hay.includes(kw)) return `non-FDM model keyword "${kw}" (resin/MSLA out of scope)`;
   }
   for (const re of NON_FDM_TECH_PATTERNS) {
     if (re.test(hay)) return `non-FDM technology keyword /${re.source}/`;
+  }
+  const noteHay = String(notes == null ? '' : notes).toLowerCase();
+  for (const re of NON_FDM_NOTE_ACRONYMS) {
+    if (re.test(noteHay)) return `non-FDM technology acronym in notes /${re.source}/`;
   }
   return null;
 }
@@ -270,6 +279,20 @@ function resolveBrand(brandRaw, cat) {
   return { id: snake(brandRaw), known: false }; // unknown brand → new-brand candidate
 }
 
+// brand-in-model extraction (#6): if the model value starts with a KNOWN brand
+// name/alias and has ≥1 word left, split it off — e.g. "Prusa MK4S" typed into
+// the model field → { brandId:'prusa', rest:'MK4S' }. Tries a 2-word then 1-word
+// prefix (catalog brand names are ≤2 words). Only matches known brands, so it
+// never mis-splits an ordinary model like "Ender-7".
+function extractLeadingBrand(model, cat) {
+  const w = String(model == null ? '' : model).split(/\s+/).filter(Boolean);
+  for (let n = Math.min(2, w.length - 1); n >= 1; n--) {
+    const rb = resolveBrand(w.slice(0, n).join(' '), cat);
+    if (rb && rb.known) return { brandId: rb.id, rest: w.slice(n).join(' ') };
+  }
+  return null;
+}
+
 // suggest a printers.json id; if it collides with an existing id under a
 // DIFFERENT manufacturer, prefix with the manufacturer and flag it for the owner.
 function suggestId(manufacturer, model, cat) {
@@ -292,7 +315,7 @@ function classify(entry, cat) {
     };
   }
 
-  const { brand, model, notes } = mapFields(entry && entry.fields);
+  let { brand, model, notes } = mapFields(entry && entry.fields); // model may be re-split (#6)
   const rawEmail = (entry && typeof entry.email === 'string' && entry.email.trim()) ? entry.email.trim() : null;
   const request = {
     brand: brand || null,
@@ -312,8 +335,8 @@ function classify(entry, cat) {
     return Object.assign({ outcome: 'unactionable', reason: 'no brand and no model in submission' }, base);
   }
 
-  // (b) FDM scope — decline before anything else (brand+model only).
-  const declineReason = fdmDecline(brand, model);
+  // (b) FDM scope — decline before anything else (brand+model, + hard acronyms in notes).
+  const declineReason = fdmDecline(brand, model, notes);
   if (declineReason) {
     return Object.assign({ outcome: 'declined-non-fdm', reason: declineReason }, base);
   }
@@ -325,16 +348,23 @@ function classify(entry, cat) {
     const rb = resolveBrand(brand, cat);
     resolvedBrandId = rb.id; brandKnown = rb.known;
   } else {
-    const exact = cat.globalModelIndex.get(norm(model)) || [];
-    if (exact.length === 1) {
-      // unambiguous existing printer → dedupe path picks it up below
-      resolvedBrandId = exact[0].manufacturer; brandKnown = true; inferred = true;
-    } else if (exact.length > 1) {
-      return Object.assign({ outcome: 'incomplete',
-        reason: `model matches multiple catalog printers (${exact.map(r => r.id).join(', ')}); brand needed to disambiguate` }, base);
+    // brand-in-model (#6): "Prusa MK4S" in the model field → split off the known
+    // brand so it resolves + dedupes like a normal brand+model request.
+    const ext = extractLeadingBrand(model, cat);
+    if (ext) {
+      resolvedBrandId = ext.brandId; brandKnown = true; inferred = true; model = ext.rest;
     } else {
-      const tok = leadingToken(model);
-      if (tok && cat.familyToBrand.has(tok)) { resolvedBrandId = cat.familyToBrand.get(tok); brandKnown = true; inferred = true; }
+      const exact = cat.globalModelIndex.get(norm(model)) || [];
+      if (exact.length === 1) {
+        // unambiguous existing printer → dedupe path picks it up below
+        resolvedBrandId = exact[0].manufacturer; brandKnown = true; inferred = true;
+      } else if (exact.length > 1) {
+        return Object.assign({ outcome: 'incomplete',
+          reason: `model matches multiple catalog printers (${exact.map(r => r.id).join(', ')}); brand needed to disambiguate` }, base);
+      } else {
+        const tok = leadingToken(model);
+        if (tok && cat.familyToBrand.has(tok)) { resolvedBrandId = cat.familyToBrand.get(tok); brandKnown = true; inferred = true; }
+      }
     }
   }
 

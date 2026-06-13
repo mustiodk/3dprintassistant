@@ -1,0 +1,30 @@
+[
+  {
+    "fields": [ { "id": "model", "label": "Model", "value": "Prusa MK4S" } ],
+    "email": null, "context": {}, "appSource": "web",
+    "receivedAt": "2026-06-13T11:00:00.000Z", "_key": "rb:brand-in-model-dup"
+  },
+  {
+    "fields": [ { "id": "model", "label": "Model", "value": "Bambu Lab H2 Mini" } ],
+    "email": null, "context": {}, "appSource": "web",
+    "receivedAt": "2026-06-13T11:01:00.000Z", "_key": "rb:brand-in-model-novel"
+  },
+  {
+    "fields": [
+      { "id": "brand", "label": "Brand", "value": "Sinterit" },
+      { "id": "model", "label": "Model", "value": "Lisa X" },
+      { "id": "notes", "label": "Notes (optional)", "value": "This is an SLS powder-bed machine" }
+    ],
+    "email": null, "context": {}, "appSource": "web",
+    "receivedAt": "2026-06-13T11:02:00.000Z", "_key": "rb:sls-in-notes"
+  },
+  {
+    "fields": [
+      { "id": "brand", "label": "Brand", "value": "Creality" },
+      { "id": "model", "label": "Model", "value": "Ender-5 S1" },
+      { "id": "notes", "label": "Notes (optional)", "value": "Just to be clear this is definitely NOT a resin printer" }
+    ],
+    "email": null, "context": {}, "appSource": "web",
+    "receivedAt": "2026-06-13T11:03:00.000Z", "_key": "rb:resin-word-not-declined"
+  }
+]
