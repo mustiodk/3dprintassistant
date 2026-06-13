@@ -12,3 +12,8 @@ node_modules/**
 # Scout, its secret config / watermark / staging output, and test fixtures.
 scripts
 scripts/**
+# Internal docs / review packets / handovers — not part of the web app.
+docs
+docs/**
+codex
+codex/**
