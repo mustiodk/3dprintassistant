@@ -1,0 +1,71 @@
+[
+  {
+    "fields": [
+      { "label": "Brand", "value": "Creality" },
+      { "label": "Model", "value": "Ender-5 S1" },
+      { "label": "Notes (optional)", "value": "Would love support for this one." }
+    ],
+    "email": "alice@example.com",
+    "context": { "appVersion": "2026.06", "locale": "en-US" },
+    "appSource": "web",
+    "receivedAt": "2026-06-13T08:00:00.000Z"
+  },
+  {
+    "fields": [
+      { "label": "Brand", "value": "Bambu Lab" },
+      { "label": "Model", "value": "X1 Carbon" }
+    ],
+    "email": null,
+    "context": {},
+    "appSource": "web",
+    "receivedAt": "2026-06-13T08:05:00.000Z"
+  },
+  {
+    "fields": [
+      { "label": "Brand", "value": "Anycubic" },
+      { "label": "Model", "value": "Photon Mono M7 Pro" },
+      { "label": "Notes (optional)", "value": "My resin printer." }
+    ],
+    "email": "bob@example.com",
+    "context": {},
+    "appSource": "ios",
+    "receivedAt": "2026-06-13T08:10:00.000Z"
+  },
+  {
+    "fields": [
+      { "label": "Brand", "value": "Sovol" }
+    ],
+    "email": null,
+    "context": {},
+    "appSource": "web",
+    "receivedAt": "2026-06-13T08:15:00.000Z"
+  },
+  {
+    "fields": [
+      { "label": "Notes (optional)", "value": "asdf" }
+    ],
+    "email": null,
+    "context": {},
+    "appSource": "web",
+    "receivedAt": "2026-06-13T08:20:00.000Z"
+  },
+  {
+    "fields": [
+      { "label": "Mærke", "value": "Creality" },
+      { "label": "Model", "value": "Ender 5 S1" }
+    ],
+    "email": "carol@example.com",
+    "context": { "locale": "da-DK" },
+    "appSource": "web",
+    "receivedAt": "2026-06-13T08:25:00.000Z"
+  },
+  {
+    "fields": [
+      { "label": "Model", "value": "Ender-7" }
+    ],
+    "email": null,
+    "context": {},
+    "appSource": "web",
+    "receivedAt": "2026-06-13T08:30:00.000Z"
+  }
+]
