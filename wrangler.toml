@@ -16,3 +16,10 @@ binding = "ASSETS"
 [[analytics_engine_datasets]]
 binding = "ANALYTICS"
 dataset = "3dpa_usage_v1"
+
+# Intake queue for missing-printer feedback (Printer Intake Scout pipeline).
+# The /api/feedback Function tees `missingPrinter` submissions here, fail-open.
+# Binding name must stay "PRINTER_INTAKE" — feedback.js reads env.PRINTER_INTAKE.
+[[kv_namespaces]]
+binding = "PRINTER_INTAKE"
+id = "f3d89a4e70a34e3fab1c0f7676efebb5"
