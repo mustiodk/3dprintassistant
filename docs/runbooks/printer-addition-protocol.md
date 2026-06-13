@@ -56,7 +56,8 @@ Each drafted field is one of:
   multiple compatible non-manufacturer sources only when the field is not
   profile/safety critical.
 - `inferred` — derived from clear evidence but not directly listed as a spec.
-  Inferred values on profile/safety fields require a risk flag and review.
+  Inferred values on profile/safety fields require a risk flag and review, but
+  cannot make a candidate `ship-ready`.
 - `low-confidence` — missing, contradictory, weakly sourced, or based on silence.
 
 Profile/safety-critical fields are:
@@ -74,6 +75,10 @@ feature would normally be advertised if present, and why the omission is safe
 for this field. Silence alone is `low-confidence`.
 
 A low-confidence profile/safety-critical field blocks `ship-ready`.
+`manufacturer`, `model` / `name`, and FDM/non-FDM status must be confirmed
+before promotion beyond `needs-research`. `max_nozzle_temp` and `max_bed_temp`
+must be sourced from manufacturer data unless explicitly approved after conflict
+review.
 
 ### Outcome classes
 
