@@ -23,6 +23,86 @@ assumption.
 - **Overlay cannot retract a bundled entry from a shipped iOS binary.**
   Deprecation is asymmetric (see Phase 4).
 
+## Evidence rules (before trusting a candidate)
+
+### Source authority
+
+Classify every source used for a candidate:
+
+1. **Manufacturer authority** — official product page, manual, spec sheet,
+   support/wiki page, or manufacturer software/firmware profile. Use this class
+   for profile-affecting and safety-affecting fields whenever possible.
+2. **Distributor/reseller authority** — authorized reseller or marketplace page.
+   May corroborate model existence, alternate naming, and availability, but does
+   not override manufacturer data for profile/safety fields.
+3. **Independent review/community evidence** — reputable reviews, owner reports,
+   videos, forums, and photos. May help identify physical/mechanical facts such
+   as enclosure shape or extruder layout, but does not override manufacturer
+   data.
+4. **Requester text** — context only. It never establishes specs or taxonomy by
+   itself.
+
+If manufacturer data conflicts with reseller/review/community data, use the
+manufacturer value as the proposed value only when the model/revision/region
+clearly matches. Record the conflict as a risk flag and dispatch review before
+shipping. If two manufacturer sources conflict, the candidate is
+`needs-source-resolution` and must not ship until resolved.
+
+### Field confidence
+
+Each drafted field is one of:
+
+- `confirmed` — directly supported by a cited manufacturer source, or by
+  multiple compatible non-manufacturer sources only when the field is not
+  profile/safety critical.
+- `inferred` — derived from clear evidence but not directly listed as a spec.
+  Inferred values on profile/safety fields require a risk flag and review.
+- `low-confidence` — missing, contradictory, weakly sourced, or based on silence.
+
+Profile/safety-critical fields are:
+`series`, `enclosure`, `active_chamber_heating`, `max_chamber_temp` if present,
+`extruder_type`, `max_nozzle_temp`, `max_bed_temp`, `max_speed`,
+`max_acceleration`, `available_nozzle_sizes`, `available_plates`,
+`multi_color_systems`, `has_lidar`, `has_camera`,
+`open_door_threshold_bed_temp` if present, and `notes` when they contain
+warnings, material limits, or operating constraints.
+
+Boolean absence is not proof. A `false` value needs official/manual evidence,
+explicit "not equipped" documentation, or a recorded absence rationale. A
+sufficient absence rationale says which source classes were checked, what
+feature would normally be advertised if present, and why the omission is safe
+for this field. Silence alone is `low-confidence`.
+
+A low-confidence profile/safety-critical field blocks `ship-ready`.
+
+### Outcome classes
+
+Deterministic Scout outcomes:
+
+- `duplicate` — already bundled; no add.
+- `declined-non-fdm` — resin, SLA/MSLA/LCD/DLP, SLS/MJF, or other non-FDM.
+- `unactionable` — empty/spam/no model signal.
+- `incomplete` — brand/model information is insufficient.
+- `needs-research` — novel request; FDM and specs are not confirmed yet.
+- `parse-error` — ingestion entry could not be parsed; operational error, not a
+  printer decision.
+
+Assisted research / Assistant outcomes:
+
+- `unverified-model` — no authoritative source confirms the model; do not claim
+  universal nonexistence.
+- `needs-source-resolution` — required evidence is missing or conflicting.
+- `needs-owner-taxonomy` — owner must approve a new brand, new series group, or
+  non-obvious taxonomy.
+- `needs-taxonomy-decision` — model does not map cleanly to the current engine
+  taxonomy.
+- `blocked` — validators, source conflicts, or owner/reviewer gates prevent
+  shipping.
+- `ship-ready` — all required fields are confirmed, validators are green, owner
+  gates are satisfied, and required reviewer dispatches have returned GO.
+
+The deterministic Scout never emits assisted-only outcomes.
+
 ## Phase 1 — Taxonomy decision (before editing any file)
 
 0. **FDM-only scope check.** 3dpa generates **FDM (filament extrusion)** slicer
@@ -45,6 +125,10 @@ assumption.
    - `id` — stable internal id, `snake_case`. Once published in an overlay, it
      cannot change.
    - `name` — picker row label.
+   If a new brand has no sibling `series_group`, mark the candidate
+   `needs-owner-taxonomy`. If `series` does not cleanly fit the current
+   `corexy` / `bedslinger` engine enum, mark it `needs-taxonomy-decision`; do
+   not extend the engine enum inside a printer-add commit.
 3. **Sanity question.** Where does the manufacturer themselves put this on their
    site/store? If your decision disagrees with that, stop and re-check.
 
@@ -168,6 +252,12 @@ when **any** of these fire:
 - `engine.js`, `app.js`, validator, or overlay spec touched anywhere in the
   diff.
 - Sources conflicted on a key spec field.
+- Source conflict on any profile/safety-critical field.
+- Any `inferred` value for `series`, `enclosure`, `active_chamber_heating`,
+  `extruder_type`, `max_nozzle_temp`, or `max_bed_temp`.
+- Non-obvious `corexy` / `bedslinger` mapping.
+- `false` value for feature booleans based only on missing mentions.
+- Manufacturer-vs-manufacturer conflict.
 - Deprecation or removal (Phase 4).
 - More than one printer added in the same session.
 
