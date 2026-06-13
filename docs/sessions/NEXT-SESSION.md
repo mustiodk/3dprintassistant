@@ -2,22 +2,20 @@
 
 **Purpose:** kickoff prompt for the next 3dpa session.
 
-**Last updated:** 2026-06-13 Codex follow-up (printer-intake tee activation
-resolved). The Scout is built, tested (28 tests), dual-hostile-reviewed, QA'd
-(38/43), and pushed. The KV namespace + binding exist, and the deployed feedback
-tee writes to remote KV. The apparent blocker was a read-side bug: Wrangler KV
-reads lacked `--remote`, so diagnostics and the Scout queried local/default KV
-and saw an empty queue. `scripts/printer-intake-scout.js` now passes `--remote`
-for live KV list/get; smoke entries were deleted; live queue verified empty.
+**Last updated:** 2026-06-13 Codex follow-up (printer-intake evidence rules
+hardened). The Scout is built, tested, reviewed, pushed, and reads live KV via
+`wrangler kv ... --remote`. The researcher rehearsal is complete. The
+printer-addition protocol now codifies source hierarchy, conflict handling,
+field confidence, outcome ownership, taxonomy edge cases, and extra review
+triggers; the Scout/Assistant contracts are aligned with deterministic-vs-assisted
+responsibilities; private Scout skeletons carry the evidence policy.
 
 **Locked next entry point:**
-1. **Researcher rehearsal** (owner-agreed) — dry-run the Printer Addition Assistant
-   (`../../../ai-operating-model/docs/agents/printer-addition-assistant.md`) on
-   **Voxelab Aries** (real request, new brand) + 3 adversarial cases (resin
-   mislabeled → must decline; non-existent printer → must decline, no fabrication;
-   conflicting sources → low-confidence). Judge by review (it's an agent, not code):
-   cited sources, correct taxonomy, FDM confirmed, gates respected, no fabrication.
-   Then hostile-review the output.
+1. **Real queue rehearsal** — seed/process the Discord backlog now that evidence
+   rules are hardened. Expected outcomes: Voxelab Aries → assisted
+   `needs-source-resolution` / `needs-owner-taxonomy` packet; Anycubic Photon
+   Mono M7 Pro → `declined-non-fdm`. Do not edit live catalog/overlay/iOS until
+   the Assistant presents a packet and owner approval is explicit.
 
 ---
 
@@ -31,11 +29,14 @@ Read in order:
    `2026-06-13-cowork-appdev-printer-intake-scout-ship.md`).
 5. **For tee-resolution context only:** `codex/printer-intake-tee-handover/HANDOVER.md`
    (now marked resolved; do not re-run unless the tee regresses).
-6. **For the researcher rehearsal:** `ai-operating-model/docs/agents/printer-addition-assistant.md`
-   + `docs/runbooks/printer-addition-protocol.md`.
+6. **For the hardened intake flow:** `ai-operating-model/docs/agents/printer-intake-scout.md`
+   + `ai-operating-model/docs/agents/printer-addition-assistant.md`
+   + `docs/runbooks/printer-addition-protocol.md`
+   + `docs/superpowers/specs/2026-06-13-printer-intake-evidence-rules-design.md`.
 
-**Today's task:** run the researcher rehearsal. The live tee is active; any future
-KV diagnostics must use `wrangler kv ... --remote`.
+**Today's task:** seed/process the real Discord backlog through the Scout. The
+live tee is active; any future KV diagnostics must use
+`wrangler kv ... --remote`.
 
 **Standing rules:** verify runtime behavior with logs/`wrangler tail`, don't infer
 root cause from an adjacent probe (two misdiagnoses last session); KV list is
@@ -49,5 +50,5 @@ Wrangler KV reads; the Scout/researcher are web-side (no iOS push). Account
 ## Maintenance Note
 
 Regenerated on Trigger A / Trigger B / explicit owner ask only. The live item is
-the researcher rehearsal; the tee diagnostic brief is retained as a resolved
+the real queue rehearsal; the tee diagnostic brief is retained as a resolved
 record in `codex/printer-intake-tee-handover/HANDOVER.md`.
