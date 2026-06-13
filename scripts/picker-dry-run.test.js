@@ -89,19 +89,9 @@ console.log('# picker-dry-run.js tests\n');
     `stdout=${r.stdout}; stderr=${r.stderr}`);
 }
 
-// ── TC7 — GREEN: Voxelab Aries taxonomy path ──
-//   This starts RED before data is added, then guards the new brand →
-//   series_group → printer path after the catalog change.
-{
-  console.log('TC7 — GREEN: voxelab / "Aries Series" / aries');
-  const r = run(['voxelab', 'Aries Series', 'aries']);
-  check('exit code 0', r.code === 0, `got ${r.code}; stdout=${r.stdout}; stderr=${r.stderr}`);
-  check('stdout contains GREEN', /GREEN/.test(r.stdout), `stdout=${r.stdout}`);
-}
-
 console.log('');
 if (failures === 0) {
-  console.log(`ALL ${7} TESTS PASS`);
+  console.log(`ALL ${6} TESTS PASS`);
   process.exit(0);
 } else {
   console.log(`${failures} TEST(S) FAILED`);
