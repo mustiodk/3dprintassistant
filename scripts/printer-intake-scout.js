@@ -138,10 +138,6 @@ function leadingToken(s) {
   const m = String(s == null ? '' : s).toLowerCase().match(/[a-z]+/);
   return m ? m[0] : '';
 }
-// Whole-word tokens of a free-text string (for brand resolution).
-function words(s) {
-  return String(s == null ? '' : s).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
-}
 // Short, non-reversible identity hash for an email — lets the report dedupe and
 // reference a requester WITHOUT disclosing the address.
 function shortHash(s) {
@@ -260,17 +256,17 @@ function loadCatalog() {
   return { brands, brandByNorm, BRAND_TOKEN_ALIASES, familyToBrand, printerByKey, globalModelIndex, idSet };
 }
 
-// resolve a free-text brand string → {id, known}. Whole-word matching only — no
-// substring contains (so "Anker-clone" doesn't silently become AnkerMake).
+// resolve a free-text brand string → {id, known}. EXACT normalized match only
+// (brand id, brand name, or a known alias). No sub-word / substring matching:
+// "Anker-clone" must NOT become AnkerMake — it falls through to an unknown,
+// owner-reviewed new-brand candidate. A legit multi-word brand we don't yet know
+// (e.g. "Creality 3D") is likewise surfaced as a new-brand candidate rather than
+// silently misattributed.
 function resolveBrand(brandRaw, cat) {
   const n = norm(brandRaw);
   if (!n) return null;
   if (cat.brandByNorm.has(n)) return { id: cat.brandByNorm.get(n), known: true };
   if (cat.BRAND_TOKEN_ALIASES[n]) return { id: cat.BRAND_TOKEN_ALIASES[n], known: true };
-  for (const w of words(brandRaw)) {
-    if (cat.brandByNorm.has(w)) return { id: cat.brandByNorm.get(w), known: true };
-    if (cat.BRAND_TOKEN_ALIASES[w]) return { id: cat.BRAND_TOKEN_ALIASES[w], known: true };
-  }
   return { id: snake(brandRaw), known: false }; // unknown brand → new-brand candidate
 }
 
@@ -516,26 +512,35 @@ function writeWatermark(file, lastReceivedAt) {
   fs.writeFileSync(file, JSON.stringify({ lastReceivedAt, updatedAt: new Date().toISOString() }, null, 2) + '\n');
 }
 function validTs(v) { return typeof v === 'string' && !Number.isNaN(Date.parse(v)); }
+// Numeric (Date.parse) ordering — never lexical, so a parse-valid non-ISO stamp
+// can't sort wrong. Returns the original string with the newest instant.
 function maxReceivedAt(entries) {
-  let max = null;
+  let max = null, maxN = -Infinity;
   for (const e of entries) {
     const r = e && e.receivedAt;
-    if (validTs(r) && (max === null || r > max)) max = r;
+    if (validTs(r)) { const n = Date.parse(r); if (n > maxN) { maxN = n; max = r; } }
   }
   return max;
 }
+function newerThan(a, b) { return Date.parse(a) > Date.parse(b); } // a, b must be validTs
 
 // ─── --out safety ────────────────────────────────────────────────────────────
-// Refuse to write PII-bearing artifacts into a non-gitignored in-repo path.
+// Refuse to write PII-bearing artifacts (candidate skeletons carry requester
+// notes) into a committable/servable location. A path OUTSIDE the repo is fine.
+// A path INSIDE the repo is allowed ONLY if git actually ignores it — verified
+// with `git check-ignore`, not a name heuristic (so `public/printer-intake-out`
+// or `foo/.printer-intake-x` cannot sneak through).
 function assertSafeOutDir(outDir) {
   const abs = path.resolve(outDir);
   const insideRepo = abs === ROOT || abs.startsWith(ROOT + path.sep);
-  const base = path.basename(abs);
-  const looksStaging = base.startsWith('.printer-intake') || abs.includes('printer-intake-out');
-  if (insideRepo && !looksStaging) {
-    console.error(`STOP: refusing --out '${outDir}' — it is inside the repo and not a gitignored `
-      + `staging path. Candidate skeletons can contain requester notes. Use `
-      + `scripts/.printer-intake-out/ (default-safe) or a path outside the repo.`);
+  if (!insideRepo) return; // not committed, not served
+  let ignored = false;
+  try { execFileSync('git', ['check-ignore', '-q', abs], { cwd: ROOT }); ignored = true; }
+  catch (_) { ignored = false; } // exit 1 (not ignored) or error → treat as unsafe
+  if (!ignored) {
+    console.error(`STOP: refusing --out '${outDir}' — it is inside the repo and NOT gitignored. `
+      + `Candidate skeletons can contain requester notes (and the repo root is served as `
+      + `assets). Use scripts/.printer-intake-out/ (default-safe) or a path outside the repo.`);
     process.exit(2);
   }
 }
@@ -564,7 +569,13 @@ async function main() {
     entries = queue;
   } else if (args.source === 'kv') {
     const cfg = loadConfig(args.config);
-    const wm = (args.useWatermark && !args.resetWatermark) ? readWatermark(args.watermarkFile) : { lastReceivedAt: null };
+    let wm = (args.useWatermark && !args.resetWatermark) ? readWatermark(args.watermarkFile) : { lastReceivedAt: null };
+    // A corrupt persisted watermark must NOT silently gate out fresh entries.
+    if (wm.lastReceivedAt && !validTs(wm.lastReceivedAt)) {
+      runErrors.push({ type: 'invalid-watermark', value: wm.lastReceivedAt,
+        note: 'persisted watermark is not a valid timestamp — ignored this run (treated as no watermark)' });
+      wm = { lastReceivedAt: null };
+    }
     let fetched;
     try {
       const r = kvFetchViaWrangler(cfg, { wranglerBin: args.wranglerBin, useConfigToken: args.useConfigToken });
@@ -581,7 +592,7 @@ async function main() {
       if (!e._parseError) runErrors.push({ type: 'missing-or-invalid-receivedAt', key: e._key || null,
         note: 'processed this run; re-surfaces until it has a valid receivedAt or is removed' });
     }
-    const freshValid = wm.lastReceivedAt ? valid.filter(e => e.receivedAt > wm.lastReceivedAt) : valid;
+    const freshValid = wm.lastReceivedAt ? valid.filter(e => newerThan(e.receivedAt, wm.lastReceivedAt)) : valid;
     entries = [...freshValid, ...noTs];
 
     sourceMeta.namespaceId = cfg.namespaceId;
@@ -591,7 +602,7 @@ async function main() {
     if (args.useWatermark) {
       // advance only past valid timestamps actually fetched this run
       const maxValid = maxReceivedAt(valid);
-      watermarkToAdvance = (maxValid && (!wm.lastReceivedAt || maxValid > wm.lastReceivedAt)) ? maxValid : wm.lastReceivedAt;
+      watermarkToAdvance = (maxValid && (!wm.lastReceivedAt || newerThan(maxValid, wm.lastReceivedAt))) ? maxValid : wm.lastReceivedAt;
     }
   } else {
     console.error(`STOP: unknown --source '${args.source}' (expected 'fixtures' or 'kv')`);

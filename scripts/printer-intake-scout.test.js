@@ -10,12 +10,16 @@
 
 const { spawnSync } = require('child_process');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 
 const SCRIPT  = path.join(__dirname, 'printer-intake-scout.js');
 const SAMPLE  = path.join(__dirname, 'fixtures', 'printer-intake-sample.json');
 const EMPTY   = path.join(__dirname, 'fixtures', 'printer-intake-empty.json');
 const ADV     = path.join(__dirname, 'fixtures', 'printer-intake-adversarial.json');
 const MISSING = path.join(__dirname, 'fixtures', '__does_not_exist__.json');
+const FAKEWRANGLER = path.join(__dirname, 'fixtures', 'fake-wrangler.js');
+try { fs.chmodSync(FAKEWRANGLER, 0o755); } catch (_) {} // ensure executable for execFileSync
 
 function run(args, env) {
   const r = spawnSync('node', [SCRIPT, ...args], {
@@ -202,6 +206,40 @@ let adv, advRaw;
   check('needs_research = 2', c.needs_research === 2, `got ${c.needs_research}`);
   check('duplicate = 2', c.duplicate === 2, `got ${c.duplicate}`);
   check('parse_error = 1', c.parse_error === 1, `got ${c.parse_error}`);
+}
+
+// ── KV-path tests via a fake wrangler (offline, no Cloudflare) ──
+{
+  console.log('TC17 — kv source via fake wrangler: list+get, parse-error + missing-receivedAt surfaced, PII-safe');
+  const r = run(['--source', 'kv', '--reset-watermark', '--no-watermark', '--wrangler-bin', FAKEWRANGLER]);
+  check('exit 0', r.code === 0, `got ${r.code}; stderr=${r.stderr}`);
+  const rep = parse(r.stdout);
+  check('parses', rep !== null, `stdout=${r.stdout.slice(0, 200)}`);
+  check('totalKeys = 3', rep && rep.source && rep.source.totalKeys === 3, `got ${rep && rep.source && rep.source.totalKeys}`);
+  check('needs_research = 2 (Ender-9000 + SV-Future)', rep && rep.counts.needs_research === 2, `got ${rep && rep.counts.needs_research}`);
+  check('parse_error = 1 (req:bad)', rep && rep.counts.parse_error === 1, `got ${rep && rep.counts.parse_error}`);
+  check('report.errors has a parse-error', rep && (rep.errors || []).some(e => e.type === 'parse-error'), `errors=${JSON.stringify(rep && rep.errors)}`);
+  check('report.errors flags missing receivedAt', rep && (rep.errors || []).some(e => /receivedAt/i.test(e.type || '')), `errors=${JSON.stringify(rep && rep.errors)}`);
+  check('no raw email leaked through KV path', !/requester@example\.com/.test(r.stdout), 'RAW EMAIL LEAKED');
+}
+
+{
+  console.log('TC18 — kv source: a corrupt persisted watermark is ignored (does not drop fresh entries)');
+  const wmFile = path.join(os.tmpdir(), `pi-wm-${process.pid}.json`);
+  fs.writeFileSync(wmFile, JSON.stringify({ lastReceivedAt: 'not-a-date' }));
+  const r = run(['--source', 'kv', '--watermark-file', wmFile, '--wrangler-bin', FAKEWRANGLER]);
+  const rep = parse(r.stdout);
+  check('exit 0', r.code === 0, `got ${r.code}; stderr=${r.stderr}`);
+  check('entries still processed (not silently dropped)', rep && rep.queueCount >= 2, `queueCount=${rep && rep.queueCount}`);
+  check('invalid-watermark surfaced in errors', rep && (rep.errors || []).some(e => e.type === 'invalid-watermark'), `errors=${JSON.stringify(rep && rep.errors)}`);
+  try { fs.unlinkSync(wmFile); } catch (_) {}
+}
+
+{
+  console.log('TC19 — --out safety: a non-gitignored in-repo path is refused (git check-ignore based)');
+  const r = run(['--queue', SAMPLE, '--out', path.join(__dirname, '..', 'public-leak-dir')]);
+  check('exit code 2', r.code === 2, `got ${r.code}`);
+  check('error explains the refusal', /gitignored|refusing --out/i.test(r.stdout + r.stderr), `stderr=${r.stderr}`);
 }
 
 console.log('');
