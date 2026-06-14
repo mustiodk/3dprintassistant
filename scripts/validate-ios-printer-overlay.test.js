@@ -188,6 +188,22 @@ test('(d) collectBaselineUnion includes only baselines >= min, skips lower + non
 });
 
 // ---------------------------------------------------------------------------
+// Case (e): live smoke — the committed overlay must validate GREEN against the committed
+// baselines + the iOS MARKETING_VERSION. Durable regression guard: re-adding a bundled id
+// (e.g. sparkx_i7) to the overlay, or letting the baselines/MARKETING_VERSION go stale,
+// flips this RED. Skips if the sibling iOS project.yml isn't checked out.
+// ---------------------------------------------------------------------------
+test('(e) committed overlay validates GREEN against committed baselines (live smoke)', () => {
+  const iosProject = path.resolve(__dirname, '..', '..', '3dprintassistant-ios', 'project.yml');
+  if (!fs.existsSync(iosProject)) {
+    console.log('      (skipped — sibling iOS project.yml not checked out)');
+    return;
+  }
+  const result = validateOverlay(); // default paths = real catalog/ + iOS project.yml
+  assert.strictEqual(result.ok, true, 'the committed overlay must validate green');
+});
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'overlay-validator-test-'));

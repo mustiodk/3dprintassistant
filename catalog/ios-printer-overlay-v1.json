@@ -1,7 +1,7 @@
 {
-  "content_version": 2026061301,
+  "content_version": 2026061401,
   "enabled": true,
-  "generated_at": "2026-06-13T22:04:43.901Z",
+  "generated_at": "2026-06-14T09:24:38.622Z",
   "min_app_version": "1.0.3",
   "payload": {
     "brands": [
@@ -14,41 +14,6 @@
       }
     ],
     "printers": [
-      {
-        "id": "sparkx_i7",
-        "name": "i7",
-        "manufacturer": "creality",
-        "series": "bedslinger",
-        "series_group": "i Series",
-        "enclosure": "none",
-        "active_chamber_heating": false,
-        "extruder_type": "direct_drive",
-        "max_nozzle_temp": 300,
-        "max_bed_temp": 100,
-        "max_speed": 500,
-        "max_acceleration": 10000,
-        "has_lidar": false,
-        "has_camera": true,
-        "multi_color_systems": [
-          "cfs_lite"
-        ],
-        "available_plates": [
-          "textured_pei"
-        ],
-        "available_nozzle_sizes": [
-          0.2,
-          0.4,
-          0.6,
-          0.8
-        ],
-        "open_door_threshold_bed_temp": null,
-        "notes": [
-          "Open-frame Cartesian bed-slinger — 260×260×255mm build volume",
-          "CFS Lite supports up to 4-color printing; CFS Mini is automatic refill only",
-          "Quick-swap hardened hotend — 0.4mm installed, 0.2/0.6/0.8 available",
-          "ABS, ASA, PC, PA and other high-temperature filaments are not recommended on the open frame"
-        ]
-      },
       {
         "id": "aries",
         "name": "Aries",
@@ -81,6 +46,6 @@
       }
     ]
   },
-  "payload_sha256": "fa998da216cb62f757c438046160a3de20909e558128e0567c4e03d823ba75f3",
+  "payload_sha256": "ab7821061cc5ba53a47ca2d645bb75764b8345bc7cebaf511e7b7f127d5ca759",
   "schema_version": 1
 }
