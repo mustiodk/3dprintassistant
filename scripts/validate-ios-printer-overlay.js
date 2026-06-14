@@ -5,9 +5,9 @@ const crypto = require('crypto');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const overlayPath = path.join(root, 'catalog', 'ios-printer-overlay-v1.json');
-const iosBaselinesPath = path.join(root, 'catalog', 'ios-bundled-catalog-baselines.json');
-const iosProjectPath = path.resolve(root, '..', '3dprintassistant-ios', 'project.yml');
+const defaultOverlayPath = path.join(root, 'catalog', 'ios-printer-overlay-v1.json');
+const defaultBaselinesPath = path.join(root, 'catalog', 'ios-bundled-catalog-baselines.json');
+const defaultProjectPath = path.resolve(root, '..', '3dprintassistant-ios', 'project.yml');
 
 // YYYYMMDDXX scheme, capped at 2099-12-31-99 to match the iOS poisoned-cache guard.
 const maximumReasonableContentVersion = 2_099_123_199;
@@ -39,6 +39,8 @@ const allowedPrinterFields = new Set([
   'notes',
 ]);
 
+const VERSION_RE = /^\d+\.\d+\.\d+$/;
+
 function stableStringify(value) {
   if (Array.isArray(value)) {
     return `[${value.map(stableStringify).join(',')}]`;
@@ -53,8 +55,14 @@ function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
 }
 
+// Validation failures throw; the CLI wrapper (bottom of file) turns them into a
+// non-zero exit. Returning a typed error keeps the validator unit-testable.
+function fail(message) {
+  throw new Error(message);
+}
+
 function parseVersion(value, label) {
-  if (typeof value !== 'string' || !/^\d+\.\d+\.\d+$/.test(value)) {
+  if (typeof value !== 'string' || !VERSION_RE.test(value)) {
     fail(`${label} must use MAJOR.MINOR.PATCH numeric format`);
   }
   return value.split('.').map((part) => Number(part));
@@ -70,22 +78,17 @@ function compareVersions(a, b) {
   return 0;
 }
 
-function readIOSMarketingVersion() {
+function readIOSMarketingVersion(projectPath) {
   let project;
   try {
-    project = fs.readFileSync(iosProjectPath, 'utf8');
+    project = fs.readFileSync(projectPath, 'utf8');
   } catch {
-    fail(`unable to read iOS project file: ${iosProjectPath}`);
+    fail(`unable to read iOS project file: ${projectPath}`);
   }
 
   const match = project.match(/\bMARKETING_VERSION:\s*["']?(\d+\.\d+\.\d+)["']?/);
-  if (!match) fail(`unable to read MARKETING_VERSION from ${iosProjectPath}`);
+  if (!match) fail(`unable to read MARKETING_VERSION from ${projectPath}`);
   return match[1];
-}
-
-function fail(message) {
-  console.error(`[ios-printer-overlay] ${message}`);
-  process.exit(1);
 }
 
 function requireString(obj, key) {
@@ -140,79 +143,138 @@ function assertUnique(items, label) {
   }
 }
 
-const overlay = JSON.parse(fs.readFileSync(overlayPath, 'utf8'));
-const iosBaselines = JSON.parse(fs.readFileSync(iosBaselinesPath, 'utf8'));
-const iosMarketingVersion = readIOSMarketingVersion();
-
-if (overlay.schema_version !== 1) fail('schema_version must be 1');
-if (!Number.isInteger(overlay.content_version) || overlay.content_version < 1) fail('content_version must be a positive integer');
-if (overlay.content_version > maximumReasonableContentVersion) {
-  fail(`content_version must be <= ${maximumReasonableContentVersion}`);
-}
-if (typeof overlay.enabled !== 'boolean') fail('enabled must be boolean');
-parseVersion(overlay.min_app_version, 'min_app_version');
-if (compareVersions(overlay.min_app_version, iosMarketingVersion) > 0) {
-  fail(`min_app_version ${overlay.min_app_version} is newer than iOS MARKETING_VERSION ${iosMarketingVersion}`);
-}
-const iosBaseline = iosBaselines[overlay.min_app_version];
-if (!iosBaseline || !Array.isArray(iosBaseline.brand_ids) || !Array.isArray(iosBaseline.printer_ids)) {
-  fail(`missing iOS bundled catalog baseline for min_app_version ${overlay.min_app_version}`);
-}
-if (!overlay.payload || typeof overlay.payload !== 'object') fail('payload must be object');
-if (!Array.isArray(overlay.payload.brands)) fail('payload.brands must be array');
-if (!Array.isArray(overlay.payload.printers)) fail('payload.printers must be array');
-
-const actualHash = sha256(stableStringify(overlay.payload));
-if (actualHash !== overlay.payload_sha256) {
-  fail(`payload_sha256 mismatch: expected ${overlay.payload_sha256}, got ${actualHash}`);
-}
-
-assertUnique(overlay.payload.brands, 'brand');
-assertUnique(overlay.payload.printers, 'printer');
-
-const bundledBrandIds = new Set(iosBaseline.brand_ids);
-const brandIds = new Set(bundledBrandIds);
-const bundledPrinterIds = new Set(iosBaseline.printer_ids);
-for (const brand of overlay.payload.brands) {
-  assertAllowedFields(brand, allowedBrandFields, 'brand');
-  const id = requireString(brand, 'id');
-  if (bundledBrandIds.has(id)) fail(`overlay brand ${id} already exists in bundled printers.json`);
-  requireString(brand, 'name');
-  requireInteger(brand, 'sort_order', 1, 10_000);
-  if (typeof brand.primary !== 'boolean') fail(`brand ${id} primary must be boolean`);
-  if (!allowedSlicers.has(requireString(brand, 'default_slicer'))) fail(`brand ${id} has unsupported default_slicer`);
-  brandIds.add(id);
-}
-
-for (const printer of overlay.payload.printers) {
-  assertAllowedFields(printer, allowedPrinterFields, 'printer');
-  const id = requireString(printer, 'id');
-  if (bundledPrinterIds.has(id)) fail(`overlay printer ${id} already exists in bundled printers.json`);
-  requireString(printer, 'name');
-  const manufacturer = requireString(printer, 'manufacturer');
-  if (!brandIds.has(manufacturer)) fail(`printer ${id} references unknown manufacturer ${manufacturer}`);
-  if (!allowedSeries.has(requireString(printer, 'series'))) fail(`printer ${id} has unsupported series`);
-  requireString(printer, 'series_group');
-  if (!allowedEnclosures.has(requireString(printer, 'enclosure'))) fail(`printer ${id} has unsupported enclosure`);
-  if (!allowedExtruders.has(requireString(printer, 'extruder_type'))) fail(`printer ${id} has unsupported extruder_type`);
-  requireInteger(printer, 'max_nozzle_temp', 150, 450);
-  requireInteger(printer, 'max_bed_temp', 0, 200);
-  requireInteger(printer, 'max_speed', 1, 1_500);
-  requireInteger(printer, 'max_acceleration', 1, 100_000);
-  optionalInteger(printer, 'max_chamber_temp', 0, 120, 'printer');
-  optionalInteger(printer, 'open_door_threshold_bed_temp', 0, 120, 'printer');
-  optionalBoolean(printer, 'active_chamber_heating', 'printer');
-  optionalBoolean(printer, 'has_lidar', 'printer');
-  optionalBoolean(printer, 'has_camera', 'printer');
-  optionalStringArray(printer, 'multi_color_systems', 'printer');
-  optionalStringArray(printer, 'available_plates', 'printer');
-  optionalStringArray(printer, 'notes', 'printer');
-  if (!Array.isArray(printer.available_nozzle_sizes) || printer.available_nozzle_sizes.length === 0) {
-    fail(`printer ${id} available_nozzle_sizes must be a non-empty array`);
+// The overlay is delivered to EVERY shipped build with version >= min_app_version, and the
+// iOS runtime (PrinterCatalogProvider.validatePayload) rejects the WHOLE overlay on any
+// collision with the running app's bundled catalog. So the ship gate must check overlay ids
+// against the union of all bundled baselines >= min_app_version — not just min_app_version's
+// baseline. (A single-baseline check is exactly what let the i7+aries overlay pass the gate
+// yet be rejected on v1.0.4, where i7 is bundled. See
+// docs/superpowers/specs/2026-06-14-ios-overlay-aries-collision-fix-design.md.)
+function collectBaselineUnion(iosBaselines, minAppVersion) {
+  const brandUnion = new Set();
+  const printerUnion = new Set();
+  const includedVersions = [];
+  for (const key of Object.keys(iosBaselines)) {
+    if (!VERSION_RE.test(key)) continue; // skip non-version top-level keys (e.g. a future _comment)
+    if (compareVersions(key, minAppVersion) < 0) continue; // only baselines >= min_app_version
+    const base = iosBaselines[key];
+    if (!base || !Array.isArray(base.brand_ids) || !Array.isArray(base.printer_ids)) {
+      fail(`baseline ${key} is malformed (brand_ids and printer_ids must be arrays)`);
+    }
+    base.brand_ids.forEach((id) => brandUnion.add(id));
+    base.printer_ids.forEach((id) => printerUnion.add(id));
+    includedVersions.push(key);
   }
-  for (const size of printer.available_nozzle_sizes) {
-    if (typeof size !== 'number' || size < 0.1 || size > 2.0) fail(`printer ${id} has invalid nozzle size ${size}`);
-  }
+  return { brandUnion, printerUnion, includedVersions };
 }
 
-console.log(`[ios-printer-overlay] ok: ${overlay.payload.brands.length} brands, ${overlay.payload.printers.length} printers`);
+/**
+ * Validate the iOS printer overlay against the bundled-catalog baselines.
+ * Pure + injectable so it is unit-testable; throws Error on any validation failure.
+ * @returns {{ ok: true, summary: string }}
+ */
+function validateOverlay({
+  overlayPath = defaultOverlayPath,
+  baselinesPath = defaultBaselinesPath,
+  projectPath = defaultProjectPath,
+} = {}) {
+  const overlay = JSON.parse(fs.readFileSync(overlayPath, 'utf8'));
+  const iosBaselines = JSON.parse(fs.readFileSync(baselinesPath, 'utf8'));
+  const iosMarketingVersion = readIOSMarketingVersion(projectPath);
+
+  if (overlay.schema_version !== 1) fail('schema_version must be 1');
+  if (!Number.isInteger(overlay.content_version) || overlay.content_version < 1) fail('content_version must be a positive integer');
+  if (overlay.content_version > maximumReasonableContentVersion) {
+    fail(`content_version must be <= ${maximumReasonableContentVersion}`);
+  }
+  if (typeof overlay.enabled !== 'boolean') fail('enabled must be boolean');
+  parseVersion(overlay.min_app_version, 'min_app_version');
+  if (compareVersions(overlay.min_app_version, iosMarketingVersion) > 0) {
+    fail(`min_app_version ${overlay.min_app_version} is newer than iOS MARKETING_VERSION ${iosMarketingVersion}`);
+  }
+
+  // Require a baseline for min_app_version AND for the current MARKETING_VERSION, so the
+  // baselines file cannot silently go stale the next time a binary bakes in a printer.
+  const minBaseline = iosBaselines[overlay.min_app_version];
+  if (!minBaseline || !Array.isArray(minBaseline.brand_ids) || !Array.isArray(minBaseline.printer_ids)) {
+    fail(`missing iOS bundled catalog baseline for min_app_version ${overlay.min_app_version}`);
+  }
+  const marketingBaseline = iosBaselines[iosMarketingVersion];
+  if (!marketingBaseline || !Array.isArray(marketingBaseline.brand_ids) || !Array.isArray(marketingBaseline.printer_ids)) {
+    fail(`missing iOS bundled catalog baseline for current MARKETING_VERSION ${iosMarketingVersion} — add a bundled-catalog baseline for ${iosMarketingVersion}`);
+  }
+
+  if (!overlay.payload || typeof overlay.payload !== 'object') fail('payload must be object');
+  if (!Array.isArray(overlay.payload.brands)) fail('payload.brands must be array');
+  if (!Array.isArray(overlay.payload.printers)) fail('payload.printers must be array');
+
+  const actualHash = sha256(stableStringify(overlay.payload));
+  if (actualHash !== overlay.payload_sha256) {
+    fail(`payload_sha256 mismatch: expected ${overlay.payload_sha256}, got ${actualHash}`);
+  }
+
+  assertUnique(overlay.payload.brands, 'brand');
+  assertUnique(overlay.payload.printers, 'printer');
+
+  const { brandUnion, printerUnion, includedVersions } = collectBaselineUnion(iosBaselines, overlay.min_app_version);
+  const brandIds = new Set(brandUnion);
+
+  for (const brand of overlay.payload.brands) {
+    assertAllowedFields(brand, allowedBrandFields, 'brand');
+    const id = requireString(brand, 'id');
+    if (brandUnion.has(id)) fail(`overlay brand ${id} already exists in a bundled baseline (>= ${overlay.min_app_version})`);
+    requireString(brand, 'name');
+    requireInteger(brand, 'sort_order', 1, 10_000);
+    if (typeof brand.primary !== 'boolean') fail(`brand ${id} primary must be boolean`);
+    if (!allowedSlicers.has(requireString(brand, 'default_slicer'))) fail(`brand ${id} has unsupported default_slicer`);
+    brandIds.add(id);
+  }
+
+  for (const printer of overlay.payload.printers) {
+    assertAllowedFields(printer, allowedPrinterFields, 'printer');
+    const id = requireString(printer, 'id');
+    if (printerUnion.has(id)) fail(`overlay printer ${id} already exists in a bundled baseline (>= ${overlay.min_app_version})`);
+    requireString(printer, 'name');
+    const manufacturer = requireString(printer, 'manufacturer');
+    if (!brandIds.has(manufacturer)) fail(`printer ${id} references unknown manufacturer ${manufacturer}`);
+    if (!allowedSeries.has(requireString(printer, 'series'))) fail(`printer ${id} has unsupported series`);
+    requireString(printer, 'series_group');
+    if (!allowedEnclosures.has(requireString(printer, 'enclosure'))) fail(`printer ${id} has unsupported enclosure`);
+    if (!allowedExtruders.has(requireString(printer, 'extruder_type'))) fail(`printer ${id} has unsupported extruder_type`);
+    requireInteger(printer, 'max_nozzle_temp', 150, 450);
+    requireInteger(printer, 'max_bed_temp', 0, 200);
+    requireInteger(printer, 'max_speed', 1, 1_500);
+    requireInteger(printer, 'max_acceleration', 1, 100_000);
+    optionalInteger(printer, 'max_chamber_temp', 0, 120, 'printer');
+    optionalInteger(printer, 'open_door_threshold_bed_temp', 0, 120, 'printer');
+    optionalBoolean(printer, 'active_chamber_heating', 'printer');
+    optionalBoolean(printer, 'has_lidar', 'printer');
+    optionalBoolean(printer, 'has_camera', 'printer');
+    optionalStringArray(printer, 'multi_color_systems', 'printer');
+    optionalStringArray(printer, 'available_plates', 'printer');
+    optionalStringArray(printer, 'notes', 'printer');
+    if (!Array.isArray(printer.available_nozzle_sizes) || printer.available_nozzle_sizes.length === 0) {
+      fail(`printer ${id} available_nozzle_sizes must be a non-empty array`);
+    }
+    for (const size of printer.available_nozzle_sizes) {
+      if (typeof size !== 'number' || size < 0.1 || size > 2.0) fail(`printer ${id} has invalid nozzle size ${size}`);
+    }
+  }
+
+  return {
+    ok: true,
+    summary: `ok: ${overlay.payload.brands.length} brands, ${overlay.payload.printers.length} printers (collision-checked vs baselines: ${includedVersions.join(', ') || 'none'})`,
+  };
+}
+
+module.exports = { validateOverlay, collectBaselineUnion, compareVersions, stableStringify, sha256 };
+
+if (require.main === module) {
+  try {
+    const result = validateOverlay();
+    console.log(`[ios-printer-overlay] ${result.summary}`);
+  } catch (error) {
+    console.error(`[ios-printer-overlay] ${error.message}`);
+    process.exit(1);
+  }
+}
