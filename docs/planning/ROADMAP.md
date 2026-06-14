@@ -92,11 +92,33 @@
   supersedes the never-delivered `2026061301`); iOS bundled mirror local-only (`7cf5b73`, push gate);
   ai-om contracts `7b5356c`. Plan/outcome:
   [`docs/superpowers/plans/2026-06-13-printer-intake-process-patch-and-aries-rerun.md`](../superpowers/plans/2026-06-13-printer-intake-process-patch-and-aries-rerun.md).
-  **Next: seed the real Discord missing-printer backlog into the `PRINTER_INTAKE`
-  KV and run the Scout, then process the queue via the Assistant.** Photon stays
-  `declined-non-fdm`. Ship-path for printer adds remains web bundled data +
-  additive iOS overlay, with no TestFlight/app-version step for current users.
-  FDM-only Phase 1.0 governs (resin auto-declined). `[Web + automation]`
+  **Real backlog run COMPLETE 2026-06-14:** 16 verbatim Discord entries seeded to
+  KV → Scout screened **3 needs-research / 1 duplicate / 5 declined-non-fdm / 7
+  unactionable**. **Anycubic Mega X SHIPPED** (the one genuine novel FDM add) — web
+  `ebff194` (data + walkthrough combo 13) + `8ad4293` (overlay
+  `content_version=2026061402`: mega_x under the bundled anycubic brand, aries
+  preserved); **verified live** (`curl` → `2026061402 [aries,mega_x]`); iOS bundled
+  mirror local-only (`9ea28c3`, push gate). Manufacturer-sourced (`max_acceleration=400`
+  is a real Anycubic-firmware ceiling, not an app-cap); adversarial review GO; visual
+  picker OK. The other 2 needs-research survivors were false positives the Assistant's
+  catalog cross-check caught (X2D = bundled Bambu Lab X2D, "Bmbulab" typo defeated
+  brand-dedupe; Sparkx i7 w/CFS = bundled Creality i7, "w/CFS" suffix defeated
+  model-dedupe). Photon stays `declined-non-fdm`. Ship-path = web bundled data +
+  additive iOS overlay (no TestFlight for current users). FDM-only governs.
+- **[Scout finding 1 — dedupe robustness] (P2, non-blocking)** — brand typos
+  (`Bmbulab`→`bambu_lab`) and model-variant suffixes (`i7 w/CFS`→`sparkx_i7`) defeat
+  the Scout's dedupe, surfacing already-shipped printers as needs-research false
+  positives. Fix: brand-alias / fuzzy-brand map + model suffix-stripping in
+  `scripts/printer-intake-scout.js` (`norm()` / match path) + tests. Safety net held
+  this run (the Assistant's catalog cross-check caught both). `[automation]`
+- **[Scout finding 2 — general-feedback requests invisible] (P2, non-blocking)** —
+  printer requests filed via the general-feedback form (not the Missing-Printer form)
+  never reach the Scout (the tee only tees `category==="missingPrinter"`) and screen as
+  unactionable. This run: "Kobra 3 Max", "kobra X", "voxelab Aries" (all already in
+  catalog → no loss this time, but a NEW printer so-filed would be silently dropped).
+  Fix options (owner-pick before building): (a) form-UX nudge routing printer mentions
+  into the Missing-Printer form; (b) widen the tee + a low-precision heuristic pass over
+  general feedback for owner review. `[Web + automation]`
 - **Resin-scaling discovery (PoC, docs-only)** — started 2026-05-17 as a multi-goal Proof of Concept: (1) substantive resin sub-project discovery producing decision-grade material, (2) testing bridge as a multi-round quality amplifier, (3) honest autonomy ceiling probe. Resin product artifacts live at `docs/resin-scaling/` (**v4 problem-statement.md current** + parked survey v1); PoC meta-track lives at `../../../ai-operating-model/docs/autonomy-poc-2026-05-resin/` (charter, scorecard, 3 bridge-rounds + 3 round-analyses, owner-asks). **Audience is the owner, not 3dpa users.** v4 §7 is an Option A decision tree with Gate 2 evaluated first (Step 1 owner pick → Step 2 5 branches → Step 3 park rules with 4-week charter clock → Step 4 success criterion); §5 has a "Fires if" column making conditional-cost framing visible. **3 bridge rounds complete:** R1 changed v2's foundation, R2 caught structural+mechanical in v3, R3 caught only mechanical in v4 (1 MUST-FIX + 8 SHOULD-FIX). **v5 mechanical pass queued** but no R4 needed (mechanical fixes don't introduce new claims). 3 K1 findings filed across the arc documenting the operational autonomy ceiling; 1 K3 finding (bridge cwd-scope contract). Off-limits during discovery: live engine / data / UI changes to FDM product. **Next: owner-pick v5 mechanical pass + Gate 1 (`technical-differences.md`) desk research + `bridge/CLAUDE.md` cwd-scope standing rule preamble.** `[Web docs only]`
 - **v1.0.3 batch items 2 / 5** — see Active Release section above.
 - **v1.0.3 live monitoring** — version `1.0.3` is live since 2026-05-11. Monitor `/analytics`, feedback, Sentry, App Store reviews, and any owner/user reports from the remote printer overlay path.
