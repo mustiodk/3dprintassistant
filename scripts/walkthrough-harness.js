@@ -492,6 +492,9 @@ const COMBOS = [
 
   { id: 12, label: 'Voxelab Aries + 0.4 std + ABS + Standard/Balanced (legacy Bowden open-frame cube, app-cap accel)',
     state: stateDefault({ printer: 'aries', nozzle: 'std_0.4', material: 'abs' }) },
+
+  { id: 13, label: 'Anycubic Mega X + 0.4 std + PETG Basic + Standard/Balanced (legacy Bowden bedslinger, low max-accel 400, Ultrabase/smooth_glass, 90°C bed cap)',
+    state: stateDefault({ printer: 'mega_x', nozzle: 'std_0.4', material: 'petg_basic' }) },
 ];
 
 // ─── Main ───────────────────────────────────────────────────────────────────

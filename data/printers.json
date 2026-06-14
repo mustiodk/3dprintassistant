@@ -849,6 +849,27 @@
       "notes": ["Auto leveling \u2014 LeviQ 2.0"]
     },
     {
+      "id": "mega_x",
+      "name": "Mega X",
+      "manufacturer": "anycubic",
+      "series": "bedslinger",
+      "series_group": "Mega Series",
+      "enclosure": "none",
+      "active_chamber_heating": false,
+      "extruder_type": "bowden",
+      "max_nozzle_temp": 250,
+      "max_bed_temp": 90,
+      "max_speed": 100,
+      "max_acceleration": 400,
+      "has_lidar": false,
+      "has_camera": false,
+      "multi_color_systems": [],
+      "available_plates": ["smooth_glass"],
+      "available_nozzle_sizes": [0.4],
+      "open_door_threshold_bed_temp": null,
+      "notes": ["Open-frame bedslinger \u2014 300\u00d7300\u00d7305mm build volume", "Bowden extruder, single 0.4mm nozzle", "Ultrabase coated-glass bed", "Legacy printer \u2014 stock firmware max acceleration 400 mm/s\u00b2; max speed 100 mm/s (60 recommended)"]
+    },
+    {
       "id": "plus4",
       "name": "Plus4",
       "manufacturer": "qidi",
