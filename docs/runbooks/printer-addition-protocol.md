@@ -332,7 +332,32 @@ and decide deprecate (keep id, hide from picker, preserve stored profiles) vs
 remove (mistake / never-public only).** When the first real deprecation
 happens, capture the executed procedure here as Phase 4a.
 
-## Phase 5 — Self-check (10-bullet checklist; gates Trigger A wrap-up)
+### Phase 4b — Overlay → bundled graduation (MANDATORY at each binary release)
+
+An overlay entry is a *transitional* delivery for current clients until the next
+binary subsumes it. **When a printer that currently ships via the overlay gets
+baked into a new iOS binary (i.e. it enters that build's bundled
+`printers.json`), the same release must:**
+
+1. **Remove that printer (and any now-bundled brand) from
+   `catalog/ios-printer-overlay-v1.json`**, bump `content_version`, recompute
+   `payload_sha256`. Leaving it in is not harmless: the iOS runtime rejects the
+   **whole** overlay on any overlay-vs-bundled id collision
+   (`PrinterCatalogProvider.validatePayload`), so a stale graduated entry silently
+   hides every *other* printer the overlay carries.
+2. **Add a `catalog/ios-bundled-catalog-baselines.json` entry for the new binary
+   version** (`brand_ids` + `printer_ids` snapshot of that build's bundled
+   `printers.json`, generated programmatically, with a `source` line). The ship
+   validator collides overlay ids against the union of all baselines ≥
+   `min_app_version` and requires baselines for **both** `min_app_version` and
+   the current `MARKETING_VERSION`, so a missing baseline fails the gate.
+
+Root cause of the 2026-06-14 Aries-invisible-on-iOS incident: `sparkx_i7` was
+not removed from the overlay when v1.0.4 baked it in, so when Aries was later
+added to the same overlay the i7 collision dropped the entire overlay on v1.0.4.
+See `docs/superpowers/specs/2026-06-14-ios-overlay-aries-collision-fix-design.md`.
+
+## Phase 5 — Self-check (11-bullet checklist; gates Trigger A wrap-up)
 
 Run through this list before declaring the session complete. Every line must
 be `[x]` or have an explicit reason it does not apply. If any line is `[ ]`,
@@ -358,6 +383,10 @@ the wrap-up is blocked.
       series_group).
 - [ ] Live overlay URL confirms published `content_version` (only if overlay
       was deployed).
+- [ ] Overlay → bundled graduation (Phase 4b): if a printer was baked into a new
+      iOS binary this cycle, its overlay entry was removed AND a
+      `ios-bundled-catalog-baselines.json` baseline was added for the new binary
+      version. (N/A if no binary graduated a printer this cycle.)
 
 ### Risk-triggered reviewer dispatch
 
@@ -391,6 +420,10 @@ the risk-based second-model rule in
   (`enabled: false`), and corrected republish are explicitly allowed when
   following the overlay spec — those flows are not "adds" and do not need
   bundled changes.
+- **Leaving** an overlay entry in place after that printer is baked into a new
+  bundled iOS binary — the Phase 4b graduation step must remove it from the
+  overlay and add a baseline for the new binary version (a stale graduated entry
+  collides and drops the whole overlay on the new binary).
 - Mixing a printer add with engine, marketing, correction-sweep, or validator
   work.
 - Adding a new `brands[]` row without owner sign-off.
