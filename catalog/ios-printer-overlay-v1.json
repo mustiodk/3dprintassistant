@@ -1,7 +1,7 @@
 {
-  "content_version": 2026061401,
+  "content_version": 2026061402,
   "enabled": true,
-  "generated_at": "2026-06-14T09:24:38.622Z",
+  "generated_at": "2026-06-14T22:03:18.454Z",
   "min_app_version": "1.0.3",
   "payload": {
     "brands": [
@@ -43,9 +43,39 @@
           "Glass build plate; single 0.4mm nozzle (other sizes not listed in the manual)",
           "max_acceleration 5000 is a conservative app-side cap (no manufacturer acceleration figure is published by Voxelab) - not a claimed manufacturer maximum"
         ]
+      },
+      {
+        "id": "mega_x",
+        "name": "Mega X",
+        "manufacturer": "anycubic",
+        "series": "bedslinger",
+        "series_group": "Mega Series",
+        "enclosure": "none",
+        "active_chamber_heating": false,
+        "extruder_type": "bowden",
+        "max_nozzle_temp": 250,
+        "max_bed_temp": 90,
+        "max_speed": 100,
+        "max_acceleration": 400,
+        "has_lidar": false,
+        "has_camera": false,
+        "multi_color_systems": [],
+        "available_plates": [
+          "smooth_glass"
+        ],
+        "available_nozzle_sizes": [
+          0.4
+        ],
+        "open_door_threshold_bed_temp": null,
+        "notes": [
+          "Open-frame bedslinger — 300×300×305mm build volume",
+          "Bowden extruder, single 0.4mm nozzle",
+          "Ultrabase coated-glass bed",
+          "Legacy printer — stock firmware max acceleration 400 mm/s²; max speed 100 mm/s (60 recommended)"
+        ]
       }
     ]
   },
-  "payload_sha256": "ab7821061cc5ba53a47ca2d645bb75764b8345bc7cebaf511e7b7f127d5ca759",
+  "payload_sha256": "2655f7f87f3155b4f176442f597371e99a3f36ee5acbea582bf8466234fcd037",
   "schema_version": 1
 }
