@@ -151,6 +151,13 @@ function firstLine(s) {
   return (t.split('\n').find(l => l.trim()) || t.slice(0, 200)).trim();
 }
 
+// S2: the risk flag stamped on every heuristic-lane item (in the report item AND
+// the candidate skeleton) — a wrong-form-sourced request must be confirmed a real
+// printer request before any research. One definition so the two surfaces match.
+function heuristicRiskFlag(originalCategory) {
+  return `heuristic-sourced from category '${originalCategory || 'unknown'}' — confirm this is genuinely a printer request before researching`;
+}
+
 // ─── Field mapping (canonical id, else en/da label) ──────────────────────────
 // feedback-form.js missingPrinter fields carry a stable `id` (brand/model/notes)
 // plus a TRANSLATED `label`. Prefer the id (locale-proof); fall back to the label
@@ -439,6 +446,7 @@ function classify(entry, cat, guardrails) {
       request: { brand: null, model: null, appSource: null, receivedAt: null,
         hasNotes: false, notesLength: 0, hasEmail: false, emailHash: null, key: entry._key || null },
       _private: { notes: null, email: null },
+      sourceLane: 'form', originalCategory: null,
     };
   }
 
@@ -455,7 +463,11 @@ function classify(entry, cat, guardrails) {
     emailHash: shortHash(rawEmail),       // hashed identity, never the address
     key: (entry && entry._key) || null,   // KV key — owner retrieves raw email from KV
   };
-  const base = { request, _private: { notes: notes || null, email: rawEmail } };
+  // S2: lane provenance. An untagged / legacy record defaults to the
+  // high-confidence form lane; only an explicit lane:"heuristic" is heuristic.
+  const sourceLane = (entry && entry.lane === 'heuristic') ? 'heuristic' : 'form';
+  const originalCategory = (entry && typeof entry.originalCategory === 'string') ? entry.originalCategory : null;
+  const base = { request, _private: { notes: notes || null, email: rawEmail }, sourceLane, originalCategory };
 
   // (a) nothing actionable
   if (!brand && !model) {
@@ -577,6 +589,12 @@ function collapse(items) {
       if (it.request.receivedAt) tgt.requestedAt.push(it.request.receivedAt);
       if (it.request.key) tgt.requestKeys.push(it.request.key);
       if (it.request.emailHash && !tgt.emailHashes.includes(it.request.emailHash)) tgt.emailHashes.push(it.request.emailHash);
+      // S2: per-lane breakdown; the highest-confidence contributing lane wins the
+      // surviving sourceLane (form > heuristic), so a form-lane corroboration of
+      // the same printer drops the heuristic risk flag at projection time.
+      const lane = it.sourceLane === 'heuristic' ? 'heuristic' : 'form';
+      tgt.lanes[lane] = (tgt.lanes[lane] || 0) + 1;
+      if (tgt.lanes.form > 0) { tgt.sourceLane = 'form'; tgt.originalCategory = null; }
       continue;
     }
     const rec = Object.assign({}, it, {
@@ -584,6 +602,7 @@ function collapse(items) {
       requestedAt: it.request.receivedAt ? [it.request.receivedAt] : [],
       requestKeys: it.request.key ? [it.request.key] : [],
       emailHashes: it.request.emailHash ? [it.request.emailHash] : [],
+      lanes: { form: it.sourceLane === 'heuristic' ? 0 : 1, heuristic: it.sourceLane === 'heuristic' ? 1 : 0 },
     });
     if (key) index.set(key, out.length);
     out.push(rec);
@@ -595,6 +614,7 @@ function collapse(items) {
 function candidateSkeleton(item) {
   const r = item.resolved;
   const riskFlags = [];
+  if (item.sourceLane === 'heuristic') riskFlags.push(heuristicRiskFlag(item.originalCategory));
   if (item.isNewBrand) riskFlags.push('new brand — requires explicit owner sign-off');
   if (item.idCollision) riskFlags.push(`suggested id collides with an existing printer id — owner must confirm/rename`);
   riskFlags.push('FDM NOT confirmed — verify the printer is FDM (not resin/other) before any add');
@@ -630,6 +650,8 @@ function candidateSkeleton(item) {
       conflictRule: 'Manufacturer data outranks reseller/review/community data only when model/revision/region clearly matches; conflicts on profile/safety fields require review before shipping.',
     },
     request: item.request,                 // PII-safe (hashed email, no raw email)
+    sourceLane: item.sourceLane || 'form',
+    originalCategory: item.originalCategory || null,
     requesterNote: item._private.notes,    // research context; private staging only
     contact: {
       emailHash: item.request.emailHash,
@@ -889,6 +911,21 @@ async function main() {
     counts,
     inQueueCollapses,
     candidates: candidateFiles,
+    // S2: heuristic-lane (wrong-form) candidates grouped separately so they don't
+    // read as explicit form requests; flagged + never auto-promoted. Only the
+    // actionable outcomes appear here (a form-lane corroboration flips an item to
+    // sourceLane:"form" in collapse(), so it drops out of this grouping).
+    heuristicCandidates: items
+      .filter(it => it.sourceLane === 'heuristic' && ['needs-research', 'duplicate', 'incomplete'].includes(it.outcome))
+      .map(it => ({
+        outcome: it.outcome,
+        originalCategory: it.originalCategory || null,
+        manufacturer: it.resolved ? it.resolved.manufacturer : (it.request ? it.request.brand : null),
+        model: it.resolved ? it.resolved.model : (it.request ? it.request.model : null),
+        matchedPrinter: it.matchedPrinter ? it.matchedPrinter.id : null,
+        requestCount: it.requestCount,
+        requestKeys: it.requestKeys,
+      })),
     items: items.map(it => ({
       outcome: it.outcome,
       reason: it.reason,
@@ -900,6 +937,13 @@ async function main() {
       isNewBrand: !!it.isNewBrand,
       fdmStatus: it.fdmStatus || null,
       idCollision: !!it.idCollision,
+      sourceLane: it.sourceLane || 'form',
+      originalCategory: it.originalCategory || null,
+      lanes: it.lanes || null,
+      // S2: the heuristic risk flag is surfaced on the report ITEM (not just the
+      // staged skeleton) for EVERY heuristic-lane outcome (needs-research /
+      // duplicate / incomplete), so a wrong-form request is always flagged.
+      riskFlags: it.sourceLane === 'heuristic' ? [heuristicRiskFlag(it.originalCategory)] : [],
       requestCount: it.requestCount,
       requestedAt: it.requestedAt,
       requestKeys: it.requestKeys,

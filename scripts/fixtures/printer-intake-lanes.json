@@ -1,0 +1,91 @@
+[
+  {
+    "_key": "ln:heur-novel-standalone",
+    "lane": "heuristic",
+    "originalCategory": "generalFeedback",
+    "fields": [
+      { "id": "brand", "value": "Sovol" },
+      { "id": "model", "value": "SV-Alpha-1" },
+      { "id": "notes", "value": "Sovol SV-Alpha-1" }
+    ],
+    "appSource": "web",
+    "receivedAt": "2026-06-15T10:00:00.000Z"
+  },
+  {
+    "_key": "ln:heur-dup-standalone",
+    "lane": "heuristic",
+    "originalCategory": "bugReport",
+    "fields": [
+      { "id": "brand", "value": "Prusa" },
+      { "id": "model", "value": "MK4S" },
+      { "id": "notes", "value": "Prusa MK4S" }
+    ],
+    "appSource": "ios",
+    "receivedAt": "2026-06-15T10:01:00.000Z"
+  },
+  {
+    "_key": "ln:heur-novel-collapse",
+    "lane": "heuristic",
+    "originalCategory": "featureRequest",
+    "fields": [
+      { "id": "brand", "value": "Sovol" },
+      { "id": "model", "value": "SV-Beta-2" },
+      { "id": "notes", "value": "Sovol SV-Beta-2" }
+    ],
+    "appSource": "web",
+    "receivedAt": "2026-06-15T10:02:00.000Z"
+  },
+  {
+    "_key": "ln:form-novel-collapse",
+    "lane": "form",
+    "fields": [
+      { "id": "brand", "value": "Sovol" },
+      { "id": "model", "value": "SV-Beta-2" }
+    ],
+    "appSource": "web",
+    "receivedAt": "2026-06-15T10:03:00.000Z"
+  },
+  {
+    "_key": "ln:form-dup-collapse",
+    "lane": "form",
+    "fields": [
+      { "id": "brand", "value": "Bambu Lab" },
+      { "id": "model", "value": "X1 Carbon" }
+    ],
+    "appSource": "web",
+    "receivedAt": "2026-06-15T10:04:00.000Z"
+  },
+  {
+    "_key": "ln:heur-dup-collapse",
+    "lane": "heuristic",
+    "originalCategory": "generalFeedback",
+    "fields": [
+      { "id": "brand", "value": "Bambu Lab" },
+      { "id": "model", "value": "X1 Carbon" },
+      { "id": "notes", "value": "Bambu Lab X1 Carbon" }
+    ],
+    "appSource": "ios",
+    "receivedAt": "2026-06-15T10:05:00.000Z"
+  },
+  {
+    "_key": "ln:form-plain",
+    "lane": "form",
+    "fields": [
+      { "id": "brand", "value": "Creality" },
+      { "id": "model", "value": "Ender-9999" }
+    ],
+    "appSource": "web",
+    "receivedAt": "2026-06-15T10:06:00.000Z"
+  },
+  {
+    "_key": "ln:heur-incomplete-standalone",
+    "lane": "heuristic",
+    "originalCategory": "bugReport",
+    "fields": [
+      { "id": "brand", "value": "Prusa" },
+      { "id": "notes", "value": "Prusa" }
+    ],
+    "appSource": "web",
+    "receivedAt": "2026-06-15T10:07:00.000Z"
+  }
+]

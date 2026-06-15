@@ -487,6 +487,73 @@ let adv, advRaw;
   }
 }
 
+// ── TC36-TC40 — S2: heuristic-lane provenance, risk flags, heuristicCandidates,
+//          and the collapse() form-wins lane fix (spec §4.2 + §8 risk 5). ──
+{
+  console.log('TC36-40 — S2 lane provenance + collapse form-wins');
+  const r = run(['--queue', path.join(__dirname, 'fixtures', 'printer-intake-lanes.json')]);
+  check('exit 0 + parses', r.code === 0, `got ${r.code}; stderr=${r.stderr}`);
+  const lanes = parse(r.stdout);
+  const items = (lanes && lanes.items) || [];
+  const hc = (lanes && lanes.heuristicCandidates) || [];
+  const flag = /heuristic-sourced from category/;
+  const byKey = (k) => items.find(it => (it.requestKeys || []).includes(k));
+
+  // TC36 — standalone heuristic novel → needs-research, heuristic, flagged, grouped
+  const novel = byKey('ln:heur-novel-standalone');
+  check('TC36 heuristic novel → needs-research', novel && novel.outcome === 'needs-research', `got ${novel && novel.outcome}`);
+  check('TC36 sourceLane = heuristic', novel && novel.sourceLane === 'heuristic', `got ${novel && novel.sourceLane}`);
+  check('TC36 originalCategory threaded', novel && novel.originalCategory === 'generalFeedback', `got ${novel && novel.originalCategory}`);
+  check('TC36 risk flag on the report ITEM', novel && (novel.riskFlags || []).some(f => flag.test(f)), `flags=${novel && JSON.stringify(novel.riskFlags)}`);
+  check('TC36 appears in heuristicCandidates', hc.some(h => h.model === 'SV-Alpha-1'), `hc=${JSON.stringify(hc)}`);
+
+  // TC37 — standalone heuristic resolving to a DUPLICATE → flag STILL on the item
+  const dup = byKey('ln:heur-dup-standalone');
+  check('TC37 heuristic dup → duplicate (mk4s)', dup && dup.outcome === 'duplicate' && dup.matchedPrinter && dup.matchedPrinter.id === 'mk4s', `got ${dup && dup.outcome} ${dup && JSON.stringify(dup.matchedPrinter)}`);
+  check('TC37 sourceLane = heuristic', dup && dup.sourceLane === 'heuristic', `got ${dup && dup.sourceLane}`);
+  check('TC37 risk flag surfaced even for a non-needs-research outcome', dup && (dup.riskFlags || []).some(f => flag.test(f)), `flags=${dup && JSON.stringify(dup.riskFlags)}`);
+  check('TC37 duplicate appears in heuristicCandidates', hc.some(h => h.matchedPrinter === 'mk4s'), `hc=${JSON.stringify(hc)}`);
+
+  // TC38 — novel collapse, HEURISTIC SEEN FIRST then form corroborates → form wins
+  //         (proves the fix is order-independent: first-seen does NOT decide)
+  const beta = byKey('ln:form-novel-collapse');
+  check('TC38 form+heuristic collapsed to one item (requestCount 2)', beta && beta.requestCount === 2, `got ${beta && beta.requestCount}`);
+  check('TC38 lanes breakdown {form:1,heuristic:1}', beta && beta.lanes && beta.lanes.form === 1 && beta.lanes.heuristic === 1, `got ${beta && JSON.stringify(beta.lanes)}`);
+  check('TC38 surviving sourceLane = form (form wins despite heuristic first-seen)', beta && beta.sourceLane === 'form', `got ${beta && beta.sourceLane}`);
+  check('TC38 heuristic risk flag DROPPED once form corroborated', beta && (beta.riskFlags || []).length === 0, `flags=${beta && JSON.stringify(beta.riskFlags)}`);
+  check('TC38 collapsed key set covers both entries', beta && (beta.requestKeys || []).includes('ln:heur-novel-collapse') && (beta.requestKeys || []).includes('ln:form-novel-collapse'), `keys=${beta && JSON.stringify(beta.requestKeys)}`);
+  check('TC38 NOT in heuristicCandidates (form won)', !hc.some(h => h.model === 'SV-Beta-2'), `hc=${JSON.stringify(hc)}`);
+
+  // TC39 — dup collapse (form + heuristic, dup: path) → form wins
+  const x1 = byKey('ln:form-dup-collapse');
+  check('TC39 dup form+heuristic collapsed (requestCount 2), matched x1c', x1 && x1.requestCount === 2 && x1.matchedPrinter && x1.matchedPrinter.id === 'x1c', `got ${x1 && x1.requestCount} ${x1 && JSON.stringify(x1.matchedPrinter)}`);
+  check('TC39 lanes {form:1,heuristic:1}, sourceLane form', x1 && x1.lanes && x1.lanes.form === 1 && x1.lanes.heuristic === 1 && x1.sourceLane === 'form', `got ${x1 && JSON.stringify(x1.lanes)} ${x1 && x1.sourceLane}`);
+  check('TC39 risk flag dropped', x1 && (x1.riskFlags || []).length === 0, `flags=${x1 && JSON.stringify(x1.riskFlags)}`);
+
+  // TC40 — plain form entry → form lane, no flag, not grouped as heuristic
+  const plain = byKey('ln:form-plain');
+  check('TC40 form-plain → needs-research, sourceLane form', plain && plain.outcome === 'needs-research' && plain.sourceLane === 'form', `got ${plain && plain.outcome} ${plain && plain.sourceLane}`);
+  check('TC40 no risk flag on a form item', plain && (plain.riskFlags || []).length === 0, `flags=${plain && JSON.stringify(plain.riskFlags)}`);
+  check('TC40 not in heuristicCandidates', !hc.some(h => h.model === 'Ender-9999'), `hc=${JSON.stringify(hc)}`);
+
+  // TC42 — incomplete heuristic item (brand only, no model) → flagged on the item
+  //         AND grouped with the brand still identifiable (heuristicCandidates
+  //         brand fallback). Pins the plan's explicit "incomplete" requirement.
+  const inc = byKey('ln:heur-incomplete-standalone');
+  check('TC42 heuristic brand-only → incomplete', inc && inc.outcome === 'incomplete', `got ${inc && inc.outcome}`);
+  check('TC42 sourceLane heuristic + risk flag on the incomplete item', inc && inc.sourceLane === 'heuristic' && (inc.riskFlags || []).some(f => flag.test(f)), `lane=${inc && inc.sourceLane} flags=${inc && JSON.stringify(inc.riskFlags)}`);
+  check('TC42 incomplete in heuristicCandidates with brand identifiable', hc.some(h => h.outcome === 'incomplete' && h.manufacturer === 'Prusa'), `hc=${JSON.stringify(hc)}`);
+}
+
+// ── TC41 — regression: untagged (legacy/pre-S2) records default to the form lane
+//          with no risk flag (back-compat). `report` = the SAMPLE run from TC1. ──
+{
+  console.log('TC41 — regression: untagged records → sourceLane form, no risk flag');
+  const items = (report && report.items) || [];
+  check('all sample items default to sourceLane form', items.length > 0 && items.every(it => it.sourceLane === 'form'), `lanes=${JSON.stringify(items.map(i => i.sourceLane))}`);
+  check('no sample item carries a heuristic risk flag', items.every(it => (it.riskFlags || []).length === 0), 'a form item had a risk flag');
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');
