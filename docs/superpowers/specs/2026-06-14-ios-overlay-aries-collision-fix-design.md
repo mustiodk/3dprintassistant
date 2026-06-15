@@ -1,7 +1,7 @@
 # Design spec — iOS overlay Aries-collision fix
 
 - **Date:** 2026-06-14
-- **Status:** REVIEWED — sub-agent adversarial review GO (no BLOCKER/HIGH); MEDIUM/LOW findings patched 2026-06-14. One disputed LOW (prior overlay version) rejected after git verification (`2284207` = `content_version 2026051202`).
+- **Status:** REVIEWED — sub-agent adversarial review GO (no BLOCKER/HIGH); MEDIUM/LOW findings patched 2026-06-14. One disputed LOW (prior overlay version) rejected after git verification (`2284207` = `content_version 2026051202`). **Part C (runtime hardening) SHIPPED in v1.0.5 — 2026-06-15, iOS `af4bbe0`, TestFlight run 27569280416; 112 unit + 2 UITest green (owner-chosen scope: 1.0.5 = S1 + Part C).**
 - **Scope:** Web-only live fix + ship-gate hardening. One deferred iOS-binary follow-up.
 - **Owner directive:** fix Aries-invisible-on-iOS; turn fix into spec → review → plan → gated execution.
 
@@ -134,7 +134,9 @@ With Part B in place, the **current (unfixed) overlay would fail the validator**
 the plan gives a gate-level RED→GREEN: B makes the validator fail on the old overlay, A
 fixes the overlay to green.
 
-### Part C — Durable iOS runtime hardening (DEFERRED to next binary, not in this change)
+### Part C — Durable iOS runtime hardening (✅ SHIPPED in v1.0.5 — 2026-06-15, `af4bbe0`)
+
+> **Update (2026-06-15):** shipped in v1.0.5 (owner-chosen scope: 1.0.5 = S1 + Part C). Both all-or-nothing `isDisjoint` guards (brand + printer) dropped; `mergedArray` override-by-id is now the behavior. TDD RED→GREEN on the 2 rewritten collision tests + a whole-entry assertion; 112 unit + 2 UITest green on a real Xcode run; pushed `af4bbe0`; TestFlight run 27569280416 = success. The "Deferred because" note below is retained as historical context for why it was originally split out of the live web fix.
 
 The all-or-nothing disjoint *guard* is the structural fault: one stale/colliding overlay
 entry nukes the whole overlay. `mergedArray` already overrides-by-id, so the safe behavior
