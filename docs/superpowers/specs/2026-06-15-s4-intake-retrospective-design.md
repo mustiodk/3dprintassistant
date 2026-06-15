@@ -32,7 +32,7 @@ Learn **between** runs via a reflective **propose-and-approve** pass; **runtime 
    - `candidateKey` = the Scout's `request.key` (exists today, PII-safe);
    - `runId` = the run's `source.watermarkOut` timestamp (**the only run-identity the report has — there is no `runId` field**);
    - `ownerResolution ∈ {shipped, declined-correct, was-duplicate-missed, was-brand-typo, was-suffix-variant, was-noise, was-mis-declined}`;
-   - `correctiveSignal` names the guardrail that *would* have prevented a Scout miss (e.g. `brandAliases:sparkx→creality`, `modelSuffixStrip:w/cfs`, `nonFdmNoteAcronyms:+sla`, or `resinKeywords:-mars` for a mis-decline).
+   - `correctiveSignal` names the guardrail that *would* have prevented a Scout miss (e.g. `brandAliases:sparkx->creality`, `modelSuffixStrip:w/cfs`, `nonFdmNoteAcronyms:+sla`, or `resinKeywords:-mars` for a mis-decline).
    This ledger **is** the history the retrospective reads since its watermark; without it the retrospective can only guess.
 2. **The latest Scout run report — best-effort context only.** When present, the retrospective may read the current `run-report.json` for `possibleBrandTypo` hints (an S3 deliverable — present only once S3 ships **report `version ≥ 3`**) + counts. It is **not** a history source and the retrospective does not depend on it. (`sourceLane` is an **S2** field — present only if S2 has landed; treat as optional.)
 3. **The current config** (S3) — to dedupe proposals and stay idempotent.
