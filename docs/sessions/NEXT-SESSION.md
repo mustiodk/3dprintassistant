@@ -2,33 +2,29 @@
 
 **Purpose:** kickoff prompt for the next 3dpa session.
 
-**Last updated:** 2026-06-14 (mega-x-ship wrap). The **real Discord missing-printer backlog
-run is COMPLETE** — 16 entries seeded + Scout-screened, **Anycubic Mega X shipped + verified
-live** (overlay `content_version=2026061402`, `[aries,mega_x]`; iOS mirror local under the push
-gate). That closes the printer-intake delivery arc. **The locked next entry is the two Scout
-follow-up findings** surfaced by running the real backlog — both **P2, non-blocking** (the
-Assistant's catalog cross-check was the safety net; nothing wrong shipped).
+**Last updated:** 2026-06-15 (feedback-pipeline brainstorm + S1 spec wrap). Three owner feedback
+items were brainstormed into a **5-spec plan** (S1→S5) with a fixed per-topic process. **S1's spec
+is written, sub-agent-reviewed (10 findings, `patch-then-proceed`), patched, and QA-green.** The
+**locked next entry is to write the S1 implementation plan** and run it through the same
+review→patch→QA loop, then check in before S2. **No execution until explicit owner command** —
+this is still spec/plan creation only.
 
-**Locked next entry point — two Scout findings (ROADMAP → Active Work Queue → Printer Intake Automation):**
-1. **Scout dedupe robustness (clear fix — implement).** Brand typos (`Bmbulab`→`bambu_lab`) and
-   model-variant suffixes (`i7 w/CFS`→`sparkx_i7`) defeat the Scout's dedupe, surfacing
-   already-shipped printers as `needs-research` false positives. Fix in
-   `scripts/printer-intake-scout.js`: a brand-alias / fuzzy-brand map + model suffix-stripping
-   in the `norm()` / match path, plus tests in `scripts/printer-intake-scout.test.js`. This is a
-   Scout-script-only change (no engine/data/UI) — gate with the test suite.
-2. **General-feedback requests invisible (owner-pick BEFORE building).** Printer requests filed
-   via the general-feedback form never reach the Scout (the tee at `functions/api/feedback.js`
-   only tees `category==="missingPrinter"`) and screen as `unactionable`. Two fix options:
-   (a) a form-UX nudge routing printer mentions into the Missing-Printer form; (b) widen the tee
-   + a low-precision heuristic pass over general feedback for owner review. **Ask the owner which
-   before implementing.**
+**The 5-spec plan (build order = dependency order):**
+1. **S1 — iOS contextual-feedback prefill fix.** `.sheet(item:)` migration across 8 sites/6 screens;
+   iOS, push-gated. Spec QA-green. **← impl plan is the next deliverable.**
+2. **S2 — intake capture completeness.** Widen the `/api/feedback` tee beyond `missingPrinter` +
+   a misroute catch-all over general feedback → triage. Web, ships immediately. Absorbs Scout finding 2.
+3. **S3 — Scout dedupe/triage robustness + learned-guardrails config.** Brand-alias/fuzzy +
+   suffix-strip (absorbs Scout finding 1) + a versioned config the deterministic Scout reads. Web/script.
+4. **S4 — Intake Retrospective (learning loop, Approach A).** Reflective propose-and-approve pass
+   (reuses lesson-spotter + Curator patterns) that proposes guardrail diffs into S3's config. Depends on S3.
+5. **S5 — Assistant autonomy ladder.** Branch + review note + PR + owner go/no-go, autonomy earned by
+   guardrail maturity. Depends on S4.
 
-**Also note (carried, non-blocking):**
-- **md-hygiene doc fix (carried, still unfixed):** `3dprintassistant/CLAUDE.md:63` +
-  `docs/3dpa-context.md` say "Cloudflare Pages"; it's actually Workers + Assets. Owner-decision
-  one-liner.
-- **Deferred (needs an iOS binary):** drop the all-or-nothing Swift disjoint guard in
-  `PrinterCatalogProvider.validatePayload` (ROADMAP Deferred/Parked, P2).
+**Process for every topic (owner-defined, mandatory):** write spec → sub-agent review → patch →
+QA gate → (if green) write impl plan → sub-agent review → patch → QA gate → **check in with owner
+before the next topic.** The impl plan splits execution into gates, each carrying its own
+review/patch/QA — but **none of it executes until explicit owner command.**
 
 ---
 
@@ -36,55 +32,55 @@ Assistant's catalog cross-check was the safety net; nothing wrong shipped).
 
 Read in order:
 1. `Projects/CLAUDE.md` (or `AGENTS.md`) — top-level rules.
-2. `Projects/3dprintassistant/CLAUDE.md` + `docs/3dpa-context.md` — architecture + engine.
-3. `docs/planning/ROADMAP.md` — live status (Active Work Queue → Printer Intake Automation has the two findings).
-4. `docs/sessions/INDEX.md` + the last 3 session logs, especially:
-   - `2026-06-14-cowork-appdev-printer-intake-real-backlog-mega-x.md` (this run — the findings)
-   - `2026-06-14-cowork-appdev-ios-overlay-aries-collision-fix.md`
-   - `2026-06-14-cowork-appdev-printer-intake-process-patch-aries-ship.md`
-5. `scripts/printer-intake-scout.js` + `scripts/printer-intake-scout.test.js` (the dedupe/match path for finding 1).
-6. `ai-operating-model/docs/agents/printer-intake-scout.md` (Scout contract — dedupe/triage rules).
+2. `Projects/3dprintassistant/CLAUDE.md` + `docs/3dpa-context.md` — architecture + engine + standing rules.
+3. `docs/planning/ROADMAP.md` — live status (Active Work Queue → "Feedback-pipeline evolution (5 specs)").
+4. `docs/sessions/INDEX.md` + the last 3 session logs, especially
+   `2026-06-15-cowork-appdev-feedback-pipeline-brainstorm-s1-spec.md` (the brainstorm + S1 spec wrap).
+5. `docs/sessions/NEXT-SESSION.md` (this file).
+6. **The S1 spec — `docs/superpowers/specs/2026-06-15-ios-feedback-prefill-fix-design.md` (QA-green; read in full).**
+7. The S1-affected iOS files, to ground the plan's exact edits:
+   `3dprintassistant-ios/3DPrintAssistant/Views/Feedback/FeedbackView.swift` + `FeedbackViewModel.swift`;
+   `Views/Configurator/{Printer,Brand,Material,Nozzle}PickerView.swift`; `Views/Home/HomeView.swift`;
+   `Views/Output/OutputView.swift`; `3DPrintAssistantTests/FeedbackTests.swift`.
 
 Today's task:
 
-Improve the Printer Intake Scout per the two findings from the real-backlog run.
-- **Finding 1 (implement):** harden the Scout's dedupe against brand typos + model-variant
-  suffixes so already-shipped printers stop surfacing as `needs-research` false positives.
-- **Finding 2 (decide first):** ask the owner to pick (a) form-UX nudge vs (b) widen-tee +
-  heuristic for general-feedback printer requests, then implement the chosen path.
+**Write the S1 implementation plan** for the QA-green spec (use the writing-plans skill), then run it
+through **sub-agent review → patch → QA gate**. The plan must split execution into gates, each with its
+own review/patch/QA step. **Stop and check in with the owner once the S1 plan is done (do NOT start S2,
+and do NOT execute any code).**
 
 Scope:
 
-- Finding 1 is Scout-script-only (`scripts/printer-intake-scout.js` + its test suite) — no
-  engine.js / data / app / overlay changes. Gate with `node scripts/printer-intake-scout.test.js`.
-- Finding 2 touches the Worker tee (`functions/api/feedback.js`) and/or web form UX — confirm the
-  approach with the owner before coding; it is NOT a printer-add.
-- Neither is a printer add, so the printer-addition protocol's per-printer gates don't apply;
-  use the standard data/logic change gate where relevant.
+- S1 is iOS-only (`.sheet(item:)` migration + `FeedbackPrefill: Identifiable` + init-based prefill apply +
+  the two nil→`.generalFeedback` sites). Single commit when eventually executed (intermediate splits won't
+  compile). No engine/data/web/overlay change.
+- The plan must encode the **no-local-iOS-test reality**: CommandLineTools only (no full Xcode), data-only
+  XCTest waiver is void (Swift change) → all test verification is CI/TestFlight or a full-Xcode Mac +
+  manual on-device. Gate definitions must route verification accordingly.
+- The plan must re-grep for any `FeedbackView(` / `.sheet(isPresented:` feedback presenter not in the
+  spec's 8-site table, and prove the UITest's category assertion (on the rendered category-specific
+  `TextField`s, not the `Picker(.menu)` value) is actually XCUITest-queryable.
 
-Process:
+Process steps:
 
-1. Read the Scout + its tests + the contract; reproduce the false-positive dedupe behavior
-   (X2D under "Bmbulab", i7 under "Sparkx i7 w/CFS") as failing tests first (TDD-RED).
-2. Implement the brand-alias/fuzzy + suffix-strip fix; make the tests green.
-3. For finding 2, get the owner's pick, then implement + test.
-4. Subagent code-review the change; one finding = one commit.
+1. Read everything above; confirm the spec's design is still the basis (don't re-litigate the QA-green spec).
+2. writing-plans → gated implementation plan.
+3. Sub-agent hostile/cold-read review of the plan → patch findings → QA gate (green/red, reported).
+4. Check in with the owner; await go for S2 and, separately, for any execution.
 
 Standing rules:
 
 - ROADMAP is truth; read it before status claims.
-- Attachments don't reach this session — if the owner says "attached", ask for a plain-text paste
-  (memory `feedback_attachments_dont_reach_session`).
-- The Scout is a deterministic script; the Assistant is an in-session owner-gated contract (not a
-  standalone bot).
-- iOS push gate stays active (iOS `main` is 4 commits ahead, local-only).
-- Live KV diagnostics/reads must use `wrangler kv ... --remote` (auth via the dedicated
-  `printer-agent-token-v2`, not the bare OAuth session).
+- iOS push gate stays active; S1 commits stay local until the version is TestFlight-ready.
+- Develop review-gated planning artifacts under a `claude-sync.sh hold`; release after the deliberate commit.
+- One finding = one commit (S1 itself = one logical commit per the spec).
+- Attachments don't reach the session — if the owner says "attached", ask for a plain-text paste.
 
 <<< END <<<
 
 ## Maintenance Note
 
-Regenerated on Trigger A / Trigger B / explicit owner ask only. The locked item is the two Scout
-follow-up findings (dedupe robustness + general-feedback invisibility); the Mega X real-backlog
-run is a closed record in `2026-06-14-cowork-appdev-printer-intake-real-backlog-mega-x.md`.
+Regenerated on Trigger A / Trigger B / explicit owner ask only. The locked item is the **S1 implementation
+plan** (spec is QA-green at `docs/superpowers/specs/2026-06-15-ios-feedback-prefill-fix-design.md`); the
+broader arc is the 5-spec feedback-pipeline plan (S1→S5), one topic per spec+plan cycle, execution deferred.
