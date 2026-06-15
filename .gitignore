@@ -7,6 +7,7 @@ node_modules/
 # (run reports + candidate skeletons can contain requester notes — never commit).
 scripts/.printer-intake.local.json
 scripts/.printer-intake.watermark.json
+scripts/.printer-intake-retrospective.watermark.json
 scripts/.printer-intake-out/
 
 # Personal scratch — owner keeps these locally; not part of the public repo.
