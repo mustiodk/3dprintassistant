@@ -32,6 +32,8 @@
 //
 // Returns { ok: true } on success, { ok: false, error: "..." } on failure.
 
+import { extractPrinterMention } from "./_lib/printer-mention.js";
+
 const ALLOWED_ORIGINS = new Set([
   "https://3dprintassistant.com",
   "https://www.3dprintassistant.com",
@@ -252,21 +254,52 @@ export async function onRequestPost({ request, env }) {
     return jsonResponse(400, { ok: false, error: "no_field_values" }, cors);
   }
 
-  // Tee missing-printer requests to the intake queue for the Printer Intake
-  // Scout. Stores the raw structured fields (the Scout does its own triage /
-  // dedupe / FDM scope check). Fail-open: a KV error must never block the
-  // Discord post or the success response — the feedback path is authoritative.
-  // Dormant until the PRINTER_INTAKE KV namespace is bound in wrangler.toml.
-  if (payload.category === "missingPrinter" && env.PRINTER_INTAKE) {
+  // Tee printer requests to the intake queue for the Printer Intake Scout.
+  // Fail-open: a KV error must never block the Discord post or {ok:true} — the
+  // feedback path is authoritative. Two lanes:
+  //   - FORM lane: the structured `missingPrinter` form (high precision; stores
+  //     the raw structured fields; 90-day TTL) — unchanged behaviour, now tagged.
+  //   - HEURISTIC lane (S2): a printer request typed into the WRONG form
+  //     (general / feature / bug). A deterministic extractor turns the free-text
+  //     mention into structured brand/model the Scout can act on; only the BOUNDED
+  //     matched span is stored (not the full message — lower confidence + riskier
+  //     free prose ⇒ minimise PII), 30-day TTL. The structured `missing*` forms
+  //     are EXCLUDED (they have their own lanes; running the extractor over a
+  //     "Missing filament: Anycubic" would mint a spurious printer candidate).
+  if (env.PRINTER_INTAKE) {
     try {
-      const id = `req:${Date.now()}:${crypto.randomUUID().slice(0, 8)}`;
-      await env.PRINTER_INTAKE.put(id, JSON.stringify({
-        fields: rawFields,
-        email: typeof payload.email === "string" ? payload.email : null,
-        context: payload.context || {},
-        appSource: isIOS ? "ios" : "web",
-        receivedAt: new Date().toISOString(),
-      }), { expirationTtl: 60 * 60 * 24 * 90 }); // 90-day safety expiry
+      const HEURISTIC_CATEGORIES = new Set(["generalFeedback", "featureRequest", "bugReport"]);
+      let tee = null;
+      if (payload.category === "missingPrinter") {
+        tee = { fields: rawFields, lane: "form", ttl: 60 * 60 * 24 * 90 };
+      } else if (HEURISTIC_CATEGORIES.has(payload.category)) {
+        const mention = extractPrinterMention(rawFields);   // null ⇒ not a printer request ⇒ don't tee
+        if (mention) {
+          tee = {
+            fields: [
+              ...(mention.brand ? [{ id: "brand", value: mention.brand }] : []),
+              ...(mention.model ? [{ id: "model", value: mention.model }] : []),
+              { id: "notes", value: mention.span },          // bounded matched span ONLY — never the full message
+            ],
+            lane: "heuristic",
+            originalCategory: payload.category,
+            ttl: 60 * 60 * 24 * 30,
+          };
+        }
+      }
+      if (tee) {
+        const id = `req:${Date.now()}:${crypto.randomUUID().slice(0, 8)}`;
+        const record = {
+          fields: tee.fields,
+          email: typeof payload.email === "string" ? payload.email : null,
+          context: payload.context || {},
+          appSource: isIOS ? "ios" : "web",
+          receivedAt: new Date().toISOString(),
+          lane: tee.lane,
+        };
+        if (tee.originalCategory) record.originalCategory = tee.originalCategory;
+        await env.PRINTER_INTAKE.put(id, JSON.stringify(record), { expirationTtl: tee.ttl });
+      }
     } catch (_) {
       // swallow — intake queue is best-effort, feedback delivery is not
     }
