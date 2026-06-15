@@ -16,7 +16,7 @@ Two surfaces, one engine:
 
 | Surface | Repo | Stack | Live status (live state in ROADMAP) |
 |---|---|---|---|
-| **Web app** | `3dprintassistant/` | Vanilla JS + HTML + CSS, Cloudflare Pages, Cloudflare Worker for `/api/feedback` | Live worldwide |
+| **Web app** | `3dprintassistant/` | Vanilla JS + HTML + CSS, Cloudflare Workers + Assets (`worker.js` entrypoint; `/api/feedback` handler) | Live worldwide |
 | **iOS app** | `3dprintassistant-ios/` | SwiftUI, JavaScriptCore (runs the same `engine.js`) | Live on App Store, dark mode only |
 
 Both surfaces consume the same data files and the same engine logic. Web is the master; iOS receives byte-identical copies of `engine.js` and `data/*.json`.
@@ -126,9 +126,9 @@ Provenance was added in **DQ-1** (2026-04-24); every numeric emission carries `{
 
 ### Web
 
-- **Hosting:** Cloudflare Pages, auto-deploys from `main` branch (no build step — vanilla JS).
+- **Hosting:** Cloudflare **Workers + Assets** (git-connected; `wrangler.toml` `main = "worker.js"`, `[assets] directory = "."`), auto-deploys from `main` branch (no build step — vanilla JS). Not Cloudflare Pages, despite older wording.
 - **Backend:** one Cloudflare Worker at `/api/feedback` (in `3dprintassistant/functions/api/feedback.js`) that receives feedback POSTs, sanitises, and forwards to a Discord webhook.
-- **Asset versioning:** Cloudflare Pages serves `index.html` + `app.js` + `engine.js` + `style.css` directly — cache strategy is governed by CF Pages defaults + any cache-control headers configured in the project (verify in-repo before changes). The PHP `_v($f)` filemtime cache-busting pattern used on Simply.com sister projects does NOT apply here.
+- **Asset versioning:** Cloudflare Workers + Assets serves `index.html` + `app.js` + `engine.js` + `style.css` directly — cache strategy is governed by Cloudflare Assets defaults + any cache-control headers configured in the project (verify in-repo before changes). The PHP `_v($f)` filemtime cache-busting pattern used on Simply.com sister projects does NOT apply here.
 - **Live URL:** [3dprintassistant.com](https://3dprintassistant.com).
 
 ### iOS

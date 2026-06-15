@@ -1,4 +1,5 @@
-// Cloudflare Pages Function — POST /api/feedback
+// POST /api/feedback — Cloudflare Workers + Assets handler (worker.js wires this
+// `onRequest*` export; the deploy is Workers, not Pages, despite the Pages-style signature)
 //
 // Receives feedback form submissions from the web browser OR the iOS app,
 // validates + sanitises them, and forwards a Discord embed to the webhook

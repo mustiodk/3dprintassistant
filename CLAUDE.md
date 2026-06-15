@@ -60,7 +60,7 @@ web walkthroughs or future cross-tool mirrors.
 
 ## Deployment
 
-- Hosted on **Cloudflare Pages** — auto-deploys from `main` branch on GitHub
+- Hosted on **Cloudflare Workers + Assets** (git-connected — `wrangler.toml` `main = "worker.js"`, `[assets] directory = "."`) — auto-deploys from `main` branch on GitHub (not Cloudflare Pages, despite older wording)
 - No build step needed — pure static files
 - Domain: **3dprintassistant.com**
 
