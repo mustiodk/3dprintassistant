@@ -29,7 +29,7 @@ Each gate: **implement → sub-agent review → patch → gate QA (local Node) �
 ### Gate 1 — Config + validator + behaviour-preserving externalisation (3dpa commit 1)
 
 **Files:**
-- **new** `scripts/printer-intake-guardrails.json` — schema `printer-intake-guardrails@1`, `version:1`, content = **EXACTLY today's hardcoded values**: all 13 `BRAND_TOKEN_ALIASES` entries, the full `resinKeywords`/`nonFdmTech`/`nonFdmNoteAcronyms` lists, the `brandTokens`/`familyTokens`/`modelSuffixStrip` lists, `_provenance:{}`. **No new alias seeds** (those are Gate 2).
+- **new** `scripts/printer-intake-guardrails.json` — schema `printer-intake-guardrails@1`, `version:1`, content = **EXACTLY today's hardcoded values**: all **14** `BRAND_TOKEN_ALIASES` entries (**copy the object verbatim from `:229-235`; the validator asserts `length===14`** — do not transcribe against a count), the full `resinKeywords`/`nonFdmTech`/`nonFdmNoteAcronyms` lists, the `brandTokens`/`familyTokens`/`modelSuffixStrip` lists, `_provenance:{}`. **No new alias seeds** (those are Gate 2).
 - **new** `scripts/validate-guardrails.js` — schema-check; **referential** check (every `brandAliases` value ∈ `data/printers.json` `brands[].id`); flat-array dup/normalise checks on the token/suffix/keyword arrays (`familyTokens` is a flat array, **not** a →brand map).
 - `scripts/printer-intake-scout.js`:
   - `loadGuardrails(path)` — reads the config; on missing/invalid → **bundled-default constant (= the v1 values) + an emitted run-error** (visible, never silent);
@@ -38,7 +38,7 @@ Each gate: **implement → sub-agent review → patch → gate QA (local Node) �
   - `fdmDecline(brand, model, notes, guardrails)` reads resin/non-FDM from config (`:203-216`); threaded via `classify(entry, cat, guardrails)` (`:306`, `:717`);
   - **no report-shape change on a valid config** (the load run-error only appears on a *bad* config, so the byte-identical gate holds).
 - **new** `scripts/validate-guardrails.test.js` — malformed rejected; `brandAliases` value not in `brands[].id` rejected; valid v1 passes.
-- **Gate 1 QA (hard gate, local):** the existing `printer-intake-sample.json` / `-adversarial.json` / `-robustness.json` fixtures produce **byte-identical outcome counts** with the externalised default config vs. the pre-refactor path; `node scripts/validate-guardrails.js` passes on v1; `node scripts/printer-intake-scout.test.js` green; `node --check` clean.
+- **Gate 1 QA (hard gate, local) — defined mechanism (you can't A/B pre/post-refactor in one process):** the **existing 28-case suite stays green with ZERO assertion edits** (the hardcoded expected counts in TC2/TC16/TC25-28 are the count-preservation proof); **stronger byte proof (do this too):** capture `run-report.json` for the three fixtures on `HEAD~1`, then `diff` against the post-refactor reports — identical. `node scripts/validate-guardrails.js` passes on v1; `node --check` clean.
 - **Commit 1:** `refactor(scout): externalise guardrails to versioned config, behaviour-preserving (S3)`.
 
 ### Gate 2 — Brand-alias resolution + typo hint + report-version (3dpa commit 2 + ai-om doc commit)
@@ -49,21 +49,21 @@ Each gate: **implement → sub-agent review → patch → gate QA (local Node) �
   - `possibleBrandTypo` — edit-distance ≤1 vs known brand norms, emit `{got, didYouMean}` on the report `items[]` **only on a single unique match** (suppress on ≥2 ties); **flag-not-resolve**;
   - **bump `report.version` 2 → 3** (`:749`) — the report-shape change rides **here** (with `possibleBrandTypo`), keeping commit 1 report-neutral.
 - `scripts/printer-intake-guardrails.json`: **add seeds** `"bmbulab":"bambu_lab"` + `"sparkx":"creality"` with `_provenance` (behaviour-changing).
-- `scripts/printer-intake-scout.test.js`: "Bmbulab X2D" → `duplicate`; "Sparkx i7" → `duplicate` (alias→creality, cross-brand `brandKnown` gate now passes); an unknown near-miss brand → new-brand candidate **+** `possibleBrandTypo` (single match) / **suppressed** on a tie. Expected counts updated for the seeds.
-- **ai-om doc commit:** `ai-operating-model/docs/agents/printer-intake-scout.md` — one line in the Output Format documenting the `possibleBrandTypo` hint (keeps the contract describing the artifact).
+- `scripts/printer-intake-scout.test.js`: "Bmbulab X2D" → `duplicate`; "Sparkx i7" → `duplicate` (alias→creality known → **within-brand** dedupe `creality|i7` matches `sparkx_i7`, branch (e) `:380` — *not* the cross-brand path); an unknown near-miss brand → new-brand candidate **+** `possibleBrandTypo` (single match) / **suppressed** on a tie. Expected counts updated for the seeds. *(The typo-hint fixtures are **synthetic-by-necessity** — no real brand pair ties at ed1; use e.g. "Crealty"→creality for the single-match case + two fabricated ed1 brands for tie-suppression.)*
+- **ai-om doc commit:** `ai-operating-model/docs/agents/printer-intake-scout.md` — one line in the Output Format documenting the `possibleBrandTypo` hint (the contract describes the report in prose and does **not** pin `report.version`, so only the new item-field needs documenting — the 2→3 bump needs no contract edit).
 - **Gate 2 QA (local):** tests green; counts reflect the seeds; `validate-guardrails` still passes (the new aliases point to real brands); `node --check`.
 - **Commit 2 (3dpa):** `feat(scout): brand-alias resolution + typo hint (Finding 1a) (S3)`. **+ commit (ai-om):** `docs(scout-contract): document possibleBrandTypo hint`.
 
 ### Gate 3 — Model-suffix-strip (3dpa commit 3)
 
 **Files:**
-- `scripts/printer-intake-scout.js`: `stripModelSuffixes(model, guardrails)` — **trailing-anchored at a token boundary** (strip a config suffix only at the end, preceded by whitespace/`/`/`+`/`(`; **never `indexOf`** mid-string), config-list-only; apply the **stripped** model to the `norm()` dedupe lookups (`:357`, `:380`, `:400`) while **preserving the original `model`** for any emitted candidate.
+- `scripts/printer-intake-scout.js`: `stripModelSuffixes(model, guardrails)` — **trailing-anchored at a token boundary** (strip a config suffix only at the end, preceded by whitespace/`/`/`+`/`(`; **never `indexOf`** mid-string), config-list-only; apply the **stripped** model to the **brand-known dedupe lookups (`:380` within-brand, `:400` cross-brand)** while **preserving the original `model`**. **Exclude `:357`** (the model-only, brand-*absent* path): stripping there changes *brand inference* (not just dedupe) and re-keys the `:361` multi-match guard — a behaviour change out of scope for this commit; defer model-only-with-suffix to its own bullet + fixture if wanted.
 - `scripts/printer-intake-scout.test.js`: "Creality i7 w/CFS" → `duplicate` (pure suffix, brand known); a model merely *containing* a suffix word mid-name is **not** truncated; "Ender 3" vs "Ender 3 V3" stay distinct.
 - **Gate 3 QA (local):** tests green; `node --check`.
 - **Commit 3:** `feat(scout): model-suffix-strip for dedupe (Finding 1b) (S3)`.
 
-### Runbook (rides Gate 1 or its own tiny commit)
-- `docs/runbooks/profile-data-change-test-protocol.md`: add `validate-guardrails` to the gate **when the config changes**.
+### Runbook (its OWN trailing doc commit — do NOT mix into commit 1's pure refactor)
+- `docs/runbooks/profile-data-change-test-protocol.md`: add `validate-guardrails` to the gate **when the config changes**. Keep it out of commit 1 so the byte-identical-refactor commit stays pure (own tiny doc commit, or fold into Gate 2).
 
 ---
 
