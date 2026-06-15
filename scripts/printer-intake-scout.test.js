@@ -405,6 +405,44 @@ let adv, advRaw;
   try { fs.unlinkSync(pf); } catch (_) {}
 }
 
+// ── TC32 — Gate 2 (Finding 1a): brand-alias seeds dedupe typo'd/aliased brands;
+//          an unknown near-miss brand stays a new-brand candidate + a typo hint. ──
+{
+  console.log('TC32 — Gate 2 brand aliases + typo hint (integration)');
+  const r = run(['--queue', path.join(__dirname, 'fixtures', 'printer-intake-aliases.json')]);
+  check('exit 0 + parses', r.code === 0, `got ${r.code}; stderr=${r.stderr}`);
+  const rep = parse(r.stdout);
+  const byKey = {};
+  for (const it of (rep && rep.items) || []) byKey[it.request.key] = it;
+  const b = byKey['al:bmbulab-x2d'];
+  check('Bmbulab X2D → duplicate (alias bmbulab→bambu_lab)', b && b.outcome === 'duplicate', `got ${b && b.outcome}`);
+  const s = byKey['al:sparkx-i7'];
+  check('Sparkx i7 → duplicate (alias sparkx→creality)', s && s.outcome === 'duplicate', `got ${s && s.outcome}`);
+  check('Sparkx i7 matched bundled sparkx_i7', s && s.matchedPrinter && s.matchedPrinter.id === 'sparkx_i7', `got ${s && JSON.stringify(s.matchedPrinter)}`);
+  const c = byKey['al:crealty-typo'];
+  check('Crealty Ultra-9000 → needs-research (new brand, NOT auto-resolved)', c && c.outcome === 'needs-research', `got ${c && c.outcome}`);
+  check('Crealty emits possibleBrandTypo didYouMean=creality', c && c.possibleBrandTypo && c.possibleBrandTypo.didYouMean === 'creality', `got ${c && JSON.stringify(c.possibleBrandTypo)}`);
+  check('report.version bumped to 3', rep && rep.version === 3, `got ${rep && rep.version}`);
+}
+
+// ── TC33 — Gate 2: brandTypoHint unit — single ed1 match → hint; ≥2 ties →
+//          suppressed; exact/known + far-off → no hint (flag-not-resolve). ──
+{
+  console.log('TC33 — brandTypoHint: single-match / tie-suppression / known-skip (unit)');
+  const scout = require(SCRIPT);
+  const fn = scout.brandTypoHint;
+  check('brandTypoHint exported', typeof fn === 'function', `got ${typeof fn}`);
+  if (typeof fn === 'function') {
+    const cat1 = { brandByNorm: new Map([['foo', 'a']]) };
+    const single = fn('fou', cat1);
+    check('single ed1 match → hint {got,didYouMean}', single && single.didYouMean === 'a' && single.got === 'fou', `got ${JSON.stringify(single)}`);
+    const cat2 = { brandByNorm: new Map([['foo', 'a'], ['fob', 'b']]) };
+    check('two ed1 matches (tie) → suppressed (null)', fn('fou', cat2) === null, `got ${JSON.stringify(fn('fou', cat2))}`);
+    check('exact known brand → no hint', fn('foo', cat1) === null, `got ${JSON.stringify(fn('foo', cat1))}`);
+    check('far-off brand → no hint', fn('zzzzz', cat1) === null, `got ${JSON.stringify(fn('zzzzz', cat1))}`);
+  }
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');

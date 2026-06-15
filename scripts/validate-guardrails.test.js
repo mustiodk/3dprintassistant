@@ -85,12 +85,13 @@ console.log('# validate-guardrails.js tests\n');
 // ── TC6 — v1 ships EXACTLY the 14 verbatim alias keys (copy-correctness;
 //         Gate 2 updates this to the 16 incl. bmbulab + sparkx seeds) ──
 {
-  console.log('TC6 — v1 has the 14 verbatim alias keys (no seeds yet)');
+  console.log('TC6 — config has the expected 16 alias keys (14 base + Gate-2 seeds bmbulab/sparkx)');
   const keys = Object.keys(baseValid().brandAliases).sort();
   const expected = ['anker', 'ankermake', 'anycubic', 'artillery', 'bambu', 'bambulab',
-    'creality', 'elegoo', 'flashforge', 'prusa', 'prusaresearch', 'qidi', 'sovol', 'voron'];
-  check('exactly 14 aliases', keys.length === 14, `got ${keys.length}`);
-  check('alias key set matches the current hardcoded set',
+    'bmbulab', 'creality', 'elegoo', 'flashforge', 'prusa', 'prusaresearch', 'qidi',
+    'sovol', 'sparkx', 'voron'];
+  check('exactly 16 aliases', keys.length === 16, `got ${keys.length}`);
+  check('alias key set matches the expected base+seeds set',
     JSON.stringify(keys) === JSON.stringify(expected), `got ${JSON.stringify(keys)}`);
 }
 

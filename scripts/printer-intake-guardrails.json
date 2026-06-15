@@ -16,7 +16,9 @@
     "artillery": "artillery",
     "anker": "anker",
     "ankermake": "anker",
-    "voron": "voron"
+    "voron": "voron",
+    "bmbulab": "bambu_lab",
+    "sparkx": "creality"
   },
   "brandTokens": [
     "bambu",
@@ -90,5 +92,8 @@
     "msla",
     "dlp"
   ],
-  "_provenance": {}
+  "_provenance": {
+    "bmbulab": { "added": "2026-06-15", "by": "S3 Gate 2", "why": "Discord typo of 'Bambu Lab'; the 2026-06-14 backlog 'Bmbulab X2D' surfaced as a needs-research false positive (X2D is bundled). Alias so it dedupes." },
+    "sparkx": { "added": "2026-06-15", "by": "S3 Gate 2", "why": "'Sparkx i7' is Creality's bundled sparkx_i7; there is no 'sparkx' brand. Alias to creality so the model dedupes (2026-06-14 backlog false positive)." }
+  }
 }

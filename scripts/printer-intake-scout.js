@@ -231,6 +231,7 @@ const GUARDRAILS_DEFAULTS = {
     anycubic: 'anycubic', qidi: 'qidi', elegoo: 'elegoo', sovol: 'sovol',
     flashforge: 'flashforge', artillery: 'artillery',
     anker: 'anker', ankermake: 'anker', voron: 'voron',
+    bmbulab: 'bambu_lab', sparkx: 'creality',
   },
   brandTokens: ['bambu', 'bambulab', 'creality', 'prusa', 'anycubic', 'elegoo', 'sovol',
     'qidi', 'flashforge', 'artillery', 'anker', 'ankermake', 'voron', 'voxelab'],
@@ -347,6 +348,32 @@ function resolveBrand(brandRaw, cat) {
   return { id: snake(brandRaw), known: false }; // unknown brand → new-brand candidate
 }
 
+// Conservative brand-typo hint (S3 Gate 2, Finding 1a): when a given brand is
+// UNKNOWN, surface a SINGLE unique known brand within edit-distance 1 as a hint —
+// flag-not-resolve (never auto-maps; a genuine new brand must not be silently
+// mis-attributed). Suppressed on >=2 ties to stay deterministic + unambiguous.
+function withinEdit1(a, b) {
+  if (a === b) return true;
+  const la = a.length, lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  let i = 0;
+  while (i < la && i < lb && a[i] === b[i]) i++;
+  if (la === lb) return a.slice(i + 1) === b.slice(i + 1); // substitution
+  if (la > lb)  return a.slice(i + 1) === b.slice(i);       // deletion from a
+  return a.slice(i) === b.slice(i + 1);                     // insertion into a
+}
+function brandTypoHint(brandRaw, cat) {
+  const n = norm(brandRaw);
+  if (!n || cat.brandByNorm.has(n)) return null;   // empty or already exact-known → no hint
+  const ids = new Set();
+  let didYouMean = null;
+  for (const [knownNorm, brandId] of cat.brandByNorm) {
+    if (withinEdit1(n, knownNorm)) { ids.add(brandId); didYouMean = brandId; }
+  }
+  if (ids.size !== 1) return null;                 // 0 matches or >=2 ties → suppress
+  return { got: brandRaw, didYouMean };
+}
+
 // brand-in-model extraction (#6): if the model value starts with a KNOWN brand
 // name/alias and has ≥1 word left, split it off — e.g. "Prusa MK4S" typed into
 // the model field → { brandId:'prusa', rest:'MK4S' }. Tries a 2-word then 1-word
@@ -415,6 +442,10 @@ function classify(entry, cat, guardrails) {
   if (brand) {
     const rb = resolveBrand(brand, cat);
     resolvedBrandId = rb.id; brandKnown = rb.known;
+    if (!brandKnown) {
+      const hint = brandTypoHint(brand, cat); // flag-not-resolve: surface a likely typo, never auto-map
+      if (hint) base.possibleBrandTypo = hint;
+    }
   } else {
     // brand-in-model (#6): "Prusa MK4S" in the model field → split off the known
     // brand so it resolves + dedupes like a normal brand+model request.
@@ -816,7 +847,7 @@ async function main() {
   for (const it of candItems) { it.candidate = nameFor(it); candidateFiles.push(it.candidate); }
 
   const report = {
-    tool: 'printer-intake-scout', version: 2,
+    tool: 'printer-intake-scout', version: 3,
     source: sourceMeta,
     queueCount: entries.length,
     counts,
@@ -829,6 +860,7 @@ async function main() {
       resolved: it.resolved || null,
       matchedPrinter: it.matchedPrinter || null,
       brandMismatch: it.brandMismatch || null,
+      possibleBrandTypo: it.possibleBrandTypo || null,
       isNewBrand: !!it.isNewBrand,
       fdmStatus: it.fdmStatus || null,
       idCollision: !!it.idCollision,
@@ -877,5 +909,5 @@ if (require.main === module) {
   // Required as a module (tests only): expose the fallback constant so a drift
   // guard can assert it stays equal to printer-intake-guardrails.json. Does not
   // run main() — CLI behaviour (require.main === module) is unchanged.
-  module.exports = { GUARDRAILS_DEFAULTS };
+  module.exports = { GUARDRAILS_DEFAULTS, brandTypoHint };
 }

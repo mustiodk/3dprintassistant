@@ -1,0 +1,29 @@
+[
+  {
+    "_key": "al:bmbulab-x2d",
+    "appSource": "web",
+    "receivedAt": "2026-06-15T10:00:00Z",
+    "fields": [
+      { "id": "brand", "label": "Brand", "value": "Bmbulab" },
+      { "id": "model", "label": "Model", "value": "X2D" }
+    ]
+  },
+  {
+    "_key": "al:sparkx-i7",
+    "appSource": "web",
+    "receivedAt": "2026-06-15T10:01:00Z",
+    "fields": [
+      { "id": "brand", "label": "Brand", "value": "Sparkx" },
+      { "id": "model", "label": "Model", "value": "i7" }
+    ]
+  },
+  {
+    "_key": "al:crealty-typo",
+    "appSource": "web",
+    "receivedAt": "2026-06-15T10:02:00Z",
+    "fields": [
+      { "id": "brand", "label": "Brand", "value": "Crealty" },
+      { "id": "model", "label": "Model", "value": "Ultra-9000" }
+    ]
+  }
+]
