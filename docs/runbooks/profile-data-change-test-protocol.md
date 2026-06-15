@@ -32,6 +32,17 @@ xcodebuild test \
   -only-testing:3DPrintAssistantTests
 ```
 
+## Printer-Intake Guardrails Config
+
+If a change touches `scripts/printer-intake-guardrails.json` (the learned-guardrails config the printer-intake Scout reads — brand aliases, model-suffix strips, resin / non-FDM keyword lists), run its dedicated gate:
+
+```bash
+node scripts/validate-guardrails.js
+node scripts/printer-intake-scout.test.js
+```
+
+Pass = the config is valid (schema, every `brandAliases` value is a real `brands[].id`, no duplicate / non-normalised list entries) and the Scout suite is green. This is intake-pipeline tooling — it does **not** touch `engine.js`, profiles, or the app, so the standard profile gate above does not apply. **S4's learning loop must run `validate-guardrails` before applying any proposed config diff.**
+
 ## When To Add Extra Tests
 
 Add a small independent post-fix matrix when:
