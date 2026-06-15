@@ -1,0 +1,29 @@
+[
+  {
+    "_key": "sf:creality-i7-cfs",
+    "appSource": "web",
+    "receivedAt": "2026-06-15T11:00:00Z",
+    "fields": [
+      { "id": "brand", "label": "Brand", "value": "Creality" },
+      { "id": "model", "label": "Model", "value": "i7 w/CFS" }
+    ]
+  },
+  {
+    "_key": "sf:sparkx-i7-cfs",
+    "appSource": "web",
+    "receivedAt": "2026-06-15T11:01:00Z",
+    "fields": [
+      { "id": "brand", "label": "Brand", "value": "Sparkx" },
+      { "id": "model", "label": "Model", "value": "i7 w/CFS" }
+    ]
+  },
+  {
+    "_key": "sf:bambu-combo-x9",
+    "appSource": "web",
+    "receivedAt": "2026-06-15T11:02:00Z",
+    "fields": [
+      { "id": "brand", "label": "Brand", "value": "Bambu Lab" },
+      { "id": "model", "label": "Model", "value": "Combo X9" }
+    ]
+  }
+]

@@ -374,6 +374,38 @@ function brandTypoHint(brandRaw, cat) {
   return { got: brandRaw, didYouMean };
 }
 
+// Model-suffix strip for DEDUPE ONLY (S3 Gate 3, Finding 1b): strip a config
+// suffix (e.g. "w/CFS", "combo") when it sits at the END of the model at a token
+// boundary (preceded by whitespace / '/' / '+' / '('), never mid-string and never
+// a generic "drop the last token". Config-list-only. The ORIGINAL model is always
+// preserved for any emitted candidate; only the dedupe LOOKUP key uses the
+// stripped form. Iterates so multiple trailing add-ons fold ("i7 combo bundle").
+function stripModelSuffixes(model, guardrails) {
+  let s = String(model == null ? '' : model).trim();
+  const suffixes = Array.isArray(guardrails && guardrails.modelSuffixStrip) ? guardrails.modelSuffixStrip : [];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const lower = s.toLowerCase();
+    for (const suf of suffixes) {
+      const sl = String(suf).toLowerCase();
+      if (!sl || !lower.endsWith(sl)) continue;
+      const before = s.slice(0, s.length - sl.length);
+      // Token boundary required (no mid-WORD strip). Satisfied either by the char
+      // before the suffix being a separator, OR by the suffix carrying its own
+      // leading separator (e.g. "+cfs" / "(cfs)" — so "i7+CFS" strips like "i7 +CFS").
+      const boundaryOk = /^[\s/+(]/.test(sl) || /[\s/+(]$/.test(before);
+      if (!boundaryOk) continue;
+      const stripped = before.replace(/[\s/+(]+$/, '');
+      if (stripped.length === 0) continue;       // never strip to empty (or to all-boundary chars)
+      s = stripped;
+      changed = true;
+      break;
+    }
+  }
+  return s;
+}
+
 // brand-in-model extraction (#6): if the model value starts with a KNOWN brand
 // name/alias and has ≥1 word left, split it off — e.g. "Prusa MK4S" typed into
 // the model field → { brandId:'prusa', rest:'MK4S' }. Tries a 2-word then 1-word
@@ -475,8 +507,12 @@ function classify(entry, cat, guardrails) {
     return Object.assign({ outcome: 'incomplete', reason: 'model given but brand could not be inferred' }, base);
   }
 
-  // (e) dedupe against bundled catalog (within resolved brand)
-  const dupRec = cat.printerByKey.get(`${resolvedBrandId}|${norm(model)}`);
+  // (e) dedupe against bundled catalog (within resolved brand). Use a suffix-
+  // stripped model for the LOOKUP only (Finding 1b); the original `model` is
+  // preserved for any emitted candidate. The brand-ABSENT inference path above
+  // deliberately uses the unstripped model so suffixes can't skew inference.
+  const dedupeModel = stripModelSuffixes(model, guardrails);
+  const dupRec = cat.printerByKey.get(`${resolvedBrandId}|${norm(dedupeModel)}`);
   if (dupRec) {
     return Object.assign({
       outcome: 'duplicate',
@@ -496,7 +532,7 @@ function classify(entry, cat, guardrails) {
   // brand's "M5" vs AnkerMake M5) stays a new-brand candidate, not a false dup.
   // (Model-only requests never reach here: a single global match is resolved +
   // caught above; a multi-match returns `incomplete` earlier.)
-  const crossMatches = brandKnown ? (cat.globalModelIndex.get(norm(model)) || []) : [];
+  const crossMatches = brandKnown ? (cat.globalModelIndex.get(norm(dedupeModel)) || []) : [];
   if (crossMatches.length) {
     const m = crossMatches[0];
     return Object.assign({
@@ -909,5 +945,5 @@ if (require.main === module) {
   // Required as a module (tests only): expose the fallback constant so a drift
   // guard can assert it stays equal to printer-intake-guardrails.json. Does not
   // run main() — CLI behaviour (require.main === module) is unchanged.
-  module.exports = { GUARDRAILS_DEFAULTS, brandTypoHint };
+  module.exports = { GUARDRAILS_DEFAULTS, brandTypoHint, stripModelSuffixes };
 }

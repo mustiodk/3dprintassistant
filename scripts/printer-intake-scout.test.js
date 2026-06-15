@@ -443,6 +443,50 @@ let adv, advRaw;
   }
 }
 
+// ── TC34 — Gate 3 (Finding 1b): a model with an accessory/bundle suffix dedupes
+//          (brand known); a leading suffix word is NOT stripped (preserved). ──
+{
+  console.log('TC34 — Gate 3 model-suffix-strip (integration)');
+  const r = run(['--queue', path.join(__dirname, 'fixtures', 'printer-intake-suffixes.json')]);
+  check('exit 0 + parses', r.code === 0, `got ${r.code}; stderr=${r.stderr}`);
+  const rep = parse(r.stdout);
+  const items = (rep && rep.items) || [];
+  // "Creality i7 w/CFS" (pure suffix) and "Sparkx i7 w/CFS" (alias + suffix) BOTH
+  // dedupe to the bundled sparkx_i7 → they correctly collapse into ONE duplicate.
+  const dup = items.find(it => it.outcome === 'duplicate' && it.matchedPrinter && it.matchedPrinter.id === 'sparkx_i7');
+  check('a duplicate matched bundled sparkx_i7 exists', !!dup,
+    `items=${JSON.stringify(items.map(i => [i.outcome, i.matchedPrinter && i.matchedPrinter.id]))}`);
+  check('both suffix requests collapsed onto it (requestCount 2)', dup && dup.requestCount === 2, `got ${dup && dup.requestCount}`);
+  check('covers the pure-suffix key (Creality i7 w/CFS)', dup && (dup.requestKeys || []).includes('sf:creality-i7-cfs'), `keys=${dup && JSON.stringify(dup.requestKeys)}`);
+  check('covers the alias+suffix key (Sparkx i7 w/CFS)', dup && (dup.requestKeys || []).includes('sf:sparkx-i7-cfs'), `keys=${dup && JSON.stringify(dup.requestKeys)}`);
+  // leading suffix word must NOT be stripped → Combo X9 stays a novel candidate, model preserved.
+  const c = items.find(it => it.request.key === 'sf:bambu-combo-x9');
+  check('Bambu "Combo X9" → needs-research (leading suffix word NOT stripped)', c && c.outcome === 'needs-research', `got ${c && c.outcome}`);
+  check('Combo X9 model preserved, not truncated', c && c.resolved && c.resolved.model === 'Combo X9', `got ${c && c.resolved && c.resolved.model}`);
+}
+
+// ── TC35 — stripModelSuffixes unit: trailing-anchored, config-list-only, no
+//          generic last-token drop, never strips to empty (unit). ──
+{
+  console.log('TC35 — stripModelSuffixes: boundary + config-only + no generic drop (unit)');
+  const scout = require(SCRIPT);
+  const fn = scout.stripModelSuffixes;
+  check('stripModelSuffixes exported', typeof fn === 'function', `got ${typeof fn}`);
+  if (typeof fn === 'function') {
+    const G = { modelSuffixStrip: scout.GUARDRAILS_DEFAULTS.modelSuffixStrip };
+    check('"i7 w/CFS" → "i7"', fn('i7 w/CFS', G) === 'i7', `got ${JSON.stringify(fn('i7 w/CFS', G))}`);
+    check('"i7 W/CFS" (case-insensitive) → "i7"', fn('i7 W/CFS', G) === 'i7', `got ${JSON.stringify(fn('i7 W/CFS', G))}`);
+    check('"X1 (CFS)" → "X1"', fn('X1 (CFS)', G) === 'X1', `got ${JSON.stringify(fn('X1 (CFS)', G))}`);
+    check('"Ender 3 V3" unchanged (no generic last-token drop)', fn('Ender 3 V3', G) === 'Ender 3 V3', `got ${JSON.stringify(fn('Ender 3 V3', G))}`);
+    check('"Combo X9" unchanged (leading suffix word not stripped)', fn('Combo X9', G) === 'Combo X9', `got ${JSON.stringify(fn('Combo X9', G))}`);
+    check('"combo" alone NOT stripped to empty', fn('combo', G) === 'combo', `got ${JSON.stringify(fn('combo', G))}`);
+    check('"Ender 3 Combo" → "Ender 3"', fn('Ender 3 Combo', G) === 'Ender 3', `got ${JSON.stringify(fn('Ender 3 Combo', G))}`);
+    check('"i7+CFS" (suffix carries its own boundary) → "i7"', fn('i7+CFS', G) === 'i7', `got ${JSON.stringify(fn('i7+CFS', G))}`);
+    check('"i7(CFS)" → "i7"', fn('i7(CFS)', G) === 'i7', `got ${JSON.stringify(fn('i7(CFS)', G))}`);
+    check('"+combo" (all-boundary before) NOT stripped to empty', fn('+combo', G) === '+combo', `got ${JSON.stringify(fn('+combo', G))}`);
+  }
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');
