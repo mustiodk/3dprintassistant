@@ -352,6 +352,59 @@ let adv, advRaw;
   check('TC28 "not a resin printer" note NOT declined', g && g.outcome !== 'declined-non-fdm', `got ${g && g.outcome}`);
 }
 
+// ── TC29 — guardrails fallback: a missing config file falls back to bundled
+//          defaults AND surfaces a run-error (the Scout never silently breaks) ──
+{
+  console.log('TC29 — guardrails fallback: missing --guardrails file → defaults + run-error, still classifies');
+  const r = run(['--queue', SAMPLE, '--guardrails', path.join(__dirname, 'fixtures', '__no_such_guardrails__.json')]);
+  check('exit 0 (still runs on bundled defaults)', r.code === 0, `got ${r.code}; stderr=${r.stderr}`);
+  const rep = parse(r.stdout);
+  check('parses', rep !== null, `stdout=${r.stdout.slice(0, 200)}`);
+  // Photon still declined → proves the resin keywords loaded from the fallback defaults.
+  const photon = ((rep && rep.items) || []).find(i => /photon/i.test(i.request && i.request.model || ''));
+  check('photon still declined-non-fdm via fallback defaults', photon && photon.outcome === 'declined-non-fdm', `got ${photon && photon.outcome}`);
+  check('a guardrails-load-failed run-error is surfaced', rep && (rep.errors || []).some(e => e.type === 'guardrails-load-failed'), `errors=${JSON.stringify(rep && rep.errors)}`);
+}
+
+// ── TC30 — drift guard: the in-script GUARDRAILS_DEFAULTS fallback must stay
+//          equal to the committed printer-intake-guardrails.json (ignoring
+//          lastRatified). Fixture-independent data-level compare — catches a
+//          future gate editing the JSON but not the constant (or vice-versa). ──
+{
+  console.log('TC30 — GUARDRAILS_DEFAULTS ≡ printer-intake-guardrails.json (drift guard)');
+  const scout = require(SCRIPT); // module export via the require.main guard; does NOT run main()
+  const json = JSON.parse(fs.readFileSync(path.join(__dirname, 'printer-intake-guardrails.json'), 'utf8'));
+  // order-insensitive for object keys, order-SENSITIVE for arrays (match order matters).
+  const canon = (v) => Array.isArray(v) ? v.map(canon)
+    : (v && typeof v === 'object') ? Object.keys(v).sort().reduce((o, k) => (o[k] = canon(v[k]), o), {})
+    : v;
+  check('GUARDRAILS_DEFAULTS is exported', !!(scout && scout.GUARDRAILS_DEFAULTS), 'not exported');
+  for (const f of ['schema', 'version', 'brandAliases', 'brandTokens', 'familyTokens',
+                   'modelSuffixStrip', 'resinKeywords', 'nonFdmTech', 'nonFdmNoteAcronyms']) {
+    const d = scout && scout.GUARDRAILS_DEFAULTS ? scout.GUARDRAILS_DEFAULTS[f] : undefined;
+    check(`defaults.${f} === json.${f}`, JSON.stringify(canon(d)) === JSON.stringify(canon(json[f])),
+      `defaults=${JSON.stringify(d)} json=${JSON.stringify(json[f])}`);
+  }
+}
+
+// ── TC31 — schema-valid-but-partial config (missing resinKeywords) FALLS BACK
+//          wholesale + run-error; FDM declines are NOT silently disabled
+//          (locks the review MEDIUM fix). ──
+{
+  console.log('TC31 — partial config (missing resinKeywords) → fallback + run-error, Photon still declined');
+  const partial = JSON.parse(fs.readFileSync(path.join(__dirname, 'printer-intake-guardrails.json'), 'utf8'));
+  delete partial.resinKeywords;
+  const pf = path.join(os.tmpdir(), `pi-partial-${process.pid}.json`);
+  fs.writeFileSync(pf, JSON.stringify(partial));
+  const r = run(['--queue', SAMPLE, '--guardrails', pf]);
+  const rep = parse(r.stdout);
+  check('exit 0', r.code === 0, `got ${r.code}; stderr=${r.stderr}`);
+  const photon = ((rep && rep.items) || []).find(i => /photon/i.test(i.request && i.request.model || ''));
+  check('photon STILL declined-non-fdm (no silent degradation)', photon && photon.outcome === 'declined-non-fdm', `got ${photon && photon.outcome}`);
+  check('guardrails-load-failed run-error surfaced', rep && (rep.errors || []).some(e => e.type === 'guardrails-load-failed'), `errors=${JSON.stringify(rep && rep.errors)}`);
+  try { fs.unlinkSync(pf); } catch (_) {}
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');

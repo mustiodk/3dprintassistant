@@ -62,6 +62,7 @@ function parseArgs(argv) {
     source: 'fixtures',                 // 'fixtures' | 'kv'
     queue: path.join(__dirname, 'fixtures', 'printer-intake-sample.json'),
     config: path.join(__dirname, '.printer-intake.local.json'),
+    guardrails: path.join(__dirname, 'printer-intake-guardrails.json'),
     watermarkFile: path.join(__dirname, '.printer-intake.watermark.json'),
     useWatermark: true,
     resetWatermark: false,
@@ -85,6 +86,7 @@ function parseArgs(argv) {
       case '--source': out.source = val(a); break;
       case '--queue': out.queue = val(a); break;
       case '--config': out.config = val(a); break;
+      case '--guardrails': out.guardrails = val(a); break;
       case '--watermark-file': out.watermarkFile = val(a); break;
       case '--wrangler-bin': out.wranglerBin = val(a); break;
       case '--out': out.out = val(a); break;
@@ -112,6 +114,7 @@ function usage() {
   console.error('  --out <dir>              also write run-report.json + private candidate-*.json');
   console.error('                           (must be a gitignored staging path or outside the repo)');
   console.error('  --config <path>          kv source: optional config (account/namespace overrides)');
+  console.error('  --guardrails <path>      learned-guardrails config (default: scripts/printer-intake-guardrails.json)');
   console.error('  --watermark-file <path>  kv source: persisted watermark state');
   console.error('  --no-watermark           kv source: do not read/advance the watermark');
   console.error('  --reset-watermark        kv source: ignore the existing watermark this run');
@@ -187,36 +190,106 @@ function mapFields(fields) {
 // assisted pass MUST source-confirm FDM before any add (printer-addition-protocol
 // Phase 1 step 0). New resin lines not listed here will slip through to
 // needs-research with fdmStatus:"unconfirmed" and be caught downstream.
-const RESIN_MODEL_KEYWORDS = [
-  'photon', 'saturn', 'mars', 'halot', 'sonic', 'phrozen', 'formlabs',
-  'jupiter', 'mighty', 'proxima', 'shuffle', 'nova3d', 'peopoly',
-  'form 1', 'form 2', 'form 3', 'form 4', 'mono x',
-];
-const NON_FDM_TECH_PATTERNS = [
-  /\bresin\b/, /\bmsla\b/, /\bsla\b/, /\bdlp\b/, /\bsls\b/, /\bmjf\b/, /\blcd printer\b/,
-];
-// Acronyms unambiguous enough to also trust inside free-text NOTES. The soft
-// words "resin"/"sla" are deliberately NOT scanned in notes — a note like "not a
-// resin printer" must never trigger a decline. These acronyms are virtually never
-// written negated/innocently in a printer request ("it's an SLS machine").
-const NON_FDM_NOTE_ACRONYMS = [/\bsls\b/, /\bmjf\b/, /\bmsla\b/, /\bdlp\b/];
-function fdmDecline(brand, model, notes) {
+// The resin/non-FDM keyword + pattern lists now live in the versioned guardrails
+// config (loadGuardrails below); fdmDecline reads them via the `guardrails` arg.
+// nonFdmTechRe / nonFdmNoteRe are the word-boundary regexes built from the config
+// strings — identical matching semantics to the prior inline /\b…\b/ literals.
+function fdmDecline(brand, model, notes, guardrails) {
   const hay = `${brand} ${model}`.toLowerCase();
-  for (const kw of RESIN_MODEL_KEYWORDS) {
+  for (const kw of guardrails.resinKeywords) {
     if (hay.includes(kw)) return `non-FDM model keyword "${kw}" (resin/MSLA out of scope)`;
   }
-  for (const re of NON_FDM_TECH_PATTERNS) {
+  for (const re of guardrails.nonFdmTechRe) {
     if (re.test(hay)) return `non-FDM technology keyword /${re.source}/`;
   }
   const noteHay = String(notes == null ? '' : notes).toLowerCase();
-  for (const re of NON_FDM_NOTE_ACRONYMS) {
+  // Acronyms unambiguous enough to also trust inside free-text NOTES — the soft
+  // words "resin"/"sla" are NOT scanned in notes (so "not a resin printer" can't
+  // trigger a decline). From guardrails.nonFdmNoteAcronyms.
+  for (const re of guardrails.nonFdmNoteRe) {
     if (re.test(noteHay)) return `non-FDM technology acronym in notes /${re.source}/`;
   }
   return null;
 }
 
+// ─── Learned-guardrails config (S3) ──────────────────────────────────────────
+// Brand aliases, model-suffix strips, and resin/non-FDM keyword lists live in a
+// versioned, owner-ratified config (scripts/printer-intake-guardrails.json) so
+// they can be ratified as DATA — by the owner or S4's learning loop — without
+// editing this executable. Runtime stays deterministic: static data, read once,
+// no LLM at decision time. A missing/invalid file falls back to these bundled
+// defaults AND emits a visible run-error, so the Scout never silently breaks.
+//
+// These defaults MUST stay in sync with printer-intake-guardrails.json (the
+// canonical, validator-checked copy); they exist only as a crash-proof fallback.
+const GUARDRAILS_DEFAULTS = {
+  schema: 'printer-intake-guardrails@1',
+  version: 1,
+  brandAliases: {
+    bambu: 'bambu_lab', bambulab: 'bambu_lab',
+    creality: 'creality', prusa: 'prusa', prusaresearch: 'prusa',
+    anycubic: 'anycubic', qidi: 'qidi', elegoo: 'elegoo', sovol: 'sovol',
+    flashforge: 'flashforge', artillery: 'artillery',
+    anker: 'anker', ankermake: 'anker', voron: 'voron',
+  },
+  brandTokens: ['bambu', 'bambulab', 'creality', 'prusa', 'anycubic', 'elegoo', 'sovol',
+    'qidi', 'flashforge', 'artillery', 'anker', 'ankermake', 'voron', 'voxelab'],
+  familyTokens: ['ender', 'kobra', 'neptune', 'mk', 'sv', 'x1', 'p1', 'a1', 'mega'],
+  modelSuffixStrip: ['w/cfs', 'with cfs', '+cfs', '(cfs)', 'combo', 'bundle', 'w/ams', 'w/ ams'],
+  resinKeywords: ['photon', 'saturn', 'mars', 'halot', 'sonic', 'phrozen', 'formlabs',
+    'jupiter', 'mighty', 'proxima', 'shuffle', 'nova3d', 'peopoly',
+    'form 1', 'form 2', 'form 3', 'form 4', 'mono x'],
+  nonFdmTech: ['resin', 'msla', 'sla', 'dlp', 'sls', 'mjf', 'lcd printer'],
+  nonFdmNoteAcronyms: ['sls', 'mjf', 'msla', 'dlp'],
+  _provenance: {},
+};
+
+function escapeRegex(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// Build the runtime view from a raw config: word-boundary regexes for the
+// non-FDM lists (matched in fdmDecline), preserving the exact prior /\b…\b/
+// semantics (case via lowercased haystack; no regex flags).
+function buildGuardrails(cfg) {
+  const g = Object.assign({}, cfg);
+  g.brandAliases = (cfg && typeof cfg.brandAliases === 'object' && cfg.brandAliases) || {};
+  g.resinKeywords = Array.isArray(cfg && cfg.resinKeywords) ? cfg.resinKeywords : [];
+  g.modelSuffixStrip = Array.isArray(cfg && cfg.modelSuffixStrip) ? cfg.modelSuffixStrip : [];
+  g.nonFdmTechRe = (Array.isArray(cfg && cfg.nonFdmTech) ? cfg.nonFdmTech : [])
+    .map(s => new RegExp('\\b' + escapeRegex(s) + '\\b'));
+  g.nonFdmNoteRe = (Array.isArray(cfg && cfg.nonFdmNoteAcronyms) ? cfg.nonFdmNoteAcronyms : [])
+    .map(s => new RegExp('\\b' + escapeRegex(s) + '\\b'));
+  return g;
+}
+
+// Load + shape-check the guardrails config. On any failure → bundled defaults +
+// a run-error (visible, never silent). Returns { ...guardrails, _loadError }.
+function loadGuardrails(filePath) {
+  let cfg, loadError = null;
+  try {
+    cfg = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    if (cfg.schema !== 'printer-intake-guardrails@1') throw new Error(`unexpected schema ${JSON.stringify(cfg.schema)}`);
+    if (cfg.brandAliases == null || typeof cfg.brandAliases !== 'object' || Array.isArray(cfg.brandAliases)) {
+      throw new Error('brandAliases missing or not an object');
+    }
+    // Every list the runtime consumes must be present AND an array — otherwise
+    // fall back WHOLESALE (catch below) + emit a run-error. Without this, a
+    // schema-valid-but-partial config (e.g. missing resinKeywords) would silently
+    // disable FDM-scope declines with NO error (review MEDIUM, Gate 1).
+    for (const k of ['brandTokens', 'familyTokens', 'modelSuffixStrip', 'resinKeywords', 'nonFdmTech', 'nonFdmNoteAcronyms']) {
+      if (!Array.isArray(cfg[k])) throw new Error(`${k} missing or not an array`);
+    }
+  } catch (e) {
+    loadError = { type: 'guardrails-load-failed', path: filePath, reason: firstLine(e.message),
+      note: 'fell back to bundled-default guardrails this run — fix the config to restore ratified values' };
+    cfg = GUARDRAILS_DEFAULTS;
+  }
+  const g = buildGuardrails(cfg);
+  g._loadError = loadError;
+  return g;
+}
+
 // ─── Catalog index ───────────────────────────────────────────────────────────
-function loadCatalog() {
+function loadCatalog(guardrails) {
   const data = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'printers.json'), 'utf8'));
   const brands = data.brands || [];
   const printers = data.printers || [];
@@ -226,13 +299,8 @@ function loadCatalog() {
     brandByNorm.set(norm(b.id), b.id);
     brandByNorm.set(norm(b.name), b.id);
   }
-  const BRAND_TOKEN_ALIASES = {
-    bambu: 'bambu_lab', bambulab: 'bambu_lab',
-    creality: 'creality', prusa: 'prusa', prusaresearch: 'prusa',
-    anycubic: 'anycubic', qidi: 'qidi', elegoo: 'elegoo', sovol: 'sovol',
-    flashforge: 'flashforge', artillery: 'artillery',
-    anker: 'anker', ankermake: 'anker', voron: 'voron',
-  };
+  // Brand aliases come from the ratified guardrails config (loadCatalog arg) —
+  // no longer hardcoded here. See loadGuardrails / printer-intake-guardrails.json.
 
   // family token → manufacturer, only when unambiguous (single brand).
   const familyCount = new Map();
@@ -262,7 +330,7 @@ function loadCatalog() {
     }
   }
 
-  return { brands, brandByNorm, BRAND_TOKEN_ALIASES, familyToBrand, printerByKey, globalModelIndex, idSet };
+  return { brands, brandByNorm, brandAliases: guardrails.brandAliases, familyToBrand, printerByKey, globalModelIndex, idSet };
 }
 
 // resolve a free-text brand string → {id, known}. EXACT normalized match only
@@ -275,7 +343,7 @@ function resolveBrand(brandRaw, cat) {
   const n = norm(brandRaw);
   if (!n) return null;
   if (cat.brandByNorm.has(n)) return { id: cat.brandByNorm.get(n), known: true };
-  if (cat.BRAND_TOKEN_ALIASES[n]) return { id: cat.BRAND_TOKEN_ALIASES[n], known: true };
+  if (cat.brandAliases[n]) return { id: cat.brandAliases[n], known: true };
   return { id: snake(brandRaw), known: false }; // unknown brand → new-brand candidate
 }
 
@@ -303,7 +371,7 @@ function suggestId(manufacturer, model, cat) {
 }
 
 // ─── Classification ──────────────────────────────────────────────────────────
-function classify(entry, cat) {
+function classify(entry, cat, guardrails) {
   // KV value that could not be parsed → explicit error outcome (never swallowed).
   if (entry && entry._parseError) {
     return {
@@ -336,7 +404,7 @@ function classify(entry, cat) {
   }
 
   // (b) FDM scope — decline before anything else (brand+model, + hard acronyms in notes).
-  const declineReason = fdmDecline(brand, model, notes);
+  const declineReason = fdmDecline(brand, model, notes, guardrails);
   if (declineReason) {
     return Object.assign({ outcome: 'declined-non-fdm', reason: declineReason }, base);
   }
@@ -713,8 +781,10 @@ async function main() {
     process.exit(2);
   }
 
-  const cat = loadCatalog();
-  const items = collapse(entries.map(e => classify(e, cat)));
+  const guardrails = loadGuardrails(args.guardrails);
+  if (guardrails._loadError) runErrors.push(guardrails._loadError);
+  const cat = loadCatalog(guardrails);
+  const items = collapse(entries.map(e => classify(e, cat, guardrails)));
 
   // surface parse errors that came through classification
   for (const it of items) {
@@ -798,7 +868,14 @@ async function main() {
   process.exit(0);
 }
 
-main().catch(e => {
-  console.error(`STOP: unexpected error: ${e && e.message ? e.message : e}`);
-  process.exit(2);
-});
+if (require.main === module) {
+  main().catch(e => {
+    console.error(`STOP: unexpected error: ${e && e.message ? e.message : e}`);
+    process.exit(2);
+  });
+} else {
+  // Required as a module (tests only): expose the fallback constant so a drift
+  // guard can assert it stays equal to printer-intake-guardrails.json. Does not
+  // run main() — CLI behaviour (require.main === module) is unchanged.
+  module.exports = { GUARDRAILS_DEFAULTS };
+}
