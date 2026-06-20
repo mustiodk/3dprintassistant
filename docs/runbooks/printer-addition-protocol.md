@@ -334,28 +334,47 @@ happens, capture the executed procedure here as Phase 4a.
 
 ### Phase 4b — Overlay → bundled graduation (MANDATORY at each binary release)
 
-An overlay entry is a *transitional* delivery for current clients until the next
-binary subsumes it. **When a printer that currently ships via the overlay gets
-baked into a new iOS binary (i.e. it enters that build's bundled
-`printers.json`), the same release must:**
+An overlay entry is a *transitional* delivery for clients whose bundled
+`printers.json` does not yet contain that printer. How a graduation (a printer
+baked into a new iOS binary) is handled depends on whether the **still-delivered**
+builds that bundle it are before or at/after the override-merge boundary
+(`FIRST_OVERRIDE_MERGE_VERSION = 1.0.5`, iOS `af4bbe0` / Part C):
 
-1. **Remove that printer (and any now-bundled brand) from
-   `catalog/ios-printer-overlay-v1.json`**, bump `content_version`, recompute
-   `payload_sha256`. Leaving it in is not harmless: the iOS runtime rejects the
-   **whole** overlay on any overlay-vs-bundled id collision
-   (`PrinterCatalogProvider.validatePayload`), so a stale graduated entry silently
-   hides every *other* printer the overlay carries.
+- **Builds `< 1.0.5` reject the WHOLE overlay on any overlay-vs-bundled id
+  collision** (`PrinterCatalogProvider.validatePayload`, all-or-nothing). So if a
+  printer is bundled in any still-delivered build below 1.0.5 (e.g. `sparkx_i7`
+  baked into v1.0.4), it **must be removed from the overlay** — a stale entry
+  silently hides every *other* printer the overlay carries on that build.
+- **Builds `>= 1.0.5` override-merge the overlay by id** (the overlay row replaces
+  the bundled one), so a graduated entry is harmless there. **Keep the entry in
+  the overlay when a still-delivered build at/above `min_app_version` but below the
+  graduating version does NOT bundle it** — that is the only way those clients get
+  it. Example: `aries`/`mega_x` graduated into the v1.0.5 bundle, but the v1.0.4
+  App-Store majority does not bundle them, so they stay in the overlay and v1.0.5
+  override-merges them.
+
+In BOTH cases the same release must:
+
+1. **Reconcile `catalog/ios-printer-overlay-v1.json`** per the rule above (remove
+   only if bundled in a still-delivered pre-1.0.5 build; otherwise keep), bump
+   `content_version`, recompute `payload_sha256`.
 2. **Add a `catalog/ios-bundled-catalog-baselines.json` entry for the new binary
    version** (`brand_ids` + `printer_ids` snapshot of that build's bundled
    `printers.json`, generated programmatically, with a `source` line). The ship
-   validator collides overlay ids against the union of all baselines ≥
-   `min_app_version` and requires baselines for **both** `min_app_version` and
-   the current `MARKETING_VERSION`, so a missing baseline fails the gate.
+   validator (`scripts/validate-ios-printer-overlay.js`) requires baselines for
+   **both** `min_app_version` and the current `MARKETING_VERSION`, and collides
+   overlay ids against the union of baselines in
+   `[min_app_version, FIRST_OVERRIDE_MERGE_VERSION)` — pre-Part-C builds only; a
+   missing required baseline fails the gate.
 
 Root cause of the 2026-06-14 Aries-invisible-on-iOS incident: `sparkx_i7` was
-not removed from the overlay when v1.0.4 baked it in, so when Aries was later
-added to the same overlay the i7 collision dropped the entire overlay on v1.0.4.
-See `docs/superpowers/specs/2026-06-14-ios-overlay-aries-collision-fix-design.md`.
+not removed from the overlay when v1.0.4 (a pre-Part-C build) baked it in, so when
+Aries was later added to the same overlay the i7 collision dropped the entire
+overlay on v1.0.4. See
+`docs/superpowers/specs/2026-06-14-ios-overlay-aries-collision-fix-design.md`. The
+Part-C override-merge boundary shipped in v1.0.5 (iOS `af4bbe0`); the validator was
+made boundary-aware on 2026-06-20 so graduated entries can stay in the overlay for
+the pre-1.0.5 majority.
 
 ## Phase 5 — Self-check (11-bullet checklist; gates Trigger A wrap-up)
 
@@ -384,9 +403,10 @@ the wrap-up is blocked.
 - [ ] Live overlay URL confirms published `content_version` (only if overlay
       was deployed).
 - [ ] Overlay → bundled graduation (Phase 4b): if a printer was baked into a new
-      iOS binary this cycle, its overlay entry was removed AND a
-      `ios-bundled-catalog-baselines.json` baseline was added for the new binary
-      version. (N/A if no binary graduated a printer this cycle.)
+      iOS binary this cycle, its overlay entry was reconciled per the override-merge
+      boundary (removed only if bundled in a still-delivered pre-1.0.5 build;
+      otherwise kept) AND a `ios-bundled-catalog-baselines.json` baseline was added
+      for the new binary version. (N/A if no binary graduated a printer this cycle.)
 
 ### Risk-triggered reviewer dispatch
 
@@ -420,10 +440,12 @@ the risk-based second-model rule in
   (`enabled: false`), and corrected republish are explicitly allowed when
   following the overlay spec — those flows are not "adds" and do not need
   bundled changes.
-- **Leaving** an overlay entry in place after that printer is baked into a new
-  bundled iOS binary — the Phase 4b graduation step must remove it from the
-  overlay and add a baseline for the new binary version (a stale graduated entry
-  collides and drops the whole overlay on the new binary).
+- **Leaving** an overlay entry in place after that printer is baked into a
+  still-delivered *pre-1.0.5* bundled iOS binary — those builds reject the whole
+  overlay on collision, so the Phase 4b graduation step must remove it and add a
+  baseline for the new binary version. (Graduation into a `>= 1.0.5` build
+  override-merges, so the entry is KEPT when a lower delivered build still needs
+  it — see Phase 4b.)
 - Mixing a printer add with engine, marketing, correction-sweep, or validator
   work.
 - Adding a new `brands[]` row without owner sign-off.
