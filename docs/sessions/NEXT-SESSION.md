@@ -2,9 +2,7 @@
 
 **Purpose:** kickoff prompt for the next 3dpa session.
 
-**Last updated:** 2026-06-20 (research-capable screening shipped + LIVE; first autonomous printer-add succeeded; **overlay Option 2 deferred = the locked next task**). The screening pipeline now captures printer requests for uncatalogued/brand-less brands and routes the brand-less ones to `needs-research(resolve-brand)`. An autonomous Printer Addition Assistant run added **Snapmaker 2.0 A350** (new brand) + **FlashForge Creator 5 Pro** — both **LIVE on web** + iOS mirror committed local (push gate). The ONLY thing deferred (owner: no risk at session-end) is the iOS overlay fast-path, which needs a careful collision-validator change.
-
-**Locked next = the overlay Option 2 fix** (deferred from 2026-06-20 specifically to get a fresh, full-discipline session). Runtime already verified safe; only the validator code change + republish remain.
+**Last updated:** 2026-06-20 (**overlay Option 2 SHIPPED + LIVE** — the queue's last *locked* item is done). The remote overlay now serves `content_version=2026062001` with Snapmaker 2.0 A350 + FlashForge Creator 5 Pro (plus aries/mega_x kept), the ship validator is Part-C-aware, and the runbook Phase 4b is reconciled. **There is no locked next task** — the next session is owner's-pick from the open lanes below.
 
 ---
 
@@ -13,33 +11,31 @@
 Read in order:
 1. `Projects/CLAUDE.md` (or `AGENTS.md`) — top-level rules.
 2. `Projects/3dprintassistant/CLAUDE.md` + `docs/3dpa-context.md` — architecture + engine + standing rules.
-3. `docs/planning/ROADMAP.md` — banner + Active Work Queue.
-4. `docs/sessions/INDEX.md` + the last 3 session logs, especially `2026-06-20-cowork-appdev-research-capable-screening.md` (this work + the overlay analysis).
+3. `docs/planning/ROADMAP.md` — banner + Active Work Queue (the authoritative status).
+4. `docs/sessions/INDEX.md` + the last 3 session logs (newest first: `2026-06-20-cowork-appdev-overlay-option2.md`, `2026-06-20-cowork-appdev-research-capable-screening.md`, `2026-06-16-cowork-appdev-s4-retrospective-s2-capture.md`).
 5. `docs/sessions/NEXT-SESSION.md` (this file).
-6. Task source: `scripts/validate-ios-printer-overlay.js` (the collision-checker) + `catalog/ios-printer-overlay-v1.json` + `catalog/ios-bundled-catalog-baselines.json` + the runbook `docs/runbooks/printer-addition-protocol.md` (Phase 4b) + finding `ai-operating-model/docs/findings/2026-06-14-overlay-published-live-not-delivered.md`.
 
-Today's task — **overlay Option 2 (make it Part-C-aware, then republish for the 2 new printers):**
+No locked task. Confirm understanding in 3–5 bullets, then **ask the owner which lane to pick** (don't assume). Open lanes:
 
-- **Why:** `aries`+`mega_x` are now bundled in iOS v1.0.5 but delivered to the v1.0.4 App-Store majority via the overlay; backfilling the `1.0.5` baseline makes the union-collision validator reject them → a v1.0.4 regression if dropped. v1.0.5+ override-merge (Part C), so the validator is over-strict.
-- **Do (TDD + sub-agent/Codex review + owner go before the live push):**
-  1. Change `collectBaselineUnion` (validate-ios-printer-overlay.js) to collide overlay ids only against baselines in `[min_app_version, 1.0.5)` (versions WITHOUT Part C override-merge); add a named `FIRST_OVERRIDE_MERGE_VERSION = "1.0.5"` constant + tests (the validator is unit-tested — `validateOverlay` is pure/injectable).
-  2. Add the `1.0.5` bundled-catalog baseline to `ios-bundled-catalog-baselines.json` (snapshot = iOS printers.json @ commit `518f781` — the v1.0.5 build, which has aries/mega_x but NOT snapmaker/creator).
-  3. Update `ios-printer-overlay-v1.json`: keep aries/mega_x/voxelab, ADD `snapmaker` brand + `snapmaker_2_a350` + `creator_5_pro` (copy the rows from `data/printers.json`), bump `content_version` (YYYYMMDDXX), recompute `payload_sha256` (`node -e` with the validator's `stableStringify`+`sha256`).
-  4. `node scripts/validate-ios-printer-overlay.js` GREEN → owner go → push web → curl-verify the live overlay `content_version` (committed≠delivered).
-- **Runtime safety is already verified:** v1.0.3/1.0.4 bundles contain NONE of aries/mega_x/snapmaker/creator/voxelab (so v1.0.4 accepts the overlay without collision); v1.0.5 bundles aries/mega_x and override-merges.
+- **S5 — Assistant autonomy ladder** (unblocked since S4 landed; QA-green spec + plan exist, **owner-gated**, not executed). Branch + review note + PR + owner go/no-go; consumes S4's calibration record. Specs/plans under `docs/superpowers/{specs,plans}/2026-06-15-s5*`.
+- **v1.0.5 ASC acceptance** — v1.0.5 is on TestFlight (run 27569280416 = success); **owner on-device S1 acceptance + ASC processing still pending**. If accepted, it supersedes 1.0.4. Monitor / confirm, then the 2 local iOS mirror commits (`aedaac7`/`e304843`) can ride the next push.
+- **Web-only quick wins** (decoupled, v1.0.x-safe): `[CRITICAL-001-followup]` route iOS feedback to its own Discord channel (~15 LoC `functions/api/feedback.js` + secret); `[LOW-011]` feedback email visibility/copy parity.
+- **S2 Gate 3** (web nudge routing printer mentions into the Missing-Printer form) — deferred, owner-pick.
+- **Open follow-ups (not locked):** the 2 autonomous-run findings from 2026-06-20 (`2026-06-20-autonomous-*`, both `open`); spawned task `task_cb32967a` (`functions/` not asset-ignored); v1.0.3-batch items 2 (environments taxonomy) / 5 (web output-panel UX); resin PoC (docs-only).
 
 Scope / gating:
-- This is the historically-buggy overlay/collision area — full TDD + a different-model review before the live push. No rushing.
-- iOS push gate unchanged (the iOS data mirror is already local on iOS `main`, 2 commits; the overlay is the web-served delivery path, not a binary).
 - One finding = one commit; web auto-deploys from `main`.
+- iOS push gate unchanged: commit iOS locally; push only when TestFlight-ready + owner go.
+- Any engine/data change → web+iOS impact eval + the profile-data-change gate (`docs/runbooks/profile-data-change-test-protocol.md`).
+- Historically-buggy areas (overlay/collision, intake capture) → TDD + a different-model (Codex `bridge --mode codex-only`) review before any live push.
 
 Standing rules:
-- ROADMAP is truth; read it before status claims.
-- Published ≠ delivered: curl-verify the live overlay after push.
-- Develop the validator change under a `claude-sync.sh hold`; release after the deliberate commit.
+- ROADMAP is truth; read it before any status claim.
+- Published ≠ delivered: curl-verify live after any overlay/web push.
+- Develop review-gated work under a `claude-sync.sh hold`; release after the deliberate commit.
 
 <<< END <<<
 
 ## Maintenance Note
 
-Regenerated on Trigger A / Trigger B / explicit owner ask only. Locked item = **overlay Option 2** (validator Part-C-aware + republish snapmaker_2_a350/creator_5_pro for existing iOS users). Both new printers are already live on web + iOS-mirror-local; the overlay is the optional faster iOS path.
+Regenerated on Trigger A / Trigger B / explicit owner ask only. No locked task as of 2026-06-20 — overlay Option 2 (the last locked item) shipped + verified live. Next session picks a lane from the START block above.
