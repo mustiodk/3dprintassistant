@@ -12,7 +12,8 @@
     { "id": "anker",      "name": "AnkerMake",    "sort_order": 10, "primary": false, "default_slicer": "orcaslicer" },
     { "id": "voron",      "name": "Voron",        "sort_order": 11, "primary": false, "default_slicer": "orcaslicer" },
     { "id": "voxelab",    "name": "Voxelab",      "sort_order": 12, "primary": false, "default_slicer": "orcaslicer" },
-    { "id": "diy",        "name": "DIY / Other",  "sort_order": 13, "primary": false, "default_slicer": "orcaslicer" }
+    { "id": "diy",        "name": "DIY / Other",  "sort_order": 13, "primary": false, "default_slicer": "orcaslicer" },
+    { "id": "snapmaker",  "name": "Snapmaker",    "sort_order": 14, "primary": false, "default_slicer": "orcaslicer" }
   ],
   "printers": [
     {
@@ -1574,6 +1575,32 @@
       "available_nozzle_sizes": [0.4, 0.6],
       "open_door_threshold_bed_temp": null,
       "notes": ["Compact speed build", "Klipper firmware"]
+    },
+    {
+      "id": "snapmaker_2_a350",
+      "name": "2.0 A350",
+      "manufacturer": "snapmaker",
+      "series": "bedslinger",
+      "series_group": "2.0 Series",
+      "enclosure": "none",
+      "active_chamber_heating": false,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 275,
+      "max_bed_temp": 80,
+      "max_speed": 120,
+      "max_acceleration": 3000,
+      "has_lidar": false,
+      "has_camera": false,
+      "multi_color_systems": [],
+      "available_plates": ["textured_pei"],
+      "available_nozzle_sizes": [0.4],
+      "open_door_threshold_bed_temp": null,
+      "notes": [
+        "Request was for \"Snapmaker 2\" (no sub-model). Added as the A350 — the flagship/largest Snapmaker 2.0 — as the conservative representative: it has the LOWEST max bed temp of the 2.0 line (A350 80C < A250 100C < A150 ~100C), so its profile is the safe default. A150/A250 owners get the same nozzle/motion limits and a safe (lower) bed cap.",
+        "Snapmaker 2.0: lead-screw-driven 3-in-1 modular Cartesian (FDM + laser + CNC); mapped to the conservative bedslinger motion bucket. Open-frame by default (enclosure is a separate accessory).",
+        "Official spec: FDM, 0.4mm direct-drive hot end, 275C max nozzle, 80C max bed (A350 hardware limit), single-extrusion build volume ~320x335x310mm.",
+        "max_speed 120 and max_acceleration 3000 are from Snapmaker's official firmware motion config (Snapmaker/Snapmaker2-Controller Marlin Configuration.h: DEFAULT_MAX_FEEDRATE X/Y=120 mm/s, DEFAULT_MAX_ACCELERATION X/Y=3000 mm/s2). Real-world print speed is ~60mm/s due to lead-screw kinematics."
+      ]
     }
   ]
 }
