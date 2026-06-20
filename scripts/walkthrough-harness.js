@@ -495,6 +495,12 @@ const COMBOS = [
 
   { id: 13, label: 'Anycubic Mega X + 0.4 std + PETG Basic + Standard/Balanced (legacy Bowden bedslinger, low max-accel 400, Ultrabase/smooth_glass, 90°C bed cap)',
     state: stateDefault({ printer: 'mega_x', nozzle: 'std_0.4', material: 'petg_basic' }) },
+
+  { id: 14, label: 'Snapmaker 2.0 A350 + 0.4 std + PLA Basic + Standard/Balanced (lead-screw 3-in-1 Cartesian → bedslinger bucket, firmware-sourced 120mm/s + 3000 accel, 80°C bed cap)',
+    state: stateDefault({ printer: 'snapmaker_2_a350', nozzle: 'std_0.4', material: 'pla_basic' }) },
+
+  { id: 15, label: 'FlashForge Creator 5 Pro + 0.4 std + ABS + Standard/Balanced (enclosed CoreXY toolchanger, active heated chamber 65°C, 320°C nozzle)',
+    state: stateDefault({ printer: 'creator_5_pro', nozzle: 'std_0.4', material: 'abs' }) },
 ];
 
 // ─── Main ───────────────────────────────────────────────────────────────────
