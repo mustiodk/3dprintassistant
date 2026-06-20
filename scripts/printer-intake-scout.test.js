@@ -554,6 +554,112 @@ let adv, advRaw;
   check('no sample item carries a heuristic risk flag', items.every(it => (it.riskFlags || []).length === 0), 'a form item had a risk flag');
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TC43-46 — research-capable screening (2026-06-20): brand-less routing
+// ─────────────────────────────────────────────────────────────────────────────
+{
+  console.log('TC43-46 — brand-less unresolved-brand routing + null-brand plumbing');
+  const queue = [
+    { _key: 'g2-creator-a', lane: 'heuristic', originalCategory: 'generalFeedback', intent: 'unresolved-brand',
+      receivedAt: '2026-06-20T01:00:00.000Z', fields: [{ id: 'model', value: 'Creator 5 Pro' }, { id: 'notes', value: 'Creator 5 Pro' }] },
+    { _key: 'g2-creator-b', lane: 'heuristic', originalCategory: 'featureRequest', intent: 'unresolved-brand',
+      receivedAt: '2026-06-20T02:00:00.000Z', fields: [{ id: 'model', value: 'Creator 5 Pro' }, { id: 'notes', value: 'Creator 5 Pro' }] },
+    { _key: 'g2-snapmaker', lane: 'form',
+      receivedAt: '2026-06-20T03:00:00.000Z', fields: [{ id: 'brand', value: 'Snapmaker' }, { id: 'model', value: '2' }] },
+    { _key: 'g2-nointent', lane: 'heuristic', originalCategory: 'bugReport',
+      receivedAt: '2026-06-20T04:00:00.000Z', fields: [{ id: 'model', value: 'Zorptron 9' }] },
+  ];
+  const qf = path.join(os.tmpdir(), `pi-g2-${process.pid}.json`);
+  fs.writeFileSync(qf, JSON.stringify(queue));
+  const r = run(['--queue', qf]);
+  check('exit 0', r.code === 0, `code ${r.code} stderr ${r.stderr}`);
+  const rep = parse(r.stdout) || {};
+  const gitems = rep.items || [];
+  const byReqKey = (k) => gitems.find(it => it.request && it.request.key === k);
+
+  // TC43 — brand-less + intent → needs-research(resolve-brand), manufacturer null
+  const cr = byReqKey('g2-creator-a') || byReqKey('g2-creator-b');
+  check('TC43 brand-less intent → needs-research', cr && cr.outcome === 'needs-research', `got ${cr && cr.outcome}`);
+  check('TC43 researchReason resolve-brand', cr && cr.researchReason === 'resolve-brand', `got ${cr && cr.researchReason}`);
+  check('TC43 manufacturer null', cr && cr.resolved && cr.resolved.manufacturer === null, `got ${cr && cr.resolved && cr.resolved.manufacturer}`);
+  check('TC43 sourceLane heuristic + a risk flag', cr && cr.sourceLane === 'heuristic' && (cr.riskFlags || []).length > 0, `lane ${cr && cr.sourceLane}`);
+  check('TC43 in heuristicCandidates as needs-research', (rep.heuristicCandidates || []).some(h => h.outcome === 'needs-research' && h.model === 'Creator 5 Pro'), `hc ${JSON.stringify(rep.heuristicCandidates)}`);
+
+  // TC44 — two brand-less same-model collapse to one (null-safe key + filename)
+  check('TC44 collapse to one item, requestCount 2', cr && cr.requestCount === 2, `count ${cr && cr.requestCount}`);
+  check('TC44 candidate filename stable + non-empty (no "--")', (rep.candidates || []).some(n => /^candidate-unresolved_brand-creator_5_pro/.test(n) && !n.includes('--')), `cands ${JSON.stringify(rep.candidates)}`);
+
+  // TC45 — Snapmaker present-but-uncatalogued brand → needs-research, new brand, numeric-id guarded
+  const sm = byReqKey('g2-snapmaker');
+  check('TC45 Snapmaker → needs-research, new brand', sm && sm.outcome === 'needs-research' && sm.isNewBrand === true, `got ${sm && sm.outcome}/${sm && sm.isNewBrand}`);
+  check('TC45 manufacturer resolved (non-null)', sm && sm.resolved && !!sm.resolved.manufacturer, `got ${sm && sm.resolved && sm.resolved.manufacturer}`);
+  check('TC45 digit-only id manufacturer-prefixed + flagged (not bare "2")', sm && sm.idWeak === true && sm.resolved.suggestedId !== '2' && /2/.test(sm.resolved.suggestedId), `id ${sm && sm.resolved && sm.resolved.suggestedId} weak ${sm && sm.idWeak}`);
+
+  // TC46 — brand-less WITHOUT intent stays incomplete (no behaviour change)
+  const ni = byReqKey('g2-nointent');
+  check('TC46 brand-less, no intent → incomplete', ni && ni.outcome === 'incomplete', `got ${ni && ni.outcome}`);
+
+  fs.unlinkSync(qf);
+}
+
+// ── TC47-48 — resin ordering + null-vs-real no-collapse (Gate-2 review gaps) ──
+{
+  console.log('TC47-48 — resin-before-null-branch + null-vs-real no-collapse');
+  const queue = [
+    { _key: 'g2-resin', lane: 'heuristic', originalCategory: 'generalFeedback', intent: 'unresolved-brand',
+      receivedAt: '2026-06-20T05:00:00.000Z', fields: [{ id: 'model', value: 'Mars 5 Ultra' }] },
+    { _key: 'g2-quux-brandless', lane: 'heuristic', originalCategory: 'generalFeedback', intent: 'unresolved-brand',
+      receivedAt: '2026-06-20T06:00:00.000Z', fields: [{ id: 'model', value: 'Quux 7' }] },
+    { _key: 'g2-quux-creality', lane: 'form',
+      receivedAt: '2026-06-20T07:00:00.000Z', fields: [{ id: 'brand', value: 'Creality' }, { id: 'model', value: 'Quux 7' }] },
+  ];
+  const qf2 = path.join(os.tmpdir(), `pi-g2b-${process.pid}.json`);
+  fs.writeFileSync(qf2, JSON.stringify(queue));
+  const r = run(['--queue', qf2]);
+  const rep = parse(r.stdout) || {};
+  const gi = rep.items || [];
+  const byReqKey = (k) => gi.find(it => it.request && it.request.key === k);
+
+  // TC47 — a brand-less resin model is declined BEFORE the unresolved-brand branch
+  const resin = byReqKey('g2-resin');
+  check('TC47 brand-less resin model → declined-non-fdm (not needs-research)', resin && resin.outcome === 'declined-non-fdm', `got ${resin && resin.outcome}`);
+
+  // TC48 — null-brand and brand-given SAME model do NOT collapse (distinct keys)
+  const qa = byReqKey('g2-quux-brandless');
+  const qb = byReqKey('g2-quux-creality');
+  check('TC48 brand-less Quux 7 → needs-research, manufacturer null', qa && qa.outcome === 'needs-research' && qa.resolved && qa.resolved.manufacturer === null, `got ${qa && qa.outcome}/${qa && qa.resolved && qa.resolved.manufacturer}`);
+  check('TC48 Creality Quux 7 → needs-research, manufacturer creality', qb && qb.outcome === 'needs-research' && qb.resolved && qb.resolved.manufacturer === 'creality', `got ${qb && qb.outcome}/${qb && qb.resolved && qb.resolved.manufacturer}`);
+  check('TC48 null-brand vs real-brand same model did NOT collapse', qa && qb && qa.requestCount === 1 && qb.requestCount === 1, `a=${qa && qa.requestCount} b=${qb && qb.requestCount}`);
+
+  fs.unlinkSync(qf2);
+}
+
+// ── TC49 — manufacturer-null --out skeleton content (Codex LOW) ──
+{
+  console.log('TC49 — brandless --out skeleton: manufacturer/id null + unresolved-brand flag');
+  const queue = [
+    { _key: 'g2-out-creator', lane: 'heuristic', originalCategory: 'generalFeedback', intent: 'unresolved-brand',
+      receivedAt: '2026-06-20T08:00:00.000Z', fields: [{ id: 'model', value: 'Creator 5 Pro' }, { id: 'notes', value: 'Creator 5 Pro' }] },
+  ];
+  const qf3 = path.join(os.tmpdir(), `pi-g2c-${process.pid}.json`);
+  const outDir = path.join(os.tmpdir(), `pi-g2c-out-${process.pid}`);
+  try { fs.rmSync(outDir, { recursive: true, force: true }); } catch (_) {}
+  fs.writeFileSync(qf3, JSON.stringify(queue));
+  const r = run(['--queue', qf3, '--out', outDir]);
+  check('exit 0', r.code === 0, `code ${r.code} stderr ${r.stderr}`);
+  const candPath = path.join(outDir, 'candidate-unresolved_brand-creator_5_pro.json');
+  check('TC49 brandless candidate skeleton written (stable filename)', fs.existsSync(candPath), `missing; dir=${fs.existsSync(outDir) ? fs.readdirSync(outDir).join(',') : 'NO DIR'}`);
+  if (fs.existsSync(candPath)) {
+    const sk = JSON.parse(fs.readFileSync(candPath, 'utf8'));
+    check('TC49 proposedTaxonomy.manufacturer null', sk.proposedTaxonomy && sk.proposedTaxonomy.manufacturer === null, `got ${sk.proposedTaxonomy && sk.proposedTaxonomy.manufacturer}`);
+    check('TC49 proposedTaxonomy.id null (deferred)', sk.proposedTaxonomy && sk.proposedTaxonomy.id === null, `got ${sk.proposedTaxonomy && sk.proposedTaxonomy.id}`);
+    check('TC49 printersJsonRow.id null', sk.printersJsonRow && sk.printersJsonRow.id === null, `got ${sk.printersJsonRow && sk.printersJsonRow.id}`);
+    check('TC49 brand-unresolved risk flag present', (sk.riskFlags || []).some(fl => /brand unresolved/i.test(fl)), `flags ${JSON.stringify(sk.riskFlags)}`);
+  }
+  try { fs.rmSync(outDir, { recursive: true, force: true }); } catch (_) {}
+  fs.unlinkSync(qf3);
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');

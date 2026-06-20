@@ -283,6 +283,7 @@ export async function onRequestPost({ request, env }) {
             ],
             lane: "heuristic",
             originalCategory: payload.category,
+            intent: mention.intent || null,           // "unresolved-brand" → Scout routes to needs-research(resolve-brand)
             ttl: 60 * 60 * 24 * 30,
           };
         }
@@ -298,6 +299,7 @@ export async function onRequestPost({ request, env }) {
           lane: tee.lane,
         };
         if (tee.originalCategory) record.originalCategory = tee.originalCategory;
+        if (tee.intent) record.intent = tee.intent;
         await env.PRINTER_INTAKE.put(id, JSON.stringify(record), { expirationTtl: tee.ttl });
       }
     } catch (_) {

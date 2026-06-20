@@ -141,6 +141,14 @@ function leadingToken(s) {
   const m = String(s == null ? '' : s).toLowerCase().match(/[a-z]+/);
   return m ? m[0] : '';
 }
+// Manufacturer label for dedupe keys / candidate filenames. A brand-less
+// needs-research (intent:"unresolved-brand") has manufacturer:null; fall back to ONE
+// stable sentinel (same across keys + filenames) so keys never become "null|...",
+// filenames are never empty, and the two surfaces stay joinable.
+const NULL_BRAND_LABEL = 'unresolved-brand';
+function mfrLabel(resolved, fallback = NULL_BRAND_LABEL) {
+  return (resolved && resolved.manufacturer) || fallback;
+}
 // Short, non-reversible identity hash for an email — lets the report dedupe and
 // reference a requester WITHOUT disclosing the address.
 function shortHash(s) {
@@ -431,9 +439,17 @@ function extractLeadingBrand(model, cat) {
 // DIFFERENT manufacturer, prefix with the manufacturer and flag it for the owner.
 function suggestId(manufacturer, model, cat) {
   const base = snake(model);
-  if (!cat.idSet.has(base)) return { id: base, collision: false };
+  // A digit-only model ("Snapmaker 2" → base "2") makes a confusing/colliding
+  // printer id — manufacturer-prefix it and flag it for the owner (Codex LOW).
+  if (base && !/[a-z]/.test(base)) {
+    let pref = `${snake(manufacturer)}_${base}`.replace(/^_+/, '') || base;
+    const collision = cat.idSet.has(pref);          // still collision-check the prefixed id
+    if (collision) pref = `${pref}_new`;
+    return { id: pref, collision, weakId: true };
+  }
+  if (!cat.idSet.has(base)) return { id: base, collision: false, weakId: false };
   const prefixed = `${snake(manufacturer)}_${base}`;
-  return { id: cat.idSet.has(prefixed) ? `${prefixed}_new` : prefixed, collision: true };
+  return { id: cat.idSet.has(prefixed) ? `${prefixed}_new` : prefixed, collision: true, weakId: false };
 }
 
 // ─── Classification ──────────────────────────────────────────────────────────
@@ -467,6 +483,10 @@ function classify(entry, cat, guardrails) {
   // high-confidence form lane; only an explicit lane:"heuristic" is heuristic.
   const sourceLane = (entry && entry.lane === 'heuristic') ? 'heuristic' : 'form';
   const originalCategory = (entry && typeof entry.originalCategory === 'string') ? entry.originalCategory : null;
+  // Screening: a brand-less Worker capture tags intent:"unresolved-brand" so the
+  // (d) branch routes it to needs-research(resolve-brand) instead of terminal
+  // incomplete. The Scout still only LABELS — the Assistant resolves the brand.
+  const unresolvedBrand = !!(entry && entry.intent === 'unresolved-brand');
   const base = { request, _private: { notes: notes || null, email: rawEmail }, sourceLane, originalCategory };
 
   // (a) nothing actionable
@@ -516,6 +536,21 @@ function classify(entry, cat, guardrails) {
     return Object.assign({ outcome: 'incomplete', reason: 'brand given but no model' }, base);
   }
   if (!brand && !resolvedBrandId) {
+    // brand-less but the Worker flagged a printer-request intent → route to research
+    // (the Assistant resolves the brand). A manufacturer-null needs-research. Without
+    // that intent it stays terminal incomplete (no behaviour change).
+    if (unresolvedBrand) {
+      return Object.assign({
+        outcome: 'needs-research',
+        reason: 'brand-less printer request (intent: unresolved-brand) — Assistant must resolve the brand before research/add',
+        researchReason: 'resolve-brand',
+        resolved: { manufacturer: null, manufacturerInferred: false, model, suggestedId: null },
+        isNewBrand: false,
+        fdmStatus: 'unconfirmed',
+        idCollision: false,
+        idWeak: false,
+      }, base);
+    }
     return Object.assign({ outcome: 'incomplete', reason: 'model given but brand could not be inferred' }, base);
   }
 
@@ -571,6 +606,7 @@ function classify(entry, cat, guardrails) {
     isNewBrand: !brandKnown,
     fdmStatus: 'unconfirmed',
     idCollision: sug.collision,
+    idWeak: sug.weakId,
   }, base);
 }
 
@@ -580,7 +616,7 @@ function collapse(items) {
   const index = new Map();
   for (const it of items) {
     let key = null;
-    if (it.outcome === 'needs-research' && it.resolved) key = `nr:${it.resolved.manufacturer}|${norm(it.resolved.model)}`;
+    if (it.outcome === 'needs-research' && it.resolved) key = `nr:${mfrLabel(it.resolved)}|${norm(it.resolved.model)}`;
     else if (it.outcome === 'duplicate' && it.matchedPrinter) key = `dup:${it.matchedPrinter.id}`;
 
     if (key && index.has(key)) {
@@ -615,8 +651,10 @@ function candidateSkeleton(item) {
   const r = item.resolved;
   const riskFlags = [];
   if (item.sourceLane === 'heuristic') riskFlags.push(heuristicRiskFlag(item.originalCategory));
+  if (item.researchReason === 'resolve-brand') riskFlags.push('brand unresolved — the Assistant must resolve the brand from the model (research) before any add');
   if (item.isNewBrand) riskFlags.push('new brand — requires explicit owner sign-off');
   if (item.idCollision) riskFlags.push(`suggested id collides with an existing printer id — owner must confirm/rename`);
+  if (item.idWeak) riskFlags.push('suggested id is digit-only and was manufacturer-prefixed — owner must confirm the final id');
   riskFlags.push('FDM NOT confirmed — verify the printer is FDM (not resin/other) before any add');
   riskFlags.push('series_group not yet decided — reuse a sibling label, never invent');
   riskFlags.push('overlay publish reaches current iOS users — taxonomy must be confirmed');
@@ -888,7 +926,7 @@ async function main() {
   for (const it of items) { const k = keyFor[it.outcome]; if (k) counts[k] += 1; }
 
   const inQueueCollapses = items.filter(it => it.requestCount > 1).map(it => ({
-    key: it.resolved ? `${it.resolved.manufacturer}|${norm(it.resolved.model)}` : (it.matchedPrinter ? it.matchedPrinter.id : null),
+    key: it.resolved ? `${mfrLabel(it.resolved)}|${norm(it.resolved.model)}` : (it.matchedPrinter ? it.matchedPrinter.id : null),
     name: it.resolved ? it.resolved.model : (it.matchedPrinter ? it.matchedPrinter.name : null),
     outcome: it.outcome, requestCount: it.requestCount,
   }));
@@ -898,8 +936,9 @@ async function main() {
   const candidateFiles = [];
   const usedNames = new Set();
   const nameFor = (it) => {
-    let n = `candidate-${snake(it.resolved.manufacturer)}-${snake(it.resolved.model)}.json`;
-    let i = 2; while (usedNames.has(n)) n = `candidate-${snake(it.resolved.manufacturer)}-${snake(it.resolved.model)}-${i++}.json`;
+    const mfr = snake(mfrLabel(it.resolved));   // null brand → stable, non-empty sentinel (NULL_BRAND_LABEL)
+    let n = `candidate-${mfr}-${snake(it.resolved.model)}.json`;
+    let i = 2; while (usedNames.has(n)) n = `candidate-${mfr}-${snake(it.resolved.model)}-${i++}.json`;
     usedNames.add(n); return n;
   };
   for (const it of candItems) { it.candidate = nameFor(it); candidateFiles.push(it.candidate); }
@@ -935,8 +974,10 @@ async function main() {
       brandMismatch: it.brandMismatch || null,
       possibleBrandTypo: it.possibleBrandTypo || null,
       isNewBrand: !!it.isNewBrand,
+      researchReason: it.researchReason || null,
       fdmStatus: it.fdmStatus || null,
       idCollision: !!it.idCollision,
+      idWeak: !!it.idWeak,
       sourceLane: it.sourceLane || 'form',
       originalCategory: it.originalCategory || null,
       lanes: it.lanes || null,

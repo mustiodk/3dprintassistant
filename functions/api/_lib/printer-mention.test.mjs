@@ -153,3 +153,146 @@ test('2-char family requires an adjacent model token', () => {
   assert.ok(m);
   assert.equal(m.model, 'MK 4');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Research-capable screening (2026-06-20) — Tier-1 brand expansion + Tier-2 brand-less intent
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Tier-1: real FDM brands beyond the catalog now recognised (Worker-only) ──
+test('Tier-1 recall: Snapmaker (uncatalogued brand) + numeric model', () => {
+  const m = extractPrinterMention(f('Snapmaker 2'));
+  assert.ok(m, 'Snapmaker must be recognised');
+  assert.equal(m.brand, 'Snapmaker');
+  assert.equal(m.model, '2');
+  assert.equal(m.intent, undefined);           // brand present → not a brand-less intent capture
+});
+test('Tier-1 recall: Kingroon (uncatalogued brand)', () => {
+  const m = extractPrinterMention(f("can't find Kingroon KP3S"));
+  assert.ok(m);
+  assert.equal(m.brand, 'Kingroon');
+  assert.equal(m.model, 'KP3S');
+});
+
+// ── Tier-2: brand-less intent capture (no known brand/family token) ──
+test('Tier-2 recall: brand-less Creator 5 pro → model + intent, no brand', () => {
+  const m = extractPrinterMention(f('would love if you also had the Creator 5 pro'));
+  assert.ok(m, 'brand-less printer request must be captured');
+  assert.equal(m.brand, undefined);
+  assert.equal(m.intent, 'unresolved-brand');
+  assert.equal(m.model, 'Creator 5 pro');
+});
+test('Tier-2 recall: "isnt listed" phrasing', () => {
+  const m = extractPrinterMention(f("Creator 5 Pro isn't listed"));
+  assert.ok(m);
+  assert.equal(m.intent, 'unresolved-brand');
+  assert.equal(m.model, 'Creator 5 Pro');
+});
+test('Tier-2 recall: "do you have" + a totally novel brand', () => {
+  const m = extractPrinterMention(f('do you have the Anolca 7X'));
+  assert.ok(m);
+  assert.equal(m.intent, 'unresolved-brand');
+  assert.equal(m.model, 'Anolca 7X');
+});
+
+// ── Tier-2 precision: must be null (Codex-flagged negative classes) ──
+for (const neg of [
+  'would love a Night Mode',            // no digit-bearing model token
+  'please add Czech support',           // language; no digit
+  'add Multi Color printing',           // no digit
+  'would love PETG CF support',         // material; no digit
+  'please add 2FA support',             // auth — digit-bearing token denylisted
+  'please support iPhone 16 Pro',       // platform — adjacent denylist
+  'add Apple Watch SE',                 // platform; no digit + denylist
+  'please add 0.6 nozzle support',      // accessory — bare number, no alpha model token
+  'add AMS 2 Pro',                      // accessory token inside the run
+]) {
+  test(`Tier-2 precision: null for ${JSON.stringify(neg)}`, () => {
+    assert.equal(extractPrinterMention(f(neg)), null);
+  });
+}
+test('Tier-2 precision: no intent trigger → null even with a digit-bearing model', () => {
+  assert.equal(extractPrinterMention(f('the Creator 5 Pro broke yesterday')), null);
+});
+test('Tier-2 precision: intent but no digit-bearing model → null (accepted residual FN)', () => {
+  assert.equal(extractPrinterMention(f('please add Adventurer support')), null);
+});
+
+// ── Gate-1 hostile-review patches (2026-06-20) ──
+test('Tier-2 patch: a deny noun BEFORE the model does not swallow it (HIGH-2)', () => {
+  const m = extractPrinterMention(f('please add AMS Creator 5 Pro'));
+  assert.ok(m, 'the real model after an accessory mention must still be captured');
+  assert.equal(m.intent, 'unresolved-brand');
+  assert.equal(m.model, 'Creator 5 Pro');           // not null, not "5 Pro"
+});
+test('Tier-2 patch: a long no-digit prefix does not garble the model (HIGH-1)', () => {
+  const m = extractPrinterMention(f('would love the Super Mega Ultra Creator 5 Pro'));
+  assert.ok(m);
+  assert.equal(m.model, 'Creator 5 Pro');           // recovers the real model, not "5 Pro"
+});
+test('Tier-2 patch: digit-leading run is rejected (no letter head)', () => {
+  assert.equal(extractPrinterMention(f('please add 5 Pro')), null);
+});
+test('Tier-2 patch: generic "Model N" / "Version N" do not fire', () => {
+  assert.equal(extractPrinterMention(f('please add Model 3')), null);
+  assert.equal(extractPrinterMention(f('would love Version 2 of the app')), null);
+});
+test('Tier-1 patch: a material token is not folded into the model span', () => {
+  const m = extractPrinterMention(f('please add Creality PC support'));
+  assert.ok(m);
+  assert.equal(m.brand, 'Creality');
+  assert.equal(m.model, '');                         // "PC" (material) must not become the model
+});
+
+// ── Codex implementation-review patches (2026-06-20) ──
+test('Codex/HIGH: digit-leading fused token rejected (letter HEAD, not contains)', () => {
+  assert.equal(extractPrinterMention(f('please add 5Pro')), null);
+  assert.equal(extractPrinterMention(f('please add 16Pro')), null);
+  assert.equal(extractPrinterMention(f('please support iPhone 16Pro')), null);
+});
+test('Codex/HIGH PII: a hyphen-split phone number does not enter a Tier-1 span', () => {
+  const m = extractPrinterMention(f('please add Prusa 555-123-4567'));
+  assert.ok(m);
+  assert.equal(m.brand, 'Prusa');
+  assert.equal(m.model, '');                          // phone chunks excluded
+  assert.ok(!/\d/.test(m.span), `span must carry no phone digits, got ${JSON.stringify(m.span)}`);
+});
+test('Codex/HIGH PII: a brand-less phone-bearing message does not capture', () => {
+  assert.equal(extractPrinterMention(f('please add Bob 555-1234')), null);
+});
+test('Codex/MEDIUM: platform/device deny POISONS the adjacent model tail', () => {
+  assert.equal(extractPrinterMention(f('please support Galaxy S24 Ultra')), null);
+  assert.equal(extractPrinterMention(f('please add Mac M2')), null);
+});
+test('Codex/MEDIUM: accessory deny does NOT poison a following real model', () => {
+  const m = extractPrinterMention(f('please add AMS Creator 5 Pro'));
+  assert.ok(m);
+  assert.equal(m.model, 'Creator 5 Pro');             // accessory ≠ poison
+});
+test('Codex/MEDIUM: multi-word brand "Two Trees" is recognised (Tier-1)', () => {
+  const m = extractPrinterMention(f('please add Two Trees Sapphire Pro'));
+  assert.ok(m, 'Two Trees should resolve via brand normalization');
+  assert.equal(m.model, 'Sapphire Pro');
+  assert.ok(/two\s?trees/i.test(m.brand || ''), `brand should be TwoTrees, got ${m && m.brand}`);
+});
+
+// ── Codex implementation re-review (round 2) patches (2026-06-20) ──
+test('Codex-r2/HIGH: fused or digit-suffixed platform tokens do not capture', () => {
+  assert.equal(extractPrinterMention(f('please add iPhone16Pro')), null);
+  assert.equal(extractPrinterMention(f('please support GalaxyS24 Ultra')), null);
+  assert.equal(extractPrinterMention(f('please add Pixel8 Pro')), null);
+  assert.equal(extractPrinterMention(f('please add MacBook M2')), null);
+});
+test('Codex-r2/MEDIUM: multi-word brand normalization does not over-match prose', () => {
+  assert.equal(extractPrinterMention(f('I saw two trees by the road')), null);
+  assert.equal(extractPrinterMention(f('please add two trees')), null);   // brand-only prose → no tee
+});
+test('Codex-r3/MEDIUM: multi-word brand matches mixed casing + lowercase-digit model', () => {
+  let m = extractPrinterMention(f('please add Raise 3D e2'));             // lowercase-digit model
+  assert.ok(m && /raise3d/i.test(m.brand || ''), `Raise 3D e2 → brand Raise3D, got ${m && JSON.stringify(m)}`);
+  m = extractPrinterMention(f('please add Two Trees sk1'));
+  assert.ok(m && /two\s?trees/i.test(m.brand || ''), `Two Trees sk1 → brand TwoTrees, got ${m && JSON.stringify(m)}`);
+  m = extractPrinterMention(f('please add TWO TREES Sapphire Pro'));       // all-caps brand
+  assert.ok(m && /two\s?trees/i.test(m.brand || ''), `TWO TREES → brand TwoTrees, got ${m && JSON.stringify(m)}`);
+  // ...but prose still does not over-match
+  assert.equal(extractPrinterMention(f('I saw two trees by the road')), null);
+});
