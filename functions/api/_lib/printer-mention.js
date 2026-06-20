@@ -101,6 +101,13 @@ const DENY_POISON = new Set([
 ]);
 // Union — any deny token breaks a Tier-2 run / a Tier-1 model span.
 const DENY_TERMS = new Set([...DENY_ACCESSORY, ...DENY_POISON]);
+// Consumer-platform name PREFIXES — catch fused / digit-suffixed forms the
+// whole-token DENY_POISON misses ("iPhone16Pro", "GalaxyS24", "Pixel8", "MacBook M2").
+const PLATFORM_PREFIXES = ['iphone', 'ipad', 'ipod', 'applewatch', 'macbook', 'imac', 'galaxy', 'pixel'];
+const startsWithPlatform = (t) => { const n = normTok(t); return PLATFORM_PREFIXES.some((p) => n.startsWith(p)); };
+// A token poisons an adjacent Tier-2 run when it is a whole-token poison noun OR a
+// platform-prefixed token.
+const isPoison = (t) => DENY_POISON.has(normTok(t)) || startsWithPlatform(t);
 
 const MAX_MODEL_TOKENS = 3;       // tight span: brand/family + up to 3 model tokens
 const MAX_SPAN_CHARS   = 160;     // bounded notes (PII minimisation, spec §4.1)
@@ -141,9 +148,17 @@ function phoneLike(tokens, idx) {
 // scan catches "Two Trees" / "Raise 3D" (which otherwise tokenise into separate
 // words and miss the brand list).
 function normalizeMultiWordBrands(text) {
+  // Only fold a multi-word brand when a model-like token (capitalised / digit)
+  // FOLLOWS it — so "Two Trees Sapphire Pro" normalises, but the prose "two trees
+  // by the road" / a brand-only "add two trees" does NOT (which would otherwise tee
+  // a brand-only false positive).
+  // NB: no `i` flag — the look-ahead `[A-Z0-9]` must stay case-SENSITIVE (a model
+  // token is capitalised or digit-bearing); the brand letters are matched in both
+  // cases explicitly. (With `i`, the look-ahead would also accept lowercase prose
+  // like "two trees by the road" and over-fire.)
   return String(text == null ? '' : text)
-    .replace(/\btwo\s+trees\b/gi, 'TwoTrees')
-    .replace(/\braise\s*3\s*d\b/gi, 'Raise3D');
+    .replace(/\b[Tt]wo\s+[Tt]rees\b(?=\s+[A-Z0-9])/g, 'TwoTrees')
+    .replace(/\b[Rr]aise\s*3\s*[Dd]\b(?=\s+[A-Z0-9])/g, 'Raise3D');
 }
 
 // Stronger predicate for SHORT_FAMILY corroboration: a digit-bearing or known
@@ -205,7 +220,7 @@ function extractFromText(text) {
 // (the accessory mention doesn't poison the real model), and "iPhone 16 Pro" /
 // "Model 3" never form a printer-shaped run.
 function isRunMember(t) {
-  return isModelToken(t) && !DENY_TERMS.has(normTok(t));
+  return isModelToken(t) && !DENY_TERMS.has(normTok(t)) && !startsWithPlatform(t);
 }
 
 // Tier-2: brand-less request capture. Returns { model, span, intent } | null.
@@ -230,7 +245,7 @@ function extractBrandlessIntent(text) {
     // a POISON deny noun immediately adjacent means the tail is a non-printer device
     // ("Galaxy S24", "Mac M2", "iPhone 16 Pro") — reject. Accessory deny ("AMS") only
     // breaks the run, so "AMS Creator 5 Pro" still captures.
-    const adjPoison = (i > 0 && DENY_POISON.has(normTok(tokens[i - 1]))) || (j < tokens.length && DENY_POISON.has(normTok(tokens[j])));
+    const adjPoison = (i > 0 && isPoison(tokens[i - 1])) || (j < tokens.length && isPoison(tokens[j]));
     if (startsWithLetter && hasDigit && hasAlpha && !adjPoison) {
       const model = run.join(' ');
       return { model, span: model.slice(0, MAX_SPAN_CHARS), intent: 'unresolved-brand' };

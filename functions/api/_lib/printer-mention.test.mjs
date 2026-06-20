@@ -274,3 +274,15 @@ test('Codex/MEDIUM: multi-word brand "Two Trees" is recognised (Tier-1)', () => 
   assert.equal(m.model, 'Sapphire Pro');
   assert.ok(/two\s?trees/i.test(m.brand || ''), `brand should be TwoTrees, got ${m && m.brand}`);
 });
+
+// ── Codex implementation re-review (round 2) patches (2026-06-20) ──
+test('Codex-r2/HIGH: fused or digit-suffixed platform tokens do not capture', () => {
+  assert.equal(extractPrinterMention(f('please add iPhone16Pro')), null);
+  assert.equal(extractPrinterMention(f('please support GalaxyS24 Ultra')), null);
+  assert.equal(extractPrinterMention(f('please add Pixel8 Pro')), null);
+  assert.equal(extractPrinterMention(f('please add MacBook M2')), null);
+});
+test('Codex-r2/MEDIUM: multi-word brand normalization does not over-match prose', () => {
+  assert.equal(extractPrinterMention(f('I saw two trees by the road')), null);
+  assert.equal(extractPrinterMention(f('please add two trees')), null);   // brand-only prose → no tee
+});
