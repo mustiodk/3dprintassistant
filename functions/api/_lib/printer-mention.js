@@ -78,13 +78,20 @@ const INTENT_PHRASES = [
 ];
 // Non-printer noun classes that must NEVER become a brand-less capture even with a
 // digit (platforms / accessories+parts / auth / materials). Whole-token, normalised.
-const DENY_TERMS = new Set([
+// Accessory / part nouns: a real printer model can still FOLLOW these in the same
+// sentence ("AMS Creator 5 Pro"), so they only BREAK a run — they never poison an
+// adjacent capture.
+const DENY_ACCESSORY = new Set([
+  'nozzle', 'ams', 'hotend', 'bed', 'hotbed', 'plate', 'buildplate', 'spool',
+  'filament', 'extruder', 'belt', 'screen', 'psu', 'mainboard',
+]);
+// Non-printer nouns whose ADJACENT model tail is itself a non-printer device/feature
+// ("Galaxy S24", "Mac M2", "iPhone 16 Pro", "PETG CF", "2FA"): these POISON a run
+// they touch (immediately before or after), so the tail can never become a printer.
+const DENY_POISON = new Set([
   // platforms
   'iphone', 'ipad', 'ipod', 'applewatch', 'apple', 'watch', 'android', 'windows',
   'macos', 'mac', 'linux', 'ios', 'ipados', 'samsung', 'galaxy', 'pixel',
-  // accessories / parts
-  'nozzle', 'ams', 'hotend', 'bed', 'hotbed', 'plate', 'buildplate', 'spool',
-  'filament', 'extruder', 'belt', 'screen', 'psu', 'mainboard',
   // auth / security
   '2fa', 'mfa', 'otp', 'sso', 'password', 'login',
   // materials
@@ -92,6 +99,8 @@ const DENY_TERMS = new Set([
   // generic / software nouns that pair with a number but are never a printer model
   'model', 'version', 'firmware', 'update',
 ]);
+// Union — any deny token breaks a Tier-2 run / a Tier-1 model span.
+const DENY_TERMS = new Set([...DENY_ACCESSORY, ...DENY_POISON]);
 
 const MAX_MODEL_TOKENS = 3;       // tight span: brand/family + up to 3 model tokens
 const MAX_SPAN_CHARS   = 160;     // bounded notes (PII minimisation, spec §4.1)
@@ -116,6 +125,27 @@ function isModelToken(orig) {
   return /^[A-Z]/.test(s);                           // capitalised model name (Aries, Max, Pro)
 }
 
+// A pure-digit token ("555"). Used by the phone-number guard below.
+const isPureDigits = (t) => /^\d+$/.test(normTok(t));
+// A token is phone-like when it is a pure-digit group with a pure-digit NEIGHBOUR.
+// "555-123-4567" tokenises to [555,123,4567] — each <5 digits, so the lone `\d{5,}`
+// guard in isModelToken misses it, and the chunks would otherwise enter the stored
+// span (PII). A real model number ("Creator 5", "Snapmaker 2", "SV08") is a single
+// digit group with non-digit neighbours, so it is never phone-like.
+function phoneLike(tokens, idx) {
+  if (!isPureDigits(tokens[idx])) return false;
+  return (idx > 0 && isPureDigits(tokens[idx - 1])) || (idx + 1 < tokens.length && isPureDigits(tokens[idx + 1]));
+}
+
+// Known multi-word brand spellings → single-token form, so the whole-token brand
+// scan catches "Two Trees" / "Raise 3D" (which otherwise tokenise into separate
+// words and miss the brand list).
+function normalizeMultiWordBrands(text) {
+  return String(text == null ? '' : text)
+    .replace(/\btwo\s+trees\b/gi, 'TwoTrees')
+    .replace(/\braise\s*3\s*d\b/gi, 'Raise3D');
+}
+
 // Stronger predicate for SHORT_FAMILY corroboration: a digit-bearing or known
 // model-variant token — never a bare capitalised word (kills "MK Ultra", "A1
 // Sauce", "X1 Export", "P1 Dashboard", "SV Mode").
@@ -135,7 +165,7 @@ function hasIntentTrigger(text) {
 // Scan ONE text value for a Tier-1 brand/family mention. Returns { brand?, model, span } | null.
 // Tokenises on whitespace + hyphen/slash so "Ender-3 V3 KE" → [Ender,3,V3,KE].
 function extractFromText(text) {
-  const tokens = String(text == null ? '' : text).split(/[\s\-/]+/).filter(Boolean);
+  const tokens = normalizeMultiWordBrands(text).split(/[\s\-/]+/).filter(Boolean);
   for (let i = 0; i < tokens.length; i++) {
     const n = normTok(tokens[i]);
     if (!n) continue;
@@ -146,7 +176,7 @@ function extractFromText(text) {
     // gather up to MAX_MODEL_TOKENS following model tokens
     const following = [];
     for (let j = i + 1; j < tokens.length && following.length < MAX_MODEL_TOKENS; j++) {
-      if (!isModelToken(tokens[j]) || DENY_TERMS.has(normTok(tokens[j]))) break;   // stop at prose/resin/non-model/material
+      if (!isModelToken(tokens[j]) || DENY_TERMS.has(normTok(tokens[j])) || phoneLike(tokens, j)) break;   // stop at prose/resin/non-model/material/phone
       following.push(tokens[j]);
     }
 
@@ -190,14 +220,18 @@ function extractBrandlessIntent(text) {
   if (!hasIntentTrigger(text)) return null;
   const tokens = String(text == null ? '' : text).split(/[\s\-/]+/).filter(Boolean);
   for (let i = 0; i < tokens.length; i++) {
-    if (!isRunMember(tokens[i])) continue;
+    if (!isRunMember(tokens[i]) || phoneLike(tokens, i)) continue;
     let j = i;
     const run = [];
-    while (j < tokens.length && run.length < MAX_MODEL_TOKENS && isRunMember(tokens[j])) { run.push(tokens[j]); j++; }
-    const startsWithLetter = /[a-z]/.test(normTok(run[0]));        // model name has a letter head ("Creator 5", not "5 Pro")
+    while (j < tokens.length && run.length < MAX_MODEL_TOKENS && isRunMember(tokens[j]) && !phoneLike(tokens, j)) { run.push(tokens[j]); j++; }
+    const startsWithLetter = /^[a-z]/.test(normTok(run[0]));       // a model name has a LETTER head ("Creator 5", never "5Pro"/"16Pro")
     const hasDigit = run.some((t) => /[0-9]/.test(normTok(t)));
     const hasAlpha = run.some((t) => /[a-z]/.test(normTok(t)));
-    if (startsWithLetter && hasDigit && hasAlpha) {
+    // a POISON deny noun immediately adjacent means the tail is a non-printer device
+    // ("Galaxy S24", "Mac M2", "iPhone 16 Pro") — reject. Accessory deny ("AMS") only
+    // breaks the run, so "AMS Creator 5 Pro" still captures.
+    const adjPoison = (i > 0 && DENY_POISON.has(normTok(tokens[i - 1]))) || (j < tokens.length && DENY_POISON.has(normTok(tokens[j])));
+    if (startsWithLetter && hasDigit && hasAlpha && !adjPoison) {
       const model = run.join(' ');
       return { model, span: model.slice(0, MAX_SPAN_CHARS), intent: 'unresolved-brand' };
     }
@@ -230,6 +264,7 @@ export function extractPrinterMention(fields) {
 
 // Exported for tests only.
 export const _internals = {
-  extractFromText, extractBrandlessIntent, hasIntentTrigger, isModelToken,
-  BRAND_TOKENS, FAMILY_TOKENS, SHORT_FAMILY, RESIN_STOP, DENY_TERMS, MAX_SPAN_CHARS,
+  extractFromText, extractBrandlessIntent, hasIntentTrigger, isModelToken, phoneLike,
+  normalizeMultiWordBrands, BRAND_TOKENS, FAMILY_TOKENS, SHORT_FAMILY, RESIN_STOP,
+  DENY_TERMS, DENY_ACCESSORY, DENY_POISON, MAX_SPAN_CHARS,
 };

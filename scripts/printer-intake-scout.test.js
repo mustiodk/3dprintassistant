@@ -634,6 +634,32 @@ let adv, advRaw;
   fs.unlinkSync(qf2);
 }
 
+// ── TC49 — manufacturer-null --out skeleton content (Codex LOW) ──
+{
+  console.log('TC49 — brandless --out skeleton: manufacturer/id null + unresolved-brand flag');
+  const queue = [
+    { _key: 'g2-out-creator', lane: 'heuristic', originalCategory: 'generalFeedback', intent: 'unresolved-brand',
+      receivedAt: '2026-06-20T08:00:00.000Z', fields: [{ id: 'model', value: 'Creator 5 Pro' }, { id: 'notes', value: 'Creator 5 Pro' }] },
+  ];
+  const qf3 = path.join(os.tmpdir(), `pi-g2c-${process.pid}.json`);
+  const outDir = path.join(os.tmpdir(), `pi-g2c-out-${process.pid}`);
+  try { fs.rmSync(outDir, { recursive: true, force: true }); } catch (_) {}
+  fs.writeFileSync(qf3, JSON.stringify(queue));
+  const r = run(['--queue', qf3, '--out', outDir]);
+  check('exit 0', r.code === 0, `code ${r.code} stderr ${r.stderr}`);
+  const candPath = path.join(outDir, 'candidate-unresolved_brand-creator_5_pro.json');
+  check('TC49 brandless candidate skeleton written (stable filename)', fs.existsSync(candPath), `missing; dir=${fs.existsSync(outDir) ? fs.readdirSync(outDir).join(',') : 'NO DIR'}`);
+  if (fs.existsSync(candPath)) {
+    const sk = JSON.parse(fs.readFileSync(candPath, 'utf8'));
+    check('TC49 proposedTaxonomy.manufacturer null', sk.proposedTaxonomy && sk.proposedTaxonomy.manufacturer === null, `got ${sk.proposedTaxonomy && sk.proposedTaxonomy.manufacturer}`);
+    check('TC49 proposedTaxonomy.id null (deferred)', sk.proposedTaxonomy && sk.proposedTaxonomy.id === null, `got ${sk.proposedTaxonomy && sk.proposedTaxonomy.id}`);
+    check('TC49 printersJsonRow.id null', sk.printersJsonRow && sk.printersJsonRow.id === null, `got ${sk.printersJsonRow && sk.printersJsonRow.id}`);
+    check('TC49 brand-unresolved risk flag present', (sk.riskFlags || []).some(fl => /brand unresolved/i.test(fl)), `flags ${JSON.stringify(sk.riskFlags)}`);
+  }
+  try { fs.rmSync(outDir, { recursive: true, force: true }); } catch (_) {}
+  fs.unlinkSync(qf3);
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');

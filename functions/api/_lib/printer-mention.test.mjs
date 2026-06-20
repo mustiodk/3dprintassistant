@@ -242,3 +242,35 @@ test('Tier-1 patch: a material token is not folded into the model span', () => {
   assert.equal(m.brand, 'Creality');
   assert.equal(m.model, '');                         // "PC" (material) must not become the model
 });
+
+// ── Codex implementation-review patches (2026-06-20) ──
+test('Codex/HIGH: digit-leading fused token rejected (letter HEAD, not contains)', () => {
+  assert.equal(extractPrinterMention(f('please add 5Pro')), null);
+  assert.equal(extractPrinterMention(f('please add 16Pro')), null);
+  assert.equal(extractPrinterMention(f('please support iPhone 16Pro')), null);
+});
+test('Codex/HIGH PII: a hyphen-split phone number does not enter a Tier-1 span', () => {
+  const m = extractPrinterMention(f('please add Prusa 555-123-4567'));
+  assert.ok(m);
+  assert.equal(m.brand, 'Prusa');
+  assert.equal(m.model, '');                          // phone chunks excluded
+  assert.ok(!/\d/.test(m.span), `span must carry no phone digits, got ${JSON.stringify(m.span)}`);
+});
+test('Codex/HIGH PII: a brand-less phone-bearing message does not capture', () => {
+  assert.equal(extractPrinterMention(f('please add Bob 555-1234')), null);
+});
+test('Codex/MEDIUM: platform/device deny POISONS the adjacent model tail', () => {
+  assert.equal(extractPrinterMention(f('please support Galaxy S24 Ultra')), null);
+  assert.equal(extractPrinterMention(f('please add Mac M2')), null);
+});
+test('Codex/MEDIUM: accessory deny does NOT poison a following real model', () => {
+  const m = extractPrinterMention(f('please add AMS Creator 5 Pro'));
+  assert.ok(m);
+  assert.equal(m.model, 'Creator 5 Pro');             // accessory ≠ poison
+});
+test('Codex/MEDIUM: multi-word brand "Two Trees" is recognised (Tier-1)', () => {
+  const m = extractPrinterMention(f('please add Two Trees Sapphire Pro'));
+  assert.ok(m, 'Two Trees should resolve via brand normalization');
+  assert.equal(m.model, 'Sapphire Pro');
+  assert.ok(/two\s?trees/i.test(m.brand || ''), `brand should be TwoTrees, got ${m && m.brand}`);
+});
