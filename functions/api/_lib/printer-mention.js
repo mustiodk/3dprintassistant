@@ -156,9 +156,14 @@ function normalizeMultiWordBrands(text) {
   // token is capitalised or digit-bearing); the brand letters are matched in both
   // cases explicitly. (With `i`, the look-ahead would also accept lowercase prose
   // like "two trees by the road" and over-fire.)
+  // Brand spelling is matched in ANY case (explicit classes, no /i flag); the
+  // look-ahead stays case-SENSITIVE so it fires on a model token that either starts
+  // uppercase/digit OR contains a digit (so "Raise 3D e2" / "Two Trees sk1" resolve
+  // at Tier-1), but NOT on lowercase prose ("two trees by the road").
+  const FOLLOWED_BY_MODEL = '(?=\\s+(?:[A-Z0-9]|\\S*\\d))';
   return String(text == null ? '' : text)
-    .replace(/\b[Tt]wo\s+[Tt]rees\b(?=\s+[A-Z0-9])/g, 'TwoTrees')
-    .replace(/\b[Rr]aise\s*3\s*[Dd]\b(?=\s+[A-Z0-9])/g, 'Raise3D');
+    .replace(new RegExp('\\b[Tt][Ww][Oo]\\s+[Tt][Rr][Ee][Ee][Ss]\\b' + FOLLOWED_BY_MODEL, 'g'), 'TwoTrees')
+    .replace(new RegExp('\\b[Rr][Aa][Ii][Ss][Ee]\\s*3\\s*[Dd]\\b' + FOLLOWED_BY_MODEL, 'g'), 'Raise3D');
 }
 
 // Stronger predicate for SHORT_FAMILY corroboration: a digit-bearing or known

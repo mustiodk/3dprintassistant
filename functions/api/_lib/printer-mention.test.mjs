@@ -286,3 +286,13 @@ test('Codex-r2/MEDIUM: multi-word brand normalization does not over-match prose'
   assert.equal(extractPrinterMention(f('I saw two trees by the road')), null);
   assert.equal(extractPrinterMention(f('please add two trees')), null);   // brand-only prose → no tee
 });
+test('Codex-r3/MEDIUM: multi-word brand matches mixed casing + lowercase-digit model', () => {
+  let m = extractPrinterMention(f('please add Raise 3D e2'));             // lowercase-digit model
+  assert.ok(m && /raise3d/i.test(m.brand || ''), `Raise 3D e2 → brand Raise3D, got ${m && JSON.stringify(m)}`);
+  m = extractPrinterMention(f('please add Two Trees sk1'));
+  assert.ok(m && /two\s?trees/i.test(m.brand || ''), `Two Trees sk1 → brand TwoTrees, got ${m && JSON.stringify(m)}`);
+  m = extractPrinterMention(f('please add TWO TREES Sapphire Pro'));       // all-caps brand
+  assert.ok(m && /two\s?trees/i.test(m.brand || ''), `TWO TREES → brand TwoTrees, got ${m && JSON.stringify(m)}`);
+  // ...but prose still does not over-match
+  assert.equal(extractPrinterMention(f('I saw two trees by the road')), null);
+});
