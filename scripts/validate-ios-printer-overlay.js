@@ -41,6 +41,15 @@ const allowedPrinterFields = new Set([
 
 const VERSION_RE = /^\d+\.\d+\.\d+$/;
 
+// The first iOS build whose runtime override-MERGES the overlay by id instead of rejecting the
+// WHOLE overlay on any bundled-id collision (Part C — iOS af4bbe0, shipped in v1.0.5). Builds at
+// or above this version absorb a colliding overlay id harmlessly (the overlay row overrides the
+// bundled one), so the ship gate only needs to collide overlay ids against PRE-Part-C baselines
+// in [min_app_version, FIRST_OVERRIDE_MERGE_VERSION). Without this boundary, backfilling the 1.0.5
+// baseline (which graduated aries/mega_x into the bundle) would force dropping them from the
+// overlay → a v1.0.4 regression. See docs/runbooks/printer-addition-protocol.md Phase 4b.
+const FIRST_OVERRIDE_MERGE_VERSION = '1.0.5';
+
 function stableStringify(value) {
   if (Array.isArray(value)) {
     return `[${value.map(stableStringify).join(',')}]`;
@@ -143,20 +152,26 @@ function assertUnique(items, label) {
   }
 }
 
-// The overlay is delivered to EVERY shipped build with version >= min_app_version, and the
-// iOS runtime (PrinterCatalogProvider.validatePayload) rejects the WHOLE overlay on any
-// collision with the running app's bundled catalog. So the ship gate must check overlay ids
-// against the union of all bundled baselines >= min_app_version — not just min_app_version's
-// baseline. (A single-baseline check is exactly what let the i7+aries overlay pass the gate
-// yet be rejected on v1.0.4, where i7 is bundled. See
-// docs/superpowers/specs/2026-06-14-ios-overlay-aries-collision-fix-design.md.)
-function collectBaselineUnion(iosBaselines, minAppVersion) {
+// The overlay is delivered to EVERY shipped build with version >= min_app_version. Builds BELOW
+// FIRST_OVERRIDE_MERGE_VERSION (Part C) reject the WHOLE overlay on any collision with the running
+// app's bundled catalog, so the ship gate must check overlay ids against the union of those
+// pre-Part-C bundled baselines in [min_app_version, FIRST_OVERRIDE_MERGE_VERSION) — not just
+// min_app_version's baseline. (A single-baseline check is exactly what let the i7+aries overlay
+// pass the gate yet be rejected on v1.0.4, where i7 is bundled. See
+// docs/superpowers/specs/2026-06-14-ios-overlay-aries-collision-fix-design.md.) Builds >=
+// FIRST_OVERRIDE_MERGE_VERSION override-merge by id (the overlay row replaces the bundled one), so
+// their baselines are deliberately EXCLUDED from the collision union — that is what lets the
+// overlay keep aries/mega_x (now bundled at 1.0.5) while still adding new printers. The
+// MARKETING_VERSION baseline is still REQUIRED to exist (anti-staleness, in validateOverlay); it is
+// just not collided against once it is at/after the override-merge boundary.
+function collectBaselineUnion(iosBaselines, minAppVersion, firstOverrideMergeVersion = FIRST_OVERRIDE_MERGE_VERSION) {
   const brandUnion = new Set();
   const printerUnion = new Set();
   const includedVersions = [];
   for (const key of Object.keys(iosBaselines)) {
     if (!VERSION_RE.test(key)) continue; // skip non-version top-level keys (e.g. a future _comment)
     if (compareVersions(key, minAppVersion) < 0) continue; // only baselines >= min_app_version
+    if (compareVersions(key, firstOverrideMergeVersion) >= 0) continue; // builds >= boundary override-merge — no collision
     const base = iosBaselines[key];
     if (!base || !Array.isArray(base.brand_ids) || !Array.isArray(base.printer_ids)) {
       fail(`baseline ${key} is malformed (brand_ids and printer_ids must be arrays)`);
@@ -166,6 +181,24 @@ function collectBaselineUnion(iosBaselines, minAppVersion) {
     includedVersions.push(key);
   }
   return { brandUnion, printerUnion, includedVersions };
+}
+
+// The set of brand ids a printer's `manufacturer` may reference. This is DISTINCT from the
+// collision union: it spans ALL bundled baselines >= min_app_version, including override-merge
+// (>= FIRST_OVERRIDE_MERGE_VERSION) builds. A brand bundled only in a >= 1.0.5 build (e.g.
+// `voxelab`) is a legitimate manufacturer even though it is deliberately absent from the collision
+// union — so resolving manufacturer refs against the collision union alone would falsely reject a
+// valid printer once a future overlay raises min_app_version past the boundary. (Codex review,
+// 2026-06-20: "split collision union from known-brand union.")
+function collectKnownBrandIds(iosBaselines, minAppVersion) {
+  const known = new Set();
+  for (const key of Object.keys(iosBaselines)) {
+    if (!VERSION_RE.test(key)) continue;
+    if (compareVersions(key, minAppVersion) < 0) continue;
+    const base = iosBaselines[key];
+    if (base && Array.isArray(base.brand_ids)) base.brand_ids.forEach((id) => known.add(id));
+  }
+  return known;
 }
 
 /**
@@ -217,12 +250,14 @@ function validateOverlay({
   assertUnique(overlay.payload.printers, 'printer');
 
   const { brandUnion, printerUnion, includedVersions } = collectBaselineUnion(iosBaselines, overlay.min_app_version);
-  const brandIds = new Set(brandUnion);
+  // Collision is checked against `brandUnion`/`printerUnion` (pre-override baselines only);
+  // manufacturer references resolve against the wider known-brand set (all baselines >= min).
+  const brandIds = collectKnownBrandIds(iosBaselines, overlay.min_app_version);
 
   for (const brand of overlay.payload.brands) {
     assertAllowedFields(brand, allowedBrandFields, 'brand');
     const id = requireString(brand, 'id');
-    if (brandUnion.has(id)) fail(`overlay brand ${id} already exists in a bundled baseline (>= ${overlay.min_app_version})`);
+    if (brandUnion.has(id)) fail(`overlay brand ${id} already exists in a bundled baseline in [${overlay.min_app_version}, ${FIRST_OVERRIDE_MERGE_VERSION}) (pre-override-merge builds reject the whole overlay on collision)`);
     requireString(brand, 'name');
     requireInteger(brand, 'sort_order', 1, 10_000);
     if (typeof brand.primary !== 'boolean') fail(`brand ${id} primary must be boolean`);
@@ -233,7 +268,7 @@ function validateOverlay({
   for (const printer of overlay.payload.printers) {
     assertAllowedFields(printer, allowedPrinterFields, 'printer');
     const id = requireString(printer, 'id');
-    if (printerUnion.has(id)) fail(`overlay printer ${id} already exists in a bundled baseline (>= ${overlay.min_app_version})`);
+    if (printerUnion.has(id)) fail(`overlay printer ${id} already exists in a bundled baseline in [${overlay.min_app_version}, ${FIRST_OVERRIDE_MERGE_VERSION}) (pre-override-merge builds reject the whole overlay on collision)`);
     requireString(printer, 'name');
     const manufacturer = requireString(printer, 'manufacturer');
     if (!brandIds.has(manufacturer)) fail(`printer ${id} references unknown manufacturer ${manufacturer}`);
@@ -267,7 +302,7 @@ function validateOverlay({
   };
 }
 
-module.exports = { validateOverlay, collectBaselineUnion, compareVersions, stableStringify, sha256 };
+module.exports = { validateOverlay, collectBaselineUnion, collectKnownBrandIds, compareVersions, stableStringify, sha256, FIRST_OVERRIDE_MERGE_VERSION };
 
 if (require.main === module) {
   try {

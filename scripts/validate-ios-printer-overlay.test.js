@@ -15,9 +15,11 @@ const path = require('path');
 const {
   validateOverlay,
   collectBaselineUnion,
+  collectKnownBrandIds,
   compareVersions,
   stableStringify,
   sha256,
+  FIRST_OVERRIDE_MERGE_VERSION,
 } = require('./validate-ios-printer-overlay.js');
 
 let tmpRoot;
@@ -201,6 +203,137 @@ test('(e) committed overlay validates GREEN against committed baselines (live sm
   }
   const result = validateOverlay(); // default paths = real catalog/ + iOS project.yml
   assert.strictEqual(result.ok, true, 'the committed overlay must validate green');
+});
+
+// ---------------------------------------------------------------------------
+// Case (f): Part C — builds >= FIRST_OVERRIDE_MERGE_VERSION (1.0.5) override-merge the overlay
+// by id at runtime (iOS af4bbe0), so a bundled-id collision is NOT fatal there. The ship gate
+// must therefore collide overlay ids only against baselines in [min_app_version, 1.0.5) — the
+// pre-Part-C builds that still reject the WHOLE overlay on any collision. Without this, backfilling
+// the 1.0.5 baseline (which graduated aries/mega_x into the bundle) would force dropping them from
+// the overlay → a v1.0.4 regression. See docs/runbooks/printer-addition-protocol.md Phase 4b.
+// ---------------------------------------------------------------------------
+test('(f) FIRST_OVERRIDE_MERGE_VERSION is 1.0.5', () => {
+  assert.strictEqual(FIRST_OVERRIDE_MERGE_VERSION, '1.0.5');
+});
+
+test('(f) collectBaselineUnion excludes baselines >= FIRST_OVERRIDE_MERGE_VERSION (override-merge)', () => {
+  const baselines = {
+    '1.0.3': { brand_ids: ['creality'], printer_ids: ['x1c'] },
+    '1.0.4': { brand_ids: ['creality'], printer_ids: ['x1c', 'sparkx_i7'] },
+    // 1.0.5 graduated aries/mega_x + voxelab into the bundle but override-merges, so it must NOT
+    // contribute to the collision union.
+    '1.0.5': { brand_ids: ['creality', 'voxelab'], printer_ids: ['x1c', 'sparkx_i7', 'aries', 'mega_x'] },
+  };
+  const { brandUnion, printerUnion, includedVersions } = collectBaselineUnion(baselines, '1.0.3');
+  assert.deepStrictEqual(includedVersions.sort(), ['1.0.3', '1.0.4'], '1.0.5 must be excluded from the collision union');
+  assert.ok(printerUnion.has('sparkx_i7'), 'pre-1.0.5 bundled ids still collide');
+  assert.ok(!printerUnion.has('aries') && !printerUnion.has('mega_x'), '1.0.5-only ids must NOT be in the collision union');
+  assert.ok(!brandUnion.has('voxelab'), '1.0.5-only brand must NOT be in the collision union');
+});
+
+test('(f) collectBaselineUnion honours an injected firstOverrideMergeVersion boundary', () => {
+  const baselines = {
+    '1.0.3': { brand_ids: ['creality'], printer_ids: ['x1c'] },
+    '1.0.4': { brand_ids: ['creality'], printer_ids: ['x1c', 'sparkx_i7'] },
+  };
+  // If Part C had landed at 1.0.4 instead, 1.0.4 would be excluded too.
+  const { printerUnion, includedVersions } = collectBaselineUnion(baselines, '1.0.3', '1.0.4');
+  assert.deepStrictEqual(includedVersions.sort(), ['1.0.3'], 'only baselines < injected boundary');
+  assert.ok(!printerUnion.has('sparkx_i7'), '1.0.4 excluded when boundary is 1.0.4');
+});
+
+// ---------------------------------------------------------------------------
+// Case (g) integration: the 2026-06-20 overlay Option 2 shape — keep aries/mega_x + add
+// snapmaker/creator — validates GREEN even when a 1.0.5 baseline that BUNDLES aries/mega_x is
+// present, because 1.0.5 override-merges. This is the regression the Part-C exclusion protects.
+// RED demo verified 2026-06-20: pre-fix, collectBaselineUnion included 1.0.5, so aries/mega_x
+// entered the union and validateOverlay threw "already exists in a bundled baseline"; the Part-C
+// exclusion flips it GREEN. Putting a < 1.0.5 bundled id (sparkx_i7) in the overlay makes it RED.
+// ---------------------------------------------------------------------------
+test('(g) overlay keeps aries/mega_x + adds snapmaker/creator — GREEN against a 1.0.5 baseline that bundles aries/mega_x', () => {
+  const overlay = makeOverlay({
+    contentVersion: 2026062001,
+    minApp: '1.0.3',
+    brands: [makeBrand('voxelab'), makeBrand('snapmaker')],
+    printers: [
+      makePrinter('aries', 'voxelab'),
+      makePrinter('mega_x', 'anycubic'),
+      makePrinter('snapmaker_2_a350', 'snapmaker'),
+      makePrinter('creator_5_pro', 'flashforge'),
+    ],
+  });
+  const paths = fixture({
+    overlay,
+    marketingVersion: '1.0.5',
+    baselines: {
+      '1.0.3': { source: 'test', brand_ids: ['creality', 'anycubic', 'flashforge'], printer_ids: ['x1c'] },
+      '1.0.4': { source: 'test', brand_ids: ['creality', 'anycubic', 'flashforge'], printer_ids: ['x1c', 'sparkx_i7'] },
+      '1.0.5': { source: 'test', brand_ids: ['creality', 'anycubic', 'flashforge', 'voxelab'], printer_ids: ['x1c', 'sparkx_i7', 'aries', 'mega_x'] },
+    },
+  });
+  const result = validateOverlay(paths);
+  assert.strictEqual(result.ok, true, 'expected GREEN — 1.0.5 override-merges aries/mega_x; snapmaker/creator are new everywhere');
+});
+
+test('(g) a < 1.0.5 bundled id in the overlay still collides (Part C must not over-loosen)', () => {
+  const overlay = makeOverlay({
+    contentVersion: 2026062001,
+    minApp: '1.0.3',
+    brands: [],
+    printers: [makePrinter('sparkx_i7', 'creality')], // bundled at 1.0.4 (pre-Part-C) → fatal
+  });
+  const paths = fixture({
+    overlay,
+    marketingVersion: '1.0.5',
+    baselines: {
+      '1.0.3': { source: 'test', brand_ids: ['creality'], printer_ids: ['x1c'] },
+      '1.0.4': { source: 'test', brand_ids: ['creality'], printer_ids: ['x1c', 'sparkx_i7'] },
+      '1.0.5': { source: 'test', brand_ids: ['creality'], printer_ids: ['x1c', 'sparkx_i7'] },
+    },
+  });
+  assert.throws(
+    () => validateOverlay(paths),
+    /overlay printer sparkx_i7 already exists in a bundled baseline/,
+    'a printer bundled in a pre-1.0.5 build must still collide',
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Case (h): split union — manufacturer references resolve against ALL bundled baselines >= min
+// (the known-brand union), NOT the pre-override collision union. Guards the Codex-flagged latent
+// footgun: a future overlay raising min_app_version to the override-merge boundary would otherwise
+// falsely reject a printer whose brand is bundled only at >= 1.0.5.
+// ---------------------------------------------------------------------------
+test('(h) collectKnownBrandIds spans all baselines >= min (incl. override-merge builds)', () => {
+  const baselines = {
+    '1.0.2': { brand_ids: ['old_brand'], printer_ids: [] },
+    '1.0.3': { brand_ids: ['creality'], printer_ids: [] },
+    '1.0.5': { brand_ids: ['creality', 'voxelab'], printer_ids: [] },
+  };
+  const known = collectKnownBrandIds(baselines, '1.0.3');
+  assert.ok(known.has('creality') && known.has('voxelab'), 'includes both 1.0.3 and 1.0.5 (override-merge) brands');
+  assert.ok(!known.has('old_brand'), 'excludes below-min brands');
+});
+
+test('(h) printer under a brand bundled only at >= 1.0.5 resolves even with an empty collision union', () => {
+  // Future shape: min_app_version AT the boundary → collision union is empty, but the manufacturer
+  // (voxelab) is bundled only at 1.0.5 and the overlay does not re-declare it. Must still PASS.
+  const overlay = makeOverlay({
+    contentVersion: 2026062001,
+    minApp: '1.0.5',
+    brands: [],
+    printers: [makePrinter('voxelab_future', 'voxelab')],
+  });
+  const paths = fixture({
+    overlay,
+    marketingVersion: '1.0.5',
+    baselines: {
+      '1.0.5': { source: 'test', brand_ids: ['creality', 'voxelab'], printer_ids: ['x1c', 'aries'] },
+    },
+  });
+  const result = validateOverlay(paths);
+  assert.strictEqual(result.ok, true, 'manufacturer bundled only at >= 1.0.5 must resolve via the known-brand union');
 });
 
 // ---------------------------------------------------------------------------
