@@ -1601,6 +1601,33 @@
         "Official spec: FDM, 0.4mm direct-drive hot end, 275C max nozzle, 80C max bed (A350 hardware limit), single-extrusion build volume ~320x335x310mm.",
         "max_speed 120 and max_acceleration 3000 are from Snapmaker's official firmware motion config (Snapmaker/Snapmaker2-Controller Marlin Configuration.h: DEFAULT_MAX_FEEDRATE X/Y=120 mm/s, DEFAULT_MAX_ACCELERATION X/Y=3000 mm/s2). Real-world print speed is ~60mm/s due to lead-screw kinematics."
       ]
+    },
+    {
+      "id": "creator_5_pro",
+      "name": "Creator 5 Pro",
+      "manufacturer": "flashforge",
+      "series": "corexy",
+      "series_group": "Creator",
+      "enclosure": "active_heated",
+      "active_chamber_heating": true,
+      "max_chamber_temp": 65,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 320,
+      "max_bed_temp": 120,
+      "max_speed": 300,
+      "max_acceleration": 30000,
+      "has_lidar": false,
+      "has_camera": true,
+      "multi_color_systems": ["toolchanger"],
+      "available_plates": ["textured_pei"],
+      "available_nozzle_sizes": [0.25, 0.4, 0.6, 0.8],
+      "open_door_threshold_bed_temp": null,
+      "notes": [
+        "Enclosed CoreXY with 4 independent direct-drive toolheads (FlashSwap tool-changing) — mapped to the multi_color_systems 'toolchanger' tier.",
+        "Active heated chamber up to 65C; HEPA13 + activated-carbon filtration; built-in 1280x720 camera.",
+        "Official spec: FDM, 256x256x256mm, 320C max nozzle, 120C max bed, 65C max chamber, PEI textured flexible steel plate, nozzles 0.25/0.4/0.6/0.8mm.",
+        "max_speed 300 mm/s is FlashForge's published spec-table value (flashforge.com + flashforge.com.hk). Marketing/reviews cite '600 mm/s' as a travel/peak figure, not steady print speed; the conservative spec-table 300 is used."
+      ]
     }
   ]
 }
