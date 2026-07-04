@@ -121,6 +121,14 @@ test('recall: Anycubic Mega resolves via the brand token', () => {
   assert.equal(m.model, 'Mega X');
 });
 
+test('recall: lowercase brand + lowercase family keeps the full model (Creality Ender 3 V4 combo)', () => {
+  const m = extractPrinterMention(f('Missing creality ender 3 v4 combo'));
+  assert.ok(m);
+  assert.equal(m.brand, 'creality');
+  assert.equal(m.model, 'ender 3 v4 combo');
+  assert.equal(m.span, 'creality ender 3 v4 combo');
+});
+
 // ── resin keyword fused with a digit (Mars3/Saturn4) must still be excluded ──
 test('span-tightness: a digit-fused resin word (Mars3) is excluded from the span', () => {
   const m = extractPrinterMention(f('Elegoo Mars3 Pro is missing'));

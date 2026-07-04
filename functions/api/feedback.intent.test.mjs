@@ -42,6 +42,21 @@ test('tee threads intent for a brand-less printer mention (general feedback)', a
   assert.ok(!rec.fields.some((f) => f.id === 'brand'), 'no brand field for a brand-less capture');
 });
 
+test('tee preserves lowercase brand + lowercase family model from iOS general feedback', async () => {
+  const { captured, env } = mkEnv();
+  await onRequestPost({ request: mkReq({
+    category: 'generalFeedback',
+    fields: [{ label: 'Feedback', value: 'Missing creality ender 3 v4 combo' }],
+    context: { appSource: 'ios' },
+  }), env });
+  assert.equal(captured.length, 1, 'should tee exactly one record');
+  const rec = captured[0].v;
+  assert.equal(rec.lane, 'heuristic');
+  assert.equal(rec.originalCategory, 'generalFeedback');
+  assert.ok(rec.fields.some((f) => f.id === 'brand' && f.value === 'creality'), 'brand field present');
+  assert.ok(rec.fields.some((f) => f.id === 'model' && f.value === 'ender 3 v4 combo'), 'model field present');
+});
+
 test('non-printer general feedback is NOT teed', async () => {
   const { captured, env } = mkEnv();
   await onRequestPost({ request: mkReq({

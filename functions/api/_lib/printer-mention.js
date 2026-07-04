@@ -175,6 +175,16 @@ function isStrongModelToken(orig) {
   return /[0-9]/.test(n) || MODEL_VARIANTS.has(n);
 }
 
+// A known family token immediately after a brand can start the model span even
+// when typed lowercase ("creality ender 3 v4 combo"). Require a strong following
+// model token so prose like "my creality ender is missing" stays incomplete.
+function isFamilyStartAfterBrand(tokens, idx) {
+  const n = normTok(tokens[idx]);
+  if (!FAMILY_TOKENS.has(n)) return false;
+  if (idx + 1 >= tokens.length) return false;
+  return isStrongModelToken(tokens[idx + 1]) && !DENY_TERMS.has(normTok(tokens[idx + 1]));
+}
+
 // True when the text carries a printer-request intent (Tier-2 gate). Apostrophes
 // are stripped so "isn't listed" / "can't find" match the apostrophe-free phrases.
 function hasIntentTrigger(text) {
@@ -195,8 +205,11 @@ function extractFromText(text) {
 
     // gather up to MAX_MODEL_TOKENS following model tokens
     const following = [];
-    for (let j = i + 1; j < tokens.length && following.length < MAX_MODEL_TOKENS; j++) {
-      if (!isModelToken(tokens[j]) || DENY_TERMS.has(normTok(tokens[j])) || phoneLike(tokens, j)) break;   // stop at prose/resin/non-model/material/phone
+    let maxFollowing = MAX_MODEL_TOKENS;
+    for (let j = i + 1; j < tokens.length && following.length < maxFollowing; j++) {
+      const familyStart = isBrand && following.length === 0 && isFamilyStartAfterBrand(tokens, j);
+      if ((!isModelToken(tokens[j]) && !familyStart) || DENY_TERMS.has(normTok(tokens[j])) || phoneLike(tokens, j)) break;   // stop at prose/resin/non-model/material/phone
+      if (familyStart) maxFollowing = MAX_MODEL_TOKENS + 1; // family token + up to 3 model tokens
       following.push(tokens[j]);
     }
 
