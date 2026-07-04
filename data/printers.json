@@ -377,6 +377,32 @@
       "notes": ["Open frame \u2014 not suitable for ABS, ASA, PA, PC without enclosure modification"]
     },
     {
+      "id": "ender3_v4_combo",
+      "name": "Ender-3 V4 Combo",
+      "manufacturer": "creality",
+      "series": "bedslinger",
+      "series_group": "Ender Series",
+      "enclosure": "none",
+      "active_chamber_heating": false,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 300,
+      "max_bed_temp": 100,
+      "max_speed": 500,
+      "max_acceleration": 12000,
+      "has_lidar": false,
+      "has_camera": true,
+      "multi_color_systems": ["cfs"],
+      "available_plates": ["textured_pei"],
+      "available_nozzle_sizes": [0.4],
+      "open_door_threshold_bed_temp": null,
+      "notes": [
+        "Open-frame Ender Series bed-slinger \u2014 220\u00d7220\u00d7235mm build volume",
+        "CFS multicolor support up to 16 colors; combo includes the CFS workflow",
+        "Official spec lists 0.4mm nozzle and PEI plate; other quick-swap nozzle sizes are referenced but not enumerated",
+        "Built-in camera supported by Creality Wiki camera maintenance/replacement guides; no LiDAR is listed in official product specs or support docs"
+      ]
+    },
+    {
       "id": "k1",
       "name": "K1",
       "manufacturer": "creality",
