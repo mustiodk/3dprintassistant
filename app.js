@@ -169,10 +169,12 @@ Engine.init()
       const savedTheme = localStorage.getItem('3dpa_theme');
       if (savedTheme === 'light' || savedTheme === 'dark') applyTheme(savedTheme, false);
     } catch (_) {}
-    const restored = restorePersistedState();
+    const restored = restoreInitialState();
     bindControls();
     applyLang();
-    if (restored) showToast(Engine.t('restoredNotice'));
+    // Only storage restores get the notice — a shared URL opening exactly as
+    // sent is the expected behavior, not a "restored" surprise.
+    if (restored === 'storage') showToast(Engine.t('restoredNotice'));
     track('app_opened');
   })
   .catch(err => {
@@ -203,13 +205,37 @@ function restorePersistedState() {
   if (!raw) return false;
   const decoded = StateCodec.decodeFromStorage(raw);
   if (!decoded) return false;
-  const clean = StateCodec.validateState(decoded, Engine);
+  applyRestoredState(StateCodec.validateState(decoded, Engine));
+  return !!(state.printer || state.material || state.nozzle);
+}
+
+function applyRestoredState(clean) {
   Object.keys(clean).forEach(k => { state[k] = clean[k]; });
   if (state.printer) {
     Engine.setActiveSlicer(Engine.getSlicerForPrinter(state.printer));
     pickerCollapsed = true;
   }
-  return !!(state.printer || state.material || state.nozzle);
+}
+
+// ── Shareable URLs (IMPL-042 Phase B) ────────────────────────────────────────
+// URL params take precedence over localStorage; invalid ids degrade the same
+// way. Returns 'url' | 'storage' | false so boot can pick the right notice.
+function restoreInitialState() {
+  const fromUrl = StateCodec.decodeFromParams(window.location.search);
+  if (Object.keys(fromUrl).length > 0) {
+    applyRestoredState(StateCodec.validateState(fromUrl, Engine));
+    return 'url';
+  }
+  return restorePersistedState() ? 'storage' : false;
+}
+
+// Keep the address bar in sync with the selection so every configured view is
+// bookmarkable by default; replaceState avoids history spam.
+function syncUrl() {
+  try {
+    const qs = StateCodec.encodeToParams(state);
+    history.replaceState(null, '', qs ? `${location.pathname}?${qs}` : location.pathname);
+  } catch (_) {}
 }
 
 // ── Toast — small transient notice (restored session, link copied) ───────────
@@ -274,6 +300,8 @@ function applyLang() {
   // Export buttons text handled dynamically in renderProfilePanel
   const lockBtn = document.getElementById('compareLockBtn');
   if (lockBtn) lockBtn.textContent = comparisonProfile ? T('compareClear') : T('compareBtn');
+  const shareBtnEl = document.getElementById('shareBtn');
+  if (shareBtnEl) shareBtnEl.textContent = T('shareBtn');
 
   // Footer
   const footerEl = document.getElementById('footerText');
@@ -918,6 +946,31 @@ function bindControls() {
     setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 2500);
   }
 
+  // Share — copy a URL that reproduces the current profile (IMPL-042 Phase B)
+  document.getElementById('shareBtn').addEventListener('click', () => {
+    if (!state.printer || !state.nozzle || !state.material) return;
+    const qs  = StateCodec.encodeToParams(state);
+    const url = `${location.origin}${location.pathname}${qs ? '?' + qs : ''}`;
+    const copyFallback = () => {
+      // Clipboard API can be unavailable or permission-blocked — legacy path
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (_) {}
+      document.body.removeChild(ta);
+      if (ok) showToast(Engine.t('shareCopied'));
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url)
+        .then(() => showToast(Engine.t('shareCopied')))
+        .catch(copyFallback);
+    } else {
+      copyFallback();
+    }
+  });
+
   document.getElementById('compareLockBtn').addEventListener('click', () => {
     if (comparisonProfile) {
       comparisonProfile = null;
@@ -1032,6 +1085,7 @@ function handleChipClick(container, clicked, key, value, isMulti) {
 // ── Main render ───────────────────────────────────────────────────────────────
 function render() {
   persistState();
+  syncUrl();
   updateCollapseBadges();
   updateDynamicChipDescs();
   renderPrinterSummary();
@@ -1103,6 +1157,8 @@ function render() {
     lockBtn.classList.toggle('locked',  !!comparisonProfile);
     lockBtn.textContent = comparisonProfile ? Engine.t('compareClear') : Engine.t('compareBtn');
   }
+  const shareBtn = document.getElementById('shareBtn');
+  if (shareBtn) shareBtn.classList.toggle('visible', !!hasMin);
 
   if (!hasMin) {
     // Clear comparison banner if no selection

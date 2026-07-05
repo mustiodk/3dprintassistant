@@ -731,7 +731,7 @@ body, header, .top-nav, .filters, .panel, .chip,
   margin-left: auto;
   flex-shrink: 0;
 }
-.export-btn, .compare-btn {
+.export-btn, .compare-btn, .share-btn {
   background: var(--surface2);
   border: 1px solid var(--border2);
   border-radius: var(--r-sm);
@@ -762,6 +762,9 @@ body, header, .top-nav, .filters, .panel, .chip,
 }
 .compare-btn { display: none; } /* hidden until profile is loaded */
 .compare-btn.visible { display: block; }
+.share-btn { display: none; } /* hidden until profile is loaded */
+.share-btn.visible { display: block; }
+.share-btn:hover { color: var(--green); border-color: var(--green-border); }
 .compare-btn:hover { color: var(--purple); border-color: var(--purple-border); }
 .compare-btn.locked { color: var(--purple); border-color: var(--purple-border); }
 

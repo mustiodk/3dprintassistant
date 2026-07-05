@@ -97,6 +97,8 @@
   "exportDownloaded":          "✓ Downloaded",
   "exportCopied":              "✓ Copied to clipboard",
   "exportSaved":               "✓ Saved",
+  "shareBtn":                  "⤴ Share",
+  "shareCopied":               "Link copied — it reproduces this exact profile",
   "compareBtn":                "⇌ Compare",
   "compareClear":              "✕ Clear Compare",
   "compareLocked":             "Locked A:",

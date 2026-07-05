@@ -97,6 +97,8 @@
   "exportDownloaded":          "✓ Downloadet",
   "exportCopied":              "✓ Kopieret til udklipsholder",
   "exportSaved":               "✓ Gemt",
+  "shareBtn":                  "⤴ Del",
+  "shareCopied":               "Link kopieret — det gendanner præcis denne profil",
   "compareBtn":                "⇌ Sammenlign",
   "compareClear":              "✕ Ryd sammenligning",
   "compareLocked":             "Låst A:",
