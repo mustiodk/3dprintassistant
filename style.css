@@ -731,7 +731,7 @@ body, header, .top-nav, .filters, .panel, .chip,
   margin-left: auto;
   flex-shrink: 0;
 }
-.export-btn, .compare-btn, .share-btn {
+.export-btn, .compare-btn, .share-btn, .save-btn {
   background: var(--surface2);
   border: 1px solid var(--border2);
   border-radius: var(--r-sm);
@@ -765,6 +765,9 @@ body, header, .top-nav, .filters, .panel, .chip,
 .share-btn { display: none; } /* hidden until profile is loaded */
 .share-btn.visible { display: block; }
 .share-btn:hover { color: var(--green); border-color: var(--green-border); }
+.save-btn { display: none; } /* hidden until profile is loaded */
+.save-btn.visible { display: block; }
+.save-btn:hover { color: #ffaa33; border-color: rgba(255,160,50,0.4); }
 .compare-btn:hover { color: var(--purple); border-color: var(--purple-border); }
 .compare-btn.locked { color: var(--purple); border-color: var(--purple-border); }
 
@@ -1639,3 +1642,49 @@ dialog.feedback-modal {
 }
 .start-over-link.visible { display: inline-block; }
 .start-over-link:hover { color: var(--orange); }
+
+/* ── IMPL-044: Workshop view ───────────────────────────────────────────────── */
+.workshop-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+.workshop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.ws-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: chipPop 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.ws-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.ws-name { font-weight: 700; font-size: 14px; color: var(--text); word-break: break-word; }
+.ws-date { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text2); white-space: nowrap; }
+.ws-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text2); }
+.ws-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.ws-load:hover { color: var(--green); border-color: var(--green-border); }
+.ws-delete:hover, .ws-delete-armed { color: var(--orange); border-color: var(--orange-border); }
+.workshop-empty { text-align: center; padding: 60px 20px; color: var(--text2); }
+.workshop-empty-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+
+.name-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  outline: none;
+}
+.name-input:focus { border-color: var(--green-border); }
+.name-modal-actions { display: flex; justify-content: flex-end; margin-top: 12px; }

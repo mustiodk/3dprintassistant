@@ -80,7 +80,7 @@ let currentMode       = 'simple';        // 'simple' | 'advanced'
 const expandedSections = new Set();      // tracks which filters have been expanded via "+N more"
 let currentTheme      = 'dark';          // 'dark' | 'light'
 let activeTabId       = 'quality';       // persisted across re-renders
-let currentView       = 'configure';     // 'configure' | 'troubleshoot' | 'feedback'
+let currentView       = 'configure';     // 'configure' | 'troubleshoot' | 'workshop' | 'feedback'
 let activeSymptom     = null;            // troubleshooter selected symptom id
 let comparisonProfile = null;            // { profile, label } when Profile A is locked
 let _lastTrackedProfileKey = null;       // deduplicates profile_generated events
@@ -211,10 +211,8 @@ function restorePersistedState() {
 
 function applyRestoredState(clean) {
   Object.keys(clean).forEach(k => { state[k] = clean[k]; });
-  if (state.printer) {
-    Engine.setActiveSlicer(Engine.getSlicerForPrinter(state.printer));
-    pickerCollapsed = true;
-  }
+  Engine.setActiveSlicer(state.printer ? Engine.getSlicerForPrinter(state.printer) : 'bambu_studio');
+  pickerCollapsed = !!state.printer;
 }
 
 // ── Shareable URLs (IMPL-042 Phase B) ────────────────────────────────────────
@@ -236,6 +234,30 @@ function syncUrl() {
     const qs = StateCodec.encodeToParams(state);
     history.replaceState(null, '', qs ? `${location.pathname}?${qs}` : location.pathname);
   } catch (_) {}
+}
+
+// Copy a URL reproducing the given state object; toast on success. Clipboard
+// API first, execCommand textarea fallback for blocked/legacy contexts.
+function copyShareUrl(stateObj) {
+  const qs  = StateCodec.encodeToParams(stateObj);
+  const url = `${location.origin}${location.pathname}${qs ? '?' + qs : ''}`;
+  const copyFallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) {}
+    document.body.removeChild(ta);
+    if (ok) showToast(Engine.t('shareCopied'));
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url)
+      .then(() => showToast(Engine.t('shareCopied')))
+      .catch(copyFallback);
+  } else {
+    copyFallback();
+  }
 }
 
 // ── Toast — small transient notice (restored session, link copied) ───────────
@@ -267,6 +289,7 @@ function applyLang() {
   document.getElementById('resetBtn').textContent          = T('reset');
   document.getElementById('navConfigure').textContent      = T('navConfigure');
   document.getElementById('navTroubleshoot').textContent   = T('navTroubleshoot');
+  document.getElementById('navWorkshop').textContent       = T('navWorkshop');
   document.getElementById('navFeedback').textContent       = T('navFeedback');
   document.getElementById('navIOS').textContent            = T('navIOS') + ' ↗';
 
@@ -302,6 +325,16 @@ function applyLang() {
   if (lockBtn) lockBtn.textContent = comparisonProfile ? T('compareClear') : T('compareBtn');
   const shareBtnEl = document.getElementById('shareBtn');
   if (shareBtnEl) shareBtnEl.textContent = T('shareBtn');
+  const saveBtnEl = document.getElementById('saveProfileBtn');
+  if (saveBtnEl) saveBtnEl.textContent = T('saveProfileBtn');
+
+  // Workshop static text + list re-render for language
+  document.getElementById('workshopHeroTitle').textContent = T('workshopTitle');
+  document.getElementById('workshopHeroSub').textContent   = T('workshopSub');
+  document.getElementById('wsExportBtn').textContent       = T('wsExport');
+  document.getElementById('wsImportBtn').textContent       = T('wsImport');
+  document.getElementById('nameModalSave').textContent     = T('nameModalSaveBtn');
+  renderWorkshop();
 
   // Footer
   const footerEl = document.getElementById('footerText');
@@ -792,10 +825,114 @@ function setView(view) {
   currentView = view;
   document.getElementById('viewConfigure').style.display    = view === 'configure'    ? '' : 'none';
   document.getElementById('viewTroubleshoot').style.display  = view === 'troubleshoot'  ? '' : 'none';
+  document.getElementById('viewWorkshop').style.display      = view === 'workshop'      ? '' : 'none';
   document.getElementById('viewFeedback').style.display      = view === 'feedback'      ? '' : 'none';
   document.getElementById('navConfigure').classList.toggle('active',    view === 'configure');
   document.getElementById('navTroubleshoot').classList.toggle('active',  view === 'troubleshoot');
+  document.getElementById('navWorkshop').classList.toggle('active',      view === 'workshop');
   document.getElementById('navFeedback').classList.toggle('active',      view === 'feedback');
+  if (view === 'workshop') renderWorkshop();
+}
+
+// ── Workshop (IMPL-044 W1) ────────────────────────────────────────────────────
+let _nameModalOnSave = null;
+
+function openNameModal(title, initial, onSave) {
+  document.getElementById('nameModalTitle').textContent = title;
+  const input = document.getElementById('nameModalInput');
+  input.value = initial || '';
+  _nameModalOnSave = onSave;
+  document.getElementById('nameModal').showModal();
+  requestAnimationFrame(() => { input.focus(); input.select(); });
+}
+
+function renderWorkshop() {
+  const el = document.getElementById('workshopList');
+  if (!el || !WorkshopStore) return;
+  const T = Engine.t;
+  const profiles = WorkshopStore.list();
+
+  if (!profiles.length) {
+    el.innerHTML = `
+      <div class="workshop-empty">
+        <div class="workshop-empty-title">${T('workshopEmpty')}</div>
+        <div>${T('workshopEmptySub')}</div>
+      </div>`;
+    return;
+  }
+
+  // Profile names are user input — escHtml everything interpolated here.
+  el.innerHTML = `<div class="workshop-grid">` + profiles.map(p => {
+    const printer = p.state.printer ? Engine.getPrinter(p.state.printer) : null;
+    const mat     = p.state.material ? Engine.getMaterial(p.state.material) : null;
+    const nz      = p.state.nozzle ? Engine.getNozzle(p.state.nozzle) : null;
+    const meta    = [printer?.name, mat?.name, nz?.name].filter(Boolean).join(' · ') || '—';
+    const date    = (p.updated || p.created || '').slice(0, 10);
+    return `
+      <div class="ws-card">
+        <div class="ws-card-head">
+          <span class="ws-name">${escHtml(p.name)}</span>
+          <span class="ws-date">${escHtml(date)}</span>
+        </div>
+        <div class="ws-meta">${escHtml(meta)}</div>
+        <div class="ws-actions">
+          <button class="export-btn ws-load" data-id="${escHtml(p.id)}">${T('wsLoad')}</button>
+          <button class="export-btn ws-share" data-id="${escHtml(p.id)}">${T('shareBtn')}</button>
+          <button class="export-btn ws-rename" data-id="${escHtml(p.id)}">${T('wsRename')}</button>
+          <button class="export-btn ws-delete" data-id="${escHtml(p.id)}">${T('wsDelete')}</button>
+        </div>
+      </div>`;
+  }).join('') + `</div>`;
+
+  el.querySelectorAll('.ws-load').forEach(b =>
+    b.addEventListener('click', () => restoreWorkshopProfile(b.dataset.id)));
+
+  el.querySelectorAll('.ws-share').forEach(b =>
+    b.addEventListener('click', () => {
+      const p = WorkshopStore.get(b.dataset.id);
+      if (p) copyShareUrl(StateCodec.validateState(p.state, Engine));
+    }));
+
+  el.querySelectorAll('.ws-rename').forEach(b =>
+    b.addEventListener('click', () => {
+      const p = WorkshopStore.get(b.dataset.id);
+      if (!p) return;
+      openNameModal(Engine.t('wsRenameTitle'), p.name, name => {
+        WorkshopStore.rename(p.id, name);
+        renderWorkshop();
+      });
+    }));
+
+  // Delete uses a two-tap confirm: first tap arms the button for 3 seconds.
+  el.querySelectorAll('.ws-delete').forEach(b =>
+    b.addEventListener('click', () => {
+      if (b.dataset.armed === '1') {
+        WorkshopStore.remove(b.dataset.id);
+        renderWorkshop();
+        return;
+      }
+      b.dataset.armed = '1';
+      b.classList.add('ws-delete-armed');
+      const orig = b.textContent;
+      b.textContent = Engine.t('wsDeleteConfirm');
+      setTimeout(() => {
+        b.dataset.armed = '';
+        b.classList.remove('ws-delete-armed');
+        b.textContent = orig;
+      }, 3000);
+    }));
+}
+
+function restoreWorkshopProfile(id) {
+  const p = WorkshopStore.get(id);
+  if (!p) return;
+  applyRestoredState(StateCodec.validateState(p.state, Engine));
+  buildFilters();
+  restoreChipSelections();
+  renderPrinterSummary();
+  setView('configure');
+  render();
+  showToast(Engine.t('wsLoaded'));
 }
 
 // ── Build troubleshooter symptom grid ─────────────────────────────────────────
@@ -878,7 +1015,56 @@ function bindControls() {
   });
   document.getElementById('navConfigure').addEventListener('click',    () => setView('configure'));
   document.getElementById('navTroubleshoot').addEventListener('click',  () => setView('troubleshoot'));
+  document.getElementById('navWorkshop').addEventListener('click',      () => setView('workshop'));
   document.getElementById('navFeedback').addEventListener('click',      () => setView('feedback'));
+
+  // ── Workshop wiring (IMPL-044 W1) ──────────────────────────────────────────
+  const nameModal = document.getElementById('nameModal');
+  const nameInput = document.getElementById('nameModalInput');
+  const nameCommit = () => {
+    const name = nameInput.value.trim();
+    if (!name || !_nameModalOnSave) return;
+    const cb = _nameModalOnSave;
+    _nameModalOnSave = null;
+    nameModal.close();
+    cb(name);
+  };
+  document.getElementById('nameModalClose').addEventListener('click', () => { _nameModalOnSave = null; nameModal.close(); });
+  nameModal.addEventListener('click', e => { if (e.target === nameModal) { _nameModalOnSave = null; nameModal.close(); } });
+  document.getElementById('nameModalSave').addEventListener('click', nameCommit);
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); nameCommit(); } });
+
+  document.getElementById('saveProfileBtn').addEventListener('click', () => {
+    if (!state.printer || !state.nozzle || !state.material || !WorkshopStore) return;
+    const p = Engine.getPrinter(state.printer);
+    const m = Engine.getMaterial(state.material);
+    const suggested = [m?.name, p?.name].filter(Boolean).join(' · ');
+    openNameModal(Engine.t('saveProfileTitle'), suggested, name => {
+      // Snapshot through the codec so only known state fields are stored.
+      const snapshot = JSON.parse(StateCodec.encodeForStorage(state)).state;
+      const r = WorkshopStore.save(name, snapshot);
+      showToast(r.ok ? Engine.t('profileSaved') : Engine.t('wsSaveFailed'));
+    });
+  });
+
+  document.getElementById('wsExportBtn').addEventListener('click', () => {
+    if (!WorkshopStore) return;
+    _downloadJSONText(WorkshopStore.exportJSON(), '3dpa-workshop-backup.json');
+  });
+  document.getElementById('wsImportBtn').addEventListener('click', () =>
+    document.getElementById('wsImportFile').click());
+  document.getElementById('wsImportFile').addEventListener('change', e => {
+    const file = e.target.files && e.target.files[0];
+    if (!file || !WorkshopStore) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const r = WorkshopStore.importJSON(String(reader.result));
+      showToast(r.ok ? Engine.t('wsImported') : Engine.t('wsImportFailed'));
+      renderWorkshop();
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
 
   // Feedback modal — any .feedback-card[data-feedback-category] opens it
   document.querySelectorAll('.feedback-card[data-feedback-category]').forEach(btn => {
@@ -930,7 +1116,11 @@ function bindControls() {
   });
 
   function _downloadJSON(obj, filename) {
-    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+    _downloadJSONText(JSON.stringify(obj, null, 2), filename);
+  }
+
+  function _downloadJSONText(text, filename) {
+    const blob = new Blob([text], { type: 'application/json' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href = url; a.download = filename;
@@ -949,26 +1139,7 @@ function bindControls() {
   // Share — copy a URL that reproduces the current profile (IMPL-042 Phase B)
   document.getElementById('shareBtn').addEventListener('click', () => {
     if (!state.printer || !state.nozzle || !state.material) return;
-    const qs  = StateCodec.encodeToParams(state);
-    const url = `${location.origin}${location.pathname}${qs ? '?' + qs : ''}`;
-    const copyFallback = () => {
-      // Clipboard API can be unavailable or permission-blocked — legacy path
-      const ta = document.createElement('textarea');
-      ta.value = url;
-      document.body.appendChild(ta);
-      ta.select();
-      let ok = false;
-      try { ok = document.execCommand('copy'); } catch (_) {}
-      document.body.removeChild(ta);
-      if (ok) showToast(Engine.t('shareCopied'));
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url)
-        .then(() => showToast(Engine.t('shareCopied')))
-        .catch(copyFallback);
-    } else {
-      copyFallback();
-    }
+    copyShareUrl(state);
   });
 
   document.getElementById('compareLockBtn').addEventListener('click', () => {
@@ -1159,6 +1330,8 @@ function render() {
   }
   const shareBtn = document.getElementById('shareBtn');
   if (shareBtn) shareBtn.classList.toggle('visible', !!hasMin);
+  const saveBtn = document.getElementById('saveProfileBtn');
+  if (saveBtn) saveBtn.classList.toggle('visible', !!hasMin);
 
   if (!hasMin) {
     // Clear comparison banner if no selection

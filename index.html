@@ -84,6 +84,7 @@
     <a class="nav-btn nav-home" href="https://3dprintassistant.com">Home</a>
     <button class="nav-btn active" id="navConfigure">Configure</button>
     <button class="nav-btn" id="navTroubleshoot">Troubleshoot</button>
+    <button class="nav-btn" id="navWorkshop">Workshop</button>
     <button class="nav-btn" id="navFeedback">Feedback</button>
     <a class="nav-btn nav-ios" id="navIOS" href="https://apps.apple.com/app/id6761634761" target="_blank" rel="noopener noreferrer">iOS App &#x2197;</a>
   </nav>
@@ -123,6 +124,7 @@
               <div class="panel-sub" id="panelProfSub">Process tab in Bambu Studio</div>
             </div>
             <div class="panel-header-actions">
+              <button class="save-btn" id="saveProfileBtn" title="Save this profile to your Workshop">★ Save</button>
               <button class="share-btn" id="shareBtn" title="Copy a link that reproduces this exact profile">⤴ Share</button>
               <button class="compare-btn" id="compareLockBtn" title="Lock current profile as A to compare against a second configuration">⇌ Compare</button>
               <div class="export-group" id="exportGroup" style="display:none">
@@ -152,6 +154,20 @@
     <div id="troubleResults"></div>
   </div>
 
+  <!-- ── Workshop view (IMPL-044 W1) ──────────────────────────────────────── -->
+  <div class="container" id="viewWorkshop" style="display:none">
+    <div class="trouble-hero">
+      <div class="trouble-hero-title" id="workshopHeroTitle">Your Workshop</div>
+      <div class="trouble-hero-sub" id="workshopHeroSub">Saved profiles live here — stored on this device only.</div>
+    </div>
+    <div class="workshop-actions">
+      <button class="export-btn" id="wsExportBtn">↓ Export backup</button>
+      <button class="export-btn" id="wsImportBtn">↑ Import backup</button>
+      <input type="file" id="wsImportFile" accept="application/json,.json" style="display:none"/>
+    </div>
+    <div id="workshopList"></div>
+  </div>
+
   <!-- ── Feedback view ────────────────────────────────────────────────────── -->
   <div class="container" id="viewFeedback" style="display:none">
     <div class="trouble-hero">
@@ -179,6 +195,21 @@
 
   <footer id="footerText"></footer>
 
+  <dialog id="nameModal" class="info-modal">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <span class="modal-title" id="nameModalTitle"></span>
+        <button class="modal-close" id="nameModalClose" aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="modal-body">
+        <input class="name-input" id="nameModalInput" type="text" maxlength="60" autocomplete="off"/>
+        <div class="name-modal-actions">
+          <button class="export-btn" id="nameModalSave">Save</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="infoModal" class="info-modal">
     <div class="modal-inner">
       <div class="modal-header">
@@ -191,6 +222,7 @@
 
   <script src="engine.js"></script>
   <script src="state-codec.js"></script>
+  <script src="workshop-store.js"></script>
   <script src="feedback-form.js"></script>
   <script src="app.js"></script>
 </body>
