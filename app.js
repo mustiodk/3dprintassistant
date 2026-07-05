@@ -334,6 +334,10 @@ function applyLang() {
   document.getElementById('wsExportBtn').textContent       = T('wsExport');
   document.getElementById('wsImportBtn').textContent       = T('wsImport');
   document.getElementById('nameModalSave').textContent     = T('nameModalSaveBtn');
+  document.getElementById('outcomeWorkedBtn').textContent  = T('outcomeWorked');
+  document.getElementById('outcomeFailedBtn').textContent  = T('outcomeFailed');
+  document.getElementById('outcomeSymptomsLabel').textContent = T('outcomeSymptomsLabel');
+  document.getElementById('outcomeModalSave').textContent  = T('nameModalSaveBtn');
   renderWorkshop();
 
   // Footer
@@ -881,11 +885,34 @@ function renderWorkshop() {
           <button class="export-btn ws-rename" data-id="${escHtml(p.id)}">${T('wsRename')}</button>
           <button class="export-btn ws-delete" data-id="${escHtml(p.id)}">${T('wsDelete')}</button>
         </div>
+        ${renderJournal(p)}
+        <button class="ws-log-btn" data-id="${escHtml(p.id)}">${T('wsLogOutcome')}</button>
       </div>`;
   }).join('') + `</div>`;
 
   el.querySelectorAll('.ws-load').forEach(b =>
     b.addEventListener('click', () => restoreWorkshopProfile(b.dataset.id)));
+
+  el.querySelectorAll('.ws-log-btn').forEach(b =>
+    b.addEventListener('click', () => openOutcomeModal(b.dataset.id)));
+
+  el.querySelectorAll('.ws-outcome-trouble').forEach(b =>
+    b.addEventListener('click', () => {
+      // Deep-link a failed outcome into the troubleshooter with the symptom
+      // preselected (IMPL-044 W2).
+      setView('troubleshoot');
+      activeSymptom = b.dataset.symptom;
+      document.querySelectorAll('.symptom-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.id === activeSymptom);
+      });
+      renderTroubleshooter();
+    }));
+
+  el.querySelectorAll('.ws-outcome-remove').forEach(b =>
+    b.addEventListener('click', () => {
+      WorkshopStore.removeOutcome(b.dataset.pid, b.dataset.oid);
+      renderWorkshop();
+    }));
 
   el.querySelectorAll('.ws-share').forEach(b =>
     b.addEventListener('click', () => {
@@ -921,6 +948,73 @@ function renderWorkshop() {
         b.textContent = orig;
       }, 3000);
     }));
+}
+
+// Journal rows for one profile card (IMPL-044 W2). Newest first, capped at 4
+// visible so cards stay compact; symptom ids resolve to localized names.
+function renderJournal(p) {
+  const T = Engine.t;
+  const journal = Array.isArray(p.journal) ? p.journal : [];
+  if (!journal.length) return '';
+  const symptomName = {};
+  Engine.getSymptoms().forEach(s => { symptomName[s.id] = s.name; });
+  const rows = [...journal].reverse().slice(0, 4).map(o => {
+    const date = (o.date || '').slice(0, 10);
+    const tags = (o.symptoms || []).map(id =>
+      `<span class="ws-tag">${escHtml(symptomName[id] || id)}</span>`).join('');
+    const trouble = (o.result === 'failed' && o.symptoms && o.symptoms.length)
+      ? `<button class="ws-outcome-trouble" data-symptom="${escHtml(o.symptoms[0])}">${T('wsTroubleshootLink')}</button>`
+      : '';
+    return `
+      <div class="ws-outcome ${o.result === 'failed' ? 'failed' : 'worked'}">
+        <span class="ws-outcome-icon">${o.result === 'failed' ? '✗' : '✓'}</span>
+        <div class="ws-outcome-body">
+          <span class="ws-outcome-date">${escHtml(date)}</span>
+          ${tags}
+          ${o.note ? `<span class="ws-outcome-note">${escHtml(o.note)}</span>` : ''}
+          ${trouble}
+        </div>
+        <button class="ws-outcome-remove" title="Remove entry" data-pid="${escHtml(p.id)}" data-oid="${escHtml(o.id)}">&times;</button>
+      </div>`;
+  }).join('');
+  return `<div class="ws-journal">${rows}</div>`;
+}
+
+// Outcome-logging dialog state + open/save (IMPL-044 W2)
+let _outcomeProfileId = null;
+let _outcomeResult = 'worked';
+const _outcomeSymptoms = new Set();
+
+function openOutcomeModal(profileId) {
+  const T = Engine.t;
+  _outcomeProfileId = profileId;
+  _outcomeResult = 'worked';
+  _outcomeSymptoms.clear();
+  document.getElementById('outcomeModalTitle').textContent = T('outcomeTitle');
+  document.getElementById('outcomeNote').value = '';
+  document.getElementById('outcomeNote').placeholder = T('outcomeNotePlaceholder');
+  const chipsEl = document.getElementById('outcomeSymptomChips');
+  chipsEl.innerHTML = '';
+  Engine.getSymptoms().forEach(s => {
+    const chip = document.createElement('button');
+    chip.className = 'chip';
+    chip.dataset.value = s.id;
+    chip.innerHTML = `<span>${s.icon} ${s.name}</span>`;
+    chip.addEventListener('click', () => {
+      const on = !_outcomeSymptoms.has(s.id);
+      chip.classList.toggle('selected', on);
+      if (on) _outcomeSymptoms.add(s.id); else _outcomeSymptoms.delete(s.id);
+    });
+    chipsEl.appendChild(chip);
+  });
+  _syncOutcomeToggle();
+  document.getElementById('outcomeModal').showModal();
+}
+
+function _syncOutcomeToggle() {
+  document.getElementById('outcomeWorkedBtn').classList.toggle('active', _outcomeResult === 'worked');
+  document.getElementById('outcomeFailedBtn').classList.toggle('active', _outcomeResult === 'failed');
+  document.getElementById('outcomeSymptoms').style.display = _outcomeResult === 'failed' ? '' : 'none';
 }
 
 function restoreWorkshopProfile(id) {
@@ -1045,6 +1139,24 @@ function bindControls() {
       const r = WorkshopStore.save(name, snapshot);
       showToast(r.ok ? Engine.t('profileSaved') : Engine.t('wsSaveFailed'));
     });
+  });
+
+  // Outcome-logging dialog (IMPL-044 W2)
+  const outcomeModal = document.getElementById('outcomeModal');
+  document.getElementById('outcomeModalClose').addEventListener('click', () => outcomeModal.close());
+  outcomeModal.addEventListener('click', e => { if (e.target === outcomeModal) outcomeModal.close(); });
+  document.getElementById('outcomeWorkedBtn').addEventListener('click', () => { _outcomeResult = 'worked'; _syncOutcomeToggle(); });
+  document.getElementById('outcomeFailedBtn').addEventListener('click', () => { _outcomeResult = 'failed'; _syncOutcomeToggle(); });
+  document.getElementById('outcomeModalSave').addEventListener('click', () => {
+    if (!_outcomeProfileId || !WorkshopStore) return;
+    const r = WorkshopStore.addOutcome(_outcomeProfileId, {
+      result: _outcomeResult,
+      symptoms: _outcomeResult === 'failed' ? [..._outcomeSymptoms] : [],
+      note: document.getElementById('outcomeNote').value.trim(),
+    });
+    outcomeModal.close();
+    showToast(r.ok ? Engine.t('outcomeSaved') : Engine.t('wsSaveFailed'));
+    renderWorkshop();
   });
 
   document.getElementById('wsExportBtn').addEventListener('click', () => {

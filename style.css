@@ -1688,3 +1688,97 @@ dialog.feedback-modal {
 }
 .name-input:focus { border-color: var(--green-border); }
 .name-modal-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+
+/* ── IMPL-044 W2: print journal ────────────────────────────────────────────── */
+.ws-log-btn {
+  background: none;
+  border: 1px dashed var(--border2);
+  border-radius: var(--r-sm);
+  color: var(--text2);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 6px 10px;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.ws-log-btn:hover { color: var(--green); border-color: var(--green-border); }
+
+.ws-journal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.ws-outcome {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+}
+.ws-outcome-icon { font-weight: 700; flex-shrink: 0; }
+.ws-outcome.worked .ws-outcome-icon { color: var(--green); }
+.ws-outcome.failed .ws-outcome-icon { color: var(--orange); }
+.ws-outcome-body { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; flex: 1; }
+.ws-outcome-date { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text2); }
+.ws-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--orange-dim);
+  color: var(--orange);
+  border: 1px solid var(--orange-border);
+}
+.ws-outcome-note { color: var(--text3); font-size: 11px; width: 100%; }
+.ws-outcome-trouble {
+  background: none;
+  border: none;
+  color: var(--purple);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ws-outcome-remove {
+  background: none;
+  border: none;
+  color: var(--text2);
+  opacity: 0.5;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.ws-outcome-remove:hover { opacity: 1; color: var(--orange); }
+
+.outcome-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+.outcome-btn {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  color: var(--text2);
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+#outcomeWorkedBtn.active { background: var(--green-dim); border-color: var(--green-border); color: var(--green); }
+#outcomeFailedBtn.active { background: var(--orange-dim); border-color: var(--orange-border); color: var(--orange); }
+.outcome-symptoms { margin-bottom: 12px; }
+.outcome-symptoms-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text2);
+  margin-bottom: 8px;
+}
+.outcome-note { resize: vertical; min-height: 44px; font-family: 'DM Mono', monospace; }

@@ -195,6 +195,29 @@
 
   <footer id="footerText"></footer>
 
+  <dialog id="outcomeModal" class="info-modal">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <span class="modal-title" id="outcomeModalTitle"></span>
+        <button class="modal-close" id="outcomeModalClose" aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="modal-body">
+        <div class="outcome-toggle">
+          <button class="outcome-btn" id="outcomeWorkedBtn"></button>
+          <button class="outcome-btn" id="outcomeFailedBtn"></button>
+        </div>
+        <div class="outcome-symptoms" id="outcomeSymptoms" style="display:none">
+          <div class="outcome-symptoms-label" id="outcomeSymptomsLabel"></div>
+          <div class="chips" id="outcomeSymptomChips"></div>
+        </div>
+        <textarea class="name-input outcome-note" id="outcomeNote" rows="2" maxlength="300"></textarea>
+        <div class="name-modal-actions">
+          <button class="export-btn" id="outcomeModalSave">Save</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="nameModal" class="info-modal">
     <div class="modal-inner">
       <div class="modal-header">
