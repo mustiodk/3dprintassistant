@@ -80,6 +80,40 @@ function createWorkshopStore(storage) {
     return _write(next);
   }
 
+  // ── Print journal (IMPL-044 W2) — per-profile outcome records ─────────────
+  // Symptom tags reuse data/rules/troubleshooter.json symptom ids; the store
+  // treats them as opaque strings (UI supplies/validates them via the engine).
+  function addOutcome(profileId, outcome) {
+    const profiles = _read();
+    const p = profiles.find(x => x.id === profileId);
+    if (!p) return { ok: false, error: 'not-found' };
+    const rec = {
+      id: _newId(),
+      result: (outcome && outcome.result === 'failed') ? 'failed' : 'worked',
+      symptoms: (outcome && Array.isArray(outcome.symptoms))
+        ? outcome.symptoms.filter(s => typeof s === 'string')
+        : [],
+      note: (outcome && typeof outcome.note === 'string') ? outcome.note.slice(0, 500) : '',
+      date: _now(),
+    };
+    if (!Array.isArray(p.journal)) p.journal = [];
+    p.journal.push(rec);
+    p.updated = _now();
+    const w = _write(profiles);
+    return w.ok ? { ok: true, outcome: rec } : w;
+  }
+
+  function removeOutcome(profileId, outcomeId) {
+    const profiles = _read();
+    const p = profiles.find(x => x.id === profileId);
+    if (!p || !Array.isArray(p.journal)) return { ok: false, error: 'not-found' };
+    const next = p.journal.filter(o => o.id !== outcomeId);
+    if (next.length === p.journal.length) return { ok: false, error: 'not-found' };
+    p.journal = next;
+    p.updated = _now();
+    return _write(profiles);
+  }
+
   function exportJSON() {
     return JSON.stringify({ v: VERSION, profiles: _read() }, null, 2);
   }
@@ -101,7 +135,7 @@ function createWorkshopStore(storage) {
     return w.ok ? { ok: true, count: incoming.length } : w;
   }
 
-  return { list, get, save, rename, remove, exportJSON, importJSON };
+  return { list, get, save, rename, remove, addOutcome, removeOutcome, exportJSON, importJSON };
 }
 
 const WorkshopStore = (typeof localStorage !== 'undefined')

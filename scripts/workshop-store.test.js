@@ -141,6 +141,47 @@ console.log('# workshop-store.js tests\n');
   })());
 }
 
+// ── TC8 — journal: addOutcome (IMPL-044 W2) ──
+{
+  console.log('TC8 — journal addOutcome');
+  const ws = createWorkshopStore(mockStorage());
+  const { profile } = ws.save('Journaled', STATE_A);
+  const r1 = ws.addOutcome(profile.id, { result: 'worked', note: 'first try' });
+  const r2 = ws.addOutcome(profile.id, { result: 'failed', symptoms: ['stringing', 'warping'], note: '' });
+  check('worked outcome ok', r1.ok === true && r1.outcome.result === 'worked', JSON.stringify(r1));
+  check('failed outcome keeps symptom tags', r2.ok === true &&
+    JSON.stringify(r2.outcome.symptoms) === JSON.stringify(['stringing', 'warping']), JSON.stringify(r2));
+  const j = ws.get(profile.id).journal;
+  check('journal persisted in order', j.length === 2 && j[0].note === 'first try' && j[1].result === 'failed');
+  check('outcome dates present', !!j[0].date && !!j[0].id);
+  check('unknown profile fails', ws.addOutcome('nope', { result: 'worked' }).ok === false);
+  check('bad result normalizes to worked', ws.addOutcome(profile.id, { result: 'exploded' }).outcome.result === 'worked');
+  check('non-array symptoms degrade to []', JSON.stringify(ws.addOutcome(profile.id, { result: 'failed', symptoms: 'x' }).outcome.symptoms) === '[]');
+
+  // journal survives the backup round-trip
+  const fresh = createWorkshopStore(mockStorage());
+  fresh.importJSON(ws.exportJSON());
+  check('journal survives export/import', fresh.get(profile.id).journal.length === 4);
+}
+
+// ── TC9 — journal: removeOutcome + journal-less profiles tolerated ──
+{
+  console.log('TC9 — journal removeOutcome + legacy profiles');
+  const ws = createWorkshopStore(mockStorage());
+  const { profile } = ws.save('J', STATE_A);
+  const { outcome } = ws.addOutcome(profile.id, { result: 'failed', symptoms: ['adhesion'] });
+  check('removeOutcome ok', ws.removeOutcome(profile.id, outcome.id).ok === true);
+  check('journal emptied', ws.get(profile.id).journal.length === 0);
+  check('unknown outcome fails', ws.removeOutcome(profile.id, outcome.id).ok === false);
+  check('unknown profile fails', ws.removeOutcome('nope', outcome.id).ok === false);
+  // a profile written without journal (W1-era) still lists/gets fine
+  const legacy = createWorkshopStore(mockStorage({ '3dpa_workshop_v1':
+    '{"v":1,"profiles":[{"id":"old1","name":"Legacy","state":{"printer":"x1c"}}]}' }));
+  check('legacy journal-less profile listed', legacy.list().length === 1);
+  check('addOutcome creates journal array on legacy profile',
+    legacy.addOutcome('old1', { result: 'worked' }).ok === true && legacy.get('old1').journal.length === 1);
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');
