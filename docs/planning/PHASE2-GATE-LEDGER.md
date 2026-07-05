@@ -45,7 +45,7 @@ Fable token budget is limited and the session may stop mid-way. This ledger plus
 | Gate | Scope | Exit criteria | Status | Commit(s) |
 |------|-------|---------------|--------|-----------|
 | **I0** | Baseline. Read `Models/AppState.swift`, Views tree, XCTest layout. Run existing XCTest green. Note current MARKETING_VERSION in Notes. | Existing XCTest green; version noted. | [x] | (read-only; ledger commit) |
-| **I1** | iOS state persistence: persist app-state JSON to Application Support; restore on launch with the same unknown-id degradation as web; XCTest. No engine work. | XCTest green. Local commit only (push gate). | [ ] | |
+| **I1** | iOS state persistence: persist app-state JSON to Application Support; restore on launch with the same unknown-id degradation as web; XCTest. No engine work. | XCTest green. Local commit only (push gate). | [x] | iOS local `ff950ac` — AppStatePersistence (save on scenePhase background/inactive, restore in ContentView.init); RED = 'cannot find in scope' TEST FAILED; 118 unit green |
 | **I2** | iOS Workshop W1 (SwiftUI): saved-profiles shelf; JSON backup document **byte-compatible** with web format (test this). | XCTest green incl. cross-format test. Local commit. | [ ] | |
 | **I3** | iOS Workshop W2 (journal) — conditional. Implement only if it lands cleanly in the same design language; otherwise defer and record the decision in Notes. | XCTest green, or explicit documented deferral. Local commit or Notes entry. | [ ] | |
 | **I4** | iOS finalize: EN + DA localized strings for all new copy; `MARKETING_VERSION` bump + xcodegen regen if used; full XCTest green via xcodebuild; build succeeds for TestFlight config. | Full XCTest green; TestFlight-config build succeeds. Local commit. | [ ] | |
