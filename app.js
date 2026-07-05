@@ -98,13 +98,13 @@ const MODAL_CONTENT = {
     en: {
       title: 'About 3D Print Assistant',
       body: `<p>3D Print Assistant was built by an amateur 3D printing enthusiast who couldn't find a simple, structured tool for getting started with print settings — so decided to build one. It translates your printer, nozzle, material, and print goals into optimized starting settings for your slicer.</p>
-             <p>The tool supports <strong>69 printers</strong> across 12 brands — including Bambu Lab, Creality, Prusa, Anycubic, QIDI, Voron, and more — with slicer-specific output for <strong>Bambu Studio</strong>, <strong>OrcaSlicer</strong>, and <strong>PrusaSlicer</strong>. Settings match the structure of your slicer's tabs so you can apply them directly.</p>
+             <p>The tool supports <strong>74 printers</strong> across 14 brands — including Bambu Lab, Creality, Prusa, Anycubic, QIDI, Voron, and more — with slicer-specific output for <strong>Bambu Studio</strong>, <strong>OrcaSlicer</strong>, and <strong>PrusaSlicer</strong>. Settings match the structure of your slicer's tabs so you can apply them directly.</p>
              <p>Settings are built from a hybrid of community knowledge, hands-on experience, and manufacturer defaults — a database that is still learning and being refined. This is a <strong>beta project</strong>. All recommendations are a starting point for your own experimentation, not a guarantee.</p>`,
     },
     da: {
       title: 'Om 3D Print Assistant',
       body: `<p>3D Print Assistant er bygget af en amatør 3D-print-entusiast, der ikke kunne finde et simpelt, struktureret værktøj til at komme i gang med printindstillinger — og derfor besluttede at bygge et. Det oversætter din printer, dyse, materiale og printmål til optimerede startindstillinger til din slicer.</p>
-             <p>Værktøjet understøtter <strong>68 printere</strong> fra 12 mærker — inkl. Bambu Lab, Creality, Prusa, Anycubic, QIDI, Voron m.fl. — med slicer-specifikt output til <strong>Bambu Studio</strong>, <strong>OrcaSlicer</strong> og <strong>PrusaSlicer</strong>. Indstillingerne matcher strukturen i din slicers faner, så du kan anvende dem direkte.</p>
+             <p>Værktøjet understøtter <strong>74 printere</strong> fra 14 mærker — inkl. Bambu Lab, Creality, Prusa, Anycubic, QIDI, Voron m.fl. — med slicer-specifikt output til <strong>Bambu Studio</strong>, <strong>OrcaSlicer</strong> og <strong>PrusaSlicer</strong>. Indstillingerne matcher strukturen i din slicers faner, så du kan anvende dem direkte.</p>
              <p>Indstillingerne er bygget på en kombination af community-viden, praktisk erfaring og fabrikanternes standarder — en database der stadig lærer og justeres. Dette er et <strong>betaprojekt</strong>. Alle anbefalinger er et udgangspunkt for din egen eksperimentering, ikke en garanti.</p>`,
     },
   },
