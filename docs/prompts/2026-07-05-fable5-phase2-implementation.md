@@ -1,74 +1,77 @@
 # Fable 5 — 3DPA Phase 2 Implementation Prompt (Share + Persist + Workshop, web + iOS v1.0.6)
 
-**Created:** 2026-07-05 · **For:** Claude Code desktop, model **Fable 5** · **Mode:** autonomous implementation
+**Created:** 2026-07-05 · **For:** Claude Code desktop, model **Fable 5** (resumable by any model) · **Mode:** autonomous, gated implementation
 **Source plan:** `docs/reviews/2026-07-05-fable5-phase1-review.md` (V2 addendum) + `docs/specs/IMPL-042-share-and-discover.md` + `docs/specs/IMPL-044-profiles-workshop.md`
+**Gate ledger (source of truth for progress):** `docs/planning/PHASE2-GATE-LEDGER.md`
 
-In Claude Code desktop: open `~/dev/Claude/Projects/`, select model **Fable 5**, paste everything below the line as your first message.
+In Claude Code desktop: open `~/dev/Claude/Projects/`, select model **Fable 5**, paste everything below the line as your first message. The same prompt can be pasted into a fresh session with **any** model to resume if a previous run stopped.
 
 ---
 
-You are running autonomously as the senior implementer for **3D Print Assistant (3DPA)**. I'm the owner: a solo hobbyist developer. Web is live at 3dprintassistant.com (Cloudflare Workers + Assets, auto-deploys from GitHub `main`); iOS is on the App Store (v1.0.4 live, v1.0.5 on TestFlight). On 2026-07-05 a Phase-1 review produced an approved plan; this session implements its high-value, app-layer slice: **web Share & Persist plus the Workshop (saved profiles + print journal), and a TestFlight-ready iOS v1.0.6 carrying the same capabilities.** The specs are written; an implementer should not need me in the room. Work end to end without checking in with me.
+You are running autonomously as the senior implementer for **3D Print Assistant (3DPA)**. I'm the owner: a solo hobbyist developer. Web is live at 3dprintassistant.com (Cloudflare Workers + Assets, auto-deploys from GitHub `main`); iOS is on the App Store (v1.0.4 live, v1.0.5 on TestFlight). On 2026-07-05 a Phase-1 review produced an approved plan. This session implements its high-value, app-layer slice — web Share & Persist plus the Workshop (saved profiles + print journal), and a TestFlight-ready iOS v1.0.6 — **as a series of atomic gates**, so the work survives being stopped and resumed.
+
+**This is gated, token-budget-aware work.** My Fable token budget is limited and this session may stop before finishing. That is expected and safe: the work is divided into gates that each end at a clean committed (web: pushed) boundary. The gate ledger at `docs/planning/PHASE2-GATE-LEDGER.md` is the single source of truth for what is done. Never depend on conversation history to know where you are; depend on the ledger and `git log`.
+
+**GATE 0 — orient and resume (always first)**
+1. Read `docs/planning/PHASE2-GATE-LEDGER.md` fully. Follow its "Resume protocol" section exactly.
+2. Run `git status`. If the tree is dirty, a previous gate did not finish: `git stash`, inspect, then discard the stash and re-run that gate from the clean boundary. Do not build on partial work.
+3. The first gate with an unchecked box is your entry point. If W0/I0 are unchecked, start there (baseline). If mid-way, resume at the first unchecked gate.
+4. You may be Fable or a different model resuming a stopped run. Either way, the ledger + specs + repo are self-sufficient; proceed without me.
 
 **Operating mode**
-- You are operating autonomously. I am not watching in real time and cannot answer questions mid-task, so do not ask "want me to...?" For anything that follows from this prompt and the specs, proceed. Before ending your turn, check your last paragraph: if it is a plan, a question, or a promise of work you have not done yet, do that work now instead of ending.
-- You have ample context. Do not stop, summarize and hand off, or suggest a new session on account of context limits. Continue until the ship sequence and wrap-up are complete.
-- Iterate: implement, run the gates, fix what fails, re-run until green. Use subagents for independent strands (for example web codec tests while reading iOS AppState) but keep engine-adjacent decisions in your own context.
-- Show the progress bar (`[🟩🟩⬜⬜⬜ 40%] step`) on every multi-step turn and keep it updated.
+- Autonomous. I am not watching and cannot answer mid-task, so do not ask "want me to...?" Proceed on anything that follows from the ledger and specs. Before ending a turn, if your last paragraph is a plan/question/promise, do that work instead of ending — unless you are stopping at a clean gate boundary because you judge the budget is running low, which is allowed and correct.
+- Work one gate at a time to completion. Finishing a gate = meeting its exit criteria + committing (web: + pushing) + ticking its ledger box and writing the commit hash **in that same final commit**, so the tick and the code are atomic. This is the property that makes stopping safe.
+- Be economical: the budget is finite. Don't re-read files you've read this session, don't over-explain, let the gates and commits be the record. Use subagents for genuinely independent strands (e.g. web codec tests while reading iOS AppState).
+- Show the progress bar (`[🟩🟩⬜⬜⬜ 40%] step`) on every multi-step turn.
 
-**Ground truth: read before writing any code, in this order**
-1. `3dprintassistant/CLAUDE.md` (critical rules: engine/app separation, localStorage try-catch, staging discipline, TDD-RED breadcrumb convention)
+**Ground truth — read at Gate W0 (web) and Gate I0 (iOS), in order**
+1. `3dprintassistant/CLAUDE.md` (engine/app separation, localStorage try-catch, staging discipline, TDD-RED convention)
 2. `3dprintassistant/docs/3dpa-context.md` (architecture, engine API, app-state shape, standing rules)
-3. `3dprintassistant/docs/specs/IMPL-042-share-and-discover.md` — Phases A+B are core scope; Phase C is stretch
-4. `3dprintassistant/docs/specs/IMPL-044-profiles-workshop.md` — W1+W2 are core scope; W3/W4/W5 are OUT
-5. `3dprintassistant/docs/reviews/2026-07-05-fable5-phase1-review.md` — read the V2 addendum for the why
-6. `3dprintassistant/docs/planning/ROADMAP.md` + `docs/sessions/INDEX.md` + the last 3 session logs
-7. iOS: `3dprintassistant-ios/` project docs and `Models/AppState.swift`, the Views tree, and the XCTest layout before touching Swift
+3. `3dprintassistant/docs/specs/IMPL-042-share-and-discover.md` (Phases A+B) and `docs/specs/IMPL-044-profiles-workshop.md` (W1+W2 only)
+4. `3dprintassistant/docs/planning/ROADMAP.md` + `docs/sessions/INDEX.md` + the last 3 session logs
+5. iOS (at I0): `3dprintassistant-ios/` docs, `Models/AppState.swift`, the Views tree, the XCTest layout
 
-**Scope: web (in this order, each item its own commit or commit series)**
-1. **IMPL-042 Phase A** — state codec + localStorage session persistence (`3dpa_state_v1`), restore-on-init with unknown-id degradation, "Start over" affordance. TDD-first: codec round-trip test RED before the codec exists, per the repo's TDD-RED convention.
-2. **IMPL-042 Phase B** — shareable profile URLs (query params, ids verbatim, `history.replaceState`), Share button next to Compare, copy-with-toast. URL params take precedence over localStorage; invalid ids degrade per Phase A.
-3. **IMPL-044 W1** — Workshop view (nav pattern like Troubleshooter): save current configuration under a name into `3dpa_workshop_v1`, list/restore/rename/delete, per-profile Share (Phase B URL) , "Export my Workshop" / "Import" JSON backup file. Reuses the Phase A codec; one codec for URL, persistence, and profiles.
-4. **IMPL-044 W2** — print journal: per-saved-profile outcome records (worked / failed with failure tags reusing `data/rules/troubleshooter.json` symptom ids), optional note, deep-link from a failed outcome into the troubleshooter with the symptom preselected.
-5. **Hygiene ride-alongs** (each one commit): add the 2 missing Danish keys (`secNozzleTemp_prusaslicer`, `secBedTemp_prusaslicer`); fix the stale ROADMAP export status row (export is live for Bambu behind Beta, not disabled); align public printer-count copy with the actual count computed from `data/printers.json`.
-6. **STRETCH, only if 1-5 are green with time to spare:** IMPL-042 Phase C landing-page generator + curated page set + sitemap + runbook regeneration step, exactly per the spec. If you start it, finish it or revert it clean; no half-landed generator.
+**The gates** — full detail, exit criteria, and status live in `docs/planning/PHASE2-GATE-LEDGER.md`. Summary of the sequence:
+- **W0** baseline (capture validate-data + walkthrough output; confirm clean, pushed).
+- **W1** IMPL-042 Phase A: persistence codec + tests + restore + start-over.
+- **W2** IMPL-042 Phase B: share URLs + Share button + precedence.
+- **W3** IMPL-044 W1: Workshop shelf (save/list/restore/rename/delete) + JSON backup export/import.
+- **W4** IMPL-044 W2: print journal + troubleshooter deep-link.
+- **W5** hygiene ride-alongs (Danish keys; stale ROADMAP export row; printer-count copy) — one commit each.
+- **W6** web ship verification (curl live site + one share URL).
+- **I0** iOS baseline. **I1** persistence. **I2** Workshop shelf (byte-compatible backup). **I3** journal (conditional; defer cleanly if it risks quality). **I4** localize + version bump + full XCTest + TestFlight-config build. **I5** iOS ship: push `main`, print dispatch command, stop.
+- **S1** (stretch) IMPL-042 Phase C landing pages — only if all above green with budget left; whole or reverted clean.
+- **WRAP** session log, INDEX, ROADMAP, memory/vault sweep, final summary.
 
-**Scope: iOS (new version, target v1.0.6 — verify the current MARKETING_VERSION first and bump to the next patch/minor per its actual value)**
-1. State persistence: persist the app-state as JSON in Application Support, restore on launch with the same unknown-id degradation rules as web (IMPL-042 section 6). No engine work: there is no engine or data delta in this entire session.
-2. Workshop W1 in SwiftUI: saved profiles shelf, same JSON backup document format as web (that file is the cross-device story; make the formats byte-compatible and test that).
-3. Workshop W2 (journal) if it lands cleanly in the same design language; if it threatens the timeline or quality, defer it explicitly and say so in the wrap-up.
-4. Localized strings for everything new (English + Danish), matching web copy.
-5. `MARKETING_VERSION` bump + xcodegen regeneration if the project uses it; full XCTest suite green via `xcodebuild`; UI smoke of the new surfaces in the simulator if the harness supports it.
+Web gates commit **and push** at each boundary (auto-deploy is fine; these are docs- and app-layer). iOS gates commit **locally only** through I4; the single iOS push is I5, which is the push-gate "ready for TestFlight" condition being met.
 
 **Hard boundaries**
-- **Zero changes to `engine.js` or `data/` on either platform.** Everything in scope is app-layer by design; `node scripts/validate-data.js` and `node scripts/walkthrough-harness.js` passing unchanged is the proof, run them before your first commit and after your last. If any in-scope item genuinely seems to need an engine change, do not make it: document the conflict in the session log, skip that sub-item, continue with the rest.
-- **No IMPL-043 export work.** Its Phase 0 needs golden fixture files exported from my real slicers, which only I can produce. Do not touch the export paths.
-- **No IMPL-044 W3/W4/W5**, no tip jar, no universal links, no analytics changes beyond nothing.
-- **Do not dispatch the TestFlight workflow.** Prepare everything; the dispatch is mine.
+- Zero changes to `engine.js` or `data/` on either platform. Everything in scope is app-layer. If an item seems to need an engine change, do not make it: record it in the ledger Notes, skip that sub-item, continue.
+- No IMPL-043 export work (its Phase 0 needs golden files only I can produce). Do not touch the export paths.
+- No IMPL-044 W3/W4/W5, no tip jar, no universal links, no analytics changes.
+- Do not dispatch the TestFlight workflow. Prepare it; the dispatch is mine.
 
 **Standing rules that bind every commit**
-- engine.js / app.js separation is non-negotiable; codec, Workshop storage, and journal live in the app layer.
-- TDD-first with the repo's RED-evidence convention (`3dprintassistant/CLAUDE.md`); new Node tests in the `scripts/picker-dry-run.test.js` style; new XCTests follow the existing patterns.
-- One logical change = one commit; stage every touched file including index.html/style.css when structure changes.
-- localStorage access always in try-catch; locale keys for all user-facing copy, English and Danish both; PARAM_LABELS stay English.
-- Quality over speed: no narrowed scope to ship faster; if something must be cut, cut it whole and say so.
+- engine.js / app.js separation is non-negotiable; codec, Workshop storage, journal all live in the app layer.
+- TDD-first with the repo's RED-evidence convention; new Node tests in the `scripts/picker-dry-run.test.js` style; new XCTests follow existing patterns.
+- One logical change = one commit; stage every touched file including index.html/style.css.
+- localStorage in try-catch; new copy gets English + Danish keys; PARAM_LABELS stay English.
+- Quality over speed: never narrow scope to ship faster; if something must be cut, cut it whole and record it in the ledger.
 
-**Test gates (nothing ships without them)**
-- Web: `node scripts/validate-data.js` and `node scripts/walkthrough-harness.js` green and byte-unchanged output vs. pre-session (engine untouched proof); all new codec/storage/Workshop tests green; UI smoke in light and dark themes via `npx serve -l 4200 .`.
-- iOS: full XCTest suite green; build succeeds for the TestFlight configuration.
-- Post-deploy (web): after pushing, `curl` the live site and one `?p=...&m=...` share URL, confirm 200 and that the page loads the app shell. Published is not delivered.
+**Test gates (a gate is not "done" until these pass for its scope)**
+- Web: `node scripts/validate-data.js` and `node scripts/walkthrough-harness.js` green and output unchanged vs. W0 baseline (engine-untouched proof); all new codec/storage/Workshop tests green; UI smoke in light and dark themes via `npx serve -l 4200 .`.
+- iOS: full XCTest green; build succeeds for the TestFlight configuration.
+- Post-deploy (web, Gate W6): after pushing, `curl` the live site and one `?p=...&m=...` share URL; confirm 200 and the app shell loads. Published is not delivered.
 
-**Ship sequence**
-- **Web:** push to `main` when the core scope (items 1-5) is green — auto-deploy handles the rest; then run the post-deploy checks. Stretch Phase C, if done, pushes separately after its own gate.
-- **iOS:** commit locally throughout. Push to `origin main` ONLY when the full TestFlight-ready condition holds: all planned v1.0.6 changes landed, XCTest green, MARKETING_VERSION bumped. That push is the iOS push gate's "ready to ship" condition being met, per the standing rule. Then print the exact dispatch command for me (`gh workflow run testflight.yml --ref main` from the iOS repo) and STOP there; do not run it.
+**Wrap-up (Gate WRAP — run before finishing, even a partial session)**
+- Update the ledger Notes with where you stopped and anything a resuming model needs.
+- Session log at `docs/sessions/` (cowork-appdev), INDEX prepend, ROADMAP tick + confirm the stale export row is fixed.
+- Final plain-language summary: what shipped on web (with live verification evidence), what iOS v1.0.6 contains, every commit hash, and my exact remaining manual actions (TestFlight dispatch command; IMPL-043 Phase 0 golden-file homework list; Search Console submission only if S1 ran).
 
-**Wrap-up (do all of it, then finish)**
-- Session log at `3dprintassistant/docs/sessions/` per the documented convention (cowork-appdev type), INDEX prepend, ROADMAP updated (tick what shipped, note the W2-iOS decision either way, fix the stale export row as part of ride-along item 5).
-- Final plain-language summary: what shipped on web (with live verification evidence), what the iOS v1.0.6 build contains, every commit hash, and my exact remaining manual actions (TestFlight dispatch command; IMPL-043 Phase 0 golden-file homework list if you want to hand it to me; Search Console submission only if Phase C ran).
-
-Start by reading the ground-truth files in order, then implement straight through: web A, B, W1, W2, hygiene, then iOS, then ship sequence, then wrap-up.
+Start at Gate 0: read the ledger, determine your entry point, then execute gates in order to completion, stopping only at a clean gate boundary.
 
 ---
 
 ## Maintenance note
 
-One-shot implementation kickoff for the 2026-07-05 Phase-2 slice. Superseded once the session runs; if re-run after partial completion, prepend a "state check first" instruction to diff actual repo state against the scope list before implementing.
+Gated, resumable implementation kickoff for the 2026-07-05 Phase-2 slice. Progress is tracked in `docs/planning/PHASE2-GATE-LEDGER.md` (the durable resume surface); this prompt is stable across resumes and can be re-pasted into any model's session. Superseded when all gates including WRAP are checked.
