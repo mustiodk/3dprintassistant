@@ -1298,9 +1298,10 @@ body, header, .top-nav, .filters, .panel, .chip,
   /* Container */
   .container            { padding: 16px 16px 60px; }
 
-  /* Top nav */
-  .top-nav       { padding: 0 16px; top: 52px; }
-  .nav-btn       { padding: 10px 12px; font-size: 12px; }
+  /* Top nav — sticky single row, swipeable when it overflows */
+  .top-nav       { padding: 0 16px; top: 52px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .top-nav::-webkit-scrollbar { display: none; }
+  .nav-btn       { padding: 10px 12px; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
 
   /* Troubleshooter */
   .trouble-symptom-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1872,3 +1873,40 @@ dialog.feedback-modal {
   margin-bottom: 8px;
 }
 .outcome-note { resize: vertical; min-height: 44px; font-family: 'DM Mono', monospace; }
+
+/* ── Finishing details ─────────────────────────────────────────────────────── */
+
+/* Keyboard focus ring — visible only for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--green-border);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Text selection in brand green */
+::selection { background: var(--green-glow); color: var(--text); }
+
+/* Themed scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--surface2) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--surface2);
+  border-radius: 6px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--border2); }
+
+/* Smooth anchor/programmatic scrolling when motion is welcome */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
+/* Respect users who opt out of motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
