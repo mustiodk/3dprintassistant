@@ -147,6 +147,8 @@
   "secSetup":                  "Opsætning",
   "secAdvExtrusion":           "Indstillingsændringer",
   "secTemps_prusaslicer":      "Temperatur",
+  "secNozzleTemp_prusaslicer": "Dysetemperatur",
+  "secBedTemp_prusaslicer":    "Bordtemperatur",
   "secCooling_prusaslicer":    "Blæserindstillinger",
   "secSpeedLimit_prusaslicer": "Print hastighed",
   "secAdvExtrusion_prusaslicer": "Filament ændringer",
