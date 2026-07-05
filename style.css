@@ -21,6 +21,12 @@
   --chip-hover:    rgba(255,255,255,0.22);
   --r:             10px;
   --r-sm:          7px;
+  --glow-a:        rgba(0,229,160,0.07);
+  --glow-b:        rgba(123,110,246,0.06);
+  --accent2:       #4ed6ff;
+  --green-glow:    rgba(0,229,160,0.12);
+  --shadow-lift:   0 8px 24px rgba(0,0,0,0.35);
+  --glass:         rgba(17,17,20,0.78);
 }
 
 html[data-theme="light"] {
@@ -41,10 +47,20 @@ html[data-theme="light"] {
   --purple:        #5648d4;
   --purple-border: rgba(86,72,212,0.28);
   --chip-hover:    rgba(0,0,0,0.15);
+  --glow-a:        rgba(0,154,106,0.07);
+  --glow-b:        rgba(86,72,212,0.05);
+  --accent2:       #0b7fc4;
+  --green-glow:    rgba(0,154,106,0.10);
+  --shadow-lift:   0 8px 24px rgba(15,15,26,0.12);
+  --glass:         rgba(255,255,255,0.78);
 }
 
 body {
-  background: var(--bg);
+  background:
+    radial-gradient(1000px 520px at 88% -12%, var(--glow-b), transparent 62%),
+    radial-gradient(1200px 640px at -8% -18%, var(--glow-a), transparent 62%),
+    var(--bg);
+  background-attachment: fixed;
   color: var(--text);
   font-family: 'Syne', system-ui, sans-serif;
   min-height: 100vh;
@@ -55,6 +71,9 @@ body {
 /* ── Header ── */
 header {
   background: var(--surface);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
   border-bottom: 1px solid var(--border2);
   padding: 0 32px;
   display: flex;
@@ -850,6 +869,12 @@ body, header, .top-nav, .filters, .panel, .chip,
   padding: 0 32px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  position: sticky;
+  top: 58px;
+  z-index: 150;
 }
 .nav-btn {
   background: none;
@@ -1225,7 +1250,7 @@ body, header, .top-nav, .filters, .panel, .chip,
   .container            { padding: 16px 16px 60px; }
 
   /* Top nav */
-  .top-nav       { padding: 0 16px; }
+  .top-nav       { padding: 0 16px; top: 52px; }
   .nav-btn       { padding: 10px 12px; font-size: 12px; }
 
   /* Troubleshooter */
