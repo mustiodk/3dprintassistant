@@ -169,8 +169,10 @@ Engine.init()
       const savedTheme = localStorage.getItem('3dpa_theme');
       if (savedTheme === 'light' || savedTheme === 'dark') applyTheme(savedTheme, false);
     } catch (_) {}
+    const restored = restorePersistedState();
     bindControls();
     applyLang();
+    if (restored) showToast(Engine.t('restoredNotice'));
     track('app_opened');
   })
   .catch(err => {
@@ -186,6 +188,44 @@ function applyTheme(theme, persist = true) {
   const btn = document.getElementById('themeBtn');
   if (btn) btn.textContent = theme === 'dark' ? '☀' : '☾';
   if (persist) try { localStorage.setItem('3dpa_theme', theme); } catch (_) {}
+}
+
+// ── Session persistence (IMPL-042 Phase A) ───────────────────────────────────
+// Serialize app state via StateCodec on every render; restore on boot after
+// Engine.init() so unknown ids can degrade against the live catalogs.
+function persistState() {
+  try { localStorage.setItem('3dpa_state_v1', StateCodec.encodeForStorage(state)); } catch (_) {}
+}
+
+function restorePersistedState() {
+  let raw = null;
+  try { raw = localStorage.getItem('3dpa_state_v1'); } catch (_) { return false; }
+  if (!raw) return false;
+  const decoded = StateCodec.decodeFromStorage(raw);
+  if (!decoded) return false;
+  const clean = StateCodec.validateState(decoded, Engine);
+  Object.keys(clean).forEach(k => { state[k] = clean[k]; });
+  if (state.printer) {
+    Engine.setActiveSlicer(Engine.getSlicerForPrinter(state.printer));
+    pickerCollapsed = true;
+  }
+  return !!(state.printer || state.material || state.nozzle);
+}
+
+// ── Toast — small transient notice (restored session, link copied) ───────────
+let _toastTimer = null;
+function showToast(msg) {
+  let t = document.getElementById('appToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'appToast';
+    t.className = 'toast';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  clearTimeout(_toastTimer);
+  requestAnimationFrame(() => t.classList.add('visible'));
+  _toastTimer = setTimeout(() => t.classList.remove('visible'), 2600);
 }
 
 // ── Apply current language to all static UI text ──────────────────────────────
@@ -286,6 +326,7 @@ function buildPrinterPicker(container, filter) {
           <span id="printerSummaryText"></span>
           <button class="printer-clear-btn" title="Clear selection">&times;</button>
         </div>
+        <button class="start-over-link" id="startOverBtn">${T('startOver')}</button>
         <div class="printer-search-wrap">
           <span class="printer-search-icon">&#x1F50D;</span>
           <input class="printer-search-input" id="printerSearchInput" type="text"
@@ -311,6 +352,13 @@ function buildPrinterPicker(container, filter) {
   section.querySelector('.printer-clear-btn').addEventListener('click', (e) => {
     e.stopPropagation();
     clearPrinterSelection();
+  });
+
+  // Wire "Start over" — full reset, so restored state never feels sticky
+  // (IMPL-042 Phase A)
+  document.getElementById('startOverBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    resetAll();
   });
 
   // Wire summary bar click to re-expand picker (whole bar, not just text)
@@ -477,17 +525,21 @@ function renderPrinterSummary() {
   const txt = document.getElementById('printerSummaryText');
   if (!el) return;
 
+  const startOver = document.getElementById('startOverBtn');
+
   if (!state.printer) {
     el.classList.remove('visible');
+    startOver?.classList.remove('visible');
     return;
   }
 
   const p = Engine.getPrinter(state.printer);
-  if (!p) { el.classList.remove('visible'); return; }
+  if (!p) { el.classList.remove('visible'); startOver?.classList.remove('visible'); return; }
 
   const brand = Engine.getBrands().find(b => b.id === p.manufacturer);
   txt.innerHTML = `${brand ? brand.name : p.manufacturer} <span class="crumb">\u203A</span> ${p.name}`;
   el.classList.add('visible');
+  startOver?.classList.add('visible');
 }
 
 function applyPickerCollapsed() {
@@ -882,26 +934,29 @@ function bindControls() {
     render();
   });
 
-  document.getElementById('resetBtn').addEventListener('click', () => {
-    Object.keys(state).forEach(k => { state[k] = Array.isArray(state[k]) ? [] : null; });
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
-    expandedSections.clear();
-    comparisonProfile = null;
-    // Reset printer picker state
-    pickerBrand = null;
-    pickerShowMore = false;
-    pickerCollapsed = false;
-    Engine.setActiveSlicer('bambu_studio');
-    renderBrandChips();
-    closeModelPanel();
-    renderPrinterSummary();
-    applyPickerCollapsed();
-    const searchInput = document.getElementById('printerSearchInput');
-    if (searchInput) searchInput.value = '';
-    document.getElementById('printerSearchResults')?.classList.remove('open');
-    updateCollapseBadges();
-    render();
-  });
+  document.getElementById('resetBtn').addEventListener('click', resetAll);
+}
+
+// ── Full reset — shared by the header Reset button and "Start over" ──────────
+function resetAll() {
+  Object.keys(state).forEach(k => { state[k] = Array.isArray(state[k]) ? [] : null; });
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  expandedSections.clear();
+  comparisonProfile = null;
+  // Reset printer picker state
+  pickerBrand = null;
+  pickerShowMore = false;
+  pickerCollapsed = false;
+  Engine.setActiveSlicer('bambu_studio');
+  renderBrandChips();
+  closeModelPanel();
+  renderPrinterSummary();
+  applyPickerCollapsed();
+  const searchInput = document.getElementById('printerSearchInput');
+  if (searchInput) searchInput.value = '';
+  document.getElementById('printerSearchResults')?.classList.remove('open');
+  updateCollapseBadges();
+  render();
 }
 
 // ── Mode toggle ───────────────────────────────────────────────────────────────
@@ -976,6 +1031,7 @@ function handleChipClick(container, clicked, key, value, isMulti) {
 
 // ── Main render ───────────────────────────────────────────────────────────────
 function render() {
+  persistState();
   updateCollapseBadges();
   updateDynamicChipDescs();
   renderPrinterSummary();

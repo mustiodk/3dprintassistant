@@ -1598,3 +1598,41 @@ dialog.feedback-modal {
   max-width: 360px;
 }
 .feedback-success .feedback-btn { margin-top: 6px; }
+
+/* ── IMPL-042: toast + start-over ──────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  padding: 10px 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 200;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+}
+.toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.start-over-link {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text2);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 0;
+  margin: 6px 0 10px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s;
+}
+.start-over-link.visible { display: inline-block; }
+.start-over-link:hover { color: var(--orange); }

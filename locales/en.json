@@ -4,6 +4,8 @@
   "modeSimple":                "Simple",
   "modeAdvanced":              "Advanced",
   "reset":                     "Reset",
+  "startOver":                 "Start over",
+  "restoredNotice":            "Restored your last session",
   "navConfigure":              "Configure",
   "navTroubleshoot":           "Troubleshoot",
   "navPurge":                  "AMS Purge",

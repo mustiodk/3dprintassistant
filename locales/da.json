@@ -4,6 +4,8 @@
   "modeSimple":                "Simpel",
   "modeAdvanced":              "Avanceret",
   "reset":                     "Nulstil",
+  "startOver":                 "Start forfra",
+  "restoredNotice":            "Din seneste session er gendannet",
   "navConfigure":              "Konfigurer",
   "navTroubleshoot":           "Fejlfinding",
   "navPurge":                  "AMS Skylning",
