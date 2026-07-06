@@ -3033,6 +3033,13 @@ const Engine = (() => {
   // path only after the owner's recorded Bambu Studio import test passes.
   const USE_LEGACY_EXPORT = false;
 
+  // Phase 0 finding F2 (golden fixtures, 2026-07-06): Bambu Studio writes
+  // DIFFERENT schema versions for process vs filament presets. Empirical from
+  // the owner's BS exports; refresh alongside the golden fixtures when BS
+  // updates (LOW-007 hoisted the literals here).
+  const BAMBU_PROCESS_VERSION  = '2.5.0.14';
+  const BAMBU_FILAMENT_VERSION = '2.5.0.18';
+
   // Numeric-only extraction for the passthrough pipeline: units/ranges are
   // mechanical ("0.2 mm" → "0.2", "5–8 mm" → "5", "15%" → "15%"); anything
   // non-numeric without a _slicer_value sidecar is SKIPPED, never guessed.
@@ -3324,7 +3331,7 @@ const Engine = (() => {
       inherits: processParent,
       name: processName,
       print_settings_id: processName,
-      version: '2.5.0.14',
+      version: BAMBU_PROCESS_VERSION,
     };
 
     Object.entries(BAMBU_PROCESS_MAP).forEach(([engineKey, bsKey]) => {
@@ -3361,7 +3368,7 @@ const Engine = (() => {
       name: filamentName,
       filament_settings_id: [filamentName],
       filament_type: [material.group || 'PLA'],
-      version: '2.5.0.14',
+      version: BAMBU_FILAMENT_VERSION,
       ...(compatiblePrinters ? { compatible_printers: compatiblePrinters } : {}),
     };
 
