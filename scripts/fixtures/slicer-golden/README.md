@@ -35,18 +35,25 @@ One real, currently-selected preset per slicer is all that's needed. Don't hand-
 ## How to export each one
 
 ### Bambu Studio
-1. Prepare tab → select the printer, a filament, and a process/print preset.
-2. Easiest: the **process preset dropdown → the "…" / gear menu → Export preset** (label varies
-   by version) → save the `.json` here. Repeat from the **filament preset dropdown**.
-3. **Reliable fallback if you can't find in-app export:** copy the JSON straight from the config
-   folder — `~/Library/Application Support/BambuStudio/` → look under `user/<id>/process/*.json`
-   and `user/<id>/filament/*.json`, copy the two that match your selected presets.
+1. **File → Export → Export Preset Bundle** opens a dialog with radio options.
+2. In the printer list, tick your **X1 Carbon 0.4 nozzle** entry. Choose **"Process presets(.zip)"**
+   → OK → save. Reopen and do the same with **"Filament presets(.zip)"**. **Use the `.zip` options,
+   not `.bbscfg`/`.bbsflmt`** — the zips are the raw per-preset `.json` files (real field names,
+   `inherits` parent, `version` string); the bundles just wrap the same data.
+3. **Unzip both.** Take the X1 Carbon 0.4 process `.json` → rename `bambu-x1c-process.json`; take a
+   PLA filament `.json` → rename `bambu-x1c-filament.json`. Drop both here. (A user preset stores
+   `inherits` + your overrides rather than every field — that's fine and ideal; the `inherits`
+   name and `version` are exactly what Phase 0 must pin.)
+4. **Fallback (skip the dialog):** copy the JSON straight from
+   `~/Library/Application Support/BambuStudio/` under `user/<id>/process/*.json` and
+   `.../filament/*.json`.
 
 ### OrcaSlicer
-1. Same idea: **process/print preset dropdown → Export preset** → `.json` here; repeat for
-   **filament**.
-2. **Reliable fallback:** `~/Library/Application Support/OrcaSlicer/user/default/process/*.json`
-   and `.../filament/*.json`.
+1. OrcaSlicer is a Bambu fork with the **same Export Preset Bundle dialog** (File → Export →
+   Export Preset Bundle): tick your chosen printer, export **Process presets(.zip)** and
+   **Filament presets(.zip)**, unzip, pick one process + one filament `.json`, rename per the table.
+2. **Fallback:** `~/Library/Application Support/OrcaSlicer/user/default/process/*.json` and
+   `.../filament/*.json`.
 
 ### PrusaSlicer
 1. Menu **File → Export → Export Config…** → save one `.ini` here (that bundle already contains
