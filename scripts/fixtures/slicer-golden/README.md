@@ -56,12 +56,14 @@ One real, currently-selected preset per slicer is all that's needed. Don't hand-
    `.../filament/*.json`.
 
 ### PrusaSlicer
-1. Menu **File → Export → Export Config Bundle…** (NOT "With Physical Printers") → save one
-   `.ini` here. The bundle uses the named-section format `[print:name]` / `[filament:name]` that
-   the app's Prusa export targets, and one file covers both. Rename to `prusa-<printer>-config.ini`.
-2. Because the bundle holds ALL your presets, note in `versions.md` which **print preset + filament
-   preset** is the reference pair to audit against.
-3. Fallback config dir: `~/Library/Application Support/PrusaSlicer/`.
+1. Menu **File → Export → `Export Config…`** (⌘E — the item ABOVE "Export Config Bundle").
+   This writes the FULL current configuration (every real setting) to one `.ini`, tens of KB.
+   Save it here and rename to `prusa-<printer>-config.ini`.
+2. **Do NOT use "Export Config Bundle…"** unless you have custom (user-modified) presets: a bundle
+   only writes *user* presets, so on all-stock presets it comes out nearly empty — just a
+   `[presets]` name list with no settings (a ~200-byte file is the tell).
+3. Note the active print + filament + printer preset names in `versions.md`.
+4. Fallback config dir: `~/Library/Application Support/PrusaSlicer/`.
 
 ---
 
