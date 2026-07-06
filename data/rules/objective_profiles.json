@@ -8,54 +8,72 @@
       "name": "Draft",
       "desc": "Fast prints, visible layer lines. Good for prototypes.",
       "layer_height": 0.28,
-      "ironing": false,
-      "wall_generator": "Classic",
-      "seam_aligned": false
+            "wall_generator": "Classic",
+      "seam_position": null,
+      "only_one_wall_top": false,
+      "ironing_type": "no ironing",
+      "ironing_pattern": null,
+      "internal_solid_infill_pattern": "rectilinear"
     },
     {
       "id": "standard",
       "name": "Standard",
       "desc": "Balanced speed and quality for everyday prints.",
       "layer_height": 0.20,
-      "ironing": false,
-      "wall_generator": "Classic",
-      "seam_aligned": false
+            "wall_generator": "Classic",
+      "seam_position": null,
+      "only_one_wall_top": false,
+      "ironing_type": "no ironing",
+      "ironing_pattern": null,
+      "internal_solid_infill_pattern": "rectilinear"
     },
     {
       "id": "fine",
       "name": "Fine",
       "desc": "Smooth surfaces, noticeably slower.",
       "layer_height": 0.15,
-      "ironing": false,
-      "wall_generator": "Arachne",
-      "seam_aligned": true
+            "wall_generator": "Arachne",
+      "seam_position": "aligned",
+      "only_one_wall_top": true,
+      "ironing_type": "top",
+      "ironing_pattern": "monotonicline",
+      "internal_solid_infill_pattern": "rectilinear"
     },
     {
       "id": "very_fine",
       "name": "Very Fine",
       "desc": "Extremely fine detail for display pieces.",
       "layer_height": 0.12,
-      "ironing": false,
-      "wall_generator": "Arachne",
-      "seam_aligned": true
+            "wall_generator": "Arachne",
+      "seam_position": "aligned",
+      "only_one_wall_top": false,
+      "ironing_type": "top",
+      "ironing_pattern": "monotonicline",
+      "internal_solid_infill_pattern": "rectilinear"
     },
     {
       "id": "ultra",
       "name": "Ultra",
       "desc": "Maximum resolution, very slow. Miniatures and precision parts.",
       "layer_height": 0.08,
-      "ironing": false,
-      "wall_generator": "Arachne",
-      "seam_aligned": true
+            "wall_generator": "Arachne",
+      "seam_position": "aligned",
+      "only_one_wall_top": false,
+      "ironing_type": "top",
+      "ironing_pattern": "monotonicline",
+      "internal_solid_infill_pattern": "rectilinear"
     },
     {
       "id": "maximum",
       "name": "Maximum",
       "desc": "Ironing enabled for a near-invisible, glossy top surface.",
       "layer_height": 0.12,
-      "ironing": true,
-      "wall_generator": "Arachne",
-      "seam_aligned": true
+            "wall_generator": "Arachne",
+      "seam_position": "aligned",
+      "only_one_wall_top": true,
+      "ironing_type": "top",
+      "ironing_pattern": "monotonicline",
+      "internal_solid_infill_pattern": "rectilinear"
     }
   ],
   "strength_levels": [

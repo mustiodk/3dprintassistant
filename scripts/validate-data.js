@@ -182,12 +182,26 @@ function validateObjectiveProfiles() {
   check(file, isArray(d.strength_levels)  && d.strength_levels.length > 0,  'strength_levels must be a non-empty array');
   check(file, isArray(d.speed_priority)   && d.speed_priority.length > 0,   'speed_priority must be a non-empty array');
 
+  // IMPL-043 P1 canonical slicer-value enums (BS JSON vocabulary; per-slicer
+  // deviation is mapForSlicer's job at emission, not the data's).
+  const SEAM_ENUM    = [null, 'aligned', 'nearest', 'back', 'random'];
+  const IRONING_ENUM = ['no ironing', 'top', 'topmost', 'solid'];
+  const IRONPAT_ENUM = [null, 'monotonic', 'monotonicline', 'rectilinear', 'concentric'];
+  const ISIP_ENUM    = ['rectilinear', 'monotonic', 'monotonicline', 'concentric', 'zig-zag'];
+
   (d.surface_quality || []).forEach((s, i) => {
     const ctx = `surface_quality[${i}] (id=${s.id})`;
     check(file, isString(s.id),         `${ctx}: id must be a non-empty string`);
     check(file, isString(s.name),       `${ctx}: name must be a non-empty string`);
     check(file, isNumber(s.layer_height) && s.layer_height > 0, `${ctx}: layer_height must be a positive number`);
-    check(file, isBoolean(s.ironing),   `${ctx}: ironing must be a boolean`);
+    check(file, SEAM_ENUM.includes(s.seam_position), `${ctx}: seam_position must be one of ${JSON.stringify(SEAM_ENUM)}`);
+    check(file, isBoolean(s.only_one_wall_top), `${ctx}: only_one_wall_top must be a boolean`);
+    check(file, IRONING_ENUM.includes(s.ironing_type), `${ctx}: ironing_type must be one of ${JSON.stringify(IRONING_ENUM)}`);
+    check(file, IRONPAT_ENUM.includes(s.ironing_pattern), `${ctx}: ironing_pattern must be one of ${JSON.stringify(IRONPAT_ENUM)}`);
+    check(file, s.ironing_type === 'no ironing' ? s.ironing_pattern === null : isString(s.ironing_pattern),
+      `${ctx}: ironing_pattern must be null when ironing_type is 'no ironing', a string otherwise`);
+    check(file, ISIP_ENUM.includes(s.internal_solid_infill_pattern), `${ctx}: internal_solid_infill_pattern must be one of ${JSON.stringify(ISIP_ENUM)}`);
+    check(file, !('ironing' in s) && !('seam_aligned' in s), `${ctx}: retired flags ironing/seam_aligned must not reappear (replaced by ironing_type/seam_position, IMPL-043 P1)`);
   });
 
   (d.strength_levels || []).forEach((s, i) => {

@@ -850,10 +850,159 @@ function openNameModal(title, initial, onSave) {
   requestAnimationFrame(() => { input.focus(); input.select(); });
 }
 
+// ── Workshop tuning suggestions (IMPL-044 W3 gate B3) ─────────────────────────
+// Harvest is pure recomputation (journals × rules × ledger) — see workshop-tuning.js.
+// Accepted offsets are stored for the future Mine tier; nothing feeds the engine yet.
+let _workshopTuning = null;
+
+function getWorkshopTuning() {
+  if (!_workshopTuning && WorkshopStore && typeof createWorkshopTuning !== 'undefined') {
+    const engineFacts = {
+      materialGroup: id => (Engine.getMaterial(id) || {}).group || null,
+      printerExists: id => !!Engine.getPrinter(id),
+      materialExists: id => !!Engine.getMaterial(id),
+      symptomName: id => {
+        const s = Engine.getSymptoms().find(x => x.id === id);
+        return s ? s.name : id;
+      },
+    };
+    _workshopTuning = createWorkshopTuning(
+      WorkshopStore, { TUNING_RULES, rulesForSymptom }, engineFacts);
+  }
+  return _workshopTuning;
+}
+
+// Offset keys map to slicer-setting families — English on purpose, same rule
+// as PARAM_LABELS (users must find the setting in their slicer's UI).
+const TUNING_OFFSET_LABELS = {
+  nozzle_temp_delta: 'Nozzle temperature',
+  bed_temp_delta: 'Bed temperature',
+  fan_delta_pct: 'Cooling fan',
+  retraction_distance_delta: 'Retraction distance',
+  speed_multiplier_delta: 'Print speed',
+};
+
+const TUNING_ADVICE_KEYS = {
+  dry_filament: 'wsSuggestAdviceDry',
+  first_layer_basics: 'wsSuggestAdviceFirstLayer',
+};
+
+function _fmtStep(step, unit) {
+  const sign = step > 0 ? '+' : '';
+  return unit === '%' ? `${sign}${step}%` : `${sign}${step} ${unit}`;
+}
+
+function renderSuggestions() {
+  const el = document.getElementById('workshopSuggestions');
+  const wt = getWorkshopTuning();
+  if (!el || !wt) return;
+  const T = Engine.t;
+  const suggestions = wt.harvest();
+  const accepted = WorkshopStore.getTuning().accepted.filter(e => e.value !== 0);
+
+  if (!suggestions.length && !accepted.length) { el.innerHTML = ''; return; }
+
+  const symptomName = {};
+  Engine.getSymptoms().forEach(s => { symptomName[s.id] = s.name; });
+
+  let html = '';
+  if (suggestions.length) {
+    html += `<div class="ws-suggest-title">${T('wsSuggestTitle')}</div>`;
+    html += suggestions.map((s, i) => {
+      // Mandatory on every card (spec §3.2): the mechanical-causes-first deep-link.
+      const mech = s.symptomId
+        ? `<button class="ws-suggest-trouble" data-symptom="${escHtml(s.symptomId)}">${T('wsSuggestMechanical')} →</button>`
+        : '';
+      if (s.kind === 'conflict') {
+        const names = s.conflictingSymptoms.map(id => escHtml(symptomName[id] || id)).join(', ');
+        const text = T('wsSuggestConflict')
+          .replace('{param}', TUNING_OFFSET_LABELS[s.offsetKey] || s.offsetKey)
+          .replace('{symptoms}', names);
+        return `<div class="ws-suggest-card conflict">
+          <div class="ws-suggest-body">${text}</div>
+          <button class="ws-suggest-trouble" data-symptom="${escHtml(s.conflictingSymptoms[0])}">${T('wsSuggestMechanical')} →</button>
+          <div class="ws-suggest-actions"><button class="export-btn ws-suggest-dismiss" data-i="${i}">${T('wsSuggestDismiss')}</button></div>
+        </div>`;
+      }
+      if (s.kind === 'advice') {
+        return `<div class="ws-suggest-card advice">
+          <div class="ws-suggest-body">${T(TUNING_ADVICE_KEYS[s.adviceKey] || 'wsSuggestAdviceFirstLayer')}</div>
+          ${mech}
+          <div class="ws-suggest-actions"><button class="export-btn ws-suggest-dismiss" data-i="${i}">${T('wsSuggestDismiss')}</button></div>
+        </div>`;
+      }
+      const evidence = T('wsSuggestEvidence')
+        .replace('{failed}', String(s.evidence.failed))
+        .replace('{symptom}', symptomName[s.symptomId] || s.symptomId)
+        .replace('{date}', (s.evidence.lastDate || '').slice(0, 10));
+      const secondary = s.secondaryHints.length
+        ? `<div class="ws-suggest-secondary">${T('wsSuggestSecondary').replace('{hint}', escHtml(s.secondaryHints[0]))}</div>`
+        : '';
+      const printer = Engine.getPrinter(s.printerId);
+      const mat = Engine.getMaterial(s.materialId);
+      return `<div class="ws-suggest-card">
+        <div class="ws-suggest-head">
+          <span class="ws-suggest-offset">${TUNING_OFFSET_LABELS[s.offsetKey] || s.offsetKey} ${_fmtStep(s.step, s.unit)}</span>
+          <span class="ws-suggest-pair">${escHtml((printer ? printer.name : s.printerId) + ' · ' + (mat ? mat.name : s.materialId))}</span>
+        </div>
+        <div class="ws-suggest-evidence">${escHtml(evidence)}</div>
+        ${mech}
+        ${secondary}
+        <div class="ws-suggest-actions">
+          <button class="export-btn ws-suggest-accept" data-i="${i}">${T('wsSuggestAccept')}</button>
+          <button class="export-btn ws-suggest-dismiss" data-i="${i}">${T('wsSuggestDismiss')}</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  if (accepted.length) {
+    html += `<div class="ws-suggest-title">${T('wsMyTuning')}</div>`;
+    html += accepted.map(e => {
+      const [pid, mid] = e.pairKey.split('|');
+      const printer = Engine.getPrinter(pid);
+      const mat = Engine.getMaterial(mid);
+      const orphan = !printer || !mat;
+      const pairLabel = (printer ? printer.name : pid) + ' · ' + (mat ? mat.name : mid);
+      return `<div class="ws-tuning-row${orphan ? ' orphan' : ''}">
+        <span>${TUNING_OFFSET_LABELS[e.offsetKey] || e.offsetKey} ${_fmtStep(e.value, e.unit)} — ${escHtml(pairLabel)}${orphan ? ' ' + T('wsTuningOrphan') : ''}</span>
+        <button class="export-btn ws-tuning-remove" data-pair="${escHtml(e.pairKey)}" data-key="${escHtml(e.offsetKey)}">${T('wsTuningRemove')}</button>
+      </div>`;
+    }).join('');
+  }
+
+  el.innerHTML = html;
+
+  el.querySelectorAll('.ws-suggest-accept').forEach(b =>
+    b.addEventListener('click', () => {
+      const s = suggestions[Number(b.dataset.i)];
+      if (s && wt.accept(s).ok) { showToast(T('wsSuggestAccepted')); renderWorkshop(); }
+    }));
+  el.querySelectorAll('.ws-suggest-dismiss').forEach(b =>
+    b.addEventListener('click', () => {
+      const s = suggestions[Number(b.dataset.i)];
+      if (s && wt.dismiss(s).ok) renderWorkshop();
+    }));
+  el.querySelectorAll('.ws-tuning-remove').forEach(b =>
+    b.addEventListener('click', () => {
+      if (wt.revert(b.dataset.pair, b.dataset.key).ok) renderWorkshop();
+    }));
+  el.querySelectorAll('.ws-suggest-trouble').forEach(b =>
+    b.addEventListener('click', () => {
+      setView('troubleshoot');
+      activeSymptom = b.dataset.symptom;
+      document.querySelectorAll('.symptom-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.id === activeSymptom);
+      });
+      renderTroubleshooter();
+    }));
+}
+
 function renderWorkshop() {
   const el = document.getElementById('workshopList');
   if (!el || !WorkshopStore) return;
   const T = Engine.t;
+  renderSuggestions();
   const profiles = WorkshopStore.list();
 
   if (!profiles.length) {

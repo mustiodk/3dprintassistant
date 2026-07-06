@@ -1,0 +1,66 @@
+{
+    "from": "User",
+    "inherits": "Bambu PLA Basic @BBL X1C",
+    "name": "ZZ IMPORT-TEST FIL N199 R7.7",
+    "filament_settings_id": [
+        "ZZ IMPORT-TEST FIL N199 R7.7"
+    ],
+    "filament_type": [
+        "PLA"
+    ],
+    "version": "2.5.0.18",
+    "compatible_printers": [
+        "Bambu Lab X1 Carbon 0.4 nozzle"
+    ],
+    "nozzle_temperature": [
+        "199"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "188"
+    ],
+    "hot_plate_temp": [
+        "44"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "44"
+    ],
+    "textured_plate_temp": [
+        "44"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "44"
+    ],
+    "cool_plate_temp": [
+        "33"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "33"
+    ],
+    "filament_flow_ratio": [
+        "0.88"
+    ],
+    "pressure_advance": [
+        "0.04"
+    ],
+    "filament_retraction_length": [
+        "7.7"
+    ],
+    "filament_retraction_speed": [
+        "45"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "fan_min_speed": [
+        "60"
+    ],
+    "fan_max_speed": [
+        "90"
+    ],
+    "overhang_fan_speed": [
+        "90"
+    ],
+    "slow_down_layer_time": [
+        "10"
+    ]
+}

@@ -48,6 +48,23 @@ Export correctness is defined by an external program's import behavior, and ther
 | Hardcoded version string | `engine.js:3012` | Open (LOW-007) |
 | iOS export frozen at April state, hidden | iOS repo, `4d0f985` | Open |
 
+### 1.4b Phase 0 findings (2026-07-06, `scripts/export-audit.js` vs owner golden fixtures — Bambu + Prusa; Orca deferred per `scripts/fixtures/slicer-golden/versions.md`)
+
+Empirical resolutions of the contested claims, from the audit run on the pre-Phase-1 code (3 FAIL / 1 warn / 5 info; the FAILs are the Phase 1 work list):
+
+| # | Contested claim / question | Empirical resolution |
+|---|---|---|
+| F1 | zig-zag validity for `internal_solid_infill_pattern` | **VALID — IMPL-036's "invalid" claim is WRONG.** `slicer_capabilities.json` (IMPL-039 audit) lists `["zig-zag","rectilinear","concentric"]` for BS, and the golden process fixture's `sparse_infill_pattern: "line"` corroborates that list's BS-2.5 era. Audit pins exported value ∈ capability set. **Corollary discovered:** BS's internal-solid set has NO `"monotonic"` — IMPL-036 Step 1's fine-surface value `"monotonic"` cannot be exported to BS as-is; canonical values must route through `mapForSlicer` per slicer (fails open per OBS-007). |
+| F2 | BS `version` string | **Split confirmed:** process `2.5.0.14` (app constant CORRECT for process), filament golden is `2.5.0.18` → the single hardcoded constant is WRONG for filament exports (audit FAIL). Phase 1: two module constants `BAMBU_PROCESS_VERSION = '2.5.0.14'` / `BAMBU_FILAMENT_VERSION = '2.5.0.18'`. |
+| F3 | inherits parents still match installed presets | **Process: YES** — app's `0.20mm Standard @BBL X1C` for x1c/0.20 exactly matches the golden's inherits. **Filament: form differs but is legitimized by the golden itself** — the owner's own X1C-exported filament preset inherits `Bambu PLA Basic @BBL P1S 0.4 nozzle` (a cross-printer parent), so BS accepts cross-printer filament parents; the app's `@BBL X1C` form stays, adjudicated by the owner import test. |
+| F4 | `only_one_wall_top` boolean form | **String "0"/"1" confirmed** — every boolean in the golden is a string (`enable_support: "1"`), matching the app's form. IMPL-036 3f stands. |
+| F5 | HIGH-001 unscaled retraction | **Demonstrated live:** on x1c + PLA + 0.2 precision nozzle the app exports `0.6` (raw base) while the engine resolves `0.4` (scaled) — audit FAIL pinning the drift guard. Fixed in Phase 1. |
+| F6 | ironing_pattern | **Absent from export** on a fine-surface state (audit FAIL). IMPL-036 3a stands; fixed in Phase 1. |
+| F7 | support_style breadth | Decorative + tree exports `tree_hybrid` (2-of-5 map confirmed; IMPL-036 wants `tree_slim` here). Phase 1 expands per IMPL-036 2e/3d. |
+| F8 | **NEW — dual-extruder-variant arrays** | The BS 2.5 golden writes 2-element arrays (`["250","250"]`, `["225","nil"]`) with `print_extruder_variant: ["Direct Drive Standard","Direct Drive High Flow"]` — a schema the April code predates. App emits 1-element arrays. Whether 1-element still imports on X1C is **owner-import-test adjudicated** (audit WARN, not FAIL); if it fails, Phase 2 duplicates values per variant. |
+| F9 | Sparse user presets | Golden user presets store only overrides + inherits (45 process keys vs the app's ~59); app-only keys are INFO, not failures — the parent chain supplies the rest. |
+| F10 | Prusa fixture | Parses clean: 373 settings, reference presets match `versions.md` (`0.20mm SPEED @COREONEL HF0.4` / `Generic ABS @COREONE HF0.4`, PrusaSlicer 2.9.4). Key inventory captured for the Phase 4 `.ini` key map (`retract_length`, `temperature`, `first_layer_temperature`, …). No serializer built (Phase 4). |
+
 ## 2. Goal
 
 Native, verified, low-drift profile export for all three routed slicers:

@@ -37,13 +37,113 @@ function createWorkshopStore(storage) {
     return env.profiles.filter(p => p && typeof p === 'object' && p.id && p.state && typeof p.state === 'object');
   }
 
-  function _write(profiles) {
+  // Envelope-level read/write (IMPL-044 W3 gate B3). _readEnv returns the whole
+  // envelope so additive sections (tuning) survive profile writes; W1-era
+  // envelopes (no tuning) parse unchanged.
+  function _readEnv() {
+    let raw = null;
+    try { raw = storage.getItem(KEY); } catch (_) { return { v: VERSION, profiles: [] }; }
+    if (!raw) return { v: VERSION, profiles: [] };
+    let env;
+    try { env = JSON.parse(raw); } catch (_) { return { v: VERSION, profiles: [] }; }
+    if (!env || typeof env !== 'object' || env.v !== VERSION) return { v: VERSION, profiles: [] };
+    if (!Array.isArray(env.profiles)) env.profiles = [];
+    return env;
+  }
+
+  function _writeEnv(env) {
     try {
-      storage.setItem(KEY, JSON.stringify({ v: VERSION, profiles }));
+      storage.setItem(KEY, JSON.stringify(env));
       return { ok: true };
     } catch (e) {
       return { ok: false, error: (e && e.name === 'QuotaExceededError') ? 'quota' : 'storage' };
     }
+  }
+
+  function _write(profiles) {
+    const env = _readEnv();
+    env.profiles = profiles;
+    return _writeEnv(env);
+  }
+
+  // ── Tuning ledger (IMPL-044 W3 gate B3) — op-log accepts + dismissals ──────
+  // Spec: docs/specs/IMPL-044-W3W4-mine-tier-and-custom-filaments.md §3.6.
+  // The op log is the source of truth; `value` is a derived, clamped cache.
+  function _tuningOf(env) {
+    const t = (env.tuning && typeof env.tuning === 'object') ? env.tuning : {};
+    return {
+      accepted: Array.isArray(t.accepted) ? t.accepted : [],
+      dismissed: Array.isArray(t.dismissed) ? t.dismissed : [],
+    };
+  }
+
+  function getTuning() { return _tuningOf(_readEnv()); }
+
+  function _clampSum(ops, clampMin, clampMax) {
+    const sum = ops.reduce((a, o) => a + (Number(o.step) || 0), 0);
+    return Math.min(clampMax, Math.max(clampMin, Math.round(sum * 100) / 100));
+  }
+
+  function addTuningOp(pairKey, offsetKey, unit, op) {
+    const env = _readEnv();
+    const tuning = _tuningOf(env);
+    let entry = tuning.accepted.find(e => e.pairKey === pairKey && e.offsetKey === offsetKey);
+    if (!entry) {
+      // Accept ops always carry clamps (the harvest only offers clamped
+      // suggestions); a revert-first cannot happen (nothing to revert).
+      entry = { pairKey, offsetKey, unit, value: 0,
+                clampMin: op.clampMin != null ? op.clampMin : 0,
+                clampMax: op.clampMax != null ? op.clampMax : 0,
+                ops: [] };
+      tuning.accepted.push(entry);
+    }
+    if (op.clampMin != null) entry.clampMin = op.clampMin;
+    if (op.clampMax != null) entry.clampMax = op.clampMax;
+    // Clamp defense: reject accepts whose raw sum would pass the clamp, so the
+    // raw sum can never outrun a revert.
+    if (op.kind !== 'revert') {
+      const rawSum = entry.ops.reduce((a, o) => a + (Number(o.step) || 0), 0);
+      const next = rawSum + (Number(op.step) || 0);
+      if (next < entry.clampMin || next > entry.clampMax) return { ok: false, error: 'clamp' };
+    }
+    entry.ops.push({
+      opId: _newId(),
+      kind: op.kind === 'revert' ? 'revert' : 'accept',
+      step: Number(op.step) || 0,
+      ...(op.symptomId ? { symptomId: op.symptomId } : {}),
+      date: _now(),
+    });
+    entry.value = _clampSum(entry.ops, entry.clampMin, entry.clampMax);
+    env.tuning = tuning;
+    const w = _writeEnv(env);
+    return w.ok ? { ok: true, entry } : w;
+  }
+
+  function revertTuning(pairKey, offsetKey) {
+    const env = _readEnv();
+    const tuning = _tuningOf(env);
+    const entry = tuning.accepted.find(e => e.pairKey === pairKey && e.offsetKey === offsetKey);
+    if (!entry) return { ok: false, error: 'not-found' };
+    const rawSum = entry.ops.reduce((a, o) => a + (Number(o.step) || 0), 0);
+    entry.ops.push({ opId: _newId(), kind: 'revert', step: -rawSum, date: _now() });
+    entry.value = _clampSum(entry.ops, entry.clampMin, entry.clampMax);
+    env.tuning = tuning;
+    const w = _writeEnv(env);
+    return w.ok ? { ok: true, entry } : w;
+  }
+
+  function dismissSuggestion(key) {
+    const env = _readEnv();
+    const tuning = _tuningOf(env);
+    const existing = tuning.dismissed.find(d => d.key === key);
+    if (existing) existing.date = _now();
+    else tuning.dismissed.push({ key, date: _now() });
+    env.tuning = tuning;
+    return _writeEnv(env);
+  }
+
+  function getDismissal(key) {
+    return getTuning().dismissed.find(d => d.key === key) || null;
   }
 
   function list() { return _read(); }
@@ -115,11 +215,16 @@ function createWorkshopStore(storage) {
   }
 
   function exportJSON() {
-    return JSON.stringify({ v: VERSION, profiles: _read() }, null, 2);
+    const out = { v: VERSION, profiles: _read() };
+    const t = getTuning();
+    if (t.accepted.length || t.dismissed.length) out.tuning = t;
+    return JSON.stringify(out, null, 2);
   }
 
   // Import merges: existing profiles are kept, imported entries win on id
-  // collision. Restoring a backup can never destroy local-only profiles.
+  // collision; tuning merges by op-union (fork-lossless, idempotent).
+  // ATOMIC: everything is merged in memory first, then ONE write — a quota
+  // failure leaves storage untouched.
   function importJSON(json) {
     let env;
     try { env = JSON.parse(json); } catch (_) { return { ok: false, error: 'parse' }; }
@@ -131,11 +236,39 @@ function createWorkshopStore(storage) {
     const byId = new Map();
     _read().forEach(p => byId.set(p.id, p));
     incoming.forEach(p => byId.set(p.id, p));
-    const w = _write([...byId.values()]);
+
+    // Merge tuning (op-union by opId) into a copy of current tuning — no writes yet.
+    const cur = _tuningOf(_readEnv());
+    const incTuning = (env.tuning && typeof env.tuning === 'object') ? env.tuning : {};
+    (Array.isArray(incTuning.accepted) ? incTuning.accepted : []).forEach(inc => {
+      if (!inc || !inc.pairKey || !inc.offsetKey || !Array.isArray(inc.ops)) return;
+      let entry = cur.accepted.find(e => e.pairKey === inc.pairKey && e.offsetKey === inc.offsetKey);
+      if (!entry) {
+        entry = { pairKey: inc.pairKey, offsetKey: inc.offsetKey, unit: inc.unit,
+                  value: 0, clampMin: inc.clampMin, clampMax: inc.clampMax, ops: [] };
+        cur.accepted.push(entry);
+      }
+      const seen = new Set(entry.ops.map(o => o.opId));
+      inc.ops.forEach(o => { if (o && o.opId && !seen.has(o.opId)) { entry.ops.push(o); seen.add(o.opId); } });
+      entry.ops.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      entry.value = _clampSum(entry.ops, entry.clampMin, entry.clampMax);
+    });
+    (Array.isArray(incTuning.dismissed) ? incTuning.dismissed : []).forEach(inc => {
+      if (!inc || !inc.key) return;
+      const ex = cur.dismissed.find(d => d.key === inc.key);
+      if (!ex) cur.dismissed.push({ key: inc.key, date: inc.date || _now() });
+      else if (String(inc.date) > String(ex.date)) ex.date = inc.date;
+    });
+
+    const out = _readEnv();
+    out.profiles = [...byId.values()];
+    if (cur.accepted.length || cur.dismissed.length) out.tuning = cur;
+    const w = _writeEnv(out);                       // SINGLE write — atomic
     return w.ok ? { ok: true, count: incoming.length } : w;
   }
 
-  return { list, get, save, rename, remove, addOutcome, removeOutcome, exportJSON, importJSON };
+  return { list, get, save, rename, remove, addOutcome, removeOutcome, exportJSON, importJSON,
+           getTuning, addTuningOp, revertTuning, dismissSuggestion, getDismissal };
 }
 
 const WorkshopStore = (typeof localStorage !== 'undefined')

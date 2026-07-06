@@ -182,6 +182,88 @@ console.log('# workshop-store.js tests\n');
     legacy.addOutcome('old1', { result: 'worked' }).ok === true && legacy.get('old1').journal.length === 1);
 }
 
+// ── TC-T1 — tuning ops: accept, revert, clamp defense, derived value (IMPL-044 W3 gate B3) ──
+{
+  const st = mockStorage();
+  const ws = createWorkshopStore(st);
+  const r1 = ws.addTuningOp('x1c|pla_basic', 'nozzle_temp_delta', '°C',
+    { kind: 'accept', step: -5, symptomId: 'over_extrusion', clampMin: -15, clampMax: 15 });
+  check('accept op ok', r1.ok === true && r1.entry.value === -5);
+  ws.addTuningOp('x1c|pla_basic', 'nozzle_temp_delta', '°C',
+    { kind: 'accept', step: -5, symptomId: 'over_extrusion', clampMin: -15, clampMax: 15 });
+  const t = ws.getTuning();
+  check('value accumulates', t.accepted[0].value === -10);
+  check('ops have unique ids', new Set(t.accepted[0].ops.map(o => o.opId)).size === 2);
+  check('accept ops carry symptomId', t.accepted[0].ops.every(o => o.symptomId === 'over_extrusion'));
+  const rv = ws.addTuningOp('x1c|pla_basic', 'nozzle_temp_delta', '°C', { kind: 'revert', step: +5 });
+  check('revert op subtracts', rv.entry.value === -5);
+  // clamp defense: accepts at/past the clamp are REJECTED (raw sum can never outrun a revert)
+  ws.addTuningOp('x1c|pla_basic', 'nozzle_temp_delta', '°C', { kind: 'accept', step: -5, clampMin: -15, clampMax: 15 });
+  ws.addTuningOp('x1c|pla_basic', 'nozzle_temp_delta', '°C', { kind: 'accept', step: -5, clampMin: -15, clampMax: 15 });
+  const over = ws.addTuningOp('x1c|pla_basic', 'nozzle_temp_delta', '°C', { kind: 'accept', step: -5, clampMin: -15, clampMax: 15 });
+  check('accept at clamp rejected', over.ok === false && over.error === 'clamp');
+  check('value stopped at clamp', ws.getTuning().accepted[0].value === -15);
+  const rz = ws.revertTuning('x1c|pla_basic', 'nozzle_temp_delta');
+  check('revert clears to exactly zero', rz.ok === true && ws.getTuning().accepted[0].value === 0);
+  check('revertTuning unknown entry fails', ws.revertTuning('nope|nope', 'nozzle_temp_delta').ok === false);
+  // second pair+key entry is independent
+  ws.addTuningOp('a1|petg_basic', 'fan_delta_pct', '%', { kind: 'accept', step: 10, symptomId: 'stringing', clampMin: -20, clampMax: 20 });
+  check('independent entries per pair+key', ws.getTuning().accepted.length === 2);
+}
+
+// ── TC-T2 — dismissals: upsert newer date ──
+{
+  const ws = createWorkshopStore(mockStorage());
+  check('dismiss ok', ws.dismissSuggestion('x1c|pla_basic|stringing|retraction_distance_delta').ok === true);
+  const d1 = ws.getDismissal('x1c|pla_basic|stringing|retraction_distance_delta');
+  check('dismissal stored', !!d1 && typeof d1.date === 'string');
+  check('unknown dismissal null', ws.getDismissal('nope') === null);
+  ws.dismissSuggestion('x1c|pla_basic|stringing|retraction_distance_delta');
+  check('re-dismiss upserts (still one entry)', ws.getTuning().dismissed.length === 1);
+}
+
+// ── TC-T3 — backup round-trip carries tuning; op-union merge fork-lossless + idempotent + ATOMIC ──
+{
+  const wsA = createWorkshopStore(mockStorage());
+  const wsB = createWorkshopStore(mockStorage());
+  wsA.addTuningOp('x1c|pla_basic', 'nozzle_temp_delta', '°C', { kind: 'accept', step: -5, clampMin: -15, clampMax: 15 });
+  const backup = wsA.exportJSON();
+  check('export contains tuning', JSON.parse(backup).tuning.accepted.length === 1);
+  wsB.addTuningOp('x1c|pla_basic', 'nozzle_temp_delta', '°C', { kind: 'accept', step: -5, clampMin: -15, clampMax: 15 });
+  wsB.importJSON(backup);
+  const merged = wsB.getTuning().accepted[0];
+  check('fork-lossless: both devices accepts survive', merged.ops.length === 2 && merged.value === -10);
+  wsB.importJSON(backup);
+  check('idempotent re-import', wsB.getTuning().accepted[0].ops.length === 2);
+  // W1-era envelope (no tuning) still imports fine and keeps existing tuning
+  const legacyJson = JSON.stringify({ v: 1, profiles: [] });
+  check('legacy envelope import ok', wsB.importJSON(legacyJson).ok === true);
+  check('legacy import kept tuning', wsB.getTuning().accepted.length === 1);
+  // profiles still round-trip beside tuning
+  const wsC = createWorkshopStore(mockStorage());
+  wsC.save('Test', STATE_A);
+  wsC.addTuningOp('x1c|pla_basic', 'nozzle_temp_delta', '°C', { kind: 'accept', step: -5, clampMin: -15, clampMax: 15 });
+  const full = wsC.exportJSON();
+  const wsD = createWorkshopStore(mockStorage());
+  wsD.importJSON(full);
+  check('import carries profiles AND tuning', wsD.list().length === 1 && wsD.getTuning().accepted.length === 1);
+  // W1-era profile writes preserve tuning (envelope-preserving _write)
+  wsC.rename(wsC.list()[0].id, 'Renamed');
+  check('profile write preserves tuning', wsC.getTuning().accepted.length === 1);
+  // ATOMIC import: failing write leaves profiles AND tuning untouched
+  const st = mockStorage();
+  const wsE = createWorkshopStore(st);
+  wsE.save('Keep', STATE_A);
+  wsE.addTuningOp('x1c|pla_basic', 'nozzle_temp_delta', '°C', { kind: 'accept', step: -5, clampMin: -15, clampMax: 15 });
+  const before = st.getItem('3dpa_workshop_v1');
+  const realSet = st.setItem;
+  st.setItem = () => { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; };
+  const failed = wsE.importJSON(full);
+  st.setItem = realSet;
+  check('atomic import: failure reported', failed.ok === false && failed.error === 'quota');
+  check('atomic import: storage untouched on failure', st.getItem('3dpa_workshop_v1') === before);
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');
