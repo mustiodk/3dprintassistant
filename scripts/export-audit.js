@@ -120,7 +120,62 @@ async function main() {
   checkFail('exported internal_solid_infill_pattern is capability-valid (zig-zag contested claim)',
     validInternal.includes(proc.internal_solid_infill_pattern),
     `exported "${proc.internal_solid_infill_pattern}" not in ${JSON.stringify(validInternal)}`);
+  // A-review M1: the zig-zag→rectilinear change is DELIBERATE (export now matches
+  // the displayed value + the data's canonical); pin it so it can never silently
+  // flip back or drift again. Owner import test verifies BS shows Rectilinear.
+  checkFail('internal_solid export equals the data canonical (deliberate zig-zag→rectilinear, pinned)',
+    proc.internal_solid_infill_pattern === 'rectilinear', proc.internal_solid_infill_pattern);
   INFO('capability note', `BS internal-solid valid set = ${JSON.stringify(validInternal)} — NO "monotonic"; IMPL-036's fine-surface "monotonic" must map per-slicer via mapForSlicer`);
+
+  // — A-review S1: generic sidecar drift guard — every BAMBU_PROCESS_MAP param
+  //   that carries a _slicer_value must export EXACTLY that value (the former
+  //   special-case handlers, key-by-key, no exceptions) —
+  {
+    const MAP = { // engineKey → bs key (mirror of BAMBU_PROCESS_MAP's string-param rows)
+      seam_position: 'seam_position', order_of_walls: 'wall_infill_order',
+      wall_generator: 'wall_generator', arc_fitting: 'enable_arc_fitting',
+      avoid_crossing_walls: 'reduce_crossing_wall', only_one_wall_top: 'only_one_wall_top',
+      sparse_infill_pattern: 'sparse_infill_pattern', top_surface_pattern: 'top_surface_pattern',
+      bottom_surface_pattern: 'bottom_surface_pattern', internal_solid_infill_pattern: 'internal_solid_infill_pattern',
+      infill_combination: 'infill_combination', support_type: 'support_type',
+      support_style: 'support_style', support_interface_pattern: 'support_interface_pattern',
+      ironing: 'ironing_type', slow_down_tall: 'enable_height_slowdown',
+      draft_shield: 'enable_draft_shield', brim_width: 'brim_width',
+    };
+    const sidecarStates = [
+      st,
+      stateFor('x1c', 'pla_basic', 'std_0.4', { surface: 'fine', useCase: ['decorative'], support: 'easy', seam: 'sharpest_corner' }),
+      stateFor('p1s', 'petg_basic', 'std_0.4', { support: 'best_underside', brim: 'mouse_ears', speed: 'fast' }),
+    ];
+    let sidecarChecked = 0, sidecarBad = 0;
+    sidecarStates.forEach(s2 => {
+      const pr = Engine.resolveProfile(Object.assign({ surface: 'standard', strength: 'standard', speed: 'balanced', environment: 'normal' }, s2));
+      const ex = Engine.exportBambuStudioJSON(s2);
+      if (!ex) return;
+      Object.entries(MAP).forEach(([ek, bk]) => {
+        const param = pr[ek];
+        if (!param || param._slicer_value == null) return;
+        sidecarChecked++;
+        const exported = Array.isArray(ex.process[bk]) ? ex.process[bk][0] : ex.process[bk];
+        if (exported !== param._slicer_value) {
+          sidecarBad++;
+          FAIL(`sidecar drift: ${ek}→${bk}`, `exported ${JSON.stringify(exported)} vs sidecar ${JSON.stringify(param._slicer_value)}`);
+        }
+      });
+    });
+    checkFail(`sidecar passthrough exact for all string params (${sidecarChecked} checks across 3 states)`, sidecarBad === 0);
+  }
+
+  // — A-review S2: support_style 5-map hard assertions —
+  const styleCase = (extra, want) => {
+    const ex = Engine.exportBambuStudioJSON(stateFor('x1c', 'pla_basic', 'std_0.4', extra));
+    checkFail(`support_style map: ${JSON.stringify(extra.useCase || [])}/${extra.support} → ${want}`,
+      ex && ex.process.support_style === want, ex ? ex.process.support_style : 'null');
+  };
+  styleCase({ useCase: ['decorative'], support: 'easy' }, 'tree_slim');
+  styleCase({ useCase: ['functional'], support: 'easy' }, 'tree_strong');
+  styleCase({ useCase: ['prototype'], support: 'balanced' }, 'tree_hybrid');
+  styleCase({ useCase: ['functional'], support: 'best_underside' }, 'default');
 
   // — Drift guards: exported value == resolved-profile value —
   const profile = Engine.resolveProfile(st);
