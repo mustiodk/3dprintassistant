@@ -30,6 +30,8 @@
   "pmSafeDesc":                "Værdier fra producentens specifikationer. Konservative standarder — det sikre valg.",
   "pmTuned":                   "Tunet",
   "pmTunedDesc":               "Community-validerede aggressive værdier. Kræver en godt tunet printer (Input Shaper, flow-kalibrering).",
+  "pmMine":                    "Min",
+  "pmMineDesc":                "Dine accepterede Workshop-justeringer oven på Sikker-værdier — kun for denne printer + filament-kombination.",
   "filterSpecial":             "Særlige krav",
   "ucPrototype":               "Prototype",
   "ucFunctional":              "Funktionsdel",

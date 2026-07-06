@@ -1647,6 +1647,35 @@ const COMBOS = [
     console.log('[W3 T5] OK provenance: touched params carry personal prov with the spec ref format (offsetKey ±value unit + accepted date) across profile, temps, and advanced surfaces; untouched params and non-mine modes never do.');
   }
 
+  // ─── W3 Mine tier — Task 6: conditional Mine segment in getFilters ────────
+  // [IMPL-044 §5.3] The profileMode filter offers 'mine' ONLY when the engine
+  // holds injected personal tuning matching the state's printer|material pair.
+  {
+    const idsFor = (st) => (Engine.getFilters(st).find(f => f.key === 'profileMode')?.items || []).map(i => i.id);
+    const stPair = stateDefault({ printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic' });
+
+    Engine.setPersonalTuning(null);
+    if (idsFor(stPair).includes('mine')) {
+      throw new Error('W3 T6: no injection → profileMode items must NOT include mine');
+    }
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { nozzle_temp_delta: { value: -5, unit: '°C', date: '2026-07-06' } } });
+    if (!idsFor(stPair).includes('mine')) {
+      throw new Error(`W3 T6: matching injection → profileMode items MUST include mine; got ${idsFor(stPair).join(',')}`);
+    }
+    // Pair mismatch (tuning belongs to x1c, state is a1) → hidden
+    const stOther = stateDefault({ printer: 'a1', nozzle: 'std_0.4', material: 'pla_basic' });
+    if (idsFor(stOther).includes('mine')) {
+      throw new Error('W3 T6: pair-mismatched injection → mine segment must stay hidden');
+    }
+    // Stateless getFilters() (FILTERS getter path) → no crash, no mine
+    if (idsFor(undefined).includes('mine')) {
+      throw new Error('W3 T6: stateless getFilters() must not offer mine');
+    }
+    Engine.setPersonalTuning(null);
+    console.log('[W3 T6] OK conditional Mine segment: profileMode offers mine only when injected tuning matches the state pair; hidden on no-injection / pair-mismatch / stateless calls.');
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo

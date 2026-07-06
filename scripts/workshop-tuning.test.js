@@ -195,6 +195,10 @@ console.log('# workshop-tuning.js tests\n');
   check('accept forwarded clamps', entry.clampMin === 0 && entry.clampMax === 0.6);
   check('accept forwarded symptom', entry.ops[0].symptomId === 'stringing');
   check('acceptedFor exposes cumulative', wt.acceptedFor('x1c', 'pla_basic').retraction_distance_delta.value === 0.2);
+  // [IMPL-044 W3] The engine's personal-prov ref needs the newest accept date.
+  check('acceptedFor carries newest accept-op date',
+    wt.acceptedFor('x1c', 'pla_basic').retraction_distance_delta.date === entry.ops[0].date
+    && typeof entry.ops[0].date === 'string' && entry.ops[0].date.length > 0);
   check('acceptedFor empty for other pair', Object.keys(wt.acceptedFor('a1', 'petg_basic')).length === 0);
   wt.revert('x1c|pla_basic', 'retraction_distance_delta');
   check('revert zeroes acceptedFor', Object.keys(wt.acceptedFor('x1c', 'pla_basic')).length === 0);

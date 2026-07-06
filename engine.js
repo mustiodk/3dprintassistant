@@ -550,9 +550,14 @@ const Engine = (() => {
       // when no chip is selected (state.profileMode === undefined). Selecting
       // 'tuned' opts in to the aggressive community-validated speed/accel/
       // infill values wired through _tier() in resolveProfile.
+      // [IMPL-044 W3] 'mine' appears ONLY when the engine holds injected
+      // personal tuning matching this state's printer|material pair — the
+      // segment is conditional by design (spec §5.3).
       { key: 'profileMode', label: t('filterProfileMode'), multi: false, required: false, items: [
         { id: 'safe',  name: t('pmSafe'),  desc: t('pmSafeDesc')  },
         { id: 'tuned', name: t('pmTuned'), desc: t('pmTunedDesc') },
+        ...(state && _personalFor(state.printer, state.material)
+          ? [{ id: 'mine', name: t('pmMine'), desc: t('pmMineDesc') }] : []),
       ]},
       { key: 'seam',             label: t('filterSeam'),             multi: false, required: false, advanced: true, items: [
         { id: 'aligned',         name: t('seamAligned'),   desc: 'Seams line up vertically — visible line but predictable placement.' },

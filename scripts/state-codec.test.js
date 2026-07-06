@@ -178,6 +178,25 @@ async function main() {
     check('round-trip keeps printer', back.printer === 'a1', `got ${back.printer}`);
   }
 
+  // ── TC8 — [IMPL-044 W3] profileMode 'mine' codec rules ──
+  {
+    console.log('TC8 — W3 mine mode: share-encode maps mine→safe; storage + validate keep it');
+    const st = StateCodec.defaultState();
+    st.printer = 'a1'; st.profileMode = 'mine';
+    const qs = StateCodec.encodeToParams(st);
+    check('share URL maps mine→safe (personal offsets never ride share URLs)',
+      /(^|&)pm=safe(&|$)/.test(qs), `got ${qs}`);
+    const stored = JSON.parse(StateCodec.encodeForStorage(st)).state;
+    check('storage keeps mine (session persistence)', stored.profileMode === 'mine',
+      `got ${stored.profileMode}`);
+    const clean = StateCodec.validateState({ profileMode: 'mine' }, Engine);
+    check('validateState accepts mine (app boot guard degrades when unavailable)',
+      clean.profileMode === 'mine', `got ${clean.profileMode}`);
+    const bad = StateCodec.validateState({ profileMode: 'bogus' }, Engine);
+    check('unknown mode still degrades to default', bad.profileMode === null,
+      `got ${bad.profileMode}`);
+  }
+
   console.log('');
   if (failures === 0) {
     console.log('ALL TESTS PASS');

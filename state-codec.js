@@ -77,7 +77,12 @@ const StateCodec = (() => {
   function encodeToParams(state) {
     const parts = [];
     FIELDS.forEach(f => {
-      const v = state[f.key];
+      let v = state[f.key];
+      // [IMPL-044 W3] Personal offsets never ride share URLs (spec §5.3): a
+      // recipient lacks the sender's Workshop tuning, so a shared 'mine'
+      // state is encoded as 'safe' at the SENDER side — the URL resolves
+      // identically for everyone who opens it.
+      if (f.key === 'profileMode' && v === 'mine') v = 'safe';
       if (f.kind === 'multi') {
         if (Array.isArray(v) && v.length) parts.push(`${f.url}=${v.map(encodeURIComponent).join(',')}`);
       } else if (v != null && v !== '') {
@@ -132,6 +137,11 @@ const StateCodec = (() => {
       if (f.key === 'printer')       ok = !!engine.getPrinter(v);
       else if (f.key === 'material') ok = !!engine.getMaterial(v);
       else if (f.key === 'nozzle')   ok = !!engine.getNozzle(v);
+      // [IMPL-044 W3] 'mine' is structurally valid even though getFilters only
+      // offers it conditionally (per-pair tuning): storage restores must keep
+      // it. The app's per-render sync degrades mine → safe when no tuning
+      // exists for the restored pair, and the engine resolves byte-equal safe.
+      else if (f.key === 'profileMode' && v === 'mine') ok = true;
       else                           ok = !!(validIds[f.key] && validIds[f.key].has(v));
       if (ok) clean[f.key] = v;
     });
