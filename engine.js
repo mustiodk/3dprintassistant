@@ -2523,6 +2523,13 @@ const Engine = (() => {
       }
       let outerSpeed = isCoreXY ? _tier(sm, 'outer_corexy', profileMode, _mineOv) : _tier(sm, 'outer_bedslinger', profileMode, _mineOv);
       let innerSpeed = isCoreXY ? sm.inner_corexy : sm.inner_bedslinger;
+      // [IMPL-044 W3 / Codex review MEDIUM-3] Counterfactual twin: the SAFE
+      // base ridden through the SAME cap statements below. If the caps erase
+      // the personal base drop (outerSpeed === outerSpeedSafeRef at the end),
+      // the value was not effectively touched and must NOT claim 'personal'
+      // provenance. Twin lines sit adjacent to their originals — keep them in
+      // lockstep when editing the chain.
+      let outerSpeedSafeRef = isCoreXY ? sm.outer_corexy : sm.outer_bedslinger;
 
       // v1.0.4 — Strength speed multiplier (HIGH-09 / HIGH-04). Apply Strong/Maximum
       // slowdown to walls before material/printer/MVS caps clamp it further.
@@ -2531,6 +2538,7 @@ const Engine = (() => {
         : 1.0;
       if (strengthSlow !== 1.0) {
         outerSpeed = Math.round(outerSpeed * strengthSlow);
+        outerSpeedSafeRef = Math.round(outerSpeedSafeRef * strengthSlow);
         innerSpeed = Math.round(innerSpeed * strengthSlow);
       }
 
@@ -2538,24 +2546,28 @@ const Engine = (() => {
       if (isTPU) {
         const tpuMax = material.base_settings.max_speed || 40;
         outerSpeed = Math.min(outerSpeed, tpuMax);
+        outerSpeedSafeRef = Math.min(outerSpeedSafeRef, tpuMax);
         innerSpeed = Math.min(innerSpeed, Math.round(tpuMax * 1.25));
       }
 
       // ABS/ASA: moderate cap for warp prevention
       if (isABSlike) {
         outerSpeed = Math.min(outerSpeed, 60);
+        outerSpeedSafeRef = Math.min(outerSpeedSafeRef, 60);
         innerSpeed = Math.min(innerSpeed, 100);
       }
 
       // PC: slow outer wall essential for layer adhesion at high temps
       if (isPC) {
         outerSpeed = Math.min(outerSpeed, 40);
+        outerSpeedSafeRef = Math.min(outerSpeedSafeRef, 40);
         innerSpeed = Math.min(innerSpeed, 60);
       }
 
       // PA: moderate cap — Nylon needs time to bond between layers
       if (isPA) {
         outerSpeed = Math.min(outerSpeed, 50);
+        outerSpeedSafeRef = Math.min(outerSpeedSafeRef, 50);
         innerSpeed = Math.min(innerSpeed, 80);
       }
 
@@ -2569,6 +2581,7 @@ const Engine = (() => {
           const defaultLineWidth = nozzleSize * 1.05;
           const mvsSpeedCap = Math.floor(mvs / (defaultLineWidth * layerH));
           outerSpeed = Math.min(outerSpeed, mvsSpeedCap);
+          outerSpeedSafeRef = Math.min(outerSpeedSafeRef, mvsSpeedCap);
           innerSpeed = Math.min(innerSpeed, Math.floor(mvsSpeedCap * 1.4));
         }
       }
@@ -2581,15 +2594,20 @@ const Engine = (() => {
           outerSpeed = Math.min(outerSpeed, globalMvsCap);
           innerSpeed = Math.min(innerSpeed, Math.floor(globalMvsCap * 1.4));
         }
+        // Twin: the OR-condition + min decomposes to an unconditional
+        // per-value min (min is identity when already <= cap).
+        outerSpeedSafeRef = Math.min(outerSpeedSafeRef, globalMvsCap);
       }
 
       // PETG outer wall cap for surface quality
       const petgCapped = isPETG && outerSpeed > 80;
       if (petgCapped) outerSpeed = 80;
+      if (isPETG && outerSpeedSafeRef > 80) outerSpeedSafeRef = 80;
 
       // Beginner safety: cap at 80% of calculated speed
       if (isBeginnerMode) {
         outerSpeed = Math.round(outerSpeed * 0.8);
+        outerSpeedSafeRef = Math.round(outerSpeedSafeRef * 0.8);
         innerSpeed = Math.round(innerSpeed * 0.8);
       }
 
@@ -2598,13 +2616,17 @@ const Engine = (() => {
       // Ender 3 V3 SE at max_speed=250 vs a default outer_bedslinger=100).
       if (limits) {
         outerSpeed = Math.round(_clampNum(outerSpeed, null, limits.max_outer_wall_speed));
+        outerSpeedSafeRef = Math.round(_clampNum(outerSpeedSafeRef, null, limits.max_outer_wall_speed));
         innerSpeed = Math.round(_clampNum(innerSpeed, null, limits.max_inner_wall_speed));
       }
 
       const outerSpeedTuned = profileMode === 'tuned' && sm._tuned
         && (isCoreXY ? sm._tuned.outer_corexy != null : sm._tuned.outer_bedslinger != null);
-      // [IMPL-044 W3] Personal override actually consulted for THIS printer type?
-      const outerSpeedPersonal = (isCoreXY ? _mineOv.outer_corexy : _mineOv.outer_bedslinger) != null;
+      // [IMPL-044 W3 / Codex review MEDIUM-3] 'personal' prov requires the
+      // override to be consulted for THIS printer type AND to have survived
+      // the caps (final value differs from the safe-base counterfactual).
+      const outerSpeedPersonal = (isCoreXY ? _mineOv.outer_corexy : _mineOv.outer_bedslinger) != null
+        && outerSpeed !== outerSpeedSafeRef;
       p.outer_wall_speed = S(`${outerSpeed} mm/s`,
         isTPU      ? 'TPU must print slowly — flexible filament stretches during fast moves causing under-extrusion and jams.' :
         isABSlike  ? 'Slower outer walls reduce warping risk by allowing each layer more time to cool gradually.' :

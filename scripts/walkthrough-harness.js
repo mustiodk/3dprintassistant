@@ -1643,6 +1643,20 @@ const COMBOS = [
     const leaked = Object.keys(pSafe).filter(k => pSafe[k]?.prov?.source === 'personal');
     if (leaked.length) throw new Error(`W3 T5(f): safe resolve leaked personal prov on: ${leaked.join(',')}`);
 
+    // (g) Codex review MEDIUM-3: no personal prov when caps ERASE the effect.
+    // x1c+abs: the ABS-like 60 mm/s outer cap binds in both modes, so a −0.1
+    // speed delta changes nothing — claiming 'personal' would be dishonest.
+    Engine.setPersonalTuning({ pairKey: 'x1c|abs',
+      offsets: { speed_multiplier_delta: { value: -0.1, unit: '×', date: '2026-07-06' } } });
+    const absSafe = Engine.resolveProfile(stateDefault({ printer: 'x1c', nozzle: 'std_0.4', material: 'abs', profileMode: 'safe' }));
+    const absMine = Engine.resolveProfile(stateDefault({ printer: 'x1c', nozzle: 'std_0.4', material: 'abs', profileMode: 'mine' }));
+    if (absMine.outer_wall_speed?.value !== absSafe.outer_wall_speed?.value) {
+      throw new Error(`W3 T5(g): premise broken — abs outer must be cap-equal in both modes (safe=${absSafe.outer_wall_speed?.value}, mine=${absMine.outer_wall_speed?.value}); pick a different combo`);
+    }
+    if (absMine.outer_wall_speed?.prov?.source === 'personal') {
+      throw new Error(`W3 T5(g): caps erased the personal effect (both ${absSafe.outer_wall_speed?.value}) — prov must NOT claim personal`);
+    }
+
     Engine.setPersonalTuning(null);
     console.log('[W3 T5] OK provenance: touched params carry personal prov with the spec ref format (offsetKey ±value unit + accepted date) across profile, temps, and advanced surfaces; untouched params and non-mine modes never do.');
   }
