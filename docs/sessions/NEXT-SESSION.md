@@ -4,6 +4,12 @@
 **Last updated:** 2026-07-06 (after the learns-export merge + Bambu import-test PASS + Orca fixture capture).
 **Locked next entry point:** **W3 Mine-tier engine train** — IMPL-044 plan Part 2 (the "rest" of the configurator-that-learns work; now unblocked because IMPL-043 P1 export is merged + live).
 
+---
+> ⭐ **PRIMARY PATH — autonomous Fable 5 run:** the owner chose to run this task as a Fable-5 autonomous session. Use **[`../prompts/2026-07-06-fable5-w3-mine-tier.md`](../prompts/2026-07-06-fable5-w3-mine-tier.md)** — set the model to **Fable 5** (`claude-fable-5`), effort **high** (`xhigh` for the injection core + reviews). That prompt is the full gated autonomous kickoff (branch `mine-tier-YYYYMMDD`, gate ledger, nothing-merges, OWNER-VERIFY + WRAP).
+>
+> The block below is the **interactive/collaborative variant** — same task and state, but it confirms + asks before proceeding. Use it only if you want to drive the session yourself rather than run it autonomously.
+---
+
 Copy everything between the markers into a new session.
 
 >>> START >>>
