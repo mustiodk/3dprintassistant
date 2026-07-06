@@ -1013,6 +1013,33 @@ const Engine = (() => {
   // equal, so we can keep UI-display names and vendor-import names in harmony.
   // Example: mapForSlicer('Cross Hatch', 'sparse_infill_pattern', 'prusaslicer')
   //   → 'rectilinear' (from slicer_capabilities.fallbacks; caller re-capitalizes)
+  // IMPL-043 P1: canonical slicer-value resolver for pattern-class fields.
+  // Unlike mapForSlicer (which returns the INPUT when valid, preserving display
+  // casing), this returns the MATCHING capability-set entry — the canonical
+  // slicer token — so export payloads never carry display forms. Falls back to
+  // the caps fallback map, else a normalized lowercase token.
+  function slicerValueFor(value, field, slicerId) {
+    if (value == null) return null;
+    const norm = s => String(s).toLowerCase().trim().replace(/[\s_-]+/g, '');
+    const normalized = norm(value);
+    const token = String(value).toLowerCase().trim().replace(/ /g, '');
+    const slicerCap = _slicerCaps && _slicerCaps.slicers && _slicerCaps.slicers[slicerId];
+    if (!slicerCap) return token;
+    const fieldKey = field.endsWith('s') ? field : field + 's';
+    const validSet = slicerCap[fieldKey] || slicerCap[field + '_patterns'] || slicerCap[field];
+    if (Array.isArray(validSet)) {
+      const hit = validSet.find(v => norm(v) === normalized);
+      if (hit) return hit;
+      const fallbackMap = _slicerCaps.fallbacks && _slicerCaps.fallbacks[field];
+      if (fallbackMap) {
+        const k = Object.keys(fallbackMap).find(x => norm(x) === normalized);
+        if (k && fallbackMap[k][slicerId]) return fallbackMap[k][slicerId];
+      }
+      return validSet[0];
+    }
+    return token;
+  }
+
   function mapForSlicer(value, field, slicer) {
     if (!_slicerCaps || !value || !field || !slicer) return value;
     const slicerCap = _slicerCaps.slicers && _slicerCaps.slicers[slicer];
@@ -2171,6 +2198,9 @@ const Engine = (() => {
     const _capitalize = s => typeof s !== 'string' ? s
       : s.split(/(\s|[_-])/).map(part => /^[a-z]/.test(part) ? part.charAt(0).toUpperCase() + part.slice(1) : part).join('');
     const patternFor = (value, field) => _capitalize(mapForSlicer(value, field, slicer));
+    // IMPL-043 P1: attach the canonical slicer value as a `_slicer_value`
+    // sidecar (same pattern as `prov`) — export reads sidecars, never display text.
+    const sv = (param, value) => { if (param && value != null) param._slicer_value = value; };
 
     const p = {};
 
@@ -2192,20 +2222,25 @@ const Engine = (() => {
         useArachne
           ? 'Arachne uses variable-width extrusion to fill thin walls and fine details that Classic would leave partially empty.'
           : 'Classic produces consistent, predictable wall widths — better for structural parts.');
+      sv(p.wall_generator, useArachne ? 'arachne' : 'classic');
 
       // Seam position — explicit state.seam overrides surface default
       // patternFor translates our UI-canonical forms (e.g. "Sharpest corner") to
       // the target slicer's equivalent (e.g. Prusa uses "Rear" instead of "Back",
       // all slicers use "Nearest" for what we call "Sharpest corner").
       const seamLabels = { aligned: 'Aligned', sharpest_corner: 'Sharpest corner', random: 'Random', back: 'Back' };
+      const seamSlicerValues = { aligned: 'aligned', sharpest_corner: 'nearest', random: 'random', back: 'back' };
       if (state.seam && state.seam !== 'aligned') {
         p.seam_position = S(patternFor(seamLabels[state.seam] || state.seam, 'seam_position'),
           state.seam === 'sharpest_corner' ? 'Seam placed at the sharpest corner of each layer — hides it in geometry.' :
           state.seam === 'random'          ? 'Seam placed randomly each layer — spreads the mark across the surface instead of concentrating it.' :
           state.seam === 'back'            ? 'Seam placed at the back of the model — keeps the visible side clean.' : '');
-      } else if (surface.seam_aligned) {
+        sv(p.seam_position, seamSlicerValues[state.seam] || 'aligned');
+      } else if (surface.seam_position) {
+        // Data-driven default (IMPL-043 P1 — was the boolean seam_aligned flag).
         p.seam_position = S(patternFor('Aligned (or Back)', 'seam_position'),
           'At fine quality, the seam is more visible. Placing it consistently at one location makes it easy to hide or orient away from view.');
+        sv(p.seam_position, surface.seam_position);
       }
 
       // Initial layer height scales with nozzle so tiny nozzles (0.2mm, max layer ~0.14)
@@ -2232,13 +2267,17 @@ const Engine = (() => {
 
       p.arc_fitting = A('Enabled',
         'Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features.');
+      sv(p.arc_fitting, '1');
 
       p.avoid_crossing_walls = A('Enabled',
         'Routes travel moves around printed walls rather than through them. Reduces the risk of seam blobs and surface zits from ooze during travel.');
+      sv(p.avoid_crossing_walls, '1');
 
-      if (surface.id === 'fine' || surface.id === 'maximum') {
+      if (surface.only_one_wall_top) {
+        // Data-driven (IMPL-043 P1 — was hardcoded fine||maximum; data mirrors that exactly).
         p.only_one_wall_top = A('Enabled',
           'Using a single outer wall on top layers reduces the gaps between adjacent wall lines, producing a smoother and more uniform top surface.');
+        sv(p.only_one_wall_top, '1');
       }
 
       if (isPETG) {
@@ -2251,6 +2290,7 @@ const Engine = (() => {
     if (isFunctional) {
       p.order_of_walls = S('Inner / Outer',
         'Inner walls are placed first, establishing the reference geometry. The outer wall is then placed precisely against them — improving hole and feature accuracy.');
+      sv(p.order_of_walls, 'inner wall/outer wall/infill');
       p.xy_hole_compensation = S('0.05–0.1 mm',
         'Compensates for material expansion that makes holes slightly smaller than designed. Start at 0.05 mm and adjust with a test print.',
         { source: 'default', ref: 'engine:functional_use_case' });
@@ -2276,6 +2316,7 @@ const Engine = (() => {
           : strength.infill_pattern === 'Grid'
             ? 'Grid is efficient and strong in the XY plane. A solid default for most everyday parts.'
             : 'Cross Hatch is the fastest infill to print. Adequate for prototypes where strength is not the priority.');
+      sv(p.sparse_infill_pattern, slicerValueFor(strength.infill_pattern, 'sparse_infill_pattern', slicer));
 
       // [IMPL-041 / DQ-2] infill_density is one of the DQ-2 MVP tiered fields.
       // Tuned reduces density where community consensus shows it's adequate.
@@ -2307,13 +2348,20 @@ const Engine = (() => {
       p.top_surface_pattern = A(
         patternFor(isFineQuality ? 'Monotonic line' : 'Monotonic', 'top_surface_pattern'),
         'Monotonic line produces the smoothest top surface — each line always starts where the previous ended, eliminating gaps and improving gloss.');
+      sv(p.top_surface_pattern, slicerValueFor(isFineQuality ? 'Monotonic line' : 'Monotonic', 'top_surface_pattern', slicer));
 
       p.bottom_surface_pattern       = A(patternFor('Monotonic', 'bottom_surface_pattern'), 'Monotonic bottom surface pattern ensures complete coverage on the first visible layers.');
-      p.internal_solid_infill_pattern = A(patternFor('Rectilinear', 'internal_solid_infill_pattern'), 'Rectilinear is the fastest pattern for solid infill — the slicer alternates line direction per layer automatically.');
+      sv(p.bottom_surface_pattern, slicerValueFor('Monotonic', 'bottom_surface_pattern', slicer));
+      // Data-driven canonical value (IMPL-043 P1). Phase 0 finding F1: BS's valid
+      // set has no 'monotonic'; slicerValueFor maps per-slicer where data deviates.
+      const isipCanon = (surface && surface.internal_solid_infill_pattern) || 'rectilinear';
+      p.internal_solid_infill_pattern = A(patternFor(_capitalize(isipCanon), 'internal_solid_infill_pattern'), 'Rectilinear is the fastest pattern for solid infill — the slicer alternates line direction per layer automatically.');
+      sv(p.internal_solid_infill_pattern, slicerValueFor(isipCanon, 'internal_solid_infill_pattern', slicer));
 
       if (speedMode?.id === 'fast' || isPrototype) {
         p.infill_combination = A('Enabled',
           'Combines infill from multiple layers into one pass. Significantly reduces print time with minimal strength impact on non-structural parts.');
+        sv(p.infill_combination, '1');
       }
     }
 
@@ -2500,10 +2548,12 @@ const Engine = (() => {
         isTree || forceEasy
           ? 'Tree supports contact the model at minimal points and are significantly easier to remove without surface damage.'
           : 'Normal supports provide better surface quality on the underside of supported areas — use when finish matters.');
+      sv(p.support_type, isTree || forceEasy ? 'tree(auto)' : 'normal(auto)');
       p.support_style           = S(isTree || forceEasy ? 'Tree Hybrid' : 'Default',
         isTree || forceEasy
           ? 'Hybrid combines tree and normal support — tree branches where possible, normal on flat overhangs.'
           : 'Default support style — grid pattern provides reliable support for all overhang types.');
+      sv(p.support_style, isTree || forceEasy ? 'tree_hybrid' : 'default');
       p.support_threshold_angle = S(support.id === 'best_underside' ? '30°' : '40°',
         'Only generate support where overhangs exceed this angle. Lower values generate more support — use 30° for quality-critical surfaces.',
         { source: 'default', ref: 'engine:support_type_id' });
@@ -2518,8 +2568,10 @@ const Engine = (() => {
       p.support_interface_layers  = A(support.id === 'best_underside' ? '3' : '2',
         'Interface layers are solid layers between the support and model surface — more layers = better surface finish on the supported face, but harder to remove.',
         { source: 'default', ref: 'engine:support_type_id' });
+      // sv: BS user presets write 'rectilinear_interlaced' for the plain form (see legacy sipMap note).
       p.support_interface_pattern = A(patternFor(support.id === 'best_underside' ? 'Grid' : 'Rectilinear', 'support_interface_pattern'),
         'Grid interface provides stronger contact with the model surface. Rectilinear is easier to peel off after printing.');
+      sv(p.support_interface_pattern, support.id === 'best_underside' ? 'grid' : 'rectilinear_interlaced');
     }
 
     // ─── OTHERS TAB ───────────────────────────────────────────────────────────
@@ -2544,19 +2596,25 @@ const Engine = (() => {
 
     // Ironing — decoupled from surface quality, driven by state.ironing (auto/on/off)
     const ironingState = state.ironing || 'auto';
+    // Data-driven (IMPL-043 P1 — was a hardcoded surface-id list; data mirrors it).
+    const surfaceIroningType = (surface && surface.ironing_type) || 'no ironing';
     const ironingEnabled = ironingState === 'on' ||
-      (ironingState === 'auto' && surface && ['fine', 'maximum', 'very_fine', 'ultra'].includes(surface.id));
+      (ironingState === 'auto' && surfaceIroningType !== 'no ironing');
     if (ironingEnabled) {
       p.ironing = S('Enabled — Monotonic line',
         ironingState === 'auto'
           ? 'Auto-enabled at Fine or better surface quality. Ironing re-passes the nozzle over the top surface to produce a near-smooth finish.'
           : 'Ironing re-passes the nozzle over the top surface at low speed to melt and flatten bumps, producing a near-glossy flat finish.');
+      // Canonical type: forced-on with a data 'no ironing' default falls back to 'top'.
+      sv(p.ironing, surfaceIroningType !== 'no ironing' ? surfaceIroningType : 'top');
+      p.ironing._slicer_pattern = (surface && surface.ironing_pattern) || 'monotonicline';
     }
 
     if (isLarge && !isCoreXY) {
       p.slow_down_tall = S('Enabled (recommended)',
         // [HIGH-012-followup B] Template against printer.name — was hardcoded "A1/A1 Mini" and fired for every bedslinger large-print case.
         `On ${printer.name} the bed moves — tall prints amplify vibration as mass increases. Slowing top layers significantly reduces ringing artifacts.`);
+      sv(p.slow_down_tall, '1');
     }
 
     // Brim logic — explicit state.brim overrides auto-detection
@@ -2588,6 +2646,10 @@ const Engine = (() => {
       }
       if (brimValue) {
         p.brim_width = A(brimValue, brimWhy, { source: 'rule', ref: 'rule:brim_auto_policy' });
+        // Canonical numeric: lower bound of the display range; BS has no mouse
+        // ears — small brim approximation (matches the legacy export mapping).
+        const brimNum = /mouse|corner/i.test(brimValue) ? '5' : (String(brimValue).match(/(\d+)/) || [,'5'])[1];
+        sv(p.brim_width, brimNum);
       }
     }
 
@@ -2632,6 +2694,8 @@ const Engine = (() => {
                   ? `Retraction scaled for ${nozzleSize}mm nozzle (base ${mbs.retraction_distance}mm for 0.4mm) — small nozzles need less, large nozzles need more.`
                   : (rd >= 1.0 ? 'Longer retraction to prevent ooze with this high-temp material.' : 'Standard retraction distance for this material.'))),
         { source: 'calculated', ref: 'rule:_scaleRetraction' });
+      // HIGH-001: export must read this SCALED value, never mbs.retraction_distance.
+      sv(p.retraction_distance, String(rd));
     }
 
     if (mbs.retraction_speed != null) {
@@ -2685,6 +2749,7 @@ const Engine = (() => {
       p.draft_shield = S('Enabled',
         'Draft shield protects from chamber drafts in cold environments — significantly reduces warping risk.',
         { source: 'rule', ref: 'env.force_draft_shield' });
+      sv(p.draft_shield, '1');
     }
 
     return p;

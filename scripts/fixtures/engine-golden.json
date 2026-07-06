@@ -307,12 +307,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -328,12 +330,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "8",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -424,6 +428,7 @@
     "why": "Moderate inner wall speed helps ABS/ASA cool uniformly between layers."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -439,6 +444,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -481,6 +487,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -508,6 +515,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -532,6 +540,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -547,6 +556,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -918,12 +928,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -939,12 +951,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "8",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -1035,6 +1049,7 @@
     "why": "Moderate inner wall speed helps ABS/ASA cool uniformly between layers."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -1050,6 +1065,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -1092,6 +1108,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -1119,6 +1136,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -1143,6 +1161,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -1158,6 +1177,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -1526,12 +1546,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -1547,6 +1569,7 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -1562,6 +1585,7 @@
     "why": "Slight under-extrusion on bridges reduces sagging — PETG is particularly prone to bridge droop at full flow."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -1652,6 +1676,7 @@
     "why": "Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -1667,6 +1692,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -1709,6 +1735,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -1736,6 +1763,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -1760,6 +1788,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -1775,6 +1804,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -2143,12 +2173,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -2164,6 +2196,7 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -2179,6 +2212,7 @@
     "why": "Slight under-extrusion on bridges reduces sagging — PETG is particularly prone to bridge droop at full flow."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -2269,6 +2303,7 @@
     "why": "Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -2284,6 +2319,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -2326,6 +2362,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -2353,6 +2390,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -2377,6 +2415,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -2392,6 +2431,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -2754,12 +2794,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -2775,6 +2817,7 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -2790,6 +2833,7 @@
     "why": "Slight under-extrusion on bridges reduces sagging — PETG is particularly prone to bridge droop at full flow."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -2880,6 +2924,7 @@
     "why": "Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -2895,6 +2940,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -2937,6 +2983,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -2964,6 +3011,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -2988,6 +3036,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -3003,6 +3052,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -3249,12 +3299,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -3270,12 +3322,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "8",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -3366,6 +3420,7 @@
     "why": "Moderate inner wall speed helps ABS/ASA cool uniformly between layers."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -3381,6 +3436,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -3423,6 +3479,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "2.5",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -3450,6 +3507,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -3474,6 +3532,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -3489,6 +3548,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -3753,12 +3813,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -3774,12 +3836,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "8",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -3870,6 +3934,7 @@
     "why": "Moderate inner wall speed helps ABS/ASA cool uniformly between layers."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -3885,6 +3950,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -3927,6 +3993,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "2.5",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -3954,6 +4021,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -3978,6 +4046,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -3993,6 +4062,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -4262,12 +4332,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -4283,12 +4355,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "8",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -4379,6 +4453,7 @@
     "why": "Moderate inner wall speed helps ABS/ASA cool uniformly between layers."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -4394,6 +4469,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -4436,6 +4512,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -4463,6 +4540,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -4487,6 +4565,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -4502,6 +4581,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -4741,12 +4821,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -4762,12 +4844,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "8",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -4858,6 +4942,7 @@
     "why": "Moderate inner wall speed helps ABS/ASA cool uniformly between layers."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -4873,6 +4958,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -4915,6 +5001,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -4942,6 +5029,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -4966,6 +5054,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -4981,6 +5070,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -5220,12 +5310,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -5241,12 +5333,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "8",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -5337,6 +5431,7 @@
     "why": "Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -5352,6 +5447,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -5394,6 +5490,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "1",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -5421,6 +5518,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "gyroid",
     "mode": "simple",
     "prov": null,
     "value": "Gyroid",
@@ -5445,6 +5543,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -5460,6 +5559,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -5711,12 +5811,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -5732,12 +5834,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "8",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -5828,6 +5932,7 @@
     "why": "Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -5843,6 +5948,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -5885,6 +5991,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "1",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -5912,6 +6019,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "gyroid",
     "mode": "simple",
     "prov": null,
     "value": "Gyroid",
@@ -5936,6 +6044,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -5951,6 +6060,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -6193,12 +6303,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -6214,6 +6326,7 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -6229,6 +6342,7 @@
     "why": "Slight under-extrusion on bridges reduces sagging — PETG is particularly prone to bridge droop at full flow."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -6319,6 +6433,7 @@
     "why": "Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -6334,6 +6449,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -6376,6 +6492,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "2",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -6403,6 +6520,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -6427,6 +6545,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -6442,6 +6561,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -6696,12 +6816,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -6717,6 +6839,7 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -6732,6 +6855,7 @@
     "why": "Slight under-extrusion on bridges reduces sagging — PETG is particularly prone to bridge droop at full flow."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -6822,6 +6946,7 @@
     "why": "Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -6837,6 +6962,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -6879,6 +7005,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "2",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -6906,6 +7033,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -6930,6 +7058,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -6945,6 +7074,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -7204,12 +7334,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -7225,12 +7357,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "8",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -7240,6 +7374,7 @@
     "why": "Essential for ABS/ASA — these materials warp severely at corners without a brim."
    },
    "draft_shield": {
+    "_slicer_value": "1",
     "mode": "simple",
     "prov": {
      "ref": "env.force_draft_shield",
@@ -7330,6 +7465,7 @@
     "why": "Moderate inner wall speed helps ABS/ASA cool uniformly between layers."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -7345,6 +7481,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -7387,6 +7524,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -7414,6 +7552,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -7438,6 +7577,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -7453,6 +7593,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -7710,12 +7851,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -7731,12 +7874,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -7827,12 +7972,15 @@
     "why": "Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
     "why": "Rectilinear is the fastest pattern for solid infill — the slicer alternates line direction per layer automatically."
    },
    "ironing": {
+    "_slicer_pattern": "monotonicline",
+    "_slicer_value": "top",
     "mode": "simple",
     "prov": null,
     "value": "Enabled — Monotonic line",
@@ -7848,12 +7996,14 @@
     "why": "Fine layers visibly reduce the staircase effect on curved and angled surfaces."
    },
    "only_one_wall_top": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Using a single outer wall on top layers reduces the gaps between adjacent wall lines, producing a smoother and more uniform top surface."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -7896,6 +8046,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -7914,6 +8065,7 @@
     "why": "Retraction speed tuned for this material's melt characteristics."
    },
    "seam_position": {
+    "_slicer_value": "aligned",
     "mode": "simple",
     "prov": null,
     "value": "Aligned",
@@ -7929,6 +8081,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -7953,6 +8106,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -7968,6 +8122,7 @@
     "why": "Slow top surface speed produces the most uniform and flat top layer — critical when ironing is enabled."
    },
    "wall_generator": {
+    "_slicer_value": "arachne",
     "mode": "simple",
     "prov": null,
     "value": "Arachne",
@@ -8195,12 +8350,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -8216,12 +8373,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -8312,12 +8471,15 @@
     "why": "Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
     "why": "Rectilinear is the fastest pattern for solid infill — the slicer alternates line direction per layer automatically."
    },
    "ironing": {
+    "_slicer_pattern": "monotonicline",
+    "_slicer_value": "top",
     "mode": "simple",
     "prov": null,
     "value": "Enabled — Monotonic line",
@@ -8333,12 +8495,14 @@
     "why": "Fine layers visibly reduce the staircase effect on curved and angled surfaces."
    },
    "only_one_wall_top": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Using a single outer wall on top layers reduces the gaps between adjacent wall lines, producing a smoother and more uniform top surface."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -8381,6 +8545,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -8399,6 +8564,7 @@
     "why": "Retraction speed tuned for this material's melt characteristics."
    },
    "seam_position": {
+    "_slicer_value": "aligned",
     "mode": "simple",
     "prov": null,
     "value": "Aligned",
@@ -8414,6 +8580,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -8438,6 +8605,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -8453,6 +8621,7 @@
     "why": "Slow top surface speed produces the most uniform and flat top layer — critical when ironing is enabled."
    },
    "wall_generator": {
+    "_slicer_value": "arachne",
     "mode": "simple",
     "prov": null,
     "value": "Arachne",
@@ -8684,12 +8853,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -8705,6 +8876,7 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -8720,6 +8892,7 @@
     "why": "Slight under-extrusion on bridges reduces sagging — PETG is particularly prone to bridge droop at full flow."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -8756,6 +8929,7 @@
     "why": "Gap fill handles small spaces between walls. Moderate speed prevents pressure buildup and ooze in tight gaps."
    },
    "infill_combination": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -8816,6 +8990,7 @@
     "why": "Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -8831,6 +9006,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -8873,6 +9049,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -8900,6 +9077,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -8924,6 +9102,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -8939,6 +9118,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -9188,12 +9368,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -9209,6 +9391,7 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -9224,6 +9407,7 @@
     "why": "Slight under-extrusion on bridges reduces sagging — PETG is particularly prone to bridge droop at full flow."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -9260,6 +9444,7 @@
     "why": "Gap fill handles small spaces between walls. Moderate speed prevents pressure buildup and ooze in tight gaps."
    },
    "infill_combination": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -9320,6 +9505,7 @@
     "why": "Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -9335,6 +9521,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -9377,6 +9564,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -9404,6 +9592,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -9428,6 +9617,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -9443,6 +9633,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -9809,12 +10000,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -9830,12 +10023,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -9926,6 +10121,7 @@
     "why": "Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -9941,6 +10137,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -9983,6 +10180,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.6mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.7",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -10010,6 +10208,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "gyroid",
     "mode": "simple",
     "prov": null,
     "value": "Gyroid",
@@ -10034,6 +10233,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -10049,6 +10249,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -10415,12 +10616,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -10436,12 +10639,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -10532,6 +10737,7 @@
     "why": "Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -10547,6 +10753,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -10589,6 +10796,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.6mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.7",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -10616,6 +10824,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "gyroid",
     "mode": "simple",
     "prov": null,
     "value": "Gyroid",
@@ -10640,6 +10849,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -10655,6 +10865,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -10897,12 +11108,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -10918,12 +11131,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -11014,6 +11229,7 @@
     "why": "Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -11029,6 +11245,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -11071,6 +11288,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.6",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -11098,6 +11316,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -11122,6 +11341,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -11137,6 +11357,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -11361,12 +11582,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -11382,12 +11605,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -11478,6 +11703,7 @@
     "why": "Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -11493,6 +11719,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -11535,6 +11762,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.6",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -11562,6 +11790,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -11586,6 +11815,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -11601,6 +11831,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -11825,12 +12056,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -11846,12 +12079,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -11942,6 +12177,7 @@
     "why": "Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -11957,6 +12193,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -11999,6 +12236,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.6",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -12026,6 +12264,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -12050,6 +12289,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -12065,6 +12305,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -12301,12 +12542,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -12322,12 +12565,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -12418,6 +12663,7 @@
     "why": "Bedslinger printers benefit from lower inner wall speeds to reduce ringing on taller prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -12433,6 +12679,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -12475,6 +12722,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.6",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -12502,6 +12750,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -12526,6 +12775,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -12541,6 +12791,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -12785,12 +13036,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -12806,12 +13059,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "8",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -12902,12 +13157,15 @@
     "why": "Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
     "why": "Rectilinear is the fastest pattern for solid infill — the slicer alternates line direction per layer automatically."
    },
    "ironing": {
+    "_slicer_pattern": "monotonicline",
+    "_slicer_value": "top",
     "mode": "simple",
     "prov": null,
     "value": "Enabled — Monotonic line",
@@ -12923,12 +13181,14 @@
     "why": "Finest layer height. Combined with ironing produces a near-smooth top surface."
    },
    "only_one_wall_top": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Using a single outer wall on top layers reduces the gaps between adjacent wall lines, producing a smoother and more uniform top surface."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -12971,6 +13231,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -12989,6 +13250,7 @@
     "why": "Retraction speed tuned for this material's melt characteristics."
    },
    "seam_position": {
+    "_slicer_value": "aligned",
     "mode": "simple",
     "prov": null,
     "value": "Aligned",
@@ -13004,6 +13266,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -13028,6 +13291,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonicline",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic Line",
@@ -13043,6 +13307,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "arachne",
     "mode": "simple",
     "prov": null,
     "value": "Arachne",
@@ -13281,12 +13546,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -13302,12 +13569,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "8",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -13398,12 +13667,15 @@
     "why": "Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
     "why": "Rectilinear is the fastest pattern for solid infill — the slicer alternates line direction per layer automatically."
    },
    "ironing": {
+    "_slicer_pattern": "monotonicline",
+    "_slicer_value": "top",
     "mode": "simple",
     "prov": null,
     "value": "Enabled — Monotonic line",
@@ -13419,12 +13691,14 @@
     "why": "Finest layer height. Combined with ironing produces a near-smooth top surface."
    },
    "only_one_wall_top": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Using a single outer wall on top layers reduces the gaps between adjacent wall lines, producing a smoother and more uniform top surface."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -13467,6 +13741,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -13485,6 +13760,7 @@
     "why": "Retraction speed tuned for this material's melt characteristics."
    },
    "seam_position": {
+    "_slicer_value": "aligned",
     "mode": "simple",
     "prov": null,
     "value": "Aligned",
@@ -13500,6 +13776,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -13524,6 +13801,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonicline",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic Line",
@@ -13539,6 +13817,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "arachne",
     "mode": "simple",
     "prov": null,
     "value": "Arachne",
@@ -13896,12 +14175,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -13917,12 +14198,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -14013,12 +14296,15 @@
     "why": "Inner walls also capped for flexible filament — consistent flow matters more than speed."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
     "why": "Rectilinear is the fastest pattern for solid infill — the slicer alternates line direction per layer automatically."
    },
    "ironing": {
+    "_slicer_pattern": "monotonicline",
+    "_slicer_value": "top",
     "mode": "simple",
     "prov": null,
     "value": "Enabled — Monotonic line",
@@ -14034,12 +14320,14 @@
     "why": "Fine layers visibly reduce the staircase effect on curved and angled surfaces."
    },
    "only_one_wall_top": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Using a single outer wall on top layers reduces the gaps between adjacent wall lines, producing a smoother and more uniform top surface."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -14082,6 +14370,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.2mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.6",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -14100,6 +14389,7 @@
     "why": "Slow retraction prevents stretching and grinding of flexible filament."
    },
    "seam_position": {
+    "_slicer_value": "aligned",
     "mode": "simple",
     "prov": null,
     "value": "Aligned",
@@ -14115,6 +14405,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -14139,6 +14430,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonicline",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic Line",
@@ -14154,6 +14446,7 @@
     "why": "Slow top surface speed produces the most uniform and flat top layer — critical when ironing is enabled."
    },
    "wall_generator": {
+    "_slicer_value": "arachne",
     "mode": "simple",
     "prov": null,
     "value": "Arachne",
@@ -14529,12 +14822,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -14550,12 +14845,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -14646,12 +14943,15 @@
     "why": "Inner walls also capped for flexible filament — consistent flow matters more than speed."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
     "why": "Rectilinear is the fastest pattern for solid infill — the slicer alternates line direction per layer automatically."
    },
    "ironing": {
+    "_slicer_pattern": "monotonicline",
+    "_slicer_value": "top",
     "mode": "simple",
     "prov": null,
     "value": "Enabled — Monotonic line",
@@ -14667,12 +14967,14 @@
     "why": "Fine layers visibly reduce the staircase effect on curved and angled surfaces."
    },
    "only_one_wall_top": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Using a single outer wall on top layers reduces the gaps between adjacent wall lines, producing a smoother and more uniform top surface."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -14715,6 +15017,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.2mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.6",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -14733,6 +15036,7 @@
     "why": "Slow retraction prevents stretching and grinding of flexible filament."
    },
    "seam_position": {
+    "_slicer_value": "aligned",
     "mode": "simple",
     "prov": null,
     "value": "Aligned",
@@ -14748,6 +15052,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -14772,6 +15077,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonicline",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic Line",
@@ -14787,6 +15093,7 @@
     "why": "Slow top surface speed produces the most uniform and flat top layer — critical when ironing is enabled."
    },
    "wall_generator": {
+    "_slicer_value": "arachne",
     "mode": "simple",
     "prov": null,
     "value": "Arachne",
@@ -15168,12 +15475,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -15189,6 +15498,7 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -15204,6 +15514,7 @@
     "why": "Slight under-extrusion on bridges reduces sagging — PETG is particularly prone to bridge droop at full flow."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -15213,6 +15524,7 @@
     "why": "A brim prevents corners and thin features from lifting off the bed during printing."
    },
    "draft_shield": {
+    "_slicer_value": "1",
     "mode": "simple",
     "prov": {
      "ref": "env.force_draft_shield",
@@ -15303,6 +15615,7 @@
     "why": "Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -15318,6 +15631,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -15360,6 +15674,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -15387,6 +15702,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -15411,6 +15727,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -15426,6 +15743,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -15812,12 +16130,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -15833,12 +16153,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -15848,6 +16170,7 @@
     "why": "A brim prevents corners and thin features from lifting off the bed during printing."
    },
    "draft_shield": {
+    "_slicer_value": "1",
     "mode": "simple",
     "prov": {
      "ref": "env.force_draft_shield",
@@ -15938,6 +16261,7 @@
     "why": "Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -15953,6 +16277,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -15995,6 +16320,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.6",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -16022,6 +16348,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -16046,6 +16373,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -16061,6 +16389,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -16427,12 +16756,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -16448,12 +16779,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -16544,6 +16877,7 @@
     "why": "Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -16559,6 +16893,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -16610,6 +16945,7 @@
     "why": "Prime tower purges leftover filament from the previous color before printing each new color layer — prevents color contamination."
    },
    "retraction_distance": {
+    "_slicer_value": "0.6",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -16637,6 +16973,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -16661,6 +16998,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -16676,6 +17014,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -17024,12 +17363,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -17045,12 +17386,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -17141,6 +17484,7 @@
     "why": "Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -17156,6 +17500,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -17198,6 +17543,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.6",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -17225,6 +17571,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -17249,6 +17596,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -17264,6 +17612,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -17612,12 +17961,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -17633,12 +17984,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -17729,6 +18082,7 @@
     "why": "Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -17744,6 +18098,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -17786,6 +18141,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.6",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -17813,6 +18169,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -17837,6 +18194,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -17852,6 +18210,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -18200,12 +18559,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -18221,12 +18582,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -18317,6 +18680,7 @@
     "why": "Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -18332,6 +18696,7 @@
     "why": "Standard balance of print time and surface quality for everyday parts."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -18374,6 +18739,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.6",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -18401,6 +18767,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -18425,6 +18792,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -18440,6 +18808,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -18787,12 +19156,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -18808,12 +19179,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -18850,6 +19223,7 @@
     "why": "Gap fill handles small spaces between walls. Moderate speed prevents pressure buildup and ooze in tight gaps."
    },
    "infill_combination": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -18910,6 +19284,7 @@
     "why": "Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -18925,6 +19300,7 @@
     "why": "Thick layers reduce total layer count significantly. Ideal for prototypes where surface finish is secondary."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -18967,6 +19343,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.8mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -18994,6 +19371,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -19018,6 +19396,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -19033,6 +19412,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
@@ -19380,12 +19760,14 @@
   },
   "profile": {
    "arc_fitting": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
     "why": "Converts thousands of short linear segments into smooth arc moves (G2/G3). Reduces vibration and improves surface quality on circular features."
    },
    "avoid_crossing_walls": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -19401,12 +19783,14 @@
     "why": "Solid bottom shells form the base of the print. More shells improve the first-layer surface quality visible on the underside."
    },
    "bottom_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
     "why": "Monotonic bottom surface pattern ensures complete coverage on the first visible layers."
    },
    "brim_width": {
+    "_slicer_value": "5",
     "mode": "advanced",
     "prov": {
      "ref": "rule:brim_auto_policy",
@@ -19443,6 +19827,7 @@
     "why": "Gap fill handles small spaces between walls. Moderate speed prevents pressure buildup and ooze in tight gaps."
    },
    "infill_combination": {
+    "_slicer_value": "1",
     "mode": "advanced",
     "prov": null,
     "value": "Enabled",
@@ -19503,6 +19888,7 @@
     "why": "Inner walls are hidden — higher speed than outer walls trades invisible quality for faster prints."
    },
    "internal_solid_infill_pattern": {
+    "_slicer_value": "rectilinear",
     "mode": "advanced",
     "prov": null,
     "value": "Rectilinear",
@@ -19518,6 +19904,7 @@
     "why": "Thick layers reduce total layer count significantly. Ideal for prototypes where surface finish is secondary."
    },
    "order_of_walls": {
+    "_slicer_value": "inner wall/outer wall/infill",
     "mode": "simple",
     "prov": null,
     "value": "Inner / Outer",
@@ -19560,6 +19947,7 @@
     "why": "Pressure advance (K-factor) calibrated for 0.8mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
+    "_slicer_value": "0.8",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
@@ -19587,6 +19975,7 @@
     "why": "Balanced infill — enough internal structure for everyday parts without excessive material use."
    },
    "sparse_infill_pattern": {
+    "_slicer_value": "grid",
     "mode": "simple",
     "prov": null,
     "value": "Grid",
@@ -19611,6 +20000,7 @@
     "why": "Matching the outer wall width gives a consistent, uniform top surface appearance."
    },
    "top_surface_pattern": {
+    "_slicer_value": "monotonic",
     "mode": "advanced",
     "prov": null,
     "value": "Monotonic",
@@ -19626,6 +20016,7 @@
     "why": "Top surface speed tuned for your printer — slower than inner walls since this layer is visible."
    },
    "wall_generator": {
+    "_slicer_value": "classic",
     "mode": "simple",
     "prov": null,
     "value": "Classic",
