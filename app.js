@@ -239,7 +239,9 @@ function syncUrl() {
 // Copy a URL reproducing the given state object; toast on success. Clipboard
 // API first, execCommand textarea fallback for blocked/legacy contexts.
 function copyShareUrl(stateObj) {
-  const qs  = StateCodec.encodeToParams(stateObj);
+  // IMPL-044 W3: the share affordance maps mine→safe (encodeForShare) — the
+  // live address bar (syncUrl) keeps mine so refresh restores the selection.
+  const qs  = StateCodec.encodeForShare(stateObj);
   const url = `${location.origin}${location.pathname}${qs ? '?' + qs : ''}`;
   const copyFallback = () => {
     const ta = document.createElement('textarea');

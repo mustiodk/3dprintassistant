@@ -77,12 +77,7 @@ const StateCodec = (() => {
   function encodeToParams(state) {
     const parts = [];
     FIELDS.forEach(f => {
-      let v = state[f.key];
-      // [IMPL-044 W3] Personal offsets never ride share URLs (spec §5.3): a
-      // recipient lacks the sender's Workshop tuning, so a shared 'mine'
-      // state is encoded as 'safe' at the SENDER side — the URL resolves
-      // identically for everyone who opens it.
-      if (f.key === 'profileMode' && v === 'mine') v = 'safe';
+      const v = state[f.key];
       if (f.kind === 'multi') {
         if (Array.isArray(v) && v.length) parts.push(`${f.url}=${v.map(encodeURIComponent).join(',')}`);
       } else if (v != null && v !== '') {
@@ -90,6 +85,19 @@ const StateCodec = (() => {
       }
     });
     return parts.join('&');
+  }
+
+  // [IMPL-044 W3 / Codex mine-tier review HIGH-1] The SHARE affordance's
+  // encoder: personal offsets never ride shared URLs (spec §5.3), so a shared
+  // 'mine' state is substituted with 'safe' at the SENDER side — the URL
+  // resolves identically for everyone who opens it. Deliberately NOT part of
+  // encodeToParams: the live address bar uses that, URL restore wins over
+  // storage on refresh, and mapping there silently reverted a Mine selection
+  // to Safe on every reload.
+  function encodeForShare(state) {
+    return state && state.profileMode === 'mine'
+      ? encodeToParams({ ...state, profileMode: 'safe' })
+      : encodeToParams(state);
   }
 
   function decodeFromParams(search) {
@@ -155,6 +163,7 @@ const StateCodec = (() => {
     encodeForStorage,
     decodeFromStorage,
     encodeToParams,
+    encodeForShare,
     decodeFromParams,
     validateState,
   };
