@@ -1,58 +1,34 @@
 # 3dpa — Next Session Kickoff
 
 **Purpose:** copy-paste kickoff prompt for the next fresh 3dpa session.
-**Last updated:** 2026-07-06 (after the learns-export merge + Bambu import-test PASS + Orca fixture capture).
-**Locked next entry point:** **W3 Mine-tier engine train** — IMPL-044 plan Part 2 (the "rest" of the configurator-that-learns work; now unblocked because IMPL-043 P1 export is merged + live).
+**Last updated:** 2026-07-07 (at the W3 Mine-tier engine train wrap — Trigger A).
+**Locked next entry point:** **OWNER: OWNER-VERIFY + merge of branch `mine-tier-20260706`** — the 5-minute walkthrough proving accepted tuning moves the generated profile, plus the merge/rollback commands, live in [`../planning/MINE-TIER-GATE-LEDGER.md`](../planning/MINE-TIER-GATE-LEDGER.md). Nothing else should touch engine/app until that decision lands.
 
----
-> ⭐ **PRIMARY PATH — autonomous Fable 5 run:** the owner chose to run this task as a Fable-5 autonomous session. Use **[`../prompts/2026-07-06-fable5-w3-mine-tier.md`](../prompts/2026-07-06-fable5-w3-mine-tier.md)** — set the model to **Fable 5** (`claude-fable-5`), effort **high** (`xhigh` for the injection core + reviews). That prompt is the full gated autonomous kickoff (branch `mine-tier-YYYYMMDD`, gate ledger, nothing-merges, OWNER-VERIFY + WRAP).
->
-> The block below is the **interactive/collaborative variant** — same task and state, but it confirms + asks before proceeding. Use it only if you want to drive the session yourself rather than run it autonomously.
 ---
 
 Copy everything between the markers into a new session.
 
 >>> START >>>
-3dpa cold start.
+You are working on the 3D Print Assistant (3dpa) — web + iOS slicer-profile configurator, live at 3dprintassistant.com. Read fully before acting:
 
-Read in order before doing anything:
-1. `~/dev/Claude/Projects/CLAUDE.md` (top-level protocol)
-2. `3dprintassistant/CLAUDE.md` (project)
-3. `3dprintassistant/docs/3dpa-context.md` (evergreen architecture, engine API, app state, standing rules)
-4. `3dprintassistant/docs/planning/ROADMAP.md` (live status + Active Work Queue — TRUTH; read fully)
-5. `3dprintassistant/docs/sessions/INDEX.md` then the last 3 session logs in full (start with `2026-07-06-cowork-appdev-learns-export.md` incl. its evening Addendum)
-6. This `NEXT-SESSION.md`
-7. Task source: `3dprintassistant/docs/superpowers/plans/2026-07-06-impl-044-w3w4-plan.md` (Part 2 = Mine-tier engine train) + `docs/specs/IMPL-044-W3W4-mine-tier-and-custom-filaments.md`
+1. ~/dev/Claude/Projects/CLAUDE.md and 3dprintassistant/CLAUDE.md
+2. 3dprintassistant/docs/3dpa-context.md (evergreen project context)
+3. 3dprintassistant/docs/planning/ROADMAP.md (source of truth — read fully before any status claim)
+4. docs/sessions/INDEX.md + the last 3 session logs in full (start with 2026-07-06-cowork-appdev-mine-tier.md)
+5. docs/planning/MINE-TIER-GATE-LEDGER.md (branch state, per-task gate record, Codex review dispositions, OWNER-VERIFY block)
 
-**Today's task:** implement the **W3 Mine-tier engine train** — the engine-side layer that actually CONSUMES the Workshop tuning offsets that shipped (app-layer) on 2026-07-06.
-Scope (from plan Part 2 — re-ground exact line numbers at execution, they drift):
-- Mine tier = **Safe base + personal deltas** (NOT Tuned). Inject accepted tuning offsets:
-  - temp deltas at the existing env-adjustment points (upper caps reused positionally; **LOWER-bound temp floors are NEW code**),
-  - fan 0–100 bounds are **NEW code on exactly 3 emissions**,
-  - retraction delta applies **post-`_scaleRetraction`**,
-  - engine validates the injected `pairKey` against current state at every resolve (stale-injection guard),
-  - provenance tag `personal`.
-- Custom-filament overlay: mandatory `templateId`, sender-side share-URL substitution.
-- The rules table is TRANSITIONAL app-layer — the plan notes migrating magnitudes into `troubleshooter.json` `remedy` blocks on this train; confirm scope with owner before doing the migration vs deferring.
+Current state in one line: the W3 Mine-tier engine train (accepted Workshop tuning → Mine profile tier) is COMPLETE on branch `mine-tier-20260706` (pushed as backup, NOT merged; main `6c9d4a0` untouched, tag `mine-tier-baseline-20260706`); iOS main is 6 local push-gated commits ahead (135/135 XCTests).
 
-**Process (Full lane — this is an engine change):**
-- TDD RED-first. Use the value-level golden snapshot as the safety net: `node scripts/engine-golden-snapshot.js --check` must be clean before you start; regenerate + **enumerate every diff** at each engine commit (an "app-layer-only" step must show an EMPTY diff).
-- Baseline comparators before touching engine: `node scripts/validate-data.js 2>&1 | shasum -a256`, `node scripts/walkthrough-harness.js 2>&1 | shasum -a256`, matrix-audit stable hash = `node scripts/profile-matrix-audit.js 2>&1 | grep -v '^Generated:' | shasum -a256`.
-- **Mandatory web + iOS impact eval** (engine/data rule). Mirror `engine.js` + any `data/` change byte-identical to iOS; run iOS XCTest. **iOS `WorkshopStore` ordered emitter DROPS unknown envelope keys — the iOS train MUST add key-preservation for `tuning`/`userMaterials` and regenerate the byte-compat fixture.** (iOS `c647982` is already 1 local commit ahead from the export mirror; stays local under the push gate.)
-- One accepted finding = one commit per platform. Cross-model review (`bridge --health` then `bridge --mode codex-only`) before any hard-to-reverse step.
+Today's task: [PICK ONE — rough priority]
+(a) If the mine-tier branch is NOT yet merged: assist the owner's OWNER-VERIFY + merge (ledger has everything).
+(b) iOS TestFlight train: bundle the 6 local iOS commits into the next TestFlight version (decide v1.0.6 re-dispatch vs v1.0.7; MARKETING_VERSION bump; owner dispatches). Gate: merge web mine-tier first so both platforms ship the same engine.
+(c) max_mvs 0.8-nozzle data gap — quick data-only accuracy win (17 materials; ROADMAP recipe: source + add the 0.8 and hips 0.2 entries, re-run gates, byte-mirror iOS).
+(d) Export Phase 2 — Bambu hardening (2-element per-extruder arrays), Beta-badge removal (gate-cleared), and the deferred Codex HIGH-2 export-retraction display fix (make exportProfile/formatProfileAsText filament retraction read the resolved _slicer_value).
+(e) W4 custom filaments (IMPL-044 plan Part 3 — its own engine train, after the mine merge).
 
-**Do NOT:** push iOS to `main` or dispatch TestFlight (push gate); remove the `USE_LEGACY_EXPORT` fallback; start Export Phase 2/3/4 or the `max_mvs` fix unless the owner re-prioritizes (they're queued in ROADMAP, not today's task).
+Process (standing): capture stable comparator baselines first (validate-data / walkthrough / matrix-audit 2>&1 | grep -v '^Generated:' | shasum -a 256); node scripts/engine-golden-snapshot.js --check clean before starting; every engine commit regenerates the golden snapshot and enumerates the diff in the commit body; engine/data changes byte-mirror to iOS + XCTest; one finding = one commit per platform; TDD RED-first with the repo's RED-evidence convention; cross-model review (bridge --health, then bridge --mode codex-only) before hard-to-reverse steps; preview-smoke UI changes on the TRUE user paths — for anything touching persistence, reload WITH the address bar as the app last wrote it (finding 2026-07-07-smoke-test-masked-url-restore-bug).
 
-**Standing rules:** ROADMAP is truth (read before any status claim). engine.js/app.js never merge. PARAM_LABELS stay English. localStorage in try-catch. EN+DA locale parity for any new copy. Commit≠deploy — verify live before asserting prod state. Web auto-deploys from `main`; iOS is push-gated.
-
-Confirm understanding in 3–5 bullets + the locked entry point in one sentence, then ask whether to proceed on the Mine-tier train or pivot to one of the queued items (max_mvs 0.8 data fix / Export Phase 2 / Orca Phase 3).
+Standing rules: engine.js/app.js never merge; PARAM_LABELS English; localStorage try-catch; new copy EN+DA; iOS push gate until TestFlight-ready; data/logic change → mandatory web+iOS impact eval; ROADMAP is truth.
 <<< END <<<
 
-## Also queued (owner-pick, not today's default)
-- **`max_mvs` 0.8mm-nozzle data gap** — quick data-only accuracy win; `data/materials.json` missing `0.8` `max_mvs` keys (17 materials; `hips` also `0.2`). See ROADMAP Active Work Queue.
-- **Export Phase 2** — 2-element per-extruder arrays + ironing UI split + Beta-badge removal (gate-cleared by the passed import test).
-- **Export Phase 3 (Orca)** — fixtures captured at `scripts/fixtures/slicer-golden/orca-x1c-*-ref.json`; Orca is a BS fork so it's a small delta on the Bambu passthrough.
-- **iOS v1.0.6 TestFlight train** — bundles `c647982`; check `PHASE2-GATE-LEDGER.md` I5 note (other machine's data-mirror commits) first.
-
-## Maintenance Note
-Regenerated on Trigger A / Trigger B / explicit owner ask only. Locked entry = W3 Mine-tier engine train (IMPL-044 plan Part 2), not export phases.
+**Maintenance note:** regenerated on Trigger A / Trigger B / explicit owner ask only — a stale NEXT-SESSION between sessions is fine (see `CLAUDE.md → Session-log protocol`).
