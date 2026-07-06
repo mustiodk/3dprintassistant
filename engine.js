@@ -3328,6 +3328,15 @@ const Engine = (() => {
       process[bsKey] = BAMBU_ARRAY_FIELDS.has(bsKey) ? [val] : val;
     });
 
+    // IMPL-036 3a/3b: ironing splits into ironing_type (mapped above from
+    // p.ironing's sidecar) + ironing_pattern (the _slicer_pattern sidecar —
+    // data-driven from surface.ironing_pattern). Exported only when ironing is
+    // active; the display-side param split is a Phase 2 cosmetic follow-up.
+    if (profile.ironing && profile.ironing._slicer_pattern &&
+        process.ironing_type && process.ironing_type !== 'no ironing') {
+      process.ironing_pattern = profile.ironing._slicer_pattern;
+    }
+
     // ── Filament profile ──────────────────────────────────────────────────────
     const filamentName = `3DPA ${material.name}`;
     const printerBase = BAMBU_COMPATIBLE_PRINTER_BASE[state.printer];

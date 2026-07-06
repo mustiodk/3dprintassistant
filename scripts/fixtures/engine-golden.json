@@ -14087,6 +14087,7 @@
      "75"
     ],
     "internal_solid_infill_pattern": "rectilinear",
+    "ironing_pattern": "monotonicline",
     "ironing_type": "top",
     "layer_height": "0.14",
     "name": "3DPA TPU 95A 0.14mm @Bambu Lab X1 Carbon",
@@ -14734,6 +14735,7 @@
      "75"
     ],
     "internal_solid_infill_pattern": "rectilinear",
+    "ironing_pattern": "monotonicline",
     "ironing_type": "top",
     "layer_height": "0.14",
     "name": "3DPA TPU 95A 0.14mm @Bambu Lab X1 Carbon",
