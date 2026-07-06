@@ -18397,7 +18397,7 @@
      "21"
     ],
     "filament_retraction_length": [
-     "0.6"
+     "1"
     ],
     "filament_retraction_speed": [
      "45"
@@ -18533,7 +18533,7 @@
     "outer_wall_line_width": "0.42 mm",
     "outer_wall_speed": "90 mm/s",
     "pressure_advance": "0.04",
-    "retraction_distance": "0.6 mm",
+    "retraction_distance": "1 mm",
     "retraction_speed": "45 mm/s",
     "sparse_infill_density": "15%",
     "sparse_infill_pattern": "Grid",
@@ -18728,14 +18728,14 @@
     "why": "Pressure advance (K-factor) calibrated for 0.4mm nozzle. Fine-tune with a PA calibration test print."
    },
    "retraction_distance": {
-    "_slicer_value": "0.6",
+    "_slicer_value": "1",
     "mode": "simple",
     "prov": {
      "ref": "rule:_scaleRetraction",
      "source": "calculated"
     },
-    "value": "0.6 mm",
-    "why": "Standard retraction distance for this material."
+    "value": "1 mm",
+    "why": "Retraction scaled for 0.4mm nozzle (base 0.6mm for 0.4mm) — small nozzles need less, large nozzles need more."
    },
    "retraction_speed": {
     "mode": "simple",

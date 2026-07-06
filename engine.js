@@ -2808,8 +2808,15 @@ const Engine = (() => {
         const mult = material.flexible ? 1.5 : 3.5;
         rd = Math.round(rd * mult * 10) / 10;
       }
+      // [IMPL-044 W3] Personal delta joins AFTER scaling (it means "final
+      // scaled value + X mm" — what the user physically dialed), BEFORE the
+      // material cap so over-retraction can never ride past retraction_max.
+      const pRetractionDelta = pOff && pOff.retraction_distance_delta ? pOff.retraction_distance_delta.value : 0;
+      if (pRetractionDelta) rd = Math.round((rd + pRetractionDelta) * 10) / 10;
       if (material.retraction_max != null) rd = Math.min(rd, material.retraction_max);
-      return rd;
+      // Defensive ≥0 floor (vocabulary min is 0, so unreachable via
+      // setPersonalTuning — kept per spec §5.1 as the hard engine bound).
+      return Math.max(0, rd);
     };
 
     if (mbs.retraction_distance != null) {

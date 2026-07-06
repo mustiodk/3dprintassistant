@@ -1541,6 +1541,45 @@ const COMBOS = [
     console.log('[W3 T3] OK fan delta: applies post-fan_multiplier to exactly fan_max_speed / fan_min_speed / cooling_fan_overhang; NEW 0–100 bounds pinned both directions (120→100, −20→0); mode gate holds; fan_speed chip outside the closed set.');
   }
 
+  // ─── W3 Mine tier — Task 4: retraction delta post-scale, pre-cap ──────────
+  // [IMPL-044 §5.1] retraction_distance_delta applies INSIDE resolveProfile's
+  // retraction path: after _scaleRetraction's nozzle/bowden scaling (the delta
+  // means "final scaled value + X mm" — what the user physically dialed),
+  // BEFORE the material.retraction_max cap, floored at 0. The _slicer_value
+  // sidecar must carry the delta'd value (card == output == export, IMPL-043).
+  {
+    const mkState = (over) => stateDefault({ printer: 'x1c', nozzle: 'std_0.4', ...over });
+
+    // (a) pla_basic base 0.6, delta +0.4 → 1.0; sidecar follows
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { retraction_distance_delta: { value: 0.4, unit: 'mm', date: '2026-07-06' } } });
+    const pla = Engine.resolveProfile(mkState({ material: 'pla_basic', profileMode: 'mine' }));
+    if (pla.retraction_distance?.value !== '1 mm' || pla.retraction_distance?._slicer_value !== '1') {
+      throw new Error(`W3 T4(a): pla +0.4mm delta must give 1 mm (display) / '1' (_slicer_value); got ${pla.retraction_distance?.value} / ${pla.retraction_distance?._slicer_value}`);
+    }
+    // (b) cap engages BECAUSE of the delta: tpu_95a base 0.8, max 1.2 —
+    //     +0.6 gives raw 1.4, MUST cap at 1.2. (TPU is excluded from
+    //     retraction suggestions at the harvest layer; this pins that the
+    //     ENGINE cap holds regardless of app-layer policy, e.g. a crafted
+    //     backup import — TPU is where over-retraction jams.)
+    Engine.setPersonalTuning({ pairKey: 'x1c|tpu_95a',
+      offsets: { retraction_distance_delta: { value: 0.6, unit: 'mm', date: '2026-07-06' } } });
+    const tpu = Engine.resolveProfile(mkState({ material: 'tpu_95a', profileMode: 'mine' }));
+    if (tpu.retraction_distance?.value !== '1.2 mm' || tpu.retraction_distance?._slicer_value !== '1.2') {
+      throw new Error(`W3 T4(b): tpu +0.6mm delta (raw 1.4) must cap at retraction_max 1.2; got ${tpu.retraction_distance?.value} / ${tpu.retraction_distance?._slicer_value}`);
+    }
+    // (c) mode gate — injection set, safe resolve → base value untouched
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { retraction_distance_delta: { value: 0.4, unit: 'mm', date: '2026-07-06' } } });
+    const plaSafe = Engine.resolveProfile(mkState({ material: 'pla_basic', profileMode: 'safe' }));
+    if (plaSafe.retraction_distance?.value !== '0.6 mm') {
+      throw new Error(`W3 T4(c): safe resolve with injection set must stay 0.6 mm; got ${plaSafe.retraction_distance?.value}`);
+    }
+
+    Engine.setPersonalTuning(null);
+    console.log('[W3 T4] OK retraction delta: post-_scaleRetraction, pre-retraction_max cap (pla 0.6+0.4→1.0; tpu 0.8+0.6→1.4→capped 1.2); _slicer_value sidecar carries the delta’d value; mode gate holds.');
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo
