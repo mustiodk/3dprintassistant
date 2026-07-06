@@ -1418,6 +1418,72 @@ const COMBOS = [
     console.log('[W3 T1] OK mode plumbing: mine==safe with no injection (not tuned); pairKey stale-injection guard ignores whole layer; safe unaffected while injected; speed delta applies in mine only; vocabulary re-clamp at injection; malformed payloads + unknown keys fail-safe.');
   }
 
+  // ─── W3 Mine tier — Task 2: temp deltas + NEW lower-bound floors ──────────
+  // [IMPL-044 §5.1] nozzle_temp_delta / bed_temp_delta join at the SAME point
+  // as env adjustments in getAdjustedTemps + getAdvancedFilamentSettings.
+  // Existing UPPER caps bound overshoot positionally (zero new cap code); the
+  // LOWER bounds are NEW code (nothing pre-W3 clamps a temperature downward):
+  //   nozzle ≥ material.nozzle_temp_min; bed ≥ max(0, bed_temp_base − 10).
+  {
+    const num = (s) => parseInt(String(s), 10);
+
+    // (a) floor: tpu_95a base 230, min 220 — a −15 delta gives raw 215, MUST
+    //     floor at 220 (NEW lower-bound code path).
+    Engine.setPersonalTuning({ pairKey: 'x1c|tpu_95a',
+      offsets: { nozzle_temp_delta: { value: -15, unit: '°C', date: '2026-07-06' } } });
+    const tpuMine = Engine.getAdjustedTemps('tpu_95a', 'normal', 'std_0.4', 'balanced', 'x1c', 'mine');
+    if (num(tpuMine.nozzle) !== 220) {
+      throw new Error(`W3 T2(a): tpu_95a −15°C delta must FLOOR at nozzle_temp_min 220 (raw 215); got ${tpuMine.nozzle}`);
+    }
+    // (a2) same floor on the advanced surface (other-layers temp)
+    const tpuAdv = Engine.getAdvancedFilamentSettings({
+      printer: 'x1c', nozzle: 'std_0.4', material: 'tpu_95a',
+      environment: 'normal', profileMode: 'mine',
+    });
+    if (num(tpuAdv.other_layers_temp) !== 220) {
+      throw new Error(`W3 T2(a2): advanced other_layers_temp must floor at 220; got ${tpuAdv.other_layers_temp}`);
+    }
+    // (b) mode gate: same injection, NO mine mode → base value untouched
+    const tpuSafe = Engine.getAdjustedTemps('tpu_95a', 'normal', 'std_0.4', 'balanced', 'x1c');
+    if (num(tpuSafe.nozzle) !== 230) {
+      throw new Error(`W3 T2(b): without mine mode the injected delta must NOT apply (expected base 230); got ${tpuSafe.nozzle}`);
+    }
+
+    // (c) upper cap positional reuse: pla_basic base 220, material max 230 —
+    //     a +15 delta gives raw 235, existing clamp must cap at 230.
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { nozzle_temp_delta: { value: 15, unit: '°C', date: '2026-07-06' },
+                 bed_temp_delta:    { value: 10, unit: '°C', date: '2026-07-06' } } });
+    const plaMine = Engine.getAdjustedTemps('pla_basic', 'normal', 'std_0.4', 'balanced', 'x1c', 'mine');
+    if (num(plaMine.nozzle) !== 230) {
+      throw new Error(`W3 T2(c): pla_basic +15°C delta must clamp at nozzle_temp_max 230 (raw 235); got ${plaMine.nozzle}`);
+    }
+    // (d) bed upper cap with env stacking: vcold bed_adj +5, delta +10 → raw 70,
+    //     existing bed cap min(material 65, printer) must clip to 65.
+    const plaVcold = Engine.getAdjustedTemps('pla_basic', 'vcold', 'std_0.4', 'balanced', 'x1c', 'mine');
+    if (num(plaVcold.bed) !== 65) {
+      throw new Error(`W3 T2(d): pla_basic vcold(+5) + delta(+10) = raw 70 must clip at bed cap 65; got ${plaVcold.bed}`);
+    }
+    // (e) bed floor: delta −10 on normal env → 45 == max(0, bed_temp_base 55 − 10)
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { bed_temp_delta: { value: -10, unit: '°C', date: '2026-07-06' } } });
+    const plaBedMine = Engine.getAdjustedTemps('pla_basic', 'normal', 'std_0.4', 'balanced', 'x1c', 'mine');
+    if (num(plaBedMine.bed) !== 45) {
+      throw new Error(`W3 T2(e): pla_basic bed −10 delta must give 45 (floor boundary max(0, 55−10)); got ${plaBedMine.bed}`);
+    }
+    // (e2) advanced surface bed delta + floor boundary
+    const plaAdv = Engine.getAdvancedFilamentSettings({
+      printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic',
+      environment: 'normal', profileMode: 'mine',
+    });
+    if (num(plaAdv.other_layers_bed_temp) !== 45) {
+      throw new Error(`W3 T2(e2): advanced other_layers_bed_temp must be 45 with −10 bed delta; got ${plaAdv.other_layers_bed_temp}`);
+    }
+
+    Engine.setPersonalTuning(null);
+    console.log('[W3 T2] OK temp deltas: applied at env-adjustment points on both temp surfaces; existing upper caps clip overshoot positionally (nozzle 235→230, bed 70→65); NEW floors bound negative deltas (tpu nozzle 215→220, bed at max(0, base−10) boundary); mode gate keeps injected deltas out of non-mine calls.');
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo

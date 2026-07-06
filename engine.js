@@ -1241,7 +1241,11 @@ const Engine = (() => {
 
   // ── Temperature with environment + nozzle material offset ───────────────────
   // nozzleId is optional — pass it to include nozzle material compensation
-  function getAdjustedTemps(materialId, environmentId, nozzleId, speedId, printerId) {
+  // [IMPL-044 W3] Optional 6th arg `profileMode`: when 'mine', the injected
+  // personal temp deltas (setPersonalTuning) join beside the env adjustments —
+  // subject to the pairKey stale-injection guard. Existing callers that omit
+  // the arg are byte-identical to pre-W3 behavior.
+  function getAdjustedTemps(materialId, environmentId, nozzleId, speedId, printerId, profileMode) {
     const mat    = getMaterial(materialId);
     const env    = getEnv(environmentId);
     const nozzle = nozzleId ? getNozzle(nozzleId) : null;
@@ -1249,24 +1253,37 @@ const Engine = (() => {
     if (!mat) return { nozzle: '—', bed: '—' };
 
     const bs           = mat.base_settings;
+    // [IMPL-044 W3] Personal deltas — mine mode + matching pairKey only.
+    const pOff         = profileMode === 'mine' ? _personalFor(printerId, materialId) : null;
+    const pNozzleDelta = pOff && pOff.nozzle_temp_delta ? pOff.nozzle_temp_delta.value : 0;
+    const pBedDelta    = pOff && pOff.bed_temp_delta    ? pOff.bed_temp_delta.value    : 0;
     const envNozzleAdj = env    ? (env.nozzle_adj || 0) : 0;
     const envBedAdj    = env    ? (env.bed_adj    || 0) : 0;
     const nozzleOffset = nozzle ? (nozzle.temp_offset || 0) : 0;
     const speedAdj     = speedId === 'fast' ? 5 : 0;
-    const totalNozzle  = envNozzleAdj + nozzleOffset + speedAdj;
+    const totalNozzle  = envNozzleAdj + nozzleOffset + speedAdj + pNozzleDelta;
     const rawNozzle    = bs.nozzle_temp_base + totalNozzle;
-    const nozzleTemp   = _clampNozzleTemp(rawNozzle, mat, printer);
+    let   nozzleTemp   = _clampNozzleTemp(rawNozzle, mat, printer);
+    // [IMPL-044 W3] NEW lower bound — nothing pre-W3 clamps a temperature
+    // downward (env adjustments only ever raise); a cumulative −15°C personal
+    // delta can cross the material's minimum rated temp, so floor it here.
+    if (pOff && bs.nozzle_temp_min != null) {
+      nozzleTemp = Math.max(nozzleTemp, bs.nozzle_temp_min);
+    }
     const nozzleWasClamped = nozzleTemp !== rawNozzle;
 
     let nozzleStr = `${nozzleTemp} °C`;
     if (totalNozzle > 0 && !nozzleWasClamped) nozzleStr += `  (+${totalNozzle} adj)`;
 
-    let bedTemp = bs.bed_temp_base + envBedAdj;
+    let bedTemp = bs.bed_temp_base + envBedAdj + pBedDelta;
     const bedCap = printer && printer.max_bed_temp != null
       ? Math.min(bs.bed_temp_max, printer.max_bed_temp)
       : bs.bed_temp_max;
     const bedWasClamped = bedCap != null && bedTemp > bedCap;
     bedTemp = bedWasClamped ? bedCap : bedTemp;
+    // [IMPL-044 W3] NEW bed floor — conservative max(0, base − 10) bound on
+    // negative personal deltas (spec §5.1; no env path pushes the bed down).
+    if (pOff) bedTemp = Math.max(bedTemp, Math.max(0, bs.bed_temp_base - 10));
 
     let bedStr = `${bedTemp} °C`;
     if (envBedAdj > 0 && !bedWasClamped) bedStr += `  (+${envBedAdj} for environment)`;
@@ -1305,8 +1322,13 @@ const Engine = (() => {
 
     const bs           = mat.base_settings;
     const isPETG       = mat.group === 'PETG';
-    const nozzleAdj    = (env ? (env.nozzle_adj || 0) : 0) + (nozzle ? (nozzle.temp_offset || 0) : 0);
-    const bedAdj       = env ? (env.bed_adj || 0) : 0;
+    // [IMPL-044 W3] Personal temp deltas join beside the env adjustments —
+    // mine mode + matching pairKey only (stale-injection guard).
+    const pOff         = state.profileMode === 'mine' ? _personalFor(state.printer, state.material) : null;
+    const pNozzleDelta = pOff && pOff.nozzle_temp_delta ? pOff.nozzle_temp_delta.value : 0;
+    const pBedDelta    = pOff && pOff.bed_temp_delta    ? pOff.bed_temp_delta.value    : 0;
+    const nozzleAdj    = (env ? (env.nozzle_adj || 0) : 0) + (nozzle ? (nozzle.temp_offset || 0) : 0) + pNozzleDelta;
+    const bedAdj       = (env ? (env.bed_adj || 0) : 0) + pBedDelta;
     // v1.0.4 HIGH-07 — cold env first-layer bed boost. env.bed_first_layer_adj
     // applies only to the initial layer (not subsequent layers) — matches the
     // data file's intent of helping adhesion when ambient is cold.
@@ -1329,6 +1351,19 @@ const Engine = (() => {
 
     initNozzle  = _clampNozzleTemp(initNozzle,  mat, printer);
     otherNozzle = _clampNozzleTemp(otherNozzle, mat, printer);
+
+    // [IMPL-044 W3] NEW lower bounds on the personal-delta path (spec §5.1):
+    // nozzle ≥ material minimum rated temp; bed ≥ max(0, base − 10). No
+    // pre-W3 path pushes temps downward, so these bind only under mine mode.
+    if (pOff) {
+      if (bs.nozzle_temp_min != null) {
+        initNozzle  = Math.max(initNozzle,  bs.nozzle_temp_min);
+        otherNozzle = Math.max(otherNozzle, bs.nozzle_temp_min);
+      }
+      const bedFloor = Math.max(0, bs.bed_temp_base - 10);
+      initBed  = Math.max(initBed,  bedFloor);
+      otherBed = Math.max(otherBed, bedFloor);
+    }
 
     // v1.0.4 HIGH-07 — fan_multiplier from env scales cooling fan emission.
     // Mirror Task 1's hardening (speed_multiplier): guard against malformed
