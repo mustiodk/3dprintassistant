@@ -43,6 +43,8 @@ const Engine = (() => {
   //         | 'rule'       — derived via an engine rule (patternFor, slicer map)
   //         | 'default'    — curated default from data/*.json; no better attribution yet
   //         | 'calculated' — computed from other values (nozzle-scaled, clamped)
+  //         | 'personal'   — user-accepted Workshop tuning offset applied in
+  //                          Mine mode (IMPL-044 W3; ref names offset + date)
   //
   //   ref: free-form pointer (e.g. 'bambu-wiki-a1', 'rule:_clampNum',
   //        'objective_profiles.json#draft'). Optional.
@@ -141,6 +143,13 @@ const Engine = (() => {
   function _personalFor(printerId, materialId) {
     if (!_personal || !printerId || !materialId) return null;
     return _personal.pairKey === `${printerId}|${materialId}` ? _personal.offsets : null;
+  }
+
+  // [IMPL-044 W3 / spec §5.3] Provenance sidecar for a value a personal delta
+  // touched: 'workshop tuning: <offsetKey> <±value><unit> (accepted <date>)'.
+  function _personalProv(offsetKey, o) {
+    return { source: 'personal',
+      ref: `workshop tuning: ${offsetKey} ${o.value > 0 ? '+' : ''}${o.value}${o.unit}${o.date ? ` (accepted ${o.date})` : ''}` };
   }
 
   // ── Init — load all JSON data files + locale files ──────────────────────────
@@ -1293,8 +1302,12 @@ const Engine = (() => {
       nozzle: nozzleStr,
       bed:    bedStr,
       _prov: {
-        nozzle: { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + (speed==="fast"?5:0), optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
-        bed:    { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, optionally clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
+        nozzle: pNozzleDelta !== 0
+          ? _personalProv('nozzle_temp_delta', pOff.nozzle_temp_delta)
+          : { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + (speed==="fast"?5:0), optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
+        bed: pBedDelta !== 0
+          ? _personalProv('bed_temp_delta', pOff.bed_temp_delta)
+          : { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, optionally clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
       },
     };
   }
@@ -1421,27 +1434,35 @@ const Engine = (() => {
         bedFirstLayerEnvAdj > 0
           ? `Bed first-layer raised +${bedFirstLayerEnvAdj}°C for cold environment to improve adhesion.`
           : 'First-layer bed temperature.',
-        { source: bedFirstLayerEnvAdj > 0 ? 'rule' : 'calculated',
+        pBedDelta !== 0 ? _personalProv('bed_temp_delta', pOff.bed_temp_delta)
+        : { source: bedFirstLayerEnvAdj > 0 ? 'rule' : 'calculated',
           ref: bedFirstLayerEnvAdj > 0
             ? 'env.bed_first_layer_adj'
             : 'bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0), clamped' }),
       bed_temperature: S(`${otherBed}`,
         'Bed temperature for layers after the first.',
-        { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' }),
+        pBedDelta !== 0 ? _personalProv('bed_temp_delta', pOff.bed_temp_delta)
+        : { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' }),
       fan_max_speed: S(`${fanMaxScaled}`,
         !fanMultIsIdentity
           ? `Cooling fan reduced to ${Math.round(fanMult * 100)}% of normal for cold environment.`
           : 'Maximum cooling fan speed.',
-        { source: !fanMultIsIdentity ? 'rule' : 'default',
+        pFanDelta !== 0 ? _personalProv('fan_delta_pct', pOff.fan_delta_pct)
+        : { source: !fanMultIsIdentity ? 'rule' : 'default',
           ref: !fanMultIsIdentity ? 'env.fan_multiplier' : 'engine:fan_max_default' }),
       // [IMPL-041 / DQ-1-followup] provenance sidecar. All fields numeric.
       _prov: {
-        initial_layer_temp:     { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + initial_layer_nozzle_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
-        other_layers_temp:      { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
-        initial_layer_bed_temp: { source: 'calculated', ref: `bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0)${bedFirstLayerEnvAdj > 0 ? ' + env.bed_first_layer_adj' : ''}, clamped to min(material.bed_temp_max, printer.max_bed_temp)` },
-        other_layers_bed_temp:  { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
+        initial_layer_temp:     pNozzleDelta !== 0 ? _personalProv('nozzle_temp_delta', pOff.nozzle_temp_delta)
+                                : { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + initial_layer_nozzle_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
+        other_layers_temp:      pNozzleDelta !== 0 ? _personalProv('nozzle_temp_delta', pOff.nozzle_temp_delta)
+                                : { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
+        initial_layer_bed_temp: pBedDelta !== 0 ? _personalProv('bed_temp_delta', pOff.bed_temp_delta)
+                                : { source: 'calculated', ref: `bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0)${bedFirstLayerEnvAdj > 0 ? ' + env.bed_first_layer_adj' : ''}, clamped to min(material.bed_temp_max, printer.max_bed_temp)` },
+        other_layers_bed_temp:  pBedDelta !== 0 ? _personalProv('bed_temp_delta', pOff.bed_temp_delta)
+                                : { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
         cooling_fan_min:        { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_min' },
-        cooling_fan_overhang:   { source: !fanMultIsIdentity ? 'rule' : 'default',
+        cooling_fan_overhang:   pFanDelta !== 0 ? _personalProv('fan_delta_pct', pOff.fan_delta_pct)
+                                : { source: !fanMultIsIdentity ? 'rule' : 'default',
                                    ref: !fanMultIsIdentity ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_overhang'
                                                            : 'materials.json#base_settings.cooling_fan_overhang' },
         slow_layer_time:        { source: 'default',    ref: 'materials.json#base_settings.slow_layer_time' },
@@ -1459,7 +1480,8 @@ const Engine = (() => {
         !fanMultIsIdentity
           ? `Minimum cooling fan reduced to ${Math.round(fanMult * 100)}% of normal for cold environment.`
           : 'Minimum cooling fan speed.',
-        { source: !fanMultIsIdentity ? 'rule' : 'default',
+        pFanDelta !== 0 ? _personalProv('fan_delta_pct', pOff.fan_delta_pct)
+        : { source: !fanMultIsIdentity ? 'rule' : 'default',
           ref: !fanMultIsIdentity ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_min'
                                   : 'materials.json#base_settings.cooling_fan_min' });
     }
@@ -2576,6 +2598,8 @@ const Engine = (() => {
 
       const outerSpeedTuned = profileMode === 'tuned' && sm._tuned
         && (isCoreXY ? sm._tuned.outer_corexy != null : sm._tuned.outer_bedslinger != null);
+      // [IMPL-044 W3] Personal override actually consulted for THIS printer type?
+      const outerSpeedPersonal = (isCoreXY ? _mineOv.outer_corexy : _mineOv.outer_bedslinger) != null;
       p.outer_wall_speed = S(`${outerSpeed} mm/s`,
         isTPU      ? 'TPU must print slowly — flexible filament stretches during fast moves causing under-extrusion and jams.' :
         isABSlike  ? 'Slower outer walls reduce warping risk by allowing each layer more time to cool gradually.' :
@@ -2585,7 +2609,8 @@ const Engine = (() => {
         petgCapped ? 'PETG surface quality degrades noticeably above 80 mm/s outer wall speed — capped for this material.' :
         sm.id === 'quality' ? 'Slow outer walls reduce vibration artifacts and give each layer more time to solidify uniformly.' :
         'Outer wall speed balanced for your printer type — CoreXY handles higher speeds without ringing.',
-        { source: 'calculated', ref: `rule:material_caps+printer_limits${outerSpeedTuned ? ' (base from _tuned)' : ''}${strengthSlow !== 1.0 ? '+strength_multiplier' : ''}` });
+        outerSpeedPersonal ? _personalProv('speed_multiplier_delta', pOff.speed_multiplier_delta)
+        : { source: 'calculated', ref: `rule:material_caps+printer_limits${outerSpeedTuned ? ' (base from _tuned)' : ''}${strengthSlow !== 1.0 ? '+strength_multiplier' : ''}` });
 
       p.inner_wall_speed = S(`${innerSpeed} mm/s`,
         isTPU     ? 'Inner walls also capped for flexible filament — consistent flow matters more than speed.' :
@@ -2795,6 +2820,10 @@ const Engine = (() => {
     // having to tick the optional filter).
     const effectiveExtruder = state.extruder_type || printer.extruder_type || 'direct_drive';
 
+    // [IMPL-044 W3] Personal retraction delta (hoisted — used by both the
+    // _scaleRetraction arithmetic and the emission's why/prov below).
+    const pRetractionDelta = pOff && pOff.retraction_distance_delta ? pOff.retraction_distance_delta.value : 0;
+
     // Retraction emission — nozzle-scaled (base value assumes 0.4mm direct-drive).
     // Small nozzles need less retraction (less melt in the nozzle path); large nozzles
     // need more. Scaling factor: sqrt(nozzleSize / 0.4), clamped to material.retraction_max.
@@ -2811,7 +2840,6 @@ const Engine = (() => {
       // [IMPL-044 W3] Personal delta joins AFTER scaling (it means "final
       // scaled value + X mm" — what the user physically dialed), BEFORE the
       // material cap so over-retraction can never ride past retraction_max.
-      const pRetractionDelta = pOff && pOff.retraction_distance_delta ? pOff.retraction_distance_delta.value : 0;
       if (pRetractionDelta) rd = Math.round((rd + pRetractionDelta) * 10) / 10;
       if (material.retraction_max != null) rd = Math.min(rd, material.retraction_max);
       // Defensive ≥0 floor (vocabulary min is 0, so unreachable via
@@ -2824,7 +2852,9 @@ const Engine = (() => {
       const isBowden = effectiveExtruder === 'bowden';
       const isScaled = Math.abs(rd - mbs.retraction_distance) > 1e-6;
       p.retraction_distance = S(`${rd} mm`,
-        isBowden
+        pRetractionDelta
+          ? `Includes your accepted Workshop tuning (+${pRetractionDelta} mm on the scaled base), capped at this material's safe maximum.`
+          : isBowden
           ? (material.flexible
               ? `Bowden retraction for flexible filament — modest increase to avoid grinding. Scaled for ${nozzleSize}mm nozzle. Fine-tune based on tube length.`
               : `Bowden retraction increased to compensate for the longer PTFE tube path. Scaled for ${nozzleSize}mm nozzle. Fine-tune based on tube length.`)
@@ -2833,7 +2863,8 @@ const Engine = (() => {
               : (isScaled
                   ? `Retraction scaled for ${nozzleSize}mm nozzle (base ${mbs.retraction_distance}mm for 0.4mm) — small nozzles need less, large nozzles need more.`
                   : (rd >= 1.0 ? 'Longer retraction to prevent ooze with this high-temp material.' : 'Standard retraction distance for this material.'))),
-        { source: 'calculated', ref: 'rule:_scaleRetraction' });
+        pRetractionDelta ? _personalProv('retraction_distance_delta', pOff.retraction_distance_delta)
+        : { source: 'calculated', ref: 'rule:_scaleRetraction' });
       // HIGH-001: export must read this SCALED value, never mbs.retraction_distance.
       sv(p.retraction_distance, String(rd));
     }

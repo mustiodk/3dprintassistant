@@ -1580,6 +1580,73 @@ const COMBOS = [
     console.log('[W3 T4] OK retraction delta: post-_scaleRetraction, pre-retraction_max cap (pla 0.6+0.4→1.0; tpu 0.8+0.6→1.4→capped 1.2); _slicer_value sidecar carries the delta’d value; mode gate holds.');
   }
 
+  // ─── W3 Mine tier — Task 5: provenance 'personal' on touched params ───────
+  // [IMPL-044 §5.3] Every value a personal delta touched carries
+  // prov {source:'personal', ref:'workshop tuning: <offsetKey> <±value><unit>
+  // (accepted <date>)'} — and ONLY touched values do.
+  {
+    const REF = (k, v) => new RegExp(`^workshop tuning: ${k} ${v.replace(/[+×]/g, m => '\\' + m)} \\(accepted 2026-07-06\\)$`);
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic', offsets: {
+      nozzle_temp_delta:         { value: -10,  unit: '°C', date: '2026-07-06' },
+      retraction_distance_delta: { value: 0.4,  unit: 'mm', date: '2026-07-06' },
+      speed_multiplier_delta:    { value: -0.1, unit: '×',  date: '2026-07-06' },
+    } });
+    const st = stateDefault({ printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', profileMode: 'mine' });
+
+    // (a) resolveProfile: touched params flip to personal with the exact ref
+    const p = Engine.resolveProfile(st);
+    if (p.outer_wall_speed?.prov?.source !== 'personal' || !REF('speed_multiplier_delta', '-0.1×').test(p.outer_wall_speed?.prov?.ref || '')) {
+      throw new Error(`W3 T5(a): outer_wall_speed prov must be personal with spec ref; got ${JSON.stringify(p.outer_wall_speed?.prov)}`);
+    }
+    if (p.retraction_distance?.prov?.source !== 'personal' || !REF('retraction_distance_delta', '+0.4mm').test(p.retraction_distance?.prov?.ref || '')) {
+      throw new Error(`W3 T5(a): retraction_distance prov must be personal with spec ref; got ${JSON.stringify(p.retraction_distance?.prov)}`);
+    }
+    // (b) untouched params keep their prov (no blanket personal)
+    if (p.layer_height?.prov?.source === 'personal' || p.inner_wall_speed?.prov?.source === 'personal') {
+      throw new Error('W3 T5(b): untouched params (layer_height, inner_wall_speed) must NOT carry personal prov');
+    }
+    // (c) temps surface: nozzle touched → personal; bed NOT injected → not personal
+    const temps = Engine.getAdjustedTemps('pla_basic', 'normal', 'std_0.4', 'balanced', 'x1c', 'mine');
+    if (temps._prov?.nozzle?.source !== 'personal' || !/nozzle_temp_delta -10°C/.test(temps._prov?.nozzle?.ref || '')) {
+      throw new Error(`W3 T5(c): temps nozzle prov must be personal; got ${JSON.stringify(temps._prov?.nozzle)}`);
+    }
+    if (temps._prov?.bed?.source === 'personal') {
+      throw new Error('W3 T5(c): bed delta not injected — bed prov must NOT be personal');
+    }
+    // (d) advanced surface: nozzle-family prov personal; fan untouched stays
+    const adv = Engine.getAdvancedFilamentSettings(st);
+    if (adv._prov?.other_layers_temp?.source !== 'personal' || adv._prov?.initial_layer_temp?.source !== 'personal') {
+      throw new Error(`W3 T5(d): advanced nozzle temp provs must be personal; got ${JSON.stringify([adv._prov?.other_layers_temp, adv._prov?.initial_layer_temp])}`);
+    }
+    if (adv.fan_max_speed?.prov?.source === 'personal' || adv._prov?.other_layers_bed_temp?.source === 'personal') {
+      throw new Error('W3 T5(d): fan + bed not injected — their provs must NOT be personal');
+    }
+    // (e) fan prov flips when fan IS injected (all three emissions)
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic', offsets: {
+      fan_delta_pct: { value: -20, unit: '%', date: '2026-07-06' },
+      bed_temp_delta: { value: 5, unit: '°C', date: '2026-07-06' },
+    } });
+    const adv2 = Engine.getAdvancedFilamentSettings(st);
+    if (adv2.fan_max_speed?.prov?.source !== 'personal' || adv2.fan_min_speed?.prov?.source !== 'personal'
+        || adv2._prov?.cooling_fan_overhang?.source !== 'personal') {
+      throw new Error(`W3 T5(e): all three fan emissions must carry personal prov when fan_delta_pct injected`);
+    }
+    if (adv2._prov?.other_layers_bed_temp?.source !== 'personal' || adv2.bed_temperature?.prov?.source !== 'personal'
+        || adv2.bed_temperature_initial_layer?.prov?.source !== 'personal') {
+      throw new Error('W3 T5(e): bed emissions must carry personal prov when bed_temp_delta injected');
+    }
+    if (adv2._prov?.other_layers_temp?.source === 'personal') {
+      throw new Error('W3 T5(e): nozzle not injected in this payload — its prov must NOT be personal');
+    }
+    // (f) safe mode: NO personal prov anywhere even with injection set
+    const pSafe = Engine.resolveProfile(stateDefault({ printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', profileMode: 'safe' }));
+    const leaked = Object.keys(pSafe).filter(k => pSafe[k]?.prov?.source === 'personal');
+    if (leaked.length) throw new Error(`W3 T5(f): safe resolve leaked personal prov on: ${leaked.join(',')}`);
+
+    Engine.setPersonalTuning(null);
+    console.log('[W3 T5] OK provenance: touched params carry personal prov with the spec ref format (offsetKey ±value unit + accepted date) across profile, temps, and advanced surfaces; untouched params and non-mine modes never do.');
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo

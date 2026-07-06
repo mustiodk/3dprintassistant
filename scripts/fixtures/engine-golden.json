@@ -7156,28 +7156,28 @@
      "source": "default"
     },
     "cooling_fan_overhang": {
-     "ref": "env.fan_multiplier × materials.json#base_settings.cooling_fan_overhang",
-     "source": "rule"
+     "ref": "workshop tuning: fan_delta_pct +20% (accepted 2026-07-06)",
+     "source": "personal"
     },
     "flow_ratio": {
      "ref": "materials.json#base_settings.flow_ratio",
      "source": "default"
     },
     "initial_layer_bed_temp": {
-     "ref": "bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0) + env.bed_first_layer_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)",
-     "source": "calculated"
+     "ref": "workshop tuning: bed_temp_delta -10°C (accepted 2026-07-06)",
+     "source": "personal"
     },
     "initial_layer_temp": {
-     "ref": "nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + initial_layer_nozzle_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)",
-     "source": "calculated"
+     "ref": "workshop tuning: nozzle_temp_delta +15°C (accepted 2026-07-06)",
+     "source": "personal"
     },
     "other_layers_bed_temp": {
-     "ref": "bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)",
-     "source": "calculated"
+     "ref": "workshop tuning: bed_temp_delta -10°C (accepted 2026-07-06)",
+     "source": "personal"
     },
     "other_layers_temp": {
-     "ref": "nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)",
-     "source": "calculated"
+     "ref": "workshop tuning: nozzle_temp_delta +15°C (accepted 2026-07-06)",
+     "source": "personal"
     },
     "pressure_advance": {
      "ref": "materials.json#base_settings.k_factor_matrix[nozzleSize] (fallback .pressure_advance)",
@@ -7199,8 +7199,8 @@
    "bed_temperature": {
     "mode": "simple",
     "prov": {
-     "ref": "bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)",
-     "source": "calculated"
+     "ref": "workshop tuning: bed_temp_delta -10°C (accepted 2026-07-06)",
+     "source": "personal"
     },
     "value": "90",
     "why": "Bed temperature for layers after the first."
@@ -7208,8 +7208,8 @@
    "bed_temperature_initial_layer": {
     "mode": "simple",
     "prov": {
-     "ref": "env.bed_first_layer_adj",
-     "source": "rule"
+     "ref": "workshop tuning: bed_temp_delta -10°C (accepted 2026-07-06)",
+     "source": "personal"
     },
     "value": "102",
     "why": "Bed first-layer raised +7°C for cold environment to improve adhesion."
@@ -7219,8 +7219,8 @@
    "fan_max_speed": {
     "mode": "simple",
     "prov": {
-     "ref": "env.fan_multiplier",
-     "source": "rule"
+     "ref": "workshop tuning: fan_delta_pct +20% (accepted 2026-07-06)",
+     "source": "personal"
     },
     "value": "100",
     "why": "Cooling fan reduced to 90% of normal for cold environment."
@@ -7228,8 +7228,8 @@
    "fan_min_speed": {
     "mode": "simple",
     "prov": {
-     "ref": "env.fan_multiplier × materials.json#base_settings.cooling_fan_min",
-     "source": "rule"
+     "ref": "workshop tuning: fan_delta_pct +20% (accepted 2026-07-06)",
+     "source": "personal"
     },
     "value": "20",
     "why": "Minimum cooling fan reduced to 90% of normal for cold environment."
@@ -7622,12 +7622,12 @@
   "temps": {
    "_prov": {
     "bed": {
-     "ref": "bed_temp_base + env.bed_adj, optionally clamped to min(material.bed_temp_max, printer.max_bed_temp)",
-     "source": "calculated"
+     "ref": "workshop tuning: bed_temp_delta -10°C (accepted 2026-07-06)",
+     "source": "personal"
     },
     "nozzle": {
-     "ref": "nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + (speed===\"fast\"?5:0), optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)",
-     "source": "calculated"
+     "ref": "workshop tuning: nozzle_temp_delta +15°C (accepted 2026-07-06)",
+     "source": "personal"
     }
    },
    "bed": "90 °C",
@@ -18257,28 +18257,28 @@
      "source": "default"
     },
     "cooling_fan_overhang": {
-     "ref": "materials.json#base_settings.cooling_fan_overhang",
-     "source": "default"
+     "ref": "workshop tuning: fan_delta_pct -20% (accepted 2026-07-06)",
+     "source": "personal"
     },
     "flow_ratio": {
      "ref": "materials.json#base_settings.flow_ratio",
      "source": "default"
     },
     "initial_layer_bed_temp": {
-     "ref": "bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0), clamped to min(material.bed_temp_max, printer.max_bed_temp)",
-     "source": "calculated"
+     "ref": "workshop tuning: bed_temp_delta +5°C (accepted 2026-07-06)",
+     "source": "personal"
     },
     "initial_layer_temp": {
-     "ref": "nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + initial_layer_nozzle_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)",
-     "source": "calculated"
+     "ref": "workshop tuning: nozzle_temp_delta -10°C (accepted 2026-07-06)",
+     "source": "personal"
     },
     "other_layers_bed_temp": {
-     "ref": "bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)",
-     "source": "calculated"
+     "ref": "workshop tuning: bed_temp_delta +5°C (accepted 2026-07-06)",
+     "source": "personal"
     },
     "other_layers_temp": {
-     "ref": "nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)",
-     "source": "calculated"
+     "ref": "workshop tuning: nozzle_temp_delta -10°C (accepted 2026-07-06)",
+     "source": "personal"
     },
     "pressure_advance": {
      "ref": "materials.json#base_settings.k_factor_matrix[nozzleSize] (fallback .pressure_advance)",
@@ -18300,8 +18300,8 @@
    "bed_temperature": {
     "mode": "simple",
     "prov": {
-     "ref": "bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)",
-     "source": "calculated"
+     "ref": "workshop tuning: bed_temp_delta +5°C (accepted 2026-07-06)",
+     "source": "personal"
     },
     "value": "60",
     "why": "Bed temperature for layers after the first."
@@ -18309,8 +18309,8 @@
    "bed_temperature_initial_layer": {
     "mode": "simple",
     "prov": {
-     "ref": "bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0), clamped",
-     "source": "calculated"
+     "ref": "workshop tuning: bed_temp_delta +5°C (accepted 2026-07-06)",
+     "source": "personal"
     },
     "value": "60",
     "why": "First-layer bed temperature."
@@ -18320,8 +18320,8 @@
    "fan_max_speed": {
     "mode": "simple",
     "prov": {
-     "ref": "engine:fan_max_default",
-     "source": "default"
+     "ref": "workshop tuning: fan_delta_pct -20% (accepted 2026-07-06)",
+     "source": "personal"
     },
     "value": "80",
     "why": "Maximum cooling fan speed."
@@ -18329,8 +18329,8 @@
    "fan_min_speed": {
     "mode": "simple",
     "prov": {
-     "ref": "materials.json#base_settings.cooling_fan_min",
-     "source": "default"
+     "ref": "workshop tuning: fan_delta_pct -20% (accepted 2026-07-06)",
+     "source": "personal"
     },
     "value": "50",
     "why": "Minimum cooling fan speed."
@@ -18712,8 +18712,8 @@
    "outer_wall_speed": {
     "mode": "simple",
     "prov": {
-     "ref": "rule:material_caps+printer_limits",
-     "source": "calculated"
+     "ref": "workshop tuning: speed_multiplier_delta -0.1× (accepted 2026-07-06)",
+     "source": "personal"
     },
     "value": "90 mm/s",
     "why": "Outer wall speed balanced for your printer type — CoreXY handles higher speeds without ringing."
@@ -18731,11 +18731,11 @@
     "_slicer_value": "1",
     "mode": "simple",
     "prov": {
-     "ref": "rule:_scaleRetraction",
-     "source": "calculated"
+     "ref": "workshop tuning: retraction_distance_delta +0.4mm (accepted 2026-07-06)",
+     "source": "personal"
     },
     "value": "1 mm",
-    "why": "Retraction scaled for 0.4mm nozzle (base 0.6mm for 0.4mm) — small nozzles need less, large nozzles need more."
+    "why": "Includes your accepted Workshop tuning (+0.4 mm on the scaled base), capped at this material's safe maximum."
    },
    "retraction_speed": {
     "mode": "simple",
@@ -18826,12 +18826,12 @@
   "temps": {
    "_prov": {
     "bed": {
-     "ref": "bed_temp_base + env.bed_adj, optionally clamped to min(material.bed_temp_max, printer.max_bed_temp)",
-     "source": "calculated"
+     "ref": "workshop tuning: bed_temp_delta +5°C (accepted 2026-07-06)",
+     "source": "personal"
     },
     "nozzle": {
-     "ref": "nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + (speed===\"fast\"?5:0), optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)",
-     "source": "calculated"
+     "ref": "workshop tuning: nozzle_temp_delta -10°C (accepted 2026-07-06)",
+     "source": "personal"
     }
    },
    "bed": "60 °C",
