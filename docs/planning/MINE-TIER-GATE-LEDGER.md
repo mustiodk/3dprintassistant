@@ -111,18 +111,21 @@ fully on-screen.
 `engine.js` contains `setPersonalTuning`, verified by curl within ~30s of push; golden
 NO DRIFT post-merge).
 
-**iOS v1.0.7 — pushed to `main` (`51356de`), TestFlight dispatch FAILED on an Apple
-account precondition (NOT code).** [Run 28828795417](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/28828795417)
-failed 3s in at the `sigh` (provisioning-profile fetch) step, before any build:
-*"A required agreement is missing or has expired. This request requires an in-effect
-agreement that has not been signed or has expired."* This is an App Store Connect
-Account-Holder action (accept the pending Apple Developer Program / Paid-Apps agreement
-at appstoreconnect.apple.com → the banner or **Business / Agreements**), unrelated to
-the Mine-tier code (compiles clean; 135/135 XCTests local; engine byte-identical to the
-live web main). **Owner action → then re-dispatch** `gh workflow run testflight.yml --ref main`.
-The v1.0.7 commit stays on `main` (the web is already merged + live, so main mirroring
-TestFlight-intent holds once the agreement clears). **UNVERIFIED on TestFlight until the
-agreement is signed and a build succeeds.**
+**iOS v1.0.7 — on `main` (`51356de`), ✅ UPLOADED TO TESTFLIGHT 2026-07-07.** First two
+dispatches ([28828795417](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/28828795417),
+[28829331252](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/28829331252))
+failed 3s in at `sigh` on an Apple account precondition — *"A required agreement is
+missing or has expired"* (App Store Connect Account-Holder must accept the pending
+agreement; NOT code). Owner signed it; after ~30 min propagation the re-dispatch
+**[run 28830781702](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/28830781702)
+succeeded — deploy step green in 4m3s, build uploaded to TestFlight.** Engine byte-identical
+to the live web main; 135/135 XCTests. **Awaiting Apple ASC processing (a few min) + owner
+on-device Mine-tier acceptance** (import a web Workshop backup with accepted tuning to see
+the Mine segment on iOS — iOS has no journal surface, so tuning arrives via backup, not
+in-app harvest). Lesson: this account-agreement failure mode is a real TestFlight
+precondition independent of code — check App Store Connect **Business → Agreements** (not
+just the license banner) when `sigh` fails instantly with the agreement message, and allow
+propagation time after signing.
 
 ---
 
