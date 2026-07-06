@@ -42,6 +42,24 @@ Verified-clean dimensions first: TRUTH (all line refs, journal shape, W1-envelop
 | CR13 | LOW | Positive lock-out crosses profile/context invisibly | PARTIAL (= Codex C5): kept pair-wide as deliberate safe-direction trade-off, now documented in §3.2; not nozzle-scoped (complexity > residual benefit at N=2 volumes) |
 | CR14 | LOW | "Built this session"/"shipped on branch" forward-tense violations | APPLIED (= Codex C1): §4 retensed; §7 cell reworded |
 
+## Plan-gate review (gate B2) — bridge codex-only on the implementation plan
+
+Transcript `bridge-2026-07-06-180714-297031.md` (session scratchpad). 5 MUST + 5 SHOULD + 1 OPT, all applied to the plan:
+
+| # | Sev | Finding | Disposition |
+|---|---|---|---|
+| P1 | MUST | importJSON two-write sequence non-atomic (profiles mutated, tuning dropped on second-write failure) | APPLIED — single-env single-`_writeEnv` import; quota-failure test added |
+| P2 | MUST | Anti-ride mis-scoped to pair+offsetKey (spec says +symptom) — an accepted under_extrusion would block later layer_separation evidence | APPLIED — accept-op match requires same symptomId |
+| P3 | MUST | Symptom-wide lastFailDate defeats the same-nozzle rule for dismiss/accept/lock-out gates | APPLIED — firing-nozzle-bucket dates (`bucketLastFail`) used for every comparison |
+| P4 | MUST | Spec §3.4's PETG-only stringing fan row missing from the rules table | APPLIED — row added (stringing/rank4, materialGroups PETG, secondary) + TC5 pins it |
+| P5 | MUST | Rollback claim "tuning harmlessly round-trips after revert" false — W1 `_write` rebuilds `{v, profiles}` and drops it on next save | APPLIED — rollback note rewritten honestly (revert forfeits tuning data, knowingly) |
+| P6 | SHOULD | Advice/conflict cards not dismissible | APPLIED — suppression rule 5a covers all kinds; cards get Dismiss |
+| P7 | SHOULD | Suggestion shape lacked clamps → store could get Infinity clamps | APPLIED — suggestions carry clampMin/clampMax; accept forwards them |
+| P8 | SHOULD | Secondary hints unreachable (emitted primaries only, no secondary data) | APPLIED — `rulesForSymptom` returns `secondaries[]`; suggestions carry `secondaryHints` |
+| P9 | SHOULD | Mandatory mechanical-causes line not enforced in render step | APPLIED — Task 4 step 2 makes it a required element on every card |
+| P10 | SHOULD | Over-clamp raw sums vs `-entry.value` remove can't cancel | APPLIED — store rejects over-clamp accepts (`error:'clamp'`) + `revertTuning` computes the cancelling step from the raw sum |
+| P11 | OPT | Material-scope sourceRef test | APPLIED — TC5 |
+
 ## Outcome
 
 Spec revised in place; 2 rounds (Codex cross-model + cold-read) converged on the same 4 load-bearing defects (TPU retraction, fan bounds, retraction site, merge losslessness) plus complementary uniques (lower-bound clamps, accept anti-ride ← cold-read; op-id merge, transitional rules-table commitment ← Codex). No finding rejected outright; 2 taken PARTIAL with recorded reasoning. Gate B1 exit: spec + these notes committed together.

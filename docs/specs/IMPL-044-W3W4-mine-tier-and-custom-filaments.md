@@ -84,16 +84,16 @@ tuning: {
                 value: -5, unit: '°C',           // derived: sum of ops, clamped per §3.4
                 ops: [ { opId: '<uuid>', kind: 'accept', step: -5, symptomId: 'stringing', date },
                        { opId: '<uuid>', kind: 'revert', step: +5, date } ] } ],
-  dismissed: [ { key: '<suggestion key>', atFailedCount: 2, date } ]
+  dismissed: [ { key: '<suggestion key>', date } ]   // date-keyed: re-surface when a newer failure exists (§3.2)
 }
 ```
 
 - **Every mutation is an operation with a unique `opId`** (accepts AND reverts). The cumulative `value` is always recomputed as `clamp(sum(ops.step))` — never edited directly. (Codex review C2: value-merging across backup forks double-applies; op-merging cannot.)
 - **Accept** appends an accept-op (clamped; an accept that would exceed the clamp is not offered — the harvest stops emitting that suggestion at the clamp).
 - **Remove/rollback** (the "My tuning" × affordance) appends a compensating revert-op; history is never deleted.
-- **Dismiss** suppresses that suggestion key while the pair+symptom `failed` count remains ≤ `atFailedCount`; NEW failures after dismissal re-surface it (fresh evidence deserves a fresh look). This is the anti-nag rule and it is test-pinned.
+- **Dismiss** suppresses that suggestion key until a contributing failure NEWER than the dismissal date exists (see §3.2 — date-keyed, robust to journal deletions). This is the anti-nag rule and it is test-pinned.
 - Accepted values are today CONSUMED BY NOTHING in the engine (§5 is unbuilt); they are the durable input the Mine tier will read.
-- `exportJSON`/`importJSON` carry `tuning`; import merge is **op-union**: per pair+offsetKey, union the two op sets by `opId`, sort by date, recompute `value`, re-clamp. Dismissed entries union by key keeping the higher `atFailedCount`. Lossless under backup forks (independent accepts on two devices both survive), idempotent (re-importing the same backup is a no-op), and can never silently un-dismiss or double-apply.
+- `exportJSON`/`importJSON` carry `tuning`; import merge is **op-union**: per pair+offsetKey, union the two op sets by `opId`, sort by date, recompute `value`, re-clamp. Dismissed entries union by key keeping the NEWER date. Lossless under backup forks (independent accepts on two devices both survive), idempotent (re-importing the same backup is a no-op), and can never silently un-dismiss or double-apply.
 
 ### 3.7 Never silently applied
 
