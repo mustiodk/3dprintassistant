@@ -55,7 +55,7 @@
 | Gate | Scope | Status |
 |---|---|---|
 | **OWNER-VERIFY** | Generate candidate export files under `scripts/fixtures/slicer-golden/_owner-verify/`; write OWNER-VERIFY block (import tests, branch review commands, merge command, fallback reminder) into this ledger + final summary. | [x] |
-| **WRAP** | Session log + INDEX + ROADMAP tick (+ stale export-status row check); findings/memory/vault sweeps; final summary with every hash + remaining owner actions. | [ ] |
+| **WRAP** | Session log + INDEX + ROADMAP tick (+ stale export-status row check); findings/memory/vault sweeps; final summary with every hash + remaining owner actions. | [x] |
 
 ---
 
