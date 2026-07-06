@@ -3013,7 +3013,28 @@ const Engine = (() => {
     return `${baseName} @BBL X1C`;
   }
 
-  // ── Extract numeric value from engine output strings ────────────────────────
+  // ── IMPL-043 P1: export pipeline switch ─────────────────────────────────────
+  // false = new passthrough pipeline (reads _slicer_value sidecars; display
+  // text is never parsed for string-valued params). true = the frozen April
+  // regex pipeline below — the instant production fallback: flip + redeploy
+  // restores the old export without reverting the refactor. Delete the legacy
+  // path only after the owner's recorded Bambu Studio import test passes.
+  const USE_LEGACY_EXPORT = false;
+
+  // Numeric-only extraction for the passthrough pipeline: units/ranges are
+  // mechanical ("0.2 mm" → "0.2", "5–8 mm" → "5", "15%" → "15%"); anything
+  // non-numeric without a _slicer_value sidecar is SKIPPED, never guessed.
+  function _numericValue(raw) {
+    if (raw == null) return null;
+    const s = String(raw).trim();
+    if (/^\d+%$/.test(s)) return s;
+    const range = s.match(/^(\d+(?:\.\d+)?)[–\-](\d+(?:\.\d+)?)/);
+    if (range) return range[1];
+    const num = s.match(/^(-?\d+(?:\.\d+)?)/);
+    return num ? num[1] : null;
+  }
+
+  // ── LEGACY (pre-IMPL-043) — extract value from engine display strings ───────
   function _extractValue(str) {
     if (str == null) return null;
     const s = String(str).trim();
@@ -3034,7 +3055,7 @@ const Engine = (() => {
 
   // ── Bambu Studio JSON export ────────────────────────────────────────────────
   // Returns { process: {...}, filament: {...} } — two Bambu Studio-importable JSON objects
-  function exportBambuStudioJSON(state) {
+  function _exportBambuStudioJSONLegacy(state) {
     const printer  = getPrinter(state.printer);
     const material = getMaterial(state.material);
     const nozzle   = getNozzle(state.nozzle);
@@ -3238,6 +3259,124 @@ const Engine = (() => {
       filament.overhang_fan_speed = [String(parseInt(adv.cooling_fan_overhang) || 0)];
     }
     // Slow down below layer time (e.g. "15 s" → 15)
+    if (bs.slow_layer_time != null) {
+      filament.slow_down_layer_time = [String(parseInt(bs.slow_layer_time) || 0)];
+    }
+
+    return { process, filament };
+  }
+
+  // ── Bambu Studio JSON export — IMPL-043 P1 passthrough pipeline ─────────────
+  // Params carry canonical slicer values as _slicer_value sidecars (attached in
+  // resolveProfile); export passes them through. Display text is parsed ONLY
+  // for numeric fields via _numericValue. The legacy regex pipeline above is
+  // kept verbatim behind USE_LEGACY_EXPORT as the instant fallback (the
+  // deliberate duplication dies with the legacy path after the owner's
+  // recorded import test).
+  function exportBambuStudioJSON(state) {
+    if (USE_LEGACY_EXPORT) return _exportBambuStudioJSONLegacy(state);
+
+    const printer  = getPrinter(state.printer);
+    const material = getMaterial(state.material);
+    const nozzle   = getNozzle(state.nozzle);
+    if (!printer || !material || !nozzle) return null;
+
+    const slicer = getSlicerForPrinter(state.printer);
+    if (slicer !== 'bambu_studio') return null;  // Bambu printers only
+
+    const exportState = Object.assign({}, state, {
+      surface:     state.surface     || 'standard',
+      strength:    state.strength    || 'standard',
+      speed:       state.speed       || 'balanced',
+      environment: state.environment || 'normal',
+    });
+
+    const profile = resolveProfile(exportState);
+    const adv     = getAdvancedFilamentSettings(state);
+    const bs      = material.base_settings;
+    const pa      = _resolvePA(bs, nozzle);
+
+    // ── Process profile ───────────────────────────────────────────────────────
+    const printerName = BAMBU_PRINTER_NAMES[state.printer] || printer.name;
+    const nozzleStr   = String(nozzle.size);
+
+    const layerHeight = profile.layer_height ? parseFloat(String(profile.layer_height.value).match(/[\d.]+/)?.[0] || '0.20') : 0.20;
+    const processParent = _findProcessParent(state.printer, layerHeight);
+    const filamentParent = _findFilamentParent(state.material, material.group, state.printer);
+    if (!processParent) return null;
+
+    const processName = `3DPA ${material.name} ${layerHeight}mm @${printerName}`;
+
+    const process = {
+      from: 'User',
+      inherits: processParent,
+      name: processName,
+      print_settings_id: processName,
+      version: '2.5.0.14',
+    };
+
+    Object.entries(BAMBU_PROCESS_MAP).forEach(([engineKey, bsKey]) => {
+      const param = profile[engineKey];
+      if (!param) return;
+      let val;
+      if (param._slicer_value != null) {
+        val = param._slicer_value;                    // canonical — passthrough
+      } else {
+        val = _numericValue(param.value ?? param);    // numeric-only, no guessing
+        if (val == null) return;
+      }
+      process[bsKey] = BAMBU_ARRAY_FIELDS.has(bsKey) ? [val] : val;
+    });
+
+    // ── Filament profile ──────────────────────────────────────────────────────
+    const filamentName = `3DPA ${material.name}`;
+    const printerBase = BAMBU_COMPATIBLE_PRINTER_BASE[state.printer];
+    const compatiblePrinters = printerBase
+      ? [`${printerBase} ${nozzleStr} nozzle`]
+      : null;
+    const filament = {
+      from: 'User',
+      inherits: filamentParent || '',
+      name: filamentName,
+      filament_settings_id: [filamentName],
+      filament_type: [material.group || 'PLA'],
+      version: '2.5.0.14',
+      ...(compatiblePrinters ? { compatible_printers: compatiblePrinters } : {}),
+    };
+
+    if (adv) {
+      const nzInit  = String(parseInt(adv.initial_layer_temp) || '');
+      const nzOther = String(parseInt(adv.other_layers_temp) || '');
+      const bdInit  = String(parseInt(adv.initial_layer_bed_temp) || '');
+      const bdOther = String(parseInt(adv.other_layers_bed_temp) || '');
+      filament.nozzle_temperature                = [nzOther];
+      filament.nozzle_temperature_initial_layer  = [nzInit];
+      filament.hot_plate_temp                    = [bdOther];
+      filament.hot_plate_temp_initial_layer      = [bdInit];
+      filament.textured_plate_temp               = [bdOther];
+      filament.textured_plate_temp_initial_layer = [bdInit];
+      filament.cool_plate_temp                   = [String(Math.max(0, parseInt(bdOther) - 20))];
+      filament.cool_plate_temp_initial_layer     = [String(Math.max(0, parseInt(bdInit) - 20))];
+    }
+
+    if (bs.flow_ratio != null)          filament.filament_flow_ratio        = [String(bs.flow_ratio)];
+    if (pa != null)                     filament.pressure_advance           = [String(pa)];
+    // HIGH-001 lands as its own commit: raw base until then (audit stays RED on it).
+    if (bs.retraction_distance != null) filament.filament_retraction_length = [String(bs.retraction_distance)];
+    if (bs.retraction_speed != null)    filament.filament_retraction_speed  = [String(bs.retraction_speed)];
+
+    const mvsVal = bs.max_mvs?.[String(nozzle.size)];
+    if (mvsVal) filament.filament_max_volumetric_speed = [String(parseFloat(mvsVal))];
+
+    if (adv.fan_min_speed != null) {
+      filament.fan_min_speed = [String(parseInt(adv.fan_min_speed.value, 10) || 0)];
+    }
+    if (adv.fan_max_speed != null) {
+      filament.fan_max_speed = [String(parseInt(adv.fan_max_speed.value, 10) || 100)];
+    }
+    if (adv.cooling_fan_overhang != null) {
+      filament.overhang_fan_speed = [String(parseInt(adv.cooling_fan_overhang) || 0)];
+    }
     if (bs.slow_layer_time != null) {
       filament.slow_down_layer_time = [String(parseInt(bs.slow_layer_time) || 0)];
     }

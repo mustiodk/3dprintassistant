@@ -224,7 +224,7 @@
     "inner_wall_speed": [
      "100"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "layer_height": "0.2",
     "name": "3DPA ABS 0.2mm @Bambu Lab A1",
     "outer_wall_acceleration": [
@@ -845,7 +845,7 @@
     "inner_wall_speed": [
      "100"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "layer_height": "0.2",
     "name": "3DPA ABS 0.2mm @Bambu Lab A1",
     "outer_wall_acceleration": [
@@ -1462,7 +1462,7 @@
     "inner_wall_speed": [
      "138"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "layer_height": "0.2",
     "name": "3DPA PETG Basic 0.2mm @Bambu Lab A1",
     "outer_wall_acceleration": [
@@ -2089,7 +2089,7 @@
     "inner_wall_speed": [
      "138"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "layer_height": "0.2",
     "name": "3DPA PETG Basic 0.2mm @Bambu Lab A1 mini",
     "outer_wall_acceleration": [
@@ -2710,7 +2710,7 @@
     "inner_wall_speed": [
      "138"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "layer_height": "0.2",
     "name": "3DPA PETG Basic 0.2mm @Bambu Lab A1 mini",
     "outer_wall_acceleration": [
@@ -9917,7 +9917,7 @@
     "inner_wall_speed": [
      "105"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "layer_height": "0.2",
     "name": "3DPA PLA-CF 0.2mm @Bambu Lab P1S",
     "outer_wall_acceleration": [
@@ -10533,7 +10533,7 @@
     "inner_wall_speed": [
      "105"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "layer_height": "0.2",
     "name": "3DPA PLA-CF 0.2mm @Bambu Lab P1S",
     "outer_wall_acceleration": [
@@ -14086,7 +14086,7 @@
     "inner_wall_speed": [
      "75"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "ironing_type": "top",
     "layer_height": "0.14",
     "name": "3DPA TPU 95A 0.14mm @Bambu Lab X1 Carbon",
@@ -14733,7 +14733,7 @@
     "inner_wall_speed": [
      "75"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "ironing_type": "top",
     "layer_height": "0.14",
     "name": "3DPA TPU 95A 0.14mm @Bambu Lab X1 Carbon",
@@ -15390,7 +15390,7 @@
     "inner_wall_speed": [
      "138"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "layer_height": "0.2",
     "name": "3DPA PETG Basic 0.2mm @Bambu Lab X1 Carbon",
     "outer_wall_acceleration": [
@@ -16046,7 +16046,7 @@
     "inner_wall_speed": [
      "200"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "layer_height": "0.2",
     "name": "3DPA PLA Basic 0.2mm @Bambu Lab X1 Carbon",
     "outer_wall_acceleration": [
@@ -16672,7 +16672,7 @@
     "inner_wall_speed": [
      "200"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "layer_height": "0.2",
     "name": "3DPA PLA Basic 0.2mm @Bambu Lab X1 Carbon",
     "outer_wall_acceleration": [
@@ -17280,7 +17280,7 @@
     "inner_wall_speed": [
      "200"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "layer_height": "0.2",
     "name": "3DPA PLA Basic 0.2mm @Bambu Lab X1 Carbon",
     "outer_wall_acceleration": [
@@ -17878,7 +17878,7 @@
     "inner_wall_speed": [
      "200"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "layer_height": "0.2",
     "name": "3DPA PLA Basic 0.2mm @Bambu Lab X1 Carbon",
     "outer_wall_acceleration": [
@@ -18476,7 +18476,7 @@
     "inner_wall_speed": [
      "200"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "layer_height": "0.2",
     "name": "3DPA PLA Basic 0.2mm @Bambu Lab X1 Carbon",
     "outer_wall_acceleration": [
@@ -19072,7 +19072,7 @@
     "inner_wall_speed": [
      "74"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "layer_height": "0.28",
     "name": "3DPA PLA Basic 0.28mm @Bambu Lab X1 Carbon",
     "outer_wall_acceleration": [
@@ -19676,7 +19676,7 @@
     "inner_wall_speed": [
      "74"
     ],
-    "internal_solid_infill_pattern": "zig-zag",
+    "internal_solid_infill_pattern": "rectilinear",
     "layer_height": "0.28",
     "name": "3DPA PLA Basic 0.28mm @Bambu Lab X1 Carbon",
     "outer_wall_acceleration": [
