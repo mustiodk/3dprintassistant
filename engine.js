@@ -1376,17 +1376,23 @@ const Engine = (() => {
     // from future env composition arithmetic) as scaling. Treat anything within
     // 1e-9 of 1.0 as identity (no scaling applied).
     const fanMultIsIdentity = Math.abs(fanMult - 1.0) < 1e-9;
+    // [IMPL-044 W3] fan_delta_pct adds uniformly to EXACTLY these three
+    // emissions, post-fan_multiplier. The 0–100 bounds are NEW code: pre-W3
+    // values stayed in range only because bases are bounded and fanMult ≤ 1,
+    // so the bound is identity for every non-mine call (golden-pinned).
+    const pFanDelta = pOff && pOff.fan_delta_pct ? pOff.fan_delta_pct.value : 0;
+    const _fanBound = (v) => Math.max(0, Math.min(100, v));
     const fanMaxBase = 100;
-    const fanMaxScaled = Math.round(fanMaxBase * fanMult);
+    const fanMaxScaled = _fanBound(Math.round(fanMaxBase * fanMult) + pFanDelta);
     const fanMinScaled = bs.cooling_fan_min != null
-      ? Math.round((parseInt(bs.cooling_fan_min) || 0) * fanMult)
+      ? _fanBound(Math.round((parseInt(bs.cooling_fan_min) || 0) * fanMult) + pFanDelta)
       : null;
     // S8.5 Codex post-Phase-1 Important #1 — env.fan_multiplier was scoped to
     // min/max only; overhang fan stayed at raw material default. Same intent
     // (reduce cooling in cold envs to preserve layer adhesion); scale here too.
     // BS + text export read this via adv.cooling_fan_overhang.
     const overhangScaled = bs.cooling_fan_overhang != null
-      ? Math.round((parseInt(bs.cooling_fan_overhang) || 0) * fanMult)
+      ? _fanBound(Math.round((parseInt(bs.cooling_fan_overhang) || 0) * fanMult) + pFanDelta)
       : null;
 
     const result = {

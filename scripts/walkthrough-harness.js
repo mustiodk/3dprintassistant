@@ -1484,6 +1484,63 @@ const COMBOS = [
     console.log('[W3 T2] OK temp deltas: applied at env-adjustment points on both temp surfaces; existing upper caps clip overshoot positionally (nozzle 235→230, bed 70→65); NEW floors bound negative deltas (tpu nozzle 215→220, bed at max(0, base−10) boundary); mode gate keeps injected deltas out of non-mine calls.');
   }
 
+  // ─── W3 Mine tier — Task 3: fan delta + NEW 0–100 bounds ──────────────────
+  // [IMPL-044 §5.1] fan_delta_pct adds uniformly to EXACTLY three emissions
+  // (fan_max_speed, fan_min_speed, cooling_fan_overhang), post-fan_multiplier.
+  // There is NO pre-W3 0–100 clamp to reuse (values stayed in range only
+  // because bases are bounded and the env multiplier is ≤1) — the bounds are
+  // NEW code, pinned here. The fan_speed profile chip (fan_policy path) is
+  // deliberately NOT in the closed set.
+  {
+    const num = (v) => parseInt(String(v && v.value != null ? v.value : v), 10);
+    const advFor = (material, delta) => {
+      Engine.setPersonalTuning(delta == null ? null : { pairKey: `x1c|${material}`,
+        offsets: { fan_delta_pct: { value: delta, unit: '%', date: '2026-07-06' } } });
+      return Engine.getAdvancedFilamentSettings({
+        printer: 'x1c', nozzle: 'std_0.4', material, environment: 'normal',
+        profileMode: delta == null ? 'safe' : 'mine',
+      });
+    };
+
+    // (a) +20 on pla (bases: max 100, min 70, overhang 100) → max/overhang
+    //     BOUND at 100 (raw 120 — the new upper bound), min 90.
+    const plaUp = advFor('pla_basic', 20);
+    if (num(plaUp.fan_max_speed) !== 100 || num(plaUp.cooling_fan_overhang) !== 100 || num(plaUp.fan_min_speed) !== 90) {
+      throw new Error(`W3 T3(a): pla +20% must give max 100 (bounded from 120), overhang 100 (bounded), min 90; got max=${plaUp.fan_max_speed?.value} overhang=${plaUp.cooling_fan_overhang} min=${plaUp.fan_min_speed?.value}`);
+    }
+    // (b) −20 on pla → 80 / 50 / 80 (plain delta, no bound engaged)
+    const plaDown = advFor('pla_basic', -20);
+    if (num(plaDown.fan_max_speed) !== 80 || num(plaDown.cooling_fan_overhang) !== 80 || num(plaDown.fan_min_speed) !== 50) {
+      throw new Error(`W3 T3(b): pla −20% must give 80/80/50; got max=${plaDown.fan_max_speed?.value} overhang=${plaDown.cooling_fan_overhang} min=${plaDown.fan_min_speed?.value}`);
+    }
+    // (c) −20 on abs (min base 0, overhang 30) → min FLOORS at 0 (raw −20 —
+    //     the new lower bound), overhang 10.
+    const absDown = advFor('abs', -20);
+    if (num(absDown.fan_min_speed) !== 0 || num(absDown.cooling_fan_overhang) !== 10) {
+      throw new Error(`W3 T3(c): abs −20% must floor min at 0 (raw −20) and give overhang 10; got min=${absDown.fan_min_speed?.value} overhang=${absDown.cooling_fan_overhang}`);
+    }
+    // (d) mode gate — injection set, safe call → base values untouched
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { fan_delta_pct: { value: -20, unit: '%', date: '2026-07-06' } } });
+    const plaSafe = Engine.getAdvancedFilamentSettings({
+      printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', environment: 'normal', profileMode: 'safe',
+    });
+    if (num(plaSafe.fan_max_speed) !== 100 || num(plaSafe.cooling_fan_overhang) !== 100 || num(plaSafe.fan_min_speed) !== 70) {
+      throw new Error(`W3 T3(d): safe call with injection set must stay 100/100/70; got max=${plaSafe.fan_max_speed?.value} overhang=${plaSafe.cooling_fan_overhang} min=${plaSafe.fan_min_speed?.value}`);
+    }
+    // (e) closed set — the fan_speed profile chip (fan_policy) is NOT touched
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { fan_delta_pct: { value: -20, unit: '%', date: '2026-07-06' } } });
+    const mineProfile = Engine.resolveProfile(stateDefault({
+      printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', profileMode: 'mine' }));
+    if (mineProfile.fan_speed?.value !== '100%') {
+      throw new Error(`W3 T3(e): fan_speed chip (fan_policy path) is outside the closed 3-emission set and must stay 100%; got ${mineProfile.fan_speed?.value}`);
+    }
+
+    Engine.setPersonalTuning(null);
+    console.log('[W3 T3] OK fan delta: applies post-fan_multiplier to exactly fan_max_speed / fan_min_speed / cooling_fan_overhang; NEW 0–100 bounds pinned both directions (120→100, −20→0); mode gate holds; fan_speed chip outside the closed set.');
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo
