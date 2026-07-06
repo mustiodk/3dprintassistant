@@ -1,0 +1,27 @@
+{
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_settings_id": [
+		"3DPA Bambu PLA Basic REF"
+	],
+	"from": "User",
+	"inherits": "Bambu PLA Basic @BBL X1C",
+	"name": "3DPA Bambu PLA Basic REF",
+	"nozzle_temperature": [
+		"226",
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"227",
+		"220"
+	],
+	"supertack_plate_temp": [
+		"49"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"49"
+	],
+	"version": "2.1.0.18"
+}

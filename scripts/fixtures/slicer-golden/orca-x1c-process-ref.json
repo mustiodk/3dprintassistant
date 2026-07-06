@@ -1,0 +1,24 @@
+{
+	"brim_object_gap": "0.11",
+	"from": "User",
+	"inherits": "0.20mm Strength @BBL X1C",
+	"initial_layer_line_width": "0.66",
+	"initial_layer_print_height": "0.18",
+	"layer_height": "0.19",
+	"line_width": "0.66",
+	"name": "3dPA 0.20mm Strength REF",
+	"print_extruder_id": [
+		"1",
+		"1"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"print_settings_id": "3dPA 0.20mm Strength REF",
+	"sparse_infill_density": "99%",
+	"top_shell_layers": "9",
+	"top_surface_density": "29%",
+	"version": "2.1.0.18",
+	"wall_loops": "9"
+}

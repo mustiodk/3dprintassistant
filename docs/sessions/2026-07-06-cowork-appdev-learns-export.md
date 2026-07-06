@@ -50,6 +50,16 @@ Branch `learns-export-20260706` (pushed): `66b053e` G0 · `57148e2` B1 · `e1c2e
 - Memory sweep: no durable memory to add (all facts are repo-documented in the ledger/specs). Vault sweep: nothing durable to propagate — checked strategic/shorthand/cross-project/hobby/consulting/external-source; the one cross-project lesson went to the ai-om findings ledger instead.
 - verify-before-mutate summary: 0 flags (0 resolved-same-turn, 0 resolved-late, 0 unresolved), 0 destructive-core, 24 unclassified, 0 generated-write.
 
+## Addendum — 2026-07-06 evening (owner-verify → merge → Orca capture)
+
+Same session, continued after the wrap above. All on/into `main` now:
+
+- **Bambu import test PASSED (owner-run).** `3DPA PLA Basic` selected in BS 2.5 → nozzle 225/220 (real values, distinct from stock 220/220). Then two **sentinel marker files** (`_owner-verify/zz-importtest-{filament,process}.json`, values encoded in the preset names) round-tripped exactly: `ZZ IMPORT-TEST FIL N199 R7.7` → 199/188, flow 0.88, bed 44, max-vol 12; `ZZ IMPORT-TEST PROC W9 I42` → brim 11. **1-element per-extruder arrays import fine** (Phase 0 F8 answered). PASS recorded in the gate ledger OWNER-VERIFY block; commit `fcb36f7`.
+- **Merged + deployed.** `git checkout main && git merge --no-ff learns-export-20260706` → merge commit `9e7890d` (clean ort, 30 files), pushed → Cloudflare auto-deploy. `main == origin/main`. iOS `c647982` still local (push gate).
+- **PrusaSlicer confusion resolved (owner):** owner tried to load the Bambu JSON into PrusaSlicer — can't (PrusaSlicer config-load whitelists `.ini`, not `.json`; and 3dpa has no Prusa export yet, Phase 4). Not a bug.
+- **Orca golden fixtures CAPTURED (Phase 3 prep).** Owner installed Orca, created user presets. Stashed the source JSON at `scripts/fixtures/slicer-golden/orca-x1c-filament-ref.json` + `orca-x1c-process-ref.json`. **Key finding: OrcaSlicer is a Bambu Studio fork — identical key names + `inherits` system-preset names; version string `2.1.0.18`; writes 2-element per-extruder-variant arrays (`filament_extruder_variant: ["Direct Drive Standard","Direct Drive High Flow"]`); a few Orca-only keys (`supertack_plate_temp`).** ⇒ Phase 3 Orca export = a small delta on the Bambu passthrough, not a new serializer.
+- **App/web accuracy finding mined from the audit (owner ask):** export-audit's engine-schema check flags `max_mvs` (max volumetric speed) missing the `0.8` nozzle key that `k_factor_matrix` has, across **17 materials** (`hips` also missing `0.2`) — verified directly in `data/materials.json`. 0.8mm-nozzle users get a fallback MVS instead of a material value. Added to ROADMAP Active Work Queue as a data-only DQ fix. Also added: W3 Mine-tier engine train as the locked NEXT entry, and Export Phase 2 (2-element arrays + ironing UI split + Beta-badge removal now gate-cleared).
+
 ## Next session
 
-Owner runs the OWNER-VERIFY block. After merge: candidates = W3 Mine-tier engine train (plan Part 2), IMPL-043 Phase 2, S1 landing pages, or iOS v1.0.6/1.0.7 train bundling `c647982`.
+**Locked next entry point: W3 Mine-tier engine train** (IMPL-044 plan Part 2 — the "rest" of the learns work; now unblocked by the export merge). Other queued candidates: the `max_mvs` 0.8 data-gap fix (quick data-only accuracy win), Export Phase 2 (Bambu hardening + Beta-badge removal), Orca Phase 3 (fixtures now in place), S1 landing pages, or the iOS v1.0.6 TestFlight train bundling `c647982`. See ROADMAP Active Work Queue for the full list. Resume via `NEXT-SESSION.md`.
