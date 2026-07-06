@@ -1,0 +1,21 @@
+{
+    "filament_extruder_variant": [
+        "Direct Drive Standard",
+        "Direct Drive High Flow"
+    ],
+    "filament_settings_id": [
+        "Bambu PLA Basic 230 55"
+    ],
+    "from": "User",
+    "inherits": "Bambu PLA Basic @BBL P1S 0.4 nozzle",
+    "name": "Bambu PLA Basic 230 55",
+    "nozzle_temperature": [
+        "225",
+        "nil"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230",
+        "nil"
+    ],
+    "version": "2.5.0.18"
+}

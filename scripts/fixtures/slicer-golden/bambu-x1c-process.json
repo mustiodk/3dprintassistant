@@ -1,0 +1,116 @@
+{
+    "bottom_shell_layers": "2",
+    "bottom_surface_pattern": "monotonicline",
+    "bridge_speed": [
+        "62.5",
+        "62.5"
+    ],
+    "default_acceleration": [
+        "7500",
+        "7500"
+    ],
+    "enable_support": "1",
+    "from": "User",
+    "gap_infill_speed": [
+        "312.5",
+        "312.5"
+    ],
+    "inherits": "0.20mm Standard @BBL X1C",
+    "initial_layer_acceleration": [
+        "625",
+        "625"
+    ],
+    "initial_layer_infill_speed": [
+        "120",
+        "120"
+    ],
+    "initial_layer_speed": [
+        "62.5",
+        "62.5"
+    ],
+    "initial_layer_travel_acceleration": [
+        "7500",
+        "7500"
+    ],
+    "inner_wall_speed": [
+        "375",
+        "375"
+    ],
+    "internal_solid_infill_speed": [
+        "312.5",
+        "312.5"
+    ],
+    "layer_height": "0.22",
+    "name": "0.20mm Standard @BBL X1C - Copy",
+    "outer_wall_acceleration": [
+        "6250",
+        "6250"
+    ],
+    "outer_wall_speed": [
+        "250",
+        "250"
+    ],
+    "overhang_2_4_speed": [
+        "62.5",
+        "62.5"
+    ],
+    "overhang_3_4_speed": [
+        "37.5",
+        "37.5"
+    ],
+    "overhang_4_4_speed": [
+        "12.5",
+        "12.5"
+    ],
+    "overhang_totally_speed": [
+        "12.5",
+        "12.5"
+    ],
+    "print_extruder_id": [
+        "1",
+        "1"
+    ],
+    "print_extruder_variant": [
+        "Direct Drive Standard",
+        "Direct Drive High Flow"
+    ],
+    "print_settings_id": "0.20mm Standard @BBL X1C - Copy",
+    "skeleton_infill_density": "8%",
+    "skin_infill_density": "8%",
+    "sparse_infill_density": "8%",
+    "sparse_infill_pattern": "line",
+    "sparse_infill_speed": [
+        "337.5",
+        "337.5"
+    ],
+    "support_interface_speed": [
+        "100",
+        "100"
+    ],
+    "support_on_build_plate_only": "1",
+    "support_speed": [
+        "187.5",
+        "187.5"
+    ],
+    "support_top_z_distance": "0.275",
+    "top_color_penetration_layers": "3",
+    "top_shell_layers": "2",
+    "top_surface_acceleration": [
+        "2500",
+        "2500"
+    ],
+    "top_surface_speed": [
+        "250",
+        "250"
+    ],
+    "travel_acceleration": [
+        "12500",
+        "12500"
+    ],
+    "travel_speed": [
+        "875",
+        "875"
+    ],
+    "version": "2.5.0.14",
+    "wall_loops": "3"
+}

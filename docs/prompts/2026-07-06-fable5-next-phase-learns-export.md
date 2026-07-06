@@ -3,9 +3,11 @@
 **Created:** 2026-07-06 · **Author:** Fable 5 (approved) · **How to run:** paste the fenced
 block below into a fresh Claude Code session, from the `3dprintassistant/` working tree.
 
-**Owner precondition (Track A only):** export the 6 golden slicer files first, per
-[`scripts/fixtures/slicer-golden/README.md`](../../scripts/fixtures/slicer-golden/README.md).
-Track B needs no homework and runs regardless.
+**Owner precondition (Track A only):** golden slicer fixtures live in
+[`scripts/fixtures/slicer-golden/`](../../scripts/fixtures/slicer-golden/) (see its README +
+`versions.md`). As of 2026-07-06 **Bambu + Prusa are present; Orca is deferred** (export was
+failing — Orca is IMPL-043 Phase 3 anyway). Track A runs Phase 0 on whatever's present. Track B
+needs no homework and runs regardless.
 
 **Source plan:** `docs/reviews/2026-07-05-fable5-phase1-review.md` (V2 addendum) +
 `docs/specs/IMPL-044-profiles-workshop.md` (W3/W4) + `docs/specs/IMPL-043-slicer-export-activation.md`.
@@ -33,12 +35,16 @@ expected and fine; stop at any clean boundary when budget runs low.
   owner golden files (below). Do this only if the files are present and budget remains.
 
 ## Owner precondition for Track A (check at G0)
-Track A Phase 0 needs owner-exported golden files in scripts/fixtures/slicer-golden/ (6 real
-preset exports: process + filament for Bambu Studio, OrcaSlicer, PrusaSlicer). See that
-directory's README.md for the exact list + naming.
-- Present → run Track A after Track B if budget allows.
-- Absent → build the export-audit harness scaffold + write the exact owner export/import
-  instructions into the ledger, then SKIP the rest of Track A. Do not fabricate fixtures.
+Track A Phase 0 uses owner-exported golden fixtures in scripts/fixtures/slicer-golden/ (see its
+README.md + versions.md). Run Phase 0 for whichever slicers are present — a partial set is fine:
+- **Bambu present** (bambu-x1c-process.json + bambu-x1c-filament.json) is the critical one:
+  Phase 1's refactor and Phase 2's hardening target Bambu. **Prusa present**
+  (prusa-coreone-config.ini) validates the Phase 4 .ini format.
+- **Orca deferred/absent** → note Orca fixtures pending; Orca native export is Phase 3, added in a
+  later pass. Do not block Phase 0/1 on it.
+- If NO fixtures at all are present → build the export-audit harness scaffold + write the exact
+  owner export instructions into the ledger, then SKIP the rest of Track A.
+- Never fabricate fixtures.
 
 ## Cold start — read in this order
 1. Projects/CLAUDE.md  2. 3dprintassistant/CLAUDE.md  3. docs/3dpa-context.md
