@@ -3361,8 +3361,11 @@ const Engine = (() => {
 
     if (bs.flow_ratio != null)          filament.filament_flow_ratio        = [String(bs.flow_ratio)];
     if (pa != null)                     filament.pressure_advance           = [String(pa)];
-    // HIGH-001 lands as its own commit: raw base until then (audit stays RED on it).
-    if (bs.retraction_distance != null) filament.filament_retraction_length = [String(bs.retraction_distance)];
+    // HIGH-001 FIX: export the engine's SCALED retraction (nozzle/Bowden-aware
+    // _slicer_value from resolveProfile), never the raw material base.
+    const retractionSv = profile.retraction_distance && profile.retraction_distance._slicer_value;
+    if (retractionSv != null)           filament.filament_retraction_length = [retractionSv];
+    else if (bs.retraction_distance != null) filament.filament_retraction_length = [String(bs.retraction_distance)];
     if (bs.retraction_speed != null)    filament.filament_retraction_speed  = [String(bs.retraction_speed)];
 
     const mvsVal = bs.max_mvs?.[String(nozzle.size)];

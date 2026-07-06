@@ -9849,7 +9849,7 @@
      "16"
     ],
     "filament_retraction_length": [
-     "0.6"
+     "0.7"
     ],
     "filament_retraction_speed": [
      "35"
@@ -10465,7 +10465,7 @@
      "16"
     ],
     "filament_retraction_length": [
-     "0.6"
+     "0.7"
     ],
     "filament_retraction_speed": [
      "35"
@@ -14018,7 +14018,7 @@
      "0.98"
     ],
     "filament_retraction_length": [
-     "0.8"
+     "0.6"
     ],
     "filament_retraction_speed": [
      "25"
@@ -14665,7 +14665,7 @@
      "0.98"
     ],
     "filament_retraction_length": [
-     "0.8"
+     "0.6"
     ],
     "filament_retraction_speed": [
      "25"
@@ -19003,7 +19003,7 @@
      "0.98"
     ],
     "filament_retraction_length": [
-     "0.6"
+     "0.8"
     ],
     "filament_retraction_speed": [
      "45"
@@ -19607,7 +19607,7 @@
      "0.98"
     ],
     "filament_retraction_length": [
-     "0.6"
+     "0.8"
     ],
     "filament_retraction_speed": [
      "45"
