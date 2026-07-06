@@ -1325,6 +1325,99 @@ const COMBOS = [
     console.log(`[v1.0.5 env-prefix-dedupe] OK env_*_bed_first_layer no longer duplicates env.name prefix across all three MEDIUM-01 branches; consolidated env_*_0 warning keeps the env framing.`);
   }
 
+  // ─── W3 Mine tier — Task 1: mode plumbing ─────────────────────────────────
+  // [IMPL-044 §5] profileMode 'mine' = Safe base + personal deltas injected via
+  // Engine.setPersonalTuning({pairKey, offsets}|null). Pinned contracts:
+  //   (a) mine with NO injection resolves byte-equal to safe (never tuned);
+  //   (b) tuned actually differs on this combo (guard that (a) is meaningful);
+  //   (c) stale-injection guard: pairKey mismatch → WHOLE personal layer
+  //       ignored, output byte-equal safe;
+  //   (d) matching pairKey + speed_multiplier_delta lowers outer wall speed;
+  //   (e) safe output is unaffected while an injection is set (mode gate);
+  //   (f) malformed payloads are ignored fail-safe (resolve == safe);
+  //   (g) engine re-clamps offsets to the §3.4 vocabulary bounds at injection
+  //       (speed delta −0.9 behaves exactly like the clamp value −0.3);
+  //   (h) unknown offset keys are dropped at injection (resolve == safe).
+  {
+    const mkState = (over) => stateDefault({
+      printer: 'a1', nozzle: 'std_0.4', material: 'pla_basic',
+      strength: 'strong', speed: 'fast', ...over,
+    });
+    const flat = (p) => JSON.stringify(p);
+    const outerOf = (p) => parseInt(p.outer_wall_speed?.value, 10);
+
+    if (typeof Engine.setPersonalTuning !== 'function') {
+      throw new Error('W3 T1: Engine.setPersonalTuning must be a public engine API');
+    }
+
+    Engine.setPersonalTuning(null);
+    const safe  = Engine.resolveProfile(mkState({ profileMode: 'safe' }));
+    const tuned = Engine.resolveProfile(mkState({ profileMode: 'tuned' }));
+    const mineNoInj = Engine.resolveProfile(mkState({ profileMode: 'mine' }));
+
+    // (b) guard first — if tuned==safe here, (a) proves nothing about fallthrough
+    if (outerOf(tuned) === outerOf(safe)) {
+      throw new Error(`W3 T1(b): guard failed — tuned outer_wall_speed (${outerOf(tuned)}) must differ from safe (${outerOf(safe)}) on a1+strong+fast for the fallthrough pin to be meaningful`);
+    }
+    // (a) mine + no injection == safe, byte-equal across the full param surface
+    if (flat(mineNoInj) !== flat(safe)) {
+      throw new Error('W3 T1(a): profileMode="mine" with no injection MUST resolve byte-equal to safe (and therefore NOT fall through to tuned)');
+    }
+
+    // (c) stale-injection guard — offsets for ANOTHER pair are wholly ignored
+    Engine.setPersonalTuning({ pairKey: 'x1c|petg_basic',
+      offsets: { speed_multiplier_delta: { value: -0.3, unit: '×', date: '2026-07-06' } } });
+    const mineMismatch = Engine.resolveProfile(mkState({ profileMode: 'mine' }));
+    if (flat(mineMismatch) !== flat(safe)) {
+      throw new Error('W3 T1(c): pairKey mismatch (x1c|petg_basic injected, a1|pla_basic resolved) MUST ignore the whole personal layer — output must be byte-equal safe');
+    }
+
+    // (e) mode gate — safe resolve unaffected while a MATCHING injection is set
+    Engine.setPersonalTuning({ pairKey: 'a1|pla_basic',
+      offsets: { speed_multiplier_delta: { value: -0.1, unit: '×', date: '2026-07-06' } } });
+    const safeWithInj = Engine.resolveProfile(mkState({ profileMode: 'safe' }));
+    if (flat(safeWithInj) !== flat(safe)) {
+      throw new Error('W3 T1(e): safe-mode output MUST be byte-identical while a matching injection is set — personal offsets act only in mine mode');
+    }
+
+    // (d) matching pair + mine mode → speed delta applies (outer wall drops)
+    const mineApplied = Engine.resolveProfile(mkState({ profileMode: 'mine' }));
+    if (!(outerOf(mineApplied) < outerOf(safe))) {
+      throw new Error(`W3 T1(d): speed_multiplier_delta −0.1 MUST lower outer_wall_speed below safe (safe=${outerOf(safe)}, mine=${outerOf(mineApplied)})`);
+    }
+
+    // (g) engine-side re-clamp of the cumulative offset to vocabulary bounds
+    Engine.setPersonalTuning({ pairKey: 'a1|pla_basic',
+      offsets: { speed_multiplier_delta: { value: -0.9, unit: '×', date: '2026-07-06' } } });
+    const mineOverdrive = Engine.resolveProfile(mkState({ profileMode: 'mine' }));
+    Engine.setPersonalTuning({ pairKey: 'a1|pla_basic',
+      offsets: { speed_multiplier_delta: { value: -0.3, unit: '×', date: '2026-07-06' } } });
+    const mineAtClamp = Engine.resolveProfile(mkState({ profileMode: 'mine' }));
+    if (flat(mineOverdrive) !== flat(mineAtClamp)) {
+      throw new Error('W3 T1(g): a −0.9 speed delta MUST be re-clamped to the −0.3 vocabulary bound at injection time (outputs must be byte-equal)');
+    }
+
+    // (f) malformed payloads → fail-safe null (resolve == safe)
+    for (const bad of [{ pairKey: 42 }, { offsets: {} }, 'nope', { pairKey: 'a1|pla_basic', offsets: 'x' }]) {
+      Engine.setPersonalTuning(bad);
+      const out = Engine.resolveProfile(mkState({ profileMode: 'mine' }));
+      if (flat(out) !== flat(safe)) {
+        throw new Error(`W3 T1(f): malformed setPersonalTuning payload ${JSON.stringify(bad)} MUST clear/ignore the personal layer (resolve == safe)`);
+      }
+    }
+
+    // (h) unknown offset keys dropped at injection
+    Engine.setPersonalTuning({ pairKey: 'a1|pla_basic',
+      offsets: { bogus_key_delta: { value: 99, unit: '?', date: '2026-07-06' } } });
+    const mineBogus = Engine.resolveProfile(mkState({ profileMode: 'mine' }));
+    if (flat(mineBogus) !== flat(safe)) {
+      throw new Error('W3 T1(h): unknown offset keys MUST be dropped at injection (resolve == safe)');
+    }
+
+    Engine.setPersonalTuning(null);
+    console.log('[W3 T1] OK mode plumbing: mine==safe with no injection (not tuned); pairKey stale-injection guard ignores whole layer; safe unaffected while injected; speed delta applies in mine only; vocabulary re-clamp at injection; malformed payloads + unknown keys fail-safe.');
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo

@@ -56,8 +56,11 @@ const Engine = (() => {
 
   // ── [IMPL-041 / DQ-2] Safe vs Tuned tier resolution ─────────────────────────
   //
-  // `profileMode` threads through state as 'safe' | 'tuned'. Default 'safe'
-  // preserves pre-DQ-2 output byte-for-byte for existing users.
+  // `profileMode` threads through state as 'safe' | 'tuned' | 'mine'. Default
+  // 'safe' preserves pre-DQ-2 output byte-for-byte for existing users.
+  // [IMPL-044 W3] 'mine' = Safe base + personal deltas injected via
+  // setPersonalTuning() — never the Tuned base (the user's journal evidence was
+  // gathered against what they actually printed, overwhelmingly Safe).
   //
   // Data convention: a preset in objective_profiles.json may optionally carry
   // a `_tuned` overrides object. Only keys that differ Safe → Tuned need to
@@ -73,12 +76,72 @@ const Engine = (() => {
   // Tuned override when mode==='tuned' AND the field exists in `_tuned`, else
   // the Safe value. Non-differentiated fields return the same value in both
   // tiers, so a Safe-default run is byte-equal to Tuned for them.
-  const _tier = (preset, field, mode) => {
+  // [IMPL-044 W3] Optional `personalOv` (4th arg) is the mine-tier layer: a
+  // sparse absolute-overrides object materialized by resolveProfile from the
+  // injected personal offsets against the SAFE base. Mode 'mine' consults it
+  // first, then falls through to the Safe value — never to `_tuned` (spec §5.2).
+  const _tier = (preset, field, mode, personalOv) => {
+    if (mode === 'mine') {
+      if (personalOv && personalOv[field] != null) return personalOv[field];
+      return preset ? preset[field] : undefined;
+    }
     if (mode === 'tuned' && preset && preset._tuned && preset._tuned[field] != null) {
       return preset._tuned[field];
     }
     return preset ? preset[field] : undefined;
   };
+
+  // ── [IMPL-044 W3] Personal tuning injection (the Mine tier) ─────────────────
+  //
+  // The app harvests accepted Workshop tuning offsets (workshop-tuning.js
+  // `acceptedFor(printer, material)`) and injects them here before resolving.
+  // Contract:
+  //   • setPersonalTuning(null) clears the layer.
+  //   • setPersonalTuning({ pairKey: '<printerId>|<materialId>', offsets })
+  //     where offsets = { [offsetKey]: { value, unit, date } } from the closed
+  //     §3.4 vocabulary below. Unknown keys are dropped; non-finite values are
+  //     dropped; values are RE-CLAMPED to the vocabulary bounds (the store
+  //     clamps at accept time; this is the engine-side re-enforcement).
+  //   • Offsets act ONLY when state.profileMode === 'mine' AND the injected
+  //     pairKey matches the resolving state's printer|material — the
+  //     stale-injection guard: a missed re-injection after a printer/material
+  //     switch can never silently apply another pair's offsets.
+  //   • Malformed payloads clear the layer (fail-safe: output falls back to
+  //     Safe, never to a partially-applied personal layer).
+  const PERSONAL_OFFSET_BOUNDS = {
+    nozzle_temp_delta:         { min: -15,  max: 15  },   // °C
+    bed_temp_delta:            { min: -10,  max: 10  },   // °C
+    fan_delta_pct:             { min: -20,  max: 20  },   // % points
+    retraction_distance_delta: { min: 0,    max: 0.6 },   // mm
+    speed_multiplier_delta:    { min: -0.3, max: 0   },   // ×
+  };
+  let _personal = null;
+
+  function setPersonalTuning(payload) {
+    if (payload == null) { _personal = null; return; }
+    if (typeof payload !== 'object' || typeof payload.pairKey !== 'string'
+        || !payload.offsets || typeof payload.offsets !== 'object') {
+      _personal = null; return;
+    }
+    const offsets = {};
+    for (const key of Object.keys(PERSONAL_OFFSET_BOUNDS)) {
+      const o = payload.offsets[key];
+      if (!o || typeof o !== 'object' || !Number.isFinite(o.value)) continue;
+      const b = PERSONAL_OFFSET_BOUNDS[key];
+      offsets[key] = {
+        value: Math.min(b.max, Math.max(b.min, o.value)),
+        unit:  typeof o.unit === 'string' ? o.unit : '',
+        date:  typeof o.date === 'string' ? o.date : '',
+      };
+    }
+    _personal = Object.keys(offsets).length ? { pairKey: payload.pairKey, offsets } : null;
+  }
+
+  // Stale-injection guard — the ONLY read path to the personal layer.
+  function _personalFor(printerId, materialId) {
+    if (!_personal || !printerId || !materialId) return null;
+    return _personal.pairKey === `${printerId}|${materialId}` ? _personal.offsets : null;
+  }
 
   // ── Init — load all JSON data files + locale files ──────────────────────────
   async function init() {
@@ -2161,7 +2224,13 @@ const Engine = (() => {
 
     // [IMPL-041 / DQ-2] Safe vs Tuned profile tier. Missing/unknown → 'safe' so
     // pre-DQ-2 localStorage and legacy clients emit the unchanged Safe profile.
-    const profileMode = state.profileMode === 'tuned' ? 'tuned' : 'safe';
+    // [IMPL-044 W3] 'mine' = Safe base + personal deltas (see setPersonalTuning).
+    const profileMode = state.profileMode === 'tuned' ? 'tuned'
+                      : state.profileMode === 'mine'  ? 'mine'
+                      : 'safe';
+    // Personal offsets apply ONLY in mine mode AND only when the injected
+    // pairKey matches this resolve's printer|material (stale-injection guard).
+    const pOff = profileMode === 'mine' ? _personalFor(state.printer, state.material) : null;
 
     const surface   = getSurface(surfaceId);
     const strength  = getStrength(strengthId);
@@ -2373,7 +2442,18 @@ const Engine = (() => {
       // are tier-resolved; Tuned raises the caps where community-validated.
       // inner_* stay tier-agnostic today — add `_tuned.inner_*` to the data
       // file if DQ-2/DQ-3 want to differentiate those too.
-      let outerSpeed = isCoreXY ? _tier(sm, 'outer_corexy', profileMode) : _tier(sm, 'outer_bedslinger', profileMode);
+      // [IMPL-044 W3] Materialize personal speed overrides as ABSOLUTE values
+      // against the SAFE base (spec §5.1 limb 2). Only the outer-wall speed
+      // fields — the delta's evidence sources (ringing, tpu_jam) are outer-wall
+      // speed remedies; accel stays Safe (no journal evidence ties to accel).
+      const _mineOv = {};
+      if (pOff && pOff.speed_multiplier_delta && pOff.speed_multiplier_delta.value !== 0) {
+        const d = pOff.speed_multiplier_delta.value;
+        for (const f of ['outer_corexy', 'outer_bedslinger']) {
+          if (Number.isFinite(sm[f])) _mineOv[f] = Math.round(sm[f] * (1 + d));
+        }
+      }
+      let outerSpeed = isCoreXY ? _tier(sm, 'outer_corexy', profileMode, _mineOv) : _tier(sm, 'outer_bedslinger', profileMode, _mineOv);
       let innerSpeed = isCoreXY ? sm.inner_corexy : sm.inner_bedslinger;
 
       // v1.0.4 — Strength speed multiplier (HIGH-09 / HIGH-04). Apply Strong/Maximum
@@ -3756,6 +3836,7 @@ const Engine = (() => {
     isNozzleCompatibleWithMaterial,
     getCompatibleNozzles,
     getCompatibleNozzlesForPrinter,
+    setPersonalTuning,
     getSymptoms,
     getTroubleshootingTips,
     exportProfile,
