@@ -3,6 +3,10 @@
 **Created:** 2026-07-06 · **Author:** Fable 5 (approved) · **How to run:** paste the fenced
 block below into a fresh Claude Code session, from the `3dprintassistant/` working tree.
 
+**Autonomy:** runs fully autonomously end-to-end on a work branch. Nothing merges to main or
+deploys mid-session. The owner's ONLY step is the final verification (import tests + branch
+review + merge) at the very end.
+
 **Owner precondition (Track A only):** golden slicer fixtures live in
 [`scripts/fixtures/slicer-golden/`](../../scripts/fixtures/slicer-golden/) (see its README +
 `versions.md`). As of 2026-07-06 **Bambu + Prusa are present; Orca is deferred** (export was
@@ -54,15 +58,25 @@ README.md + versions.md). Run Phase 0 for whichever slicers are present — a pa
 9. docs/sessions/INDEX.md + last 3 session logs.
 Then confirm understanding in 3–5 bullets and state both tracks' locked scope in one sentence each.
 
-## Operating mode
-- Fully autonomous, no questions. ONE gate at a time to a clean committed (web: pushed)
-  boundary. Track progress in docs/planning/LEARNS-EXPORT-GATE-LEDGER.md (create at G0): one
-  row per gate, tick box + commit hash in that gate's final commit. Ledger + git log is the
-  resume surface — never rely on conversation context.
+## Operating mode — run fully autonomously to the very end
+- **Run end to end without stopping for the owner.** No questions, no mid-flow approvals, no
+  "shall I proceed?". The owner is AWAY and does exactly ONE thing — the final verification at
+  the very end (import tests + branch review + merge). Everything before that is yours to finish.
+- **Everything lands on a work branch; NOTHING merges to main or deploys this session.** main
+  stays pristine and deployable as the fallback. Each gate commits on the branch and pushes the
+  BRANCH (remote backup — pushing a branch does NOT deploy; only main auto-deploys). The owner
+  merges at the end after verifying.
+- ONE gate at a time to a clean committed boundary. Stopping at a clean boundary due to budget is
+  fine. If you hit a blocker you genuinely cannot resolve, STOP at the last clean boundary and
+  write the blocker into the ledger — never idle waiting for input, never paper over it.
+- Track progress in docs/planning/LEARNS-EXPORT-GATE-LEDGER.md (create at G0): one row per gate,
+  tick box + commit hash in that gate's final commit. Ledger + git log is the resume surface.
 - Full lane (engine + specs + cross-platform). Progress bar every step.
 
 ## G0 — Shared safety baseline (no behavior change)
-- Work on a branch. Tag the known-good commit: `git tag learns-export-baseline-<YYYYMMDD>`.
+- Create the work branch `learns-export-<YYYYMMDD>` off main and tag main's known-good commit:
+  `git tag learns-export-baseline-<YYYYMMDD>`. ALL gates below commit on this branch; nothing
+  merges to main or deploys this session — main is the fallback; the owner merges at the end.
 - Write scripts/engine-golden-snapshot.js: dump FULL engine output (resolved profile + warnings
   + checklist + current export payloads) across the matrix to a deterministic, committed
   scripts/fixtures/engine-golden.json — the value-level regression net.
@@ -107,26 +121,48 @@ web+iOS evaluation. Plan-gate review (cross-model); revise. Commit plan + review
   not here — stop and record it, don't build it.
 - Regenerate scripts/fixtures/engine-golden.json → diff MUST be empty (proves engine untouched).
   validate-data + walkthrough + matrix-audit green & unchanged. New EN+DA locale keys for any
-  new copy. Web commit + push. (iOS Workshop is its own future train — no iOS work here.)
+  new copy. Commit on the branch + push the branch (backup only, no deploy). (iOS Workshop is its
+  own future train — no iOS work here.)
 
 ## TRACK A — slicer export activation (IMPL-043) — only if golden files present + budget remains
 Run Phase 0 then Phase 1 exactly per docs/specs/IMPL-043-slicer-export-activation.md:
 - **A-P0:** scripts/export-audit.js (walkthrough loading pattern) diffing each export vs the
   owner golden fixtures and vs resolved-profile values; resolve the contested claims empirically
-  (zig-zag validity, BS version string, inherits parents, only_one_wall_top form); append a
-  findings table to IMPL-043 §1.4; record the owner's manual import-test result. NO product code.
+  (zig-zag validity, BS version string, inherits parents, only_one_wall_top form) — resolve these
+  PROGRAMMATICALLY against the committed golden fixtures; do NOT wait on an owner import test
+  mid-session. Append a findings table to IMPL-043 §1.4. NO product code. (Orca fixtures may be
+  absent — audit Bambu + Prusa now, note Orca pending.)
 - **A-P1 (one finding = one commit):** add the 5 canonical fields to objective_profiles.json;
   resolveProfile attaches `_slicer_value` sidecars + derives display labels; export becomes
   passthrough via mapForSlicer (delete _extractValue regex heuristics); fix HIGH-001 scaled
   retraction (RED-first proving the current bug), ironing type/pattern split, support_style
-  5-option map, version→module constant. After EVERY gate: regenerate the golden snapshot and
-  enumerate each intentional delta; add the drift-guard assertion (exported value == resolved
-  value) per param; matrix-audit diff empty except enumerated IMPL-036 label changes; all
-  harnesses + export-audit green; mandatory web+iOS eval each gate. Web commit + push.
+  5-option map, version→module constant. **Fallback flag:** keep the old regex export path behind
+  a module constant `USE_LEGACY_EXPORT` (default false — new passthrough active); do NOT delete it
+  yet. It is the instant fallback — flipping the constant + redeploy restores the old export
+  without reverting the refactor. Delete it only in a later cleanup after the owner's import tests
+  pass. After EVERY gate: regenerate the golden snapshot and enumerate each intentional delta; add
+  the drift-guard assertion (exported value == resolved value) per param; matrix-audit diff empty
+  except enumerated IMPL-036 label changes; all harnesses + export-audit green; mandatory web+iOS
+  eval each gate. Commit on the branch + push the branch (no deploy).
 - **A-iOS mirror:** cp engine.js + changed data byte-identical to iOS; regenerate iOS
   golden/fixtures; full XCTest green. LOCAL commits only. Do not touch the hidden iOS export UI.
 - **A-review:** cross-model review of the engine+export diff; one finding = one commit; re-run gates.
 Do NOT start IMPL-043 Phase 2/3/4 (Bambu hardening / Orca / Prusa) or remove any Beta badge.
+
+## OWNER VERIFICATION HANDOFF (the only human step — at the very end)
+The session ends with everything committed on the work branch and the branch pushed. It MUST NOT
+merge or deploy. As the final deliverable, generate + stage what the owner needs and write an
+`OWNER-VERIFY` block (in the ledger + the final summary):
+1. **Import tests:** generate the candidate export file(s) from the rebuilt pipeline and stage
+   them under `scripts/fixtures/slicer-golden/_owner-verify/`. State exactly which file to import
+   once into Bambu Studio and into PrusaSlicer, where it lands, and what "good" looks like
+   (accepted, values correct). These close the loop and gate any future Beta-badge removal.
+2. **Branch review:** the branch name + `git diff main...<branch> --stat` + the golden-diff
+   summary (how many resolved profiles changed and why — each enumerated).
+3. **Merge to deploy:** the exact merge command (web auto-deploys on merge to main) to run once
+   satisfied; note iOS stays local/unshipped until a TestFlight-ready train.
+4. **Fallback reminder:** if an import test fails, set `USE_LEGACY_EXPORT=true` + redeploy to
+   restore the old export instantly, without unwinding the refactor.
 
 ## WRAP — always, even partial
 Session log + INDEX + ROADMAP tick (+ the stale export-status-row fix if still present).
@@ -140,7 +176,8 @@ remaining owner actions.
   filaments are SPEC + PLAN only this session; do not implement them.
 - Track A: no fabricated fixtures; if golden files absent, scaffold + stop. No Phase 2/3/4; no
   Beta-badge removal without a recorded import test.
-- Do NOT push iOS or dispatch TestFlight — mine. Web is master; no iOS-only engine edits.
+- Do NOT push iOS or dispatch TestFlight — mine. Do NOT merge the work branch to main or deploy —
+  the owner does that after final verification. Web is master; no iOS-only engine edits.
 - If any golden-snapshot delta can't be explained, or any harness/XCTest goes red and can't be
   made green cleanly, STOP at the last clean boundary and report. No papering over.
 - No scope creep beyond the two locked tracks. Log stray ideas, don't build them.
