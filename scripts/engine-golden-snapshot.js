@@ -70,7 +70,9 @@ const VARIANTS = [
   { key: 'x1c-std04-pla-cold',     s: { printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', environment: 'cold' } },
   { key: 'x1c-std04-petg-vcold',   s: { printer: 'x1c', nozzle: 'std_0.4', material: 'petg_basic', environment: 'vcold' } },
   { key: 'a1-std04-petg-humid',    s: { printer: 'a1', nozzle: 'std_0.4', material: 'petg_basic', environment: 'humid' } },
-  { key: 'x1c-std04-pla-support',  s: { printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', support: 'organic' } },
+  // 'easy' is a real _SUPPORT_TYPES id (G0 used 'organic', which no support id
+  // matches — the state silently resolved support-less, a coverage hole).
+  { key: 'x1c-std04-pla-support',  s: { printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', support: 'easy' } },
   { key: 'x1c-std04-pla-multi',    s: { printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', colors: 'multi_ams' } },
   { key: 'mk4-std04-abs-cold',     s: { printer: 'mk4', nozzle: 'std_0.4', material: 'abs', environment: 'cold' } },
 ];

@@ -17296,6 +17296,12 @@
     "reduce_crossing_wall": "1",
     "sparse_infill_density": "15%",
     "sparse_infill_pattern": "grid",
+    "support_interface_pattern": "rectilinear_interlaced",
+    "support_interface_top_layers": "2",
+    "support_style": "tree_strong",
+    "support_threshold_angle": "40",
+    "support_top_z_distance": "0.30",
+    "support_type": "tree(auto)",
     "top_shell_layers": "5",
     "top_surface_line_width": "0.42",
     "top_surface_pattern": "monotonic",
@@ -17354,6 +17360,12 @@
     "retraction_speed": "45 mm/s",
     "sparse_infill_density": "15%",
     "sparse_infill_pattern": "Grid",
+    "support_interface_layers": "2",
+    "support_interface_pattern": "Rectilinear",
+    "support_style": "Tree Strong",
+    "support_threshold_angle": "40°",
+    "support_type": "Tree",
+    "support_z_distance": "0.30 mm",
     "top_shell_layers": "5",
     "top_surface_line_width": "0.42 mm",
     "top_surface_pattern": "Monotonic",
@@ -17579,6 +17591,54 @@
     "value": "Grid",
     "why": "Grid is efficient and strong in the XY plane. A solid default for most everyday parts."
    },
+   "support_interface_layers": {
+    "mode": "advanced",
+    "prov": {
+     "ref": "engine:support_type_id",
+     "source": "default"
+    },
+    "value": "2",
+    "why": "Interface layers are solid layers between the support and model surface — more layers = better surface finish on the supported face, but harder to remove."
+   },
+   "support_interface_pattern": {
+    "_slicer_value": "rectilinear_interlaced",
+    "mode": "advanced",
+    "prov": null,
+    "value": "Rectilinear",
+    "why": "Grid interface provides stronger contact with the model surface. Rectilinear is easier to peel off after printing."
+   },
+   "support_style": {
+    "_slicer_value": "tree_strong",
+    "mode": "simple",
+    "prov": null,
+    "value": "Tree Strong",
+    "why": "Strong tree branches hold heavier functional geometry reliably — sturdier than slim at slightly more material."
+   },
+   "support_threshold_angle": {
+    "mode": "simple",
+    "prov": {
+     "ref": "engine:support_type_id",
+     "source": "default"
+    },
+    "value": "40°",
+    "why": "Only generate support where overhangs exceed this angle. Lower values generate more support — use 30° for quality-critical surfaces."
+   },
+   "support_type": {
+    "_slicer_value": "tree(auto)",
+    "mode": "simple",
+    "prov": null,
+    "value": "Tree",
+    "why": "Tree supports contact the model at minimal points and are significantly easier to remove without surface damage."
+   },
+   "support_z_distance": {
+    "mode": "simple",
+    "prov": {
+     "ref": "engine:_SUPPORT_TYPES",
+     "source": "default"
+    },
+    "value": "0.30 mm",
+    "why": "Large Z gap makes support very easy to snap off. Minimal surface marks."
+   },
    "top_shell_layers": {
     "mode": "simple",
     "prov": {
@@ -17654,7 +17714,7 @@
    "bed": "55 °C",
    "nozzle": "220 °C"
   },
-  "text": "═══════════════════════════════════════\n  3D Print Assistant — Profile Export\n═══════════════════════════════════════\n\nPrinter:          X1 Carbon\nNozzle:           Standard 0.4 mm\nMaterial:         PLA Basic\nSlicer:           Bambu Studio\nSurface quality:  Standard\nStrength:         Standard\nSpeed priority:   Balanced\nEnvironment:      Normal room\n\n── Filament Settings ──────────────────\n  (Filament tab in Bambu Studio)\n\n  TEMPERATURE\n    Nozzle temp (initial):   225 °C\n    Nozzle temp (other):     220 °C\n    Bed temp:                55 °C  (same for both layers)\n\n  FAN SETTINGS\n    Part cooling fan:        100%\n    Fan speed (min):         70%\n    Overhang fan speed:      100\n    Min layer time:          10 s\n\n  SPEED LIMIT\n    Max volumetric speed:    21 mm³/s\n\n  SETUP\n    Build plate:             Textured PEI or Smooth PEI\n    AMS compatible:          Yes\n    Drying:                  Recommended — 55 °C / 6h\n    Enclosure:               Open door + remove lid when bed >45°C\n\n  EXTRUSION\n    Pressure advance:        0.04\n    Flow ratio:              0.98\n    Retraction length:       0.6 mm\n    Retraction speed:        45 mm/s\n\n── Print Profile Settings ─────────────\n  (Process tab in Bambu Studio)\n\n  Quality\n    Layer height: 0.2 mm\n    Initial layer height: 0.20 mm\n    Outer wall line width: 0.42 mm\n    Inner wall line width: 0.44 mm\n    Top surface line width: 0.42 mm\n    Arc fitting: Enabled\n    X-Y hole compensation: 0.05–0.1 mm\n    Elephant foot compensation: 0.15 mm\n    Wall generator: Classic\n    Order of walls: Inner / Outer\n    Avoid crossing walls: Enabled\n\n  Strength\n    Wall loops: 3\n    Top shell layers: 5\n    Bottom shell layers: 4\n    Top surface pattern: Monotonic\n    Bottom surface pattern: Monotonic\n    Internal solid infill pattern: Rectilinear\n    Sparse infill density: 15%\n    Sparse infill pattern: Grid\n\n  Speed\n    Initial layer speed: 30 mm/s\n    Outer wall speed: 100 mm/s\n    Inner wall speed: 200 mm/s\n    Top surface speed: 60 mm/s\n    Gap fill speed: 100 mm/s\n    Outer wall acceleration: 5000 mm/s²\n    Inner wall acceleration: 8000 mm/s²\n    Initial layer acceleration: 500 mm/s²\n\n  Others\n    Brim width: 5–8 mm\n\n── Warnings ───────────────────────────\n  ⚠ PLA + enclosed printer:\n\n───────────────────────────────────────\nGenerated by 3dprintassistant.com",
+  "text": "═══════════════════════════════════════\n  3D Print Assistant — Profile Export\n═══════════════════════════════════════\n\nPrinter:          X1 Carbon\nNozzle:           Standard 0.4 mm\nMaterial:         PLA Basic\nSlicer:           Bambu Studio\nSurface quality:  Standard\nStrength:         Standard\nSpeed priority:   Balanced\nEnvironment:      Normal room\n\n── Filament Settings ──────────────────\n  (Filament tab in Bambu Studio)\n\n  TEMPERATURE\n    Nozzle temp (initial):   225 °C\n    Nozzle temp (other):     220 °C\n    Bed temp:                55 °C  (same for both layers)\n\n  FAN SETTINGS\n    Part cooling fan:        100%\n    Fan speed (min):         70%\n    Overhang fan speed:      100\n    Min layer time:          10 s\n\n  SPEED LIMIT\n    Max volumetric speed:    21 mm³/s\n\n  SETUP\n    Build plate:             Textured PEI or Smooth PEI\n    AMS compatible:          Yes\n    Drying:                  Recommended — 55 °C / 6h\n    Enclosure:               Open door + remove lid when bed >45°C\n\n  EXTRUSION\n    Pressure advance:        0.04\n    Flow ratio:              0.98\n    Retraction length:       0.6 mm\n    Retraction speed:        45 mm/s\n\n── Print Profile Settings ─────────────\n  (Process tab in Bambu Studio)\n\n  Quality\n    Layer height: 0.2 mm\n    Initial layer height: 0.20 mm\n    Outer wall line width: 0.42 mm\n    Inner wall line width: 0.44 mm\n    Top surface line width: 0.42 mm\n    Arc fitting: Enabled\n    X-Y hole compensation: 0.05–0.1 mm\n    Elephant foot compensation: 0.15 mm\n    Wall generator: Classic\n    Order of walls: Inner / Outer\n    Avoid crossing walls: Enabled\n\n  Strength\n    Wall loops: 3\n    Top shell layers: 5\n    Bottom shell layers: 4\n    Top surface pattern: Monotonic\n    Bottom surface pattern: Monotonic\n    Internal solid infill pattern: Rectilinear\n    Sparse infill density: 15%\n    Sparse infill pattern: Grid\n\n  Speed\n    Initial layer speed: 30 mm/s\n    Outer wall speed: 100 mm/s\n    Inner wall speed: 200 mm/s\n    Top surface speed: 60 mm/s\n    Gap fill speed: 100 mm/s\n    Outer wall acceleration: 5000 mm/s²\n    Inner wall acceleration: 8000 mm/s²\n    Initial layer acceleration: 500 mm/s²\n\n  Support\n    Support type: Tree\n    Support style: Tree Strong\n    Threshold angle: 40°\n    Top Z distance: 0.30 mm\n    Interface layers (top): 2\n    Interface pattern: Rectilinear\n\n  Others\n    Brim width: 5–8 mm\n\n── Warnings ───────────────────────────\n  ⚠ PLA + enclosed printer:\n\n───────────────────────────────────────\nGenerated by 3dprintassistant.com",
   "warnings": [
    {
     "detail": "Open the front door and remove the top glass panel to prevent heat creep and potential clogs.",

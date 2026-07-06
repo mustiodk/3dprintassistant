@@ -2549,11 +2549,23 @@ const Engine = (() => {
           ? 'Tree supports contact the model at minimal points and are significantly easier to remove without surface damage.'
           : 'Normal supports provide better surface quality on the underside of supported areas — use when finish matters.');
       sv(p.support_type, isTree || forceEasy ? 'tree(auto)' : 'normal(auto)');
-      p.support_style           = S(isTree || forceEasy ? 'Tree Hybrid' : 'Default',
-        isTree || forceEasy
-          ? 'Hybrid combines tree and normal support — tree branches where possible, normal on flat overhangs.'
-          : 'Default support style — grid pattern provides reliable support for all overhang types.');
-      sv(p.support_style, isTree || forceEasy ? 'tree_hybrid' : 'default');
+      // IMPL-036 2e/3d: use-case-aware 5-option support style (was a 2-option
+      // Tree Hybrid/Default split). Slim for aesthetic prints, strong for
+      // functional parts, hybrid as the general tree default.
+      const SUPPORT_STYLE_DISPLAY = {
+        default: 'Default', tree_slim: 'Tree Slim', tree_strong: 'Tree Strong',
+        tree_hybrid: 'Tree Hybrid', tree_organic: 'Tree Organic',
+      };
+      const supportStyleKey = !(isTree || forceEasy) ? 'default'
+        : (useCase.includes('decorative') || isMiniature) ? 'tree_slim'
+        : isFunctional ? 'tree_strong'
+        : 'tree_hybrid';
+      p.support_style           = S(SUPPORT_STYLE_DISPLAY[supportStyleKey],
+        supportStyleKey === 'tree_slim'   ? 'Slim tree branches minimize contact points and scarring on display pieces — easiest removal, lightest marks.' :
+        supportStyleKey === 'tree_strong' ? 'Strong tree branches hold heavier functional geometry reliably — sturdier than slim at slightly more material.' :
+        supportStyleKey === 'tree_hybrid' ? 'Hybrid combines tree and normal support — tree branches where possible, normal on flat overhangs.'
+                                          : 'Default support style — grid pattern provides reliable support for all overhang types.');
+      sv(p.support_style, supportStyleKey);
       p.support_threshold_angle = S(support.id === 'best_underside' ? '30°' : '40°',
         'Only generate support where overhangs exceed this angle. Lower values generate more support — use 30° for quality-critical surfaces.',
         { source: 'default', ref: 'engine:support_type_id' });
