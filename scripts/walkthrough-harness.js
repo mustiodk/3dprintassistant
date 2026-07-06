@@ -1325,6 +1325,371 @@ const COMBOS = [
     console.log(`[v1.0.5 env-prefix-dedupe] OK env_*_bed_first_layer no longer duplicates env.name prefix across all three MEDIUM-01 branches; consolidated env_*_0 warning keeps the env framing.`);
   }
 
+  // ─── W3 Mine tier — Task 1: mode plumbing ─────────────────────────────────
+  // [IMPL-044 §5] profileMode 'mine' = Safe base + personal deltas injected via
+  // Engine.setPersonalTuning({pairKey, offsets}|null). Pinned contracts:
+  //   (a) mine with NO injection resolves byte-equal to safe (never tuned);
+  //   (b) tuned actually differs on this combo (guard that (a) is meaningful);
+  //   (c) stale-injection guard: pairKey mismatch → WHOLE personal layer
+  //       ignored, output byte-equal safe;
+  //   (d) matching pairKey + speed_multiplier_delta lowers outer wall speed;
+  //   (e) safe output is unaffected while an injection is set (mode gate);
+  //   (f) malformed payloads are ignored fail-safe (resolve == safe);
+  //   (g) engine re-clamps offsets to the §3.4 vocabulary bounds at injection
+  //       (speed delta −0.9 behaves exactly like the clamp value −0.3);
+  //   (h) unknown offset keys are dropped at injection (resolve == safe).
+  {
+    const mkState = (over) => stateDefault({
+      printer: 'a1', nozzle: 'std_0.4', material: 'pla_basic',
+      strength: 'strong', speed: 'fast', ...over,
+    });
+    const flat = (p) => JSON.stringify(p);
+    const outerOf = (p) => parseInt(p.outer_wall_speed?.value, 10);
+
+    if (typeof Engine.setPersonalTuning !== 'function') {
+      throw new Error('W3 T1: Engine.setPersonalTuning must be a public engine API');
+    }
+
+    Engine.setPersonalTuning(null);
+    const safe  = Engine.resolveProfile(mkState({ profileMode: 'safe' }));
+    const tuned = Engine.resolveProfile(mkState({ profileMode: 'tuned' }));
+    const mineNoInj = Engine.resolveProfile(mkState({ profileMode: 'mine' }));
+
+    // (b) guard first — if tuned==safe here, (a) proves nothing about fallthrough
+    if (outerOf(tuned) === outerOf(safe)) {
+      throw new Error(`W3 T1(b): guard failed — tuned outer_wall_speed (${outerOf(tuned)}) must differ from safe (${outerOf(safe)}) on a1+strong+fast for the fallthrough pin to be meaningful`);
+    }
+    // (a) mine + no injection == safe, byte-equal across the full param surface
+    if (flat(mineNoInj) !== flat(safe)) {
+      throw new Error('W3 T1(a): profileMode="mine" with no injection MUST resolve byte-equal to safe (and therefore NOT fall through to tuned)');
+    }
+
+    // (c) stale-injection guard — offsets for ANOTHER pair are wholly ignored
+    Engine.setPersonalTuning({ pairKey: 'x1c|petg_basic',
+      offsets: { speed_multiplier_delta: { value: -0.3, unit: '×', date: '2026-07-06' } } });
+    const mineMismatch = Engine.resolveProfile(mkState({ profileMode: 'mine' }));
+    if (flat(mineMismatch) !== flat(safe)) {
+      throw new Error('W3 T1(c): pairKey mismatch (x1c|petg_basic injected, a1|pla_basic resolved) MUST ignore the whole personal layer — output must be byte-equal safe');
+    }
+
+    // (e) mode gate — safe resolve unaffected while a MATCHING injection is set
+    Engine.setPersonalTuning({ pairKey: 'a1|pla_basic',
+      offsets: { speed_multiplier_delta: { value: -0.1, unit: '×', date: '2026-07-06' } } });
+    const safeWithInj = Engine.resolveProfile(mkState({ profileMode: 'safe' }));
+    if (flat(safeWithInj) !== flat(safe)) {
+      throw new Error('W3 T1(e): safe-mode output MUST be byte-identical while a matching injection is set — personal offsets act only in mine mode');
+    }
+
+    // (d) matching pair + mine mode → speed delta applies (outer wall drops)
+    const mineApplied = Engine.resolveProfile(mkState({ profileMode: 'mine' }));
+    if (!(outerOf(mineApplied) < outerOf(safe))) {
+      throw new Error(`W3 T1(d): speed_multiplier_delta −0.1 MUST lower outer_wall_speed below safe (safe=${outerOf(safe)}, mine=${outerOf(mineApplied)})`);
+    }
+
+    // (g) engine-side re-clamp of the cumulative offset to vocabulary bounds
+    Engine.setPersonalTuning({ pairKey: 'a1|pla_basic',
+      offsets: { speed_multiplier_delta: { value: -0.9, unit: '×', date: '2026-07-06' } } });
+    const mineOverdrive = Engine.resolveProfile(mkState({ profileMode: 'mine' }));
+    Engine.setPersonalTuning({ pairKey: 'a1|pla_basic',
+      offsets: { speed_multiplier_delta: { value: -0.3, unit: '×', date: '2026-07-06' } } });
+    const mineAtClamp = Engine.resolveProfile(mkState({ profileMode: 'mine' }));
+    if (flat(mineOverdrive) !== flat(mineAtClamp)) {
+      throw new Error('W3 T1(g): a −0.9 speed delta MUST be re-clamped to the −0.3 vocabulary bound at injection time (outputs must be byte-equal)');
+    }
+
+    // (f) malformed payloads → fail-safe null (resolve == safe)
+    for (const bad of [{ pairKey: 42 }, { offsets: {} }, 'nope', { pairKey: 'a1|pla_basic', offsets: 'x' }]) {
+      Engine.setPersonalTuning(bad);
+      const out = Engine.resolveProfile(mkState({ profileMode: 'mine' }));
+      if (flat(out) !== flat(safe)) {
+        throw new Error(`W3 T1(f): malformed setPersonalTuning payload ${JSON.stringify(bad)} MUST clear/ignore the personal layer (resolve == safe)`);
+      }
+    }
+
+    // (h) unknown offset keys dropped at injection
+    Engine.setPersonalTuning({ pairKey: 'a1|pla_basic',
+      offsets: { bogus_key_delta: { value: 99, unit: '?', date: '2026-07-06' } } });
+    const mineBogus = Engine.resolveProfile(mkState({ profileMode: 'mine' }));
+    if (flat(mineBogus) !== flat(safe)) {
+      throw new Error('W3 T1(h): unknown offset keys MUST be dropped at injection (resolve == safe)');
+    }
+
+    Engine.setPersonalTuning(null);
+    console.log('[W3 T1] OK mode plumbing: mine==safe with no injection (not tuned); pairKey stale-injection guard ignores whole layer; safe unaffected while injected; speed delta applies in mine only; vocabulary re-clamp at injection; malformed payloads + unknown keys fail-safe.');
+  }
+
+  // ─── W3 Mine tier — Task 2: temp deltas + NEW lower-bound floors ──────────
+  // [IMPL-044 §5.1] nozzle_temp_delta / bed_temp_delta join at the SAME point
+  // as env adjustments in getAdjustedTemps + getAdvancedFilamentSettings.
+  // Existing UPPER caps bound overshoot positionally (zero new cap code); the
+  // LOWER bounds are NEW code (nothing pre-W3 clamps a temperature downward):
+  //   nozzle ≥ material.nozzle_temp_min; bed ≥ max(0, bed_temp_base − 10).
+  {
+    const num = (s) => parseInt(String(s), 10);
+
+    // (a) floor: tpu_95a base 230, min 220 — a −15 delta gives raw 215, MUST
+    //     floor at 220 (NEW lower-bound code path).
+    Engine.setPersonalTuning({ pairKey: 'x1c|tpu_95a',
+      offsets: { nozzle_temp_delta: { value: -15, unit: '°C', date: '2026-07-06' } } });
+    const tpuMine = Engine.getAdjustedTemps('tpu_95a', 'normal', 'std_0.4', 'balanced', 'x1c', 'mine');
+    if (num(tpuMine.nozzle) !== 220) {
+      throw new Error(`W3 T2(a): tpu_95a −15°C delta must FLOOR at nozzle_temp_min 220 (raw 215); got ${tpuMine.nozzle}`);
+    }
+    // (a2) same floor on the advanced surface (other-layers temp)
+    const tpuAdv = Engine.getAdvancedFilamentSettings({
+      printer: 'x1c', nozzle: 'std_0.4', material: 'tpu_95a',
+      environment: 'normal', profileMode: 'mine',
+    });
+    if (num(tpuAdv.other_layers_temp) !== 220) {
+      throw new Error(`W3 T2(a2): advanced other_layers_temp must floor at 220; got ${tpuAdv.other_layers_temp}`);
+    }
+    // (b) mode gate: same injection, NO mine mode → base value untouched
+    const tpuSafe = Engine.getAdjustedTemps('tpu_95a', 'normal', 'std_0.4', 'balanced', 'x1c');
+    if (num(tpuSafe.nozzle) !== 230) {
+      throw new Error(`W3 T2(b): without mine mode the injected delta must NOT apply (expected base 230); got ${tpuSafe.nozzle}`);
+    }
+
+    // (c) upper cap positional reuse: pla_basic base 220, material max 230 —
+    //     a +15 delta gives raw 235, existing clamp must cap at 230.
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { nozzle_temp_delta: { value: 15, unit: '°C', date: '2026-07-06' },
+                 bed_temp_delta:    { value: 10, unit: '°C', date: '2026-07-06' } } });
+    const plaMine = Engine.getAdjustedTemps('pla_basic', 'normal', 'std_0.4', 'balanced', 'x1c', 'mine');
+    if (num(plaMine.nozzle) !== 230) {
+      throw new Error(`W3 T2(c): pla_basic +15°C delta must clamp at nozzle_temp_max 230 (raw 235); got ${plaMine.nozzle}`);
+    }
+    // (d) bed upper cap with env stacking: vcold bed_adj +5, delta +10 → raw 70,
+    //     existing bed cap min(material 65, printer) must clip to 65.
+    const plaVcold = Engine.getAdjustedTemps('pla_basic', 'vcold', 'std_0.4', 'balanced', 'x1c', 'mine');
+    if (num(plaVcold.bed) !== 65) {
+      throw new Error(`W3 T2(d): pla_basic vcold(+5) + delta(+10) = raw 70 must clip at bed cap 65; got ${plaVcold.bed}`);
+    }
+    // (e) bed floor: delta −10 on normal env → 45 == max(0, bed_temp_base 55 − 10)
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { bed_temp_delta: { value: -10, unit: '°C', date: '2026-07-06' } } });
+    const plaBedMine = Engine.getAdjustedTemps('pla_basic', 'normal', 'std_0.4', 'balanced', 'x1c', 'mine');
+    if (num(plaBedMine.bed) !== 45) {
+      throw new Error(`W3 T2(e): pla_basic bed −10 delta must give 45 (floor boundary max(0, 55−10)); got ${plaBedMine.bed}`);
+    }
+    // (e2) advanced surface bed delta + floor boundary
+    const plaAdv = Engine.getAdvancedFilamentSettings({
+      printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic',
+      environment: 'normal', profileMode: 'mine',
+    });
+    if (num(plaAdv.other_layers_bed_temp) !== 45) {
+      throw new Error(`W3 T2(e2): advanced other_layers_bed_temp must be 45 with −10 bed delta; got ${plaAdv.other_layers_bed_temp}`);
+    }
+
+    Engine.setPersonalTuning(null);
+    console.log('[W3 T2] OK temp deltas: applied at env-adjustment points on both temp surfaces; existing upper caps clip overshoot positionally (nozzle 235→230, bed 70→65); NEW floors bound negative deltas (tpu nozzle 215→220, bed at max(0, base−10) boundary); mode gate keeps injected deltas out of non-mine calls.');
+  }
+
+  // ─── W3 Mine tier — Task 3: fan delta + NEW 0–100 bounds ──────────────────
+  // [IMPL-044 §5.1] fan_delta_pct adds uniformly to EXACTLY three emissions
+  // (fan_max_speed, fan_min_speed, cooling_fan_overhang), post-fan_multiplier.
+  // There is NO pre-W3 0–100 clamp to reuse (values stayed in range only
+  // because bases are bounded and the env multiplier is ≤1) — the bounds are
+  // NEW code, pinned here. The fan_speed profile chip (fan_policy path) is
+  // deliberately NOT in the closed set.
+  {
+    const num = (v) => parseInt(String(v && v.value != null ? v.value : v), 10);
+    const advFor = (material, delta) => {
+      Engine.setPersonalTuning(delta == null ? null : { pairKey: `x1c|${material}`,
+        offsets: { fan_delta_pct: { value: delta, unit: '%', date: '2026-07-06' } } });
+      return Engine.getAdvancedFilamentSettings({
+        printer: 'x1c', nozzle: 'std_0.4', material, environment: 'normal',
+        profileMode: delta == null ? 'safe' : 'mine',
+      });
+    };
+
+    // (a) +20 on pla (bases: max 100, min 70, overhang 100) → max/overhang
+    //     BOUND at 100 (raw 120 — the new upper bound), min 90.
+    const plaUp = advFor('pla_basic', 20);
+    if (num(plaUp.fan_max_speed) !== 100 || num(plaUp.cooling_fan_overhang) !== 100 || num(plaUp.fan_min_speed) !== 90) {
+      throw new Error(`W3 T3(a): pla +20% must give max 100 (bounded from 120), overhang 100 (bounded), min 90; got max=${plaUp.fan_max_speed?.value} overhang=${plaUp.cooling_fan_overhang} min=${plaUp.fan_min_speed?.value}`);
+    }
+    // (b) −20 on pla → 80 / 50 / 80 (plain delta, no bound engaged)
+    const plaDown = advFor('pla_basic', -20);
+    if (num(plaDown.fan_max_speed) !== 80 || num(plaDown.cooling_fan_overhang) !== 80 || num(plaDown.fan_min_speed) !== 50) {
+      throw new Error(`W3 T3(b): pla −20% must give 80/80/50; got max=${plaDown.fan_max_speed?.value} overhang=${plaDown.cooling_fan_overhang} min=${plaDown.fan_min_speed?.value}`);
+    }
+    // (c) −20 on abs (min base 0, overhang 30) → min FLOORS at 0 (raw −20 —
+    //     the new lower bound), overhang 10.
+    const absDown = advFor('abs', -20);
+    if (num(absDown.fan_min_speed) !== 0 || num(absDown.cooling_fan_overhang) !== 10) {
+      throw new Error(`W3 T3(c): abs −20% must floor min at 0 (raw −20) and give overhang 10; got min=${absDown.fan_min_speed?.value} overhang=${absDown.cooling_fan_overhang}`);
+    }
+    // (d) mode gate — injection set, safe call → base values untouched
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { fan_delta_pct: { value: -20, unit: '%', date: '2026-07-06' } } });
+    const plaSafe = Engine.getAdvancedFilamentSettings({
+      printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', environment: 'normal', profileMode: 'safe',
+    });
+    if (num(plaSafe.fan_max_speed) !== 100 || num(plaSafe.cooling_fan_overhang) !== 100 || num(plaSafe.fan_min_speed) !== 70) {
+      throw new Error(`W3 T3(d): safe call with injection set must stay 100/100/70; got max=${plaSafe.fan_max_speed?.value} overhang=${plaSafe.cooling_fan_overhang} min=${plaSafe.fan_min_speed?.value}`);
+    }
+    // (e) closed set — the fan_speed profile chip (fan_policy) is NOT touched
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { fan_delta_pct: { value: -20, unit: '%', date: '2026-07-06' } } });
+    const mineProfile = Engine.resolveProfile(stateDefault({
+      printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', profileMode: 'mine' }));
+    if (mineProfile.fan_speed?.value !== '100%') {
+      throw new Error(`W3 T3(e): fan_speed chip (fan_policy path) is outside the closed 3-emission set and must stay 100%; got ${mineProfile.fan_speed?.value}`);
+    }
+
+    Engine.setPersonalTuning(null);
+    console.log('[W3 T3] OK fan delta: applies post-fan_multiplier to exactly fan_max_speed / fan_min_speed / cooling_fan_overhang; NEW 0–100 bounds pinned both directions (120→100, −20→0); mode gate holds; fan_speed chip outside the closed set.');
+  }
+
+  // ─── W3 Mine tier — Task 4: retraction delta post-scale, pre-cap ──────────
+  // [IMPL-044 §5.1] retraction_distance_delta applies INSIDE resolveProfile's
+  // retraction path: after _scaleRetraction's nozzle/bowden scaling (the delta
+  // means "final scaled value + X mm" — what the user physically dialed),
+  // BEFORE the material.retraction_max cap, floored at 0. The _slicer_value
+  // sidecar must carry the delta'd value (card == output == export, IMPL-043).
+  {
+    const mkState = (over) => stateDefault({ printer: 'x1c', nozzle: 'std_0.4', ...over });
+
+    // (a) pla_basic base 0.6, delta +0.4 → 1.0; sidecar follows
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { retraction_distance_delta: { value: 0.4, unit: 'mm', date: '2026-07-06' } } });
+    const pla = Engine.resolveProfile(mkState({ material: 'pla_basic', profileMode: 'mine' }));
+    if (pla.retraction_distance?.value !== '1 mm' || pla.retraction_distance?._slicer_value !== '1') {
+      throw new Error(`W3 T4(a): pla +0.4mm delta must give 1 mm (display) / '1' (_slicer_value); got ${pla.retraction_distance?.value} / ${pla.retraction_distance?._slicer_value}`);
+    }
+    // (b) cap engages BECAUSE of the delta: tpu_95a base 0.8, max 1.2 —
+    //     +0.6 gives raw 1.4, MUST cap at 1.2. (TPU is excluded from
+    //     retraction suggestions at the harvest layer; this pins that the
+    //     ENGINE cap holds regardless of app-layer policy, e.g. a crafted
+    //     backup import — TPU is where over-retraction jams.)
+    Engine.setPersonalTuning({ pairKey: 'x1c|tpu_95a',
+      offsets: { retraction_distance_delta: { value: 0.6, unit: 'mm', date: '2026-07-06' } } });
+    const tpu = Engine.resolveProfile(mkState({ material: 'tpu_95a', profileMode: 'mine' }));
+    if (tpu.retraction_distance?.value !== '1.2 mm' || tpu.retraction_distance?._slicer_value !== '1.2') {
+      throw new Error(`W3 T4(b): tpu +0.6mm delta (raw 1.4) must cap at retraction_max 1.2; got ${tpu.retraction_distance?.value} / ${tpu.retraction_distance?._slicer_value}`);
+    }
+    // (c) mode gate — injection set, safe resolve → base value untouched
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { retraction_distance_delta: { value: 0.4, unit: 'mm', date: '2026-07-06' } } });
+    const plaSafe = Engine.resolveProfile(mkState({ material: 'pla_basic', profileMode: 'safe' }));
+    if (plaSafe.retraction_distance?.value !== '0.6 mm') {
+      throw new Error(`W3 T4(c): safe resolve with injection set must stay 0.6 mm; got ${plaSafe.retraction_distance?.value}`);
+    }
+
+    Engine.setPersonalTuning(null);
+    console.log('[W3 T4] OK retraction delta: post-_scaleRetraction, pre-retraction_max cap (pla 0.6+0.4→1.0; tpu 0.8+0.6→1.4→capped 1.2); _slicer_value sidecar carries the delta’d value; mode gate holds.');
+  }
+
+  // ─── W3 Mine tier — Task 5: provenance 'personal' on touched params ───────
+  // [IMPL-044 §5.3] Every value a personal delta touched carries
+  // prov {source:'personal', ref:'workshop tuning: <offsetKey> <±value><unit>
+  // (accepted <date>)'} — and ONLY touched values do.
+  {
+    const REF = (k, v) => new RegExp(`^workshop tuning: ${k} ${v.replace(/[+×]/g, m => '\\' + m)} \\(accepted 2026-07-06\\)$`);
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic', offsets: {
+      nozzle_temp_delta:         { value: -10,  unit: '°C', date: '2026-07-06' },
+      retraction_distance_delta: { value: 0.4,  unit: 'mm', date: '2026-07-06' },
+      speed_multiplier_delta:    { value: -0.1, unit: '×',  date: '2026-07-06' },
+    } });
+    const st = stateDefault({ printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', profileMode: 'mine' });
+
+    // (a) resolveProfile: touched params flip to personal with the exact ref
+    const p = Engine.resolveProfile(st);
+    if (p.outer_wall_speed?.prov?.source !== 'personal' || !REF('speed_multiplier_delta', '-0.1×').test(p.outer_wall_speed?.prov?.ref || '')) {
+      throw new Error(`W3 T5(a): outer_wall_speed prov must be personal with spec ref; got ${JSON.stringify(p.outer_wall_speed?.prov)}`);
+    }
+    if (p.retraction_distance?.prov?.source !== 'personal' || !REF('retraction_distance_delta', '+0.4mm').test(p.retraction_distance?.prov?.ref || '')) {
+      throw new Error(`W3 T5(a): retraction_distance prov must be personal with spec ref; got ${JSON.stringify(p.retraction_distance?.prov)}`);
+    }
+    // (b) untouched params keep their prov (no blanket personal)
+    if (p.layer_height?.prov?.source === 'personal' || p.inner_wall_speed?.prov?.source === 'personal') {
+      throw new Error('W3 T5(b): untouched params (layer_height, inner_wall_speed) must NOT carry personal prov');
+    }
+    // (c) temps surface: nozzle touched → personal; bed NOT injected → not personal
+    const temps = Engine.getAdjustedTemps('pla_basic', 'normal', 'std_0.4', 'balanced', 'x1c', 'mine');
+    if (temps._prov?.nozzle?.source !== 'personal' || !/nozzle_temp_delta -10°C/.test(temps._prov?.nozzle?.ref || '')) {
+      throw new Error(`W3 T5(c): temps nozzle prov must be personal; got ${JSON.stringify(temps._prov?.nozzle)}`);
+    }
+    if (temps._prov?.bed?.source === 'personal') {
+      throw new Error('W3 T5(c): bed delta not injected — bed prov must NOT be personal');
+    }
+    // (d) advanced surface: nozzle-family prov personal; fan untouched stays
+    const adv = Engine.getAdvancedFilamentSettings(st);
+    if (adv._prov?.other_layers_temp?.source !== 'personal' || adv._prov?.initial_layer_temp?.source !== 'personal') {
+      throw new Error(`W3 T5(d): advanced nozzle temp provs must be personal; got ${JSON.stringify([adv._prov?.other_layers_temp, adv._prov?.initial_layer_temp])}`);
+    }
+    if (adv.fan_max_speed?.prov?.source === 'personal' || adv._prov?.other_layers_bed_temp?.source === 'personal') {
+      throw new Error('W3 T5(d): fan + bed not injected — their provs must NOT be personal');
+    }
+    // (e) fan prov flips when fan IS injected (all three emissions)
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic', offsets: {
+      fan_delta_pct: { value: -20, unit: '%', date: '2026-07-06' },
+      bed_temp_delta: { value: 5, unit: '°C', date: '2026-07-06' },
+    } });
+    const adv2 = Engine.getAdvancedFilamentSettings(st);
+    if (adv2.fan_max_speed?.prov?.source !== 'personal' || adv2.fan_min_speed?.prov?.source !== 'personal'
+        || adv2._prov?.cooling_fan_overhang?.source !== 'personal') {
+      throw new Error(`W3 T5(e): all three fan emissions must carry personal prov when fan_delta_pct injected`);
+    }
+    if (adv2._prov?.other_layers_bed_temp?.source !== 'personal' || adv2.bed_temperature?.prov?.source !== 'personal'
+        || adv2.bed_temperature_initial_layer?.prov?.source !== 'personal') {
+      throw new Error('W3 T5(e): bed emissions must carry personal prov when bed_temp_delta injected');
+    }
+    if (adv2._prov?.other_layers_temp?.source === 'personal') {
+      throw new Error('W3 T5(e): nozzle not injected in this payload — its prov must NOT be personal');
+    }
+    // (f) safe mode: NO personal prov anywhere even with injection set
+    const pSafe = Engine.resolveProfile(stateDefault({ printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic', profileMode: 'safe' }));
+    const leaked = Object.keys(pSafe).filter(k => pSafe[k]?.prov?.source === 'personal');
+    if (leaked.length) throw new Error(`W3 T5(f): safe resolve leaked personal prov on: ${leaked.join(',')}`);
+
+    // (g) Codex review MEDIUM-3: no personal prov when caps ERASE the effect.
+    // x1c+abs: the ABS-like 60 mm/s outer cap binds in both modes, so a −0.1
+    // speed delta changes nothing — claiming 'personal' would be dishonest.
+    Engine.setPersonalTuning({ pairKey: 'x1c|abs',
+      offsets: { speed_multiplier_delta: { value: -0.1, unit: '×', date: '2026-07-06' } } });
+    const absSafe = Engine.resolveProfile(stateDefault({ printer: 'x1c', nozzle: 'std_0.4', material: 'abs', profileMode: 'safe' }));
+    const absMine = Engine.resolveProfile(stateDefault({ printer: 'x1c', nozzle: 'std_0.4', material: 'abs', profileMode: 'mine' }));
+    if (absMine.outer_wall_speed?.value !== absSafe.outer_wall_speed?.value) {
+      throw new Error(`W3 T5(g): premise broken — abs outer must be cap-equal in both modes (safe=${absSafe.outer_wall_speed?.value}, mine=${absMine.outer_wall_speed?.value}); pick a different combo`);
+    }
+    if (absMine.outer_wall_speed?.prov?.source === 'personal') {
+      throw new Error(`W3 T5(g): caps erased the personal effect (both ${absSafe.outer_wall_speed?.value}) — prov must NOT claim personal`);
+    }
+
+    Engine.setPersonalTuning(null);
+    console.log('[W3 T5] OK provenance: touched params carry personal prov with the spec ref format (offsetKey ±value unit + accepted date) across profile, temps, and advanced surfaces; untouched params and non-mine modes never do.');
+  }
+
+  // ─── W3 Mine tier — Task 6: conditional Mine segment in getFilters ────────
+  // [IMPL-044 §5.3] The profileMode filter offers 'mine' ONLY when the engine
+  // holds injected personal tuning matching the state's printer|material pair.
+  {
+    const idsFor = (st) => (Engine.getFilters(st).find(f => f.key === 'profileMode')?.items || []).map(i => i.id);
+    const stPair = stateDefault({ printer: 'x1c', nozzle: 'std_0.4', material: 'pla_basic' });
+
+    Engine.setPersonalTuning(null);
+    if (idsFor(stPair).includes('mine')) {
+      throw new Error('W3 T6: no injection → profileMode items must NOT include mine');
+    }
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { nozzle_temp_delta: { value: -5, unit: '°C', date: '2026-07-06' } } });
+    if (!idsFor(stPair).includes('mine')) {
+      throw new Error(`W3 T6: matching injection → profileMode items MUST include mine; got ${idsFor(stPair).join(',')}`);
+    }
+    // Pair mismatch (tuning belongs to x1c, state is a1) → hidden
+    const stOther = stateDefault({ printer: 'a1', nozzle: 'std_0.4', material: 'pla_basic' });
+    if (idsFor(stOther).includes('mine')) {
+      throw new Error('W3 T6: pair-mismatched injection → mine segment must stay hidden');
+    }
+    // Stateless getFilters() (FILTERS getter path) → no crash, no mine
+    if (idsFor(undefined).includes('mine')) {
+      throw new Error('W3 T6: stateless getFilters() must not offer mine');
+    }
+    Engine.setPersonalTuning(null);
+    console.log('[W3 T6] OK conditional Mine segment: profileMode offers mine only when injected tuning matches the state pair; hidden on no-injection / pair-mismatch / stateless calls.');
+  }
+
   // [IMPL-041 / DQ-2] Cross-combo Safe/Tuned assertion. Runs two baseline
   // combos in Safe and Tuned; asserts:
   //   (a) Safe emission byte-equal to the default (profileMode absent) combo

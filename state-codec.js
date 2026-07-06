@@ -87,6 +87,19 @@ const StateCodec = (() => {
     return parts.join('&');
   }
 
+  // [IMPL-044 W3 / Codex mine-tier review HIGH-1] The SHARE affordance's
+  // encoder: personal offsets never ride shared URLs (spec §5.3), so a shared
+  // 'mine' state is substituted with 'safe' at the SENDER side — the URL
+  // resolves identically for everyone who opens it. Deliberately NOT part of
+  // encodeToParams: the live address bar uses that, URL restore wins over
+  // storage on refresh, and mapping there silently reverted a Mine selection
+  // to Safe on every reload.
+  function encodeForShare(state) {
+    return state && state.profileMode === 'mine'
+      ? encodeToParams({ ...state, profileMode: 'safe' })
+      : encodeToParams(state);
+  }
+
   function decodeFromParams(search) {
     const out = {};
     let params;
@@ -132,6 +145,11 @@ const StateCodec = (() => {
       if (f.key === 'printer')       ok = !!engine.getPrinter(v);
       else if (f.key === 'material') ok = !!engine.getMaterial(v);
       else if (f.key === 'nozzle')   ok = !!engine.getNozzle(v);
+      // [IMPL-044 W3] 'mine' is structurally valid even though getFilters only
+      // offers it conditionally (per-pair tuning): storage restores must keep
+      // it. The app's per-render sync degrades mine → safe when no tuning
+      // exists for the restored pair, and the engine resolves byte-equal safe.
+      else if (f.key === 'profileMode' && v === 'mine') ok = true;
       else                           ok = !!(validIds[f.key] && validIds[f.key].has(v));
       if (ok) clean[f.key] = v;
     });
@@ -145,6 +163,7 @@ const StateCodec = (() => {
     encodeForStorage,
     decodeFromStorage,
     encodeToParams,
+    encodeForShare,
     decodeFromParams,
     validateState,
   };

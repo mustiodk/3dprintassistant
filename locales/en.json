@@ -30,6 +30,8 @@
   "pmSafeDesc":                "Published-spec values. Conservative defaults from vendor presets — the choice when in doubt.",
   "pmTuned":                   "Tuned",
   "pmTunedDesc":               "Community-validated aggressive values. Requires a well-tuned printer (Input Shaper, flow calibration).",
+  "pmMine":                    "Mine",
+  "pmMineDesc":                "Your accepted Workshop tuning applied on top of Safe values — only for this printer + filament pair.",
   "filterSpecial":             "Special Requirements",
   "ucPrototype":               "Prototype",
   "ucFunctional":              "Functional part",

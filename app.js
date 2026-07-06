@@ -239,7 +239,9 @@ function syncUrl() {
 // Copy a URL reproducing the given state object; toast on success. Clipboard
 // API first, execCommand textarea fallback for blocked/legacy contexts.
 function copyShareUrl(stateObj) {
-  const qs  = StateCodec.encodeToParams(stateObj);
+  // IMPL-044 W3: the share affordance maps mine→safe (encodeForShare) — the
+  // live address bar (syncUrl) keeps mine so refresh restores the selection.
+  const qs  = StateCodec.encodeForShare(stateObj);
   const url = `${location.origin}${location.pathname}${qs ? '?' + qs : ''}`;
   const copyFallback = () => {
     const ta = document.createElement('textarea');
@@ -684,6 +686,7 @@ function handlePrinterSearch(query) {
 // Pass state in so state-dependent chip descs (e.g. Draft layer height for the
 // current nozzle) always reflect what resolveProfile() will actually emit.
 function buildFilters() {
+  syncPersonalTuning();   // IMPL-044 W3 — before getFilters (Mine segment visibility)
   const filtersContainer = document.getElementById('filtersContainer');
   filtersContainer.innerHTML = '';
   const isMobile = window.innerWidth <= 768;
@@ -836,6 +839,9 @@ function setView(view) {
   document.getElementById('navWorkshop').classList.toggle('active',      view === 'workshop');
   document.getElementById('navFeedback').classList.toggle('active',      view === 'feedback');
   if (view === 'workshop') renderWorkshop();
+  // [IMPL-044 W3] Tuning may have changed while away (accept/revert/import in
+  // the Workshop) — rebuild so the conditional Mine segment reflects it.
+  if (view === 'configure') { buildFilters(); render(); }
 }
 
 // ── Workshop (IMPL-044 W1) ────────────────────────────────────────────────────
@@ -852,8 +858,30 @@ function openNameModal(title, initial, onSave) {
 
 // ── Workshop tuning suggestions (IMPL-044 W3 gate B3) ─────────────────────────
 // Harvest is pure recomputation (journals × rules × ledger) — see workshop-tuning.js.
-// Accepted offsets are stored for the future Mine tier; nothing feeds the engine yet.
+// Accepted offsets feed the engine's Mine tier via syncPersonalTuning() below
+// (IMPL-044 W3): injected per render, consumed only in profileMode 'mine'.
 let _workshopTuning = null;
+
+// [IMPL-044 W3] Per-render engine injection. Runs before anything consults the
+// engine (buildFilters + render): injects the current pair's accepted offsets
+// (or clears), and degrades a 'mine' selection to 'safe' when no tuning exists
+// for the pair (share-URL recipients, fully-reverted tuning, pair switches) so
+// the visible chip stays truthful. The engine additionally guards via pairKey
+// validation + mine-mode gating — this sync is the UX layer, not the safety.
+function syncPersonalTuning() {
+  let payload = null;
+  if (state.printer && state.material) {
+    const wt = getWorkshopTuning();
+    if (wt) {
+      const offsets = wt.acceptedFor(state.printer, state.material);
+      if (Object.keys(offsets).length) {
+        payload = { pairKey: `${state.printer}|${state.material}`, offsets };
+      }
+    }
+  }
+  Engine.setPersonalTuning(payload);
+  if (state.profileMode === 'mine' && !payload) state.profileMode = 'safe';
+}
 
 function getWorkshopTuning() {
   if (!_workshopTuning && WorkshopStore && typeof createWorkshopTuning !== 'undefined') {
@@ -1516,6 +1544,7 @@ function handleChipClick(container, clicked, key, value, isMulti) {
 
 // ── Main render ───────────────────────────────────────────────────────────────
 function render() {
+  syncPersonalTuning();   // IMPL-044 W3 — before persist/resolve (mine-mode truth)
   persistState();
   syncUrl();
   updateCollapseBadges();
@@ -1776,7 +1805,7 @@ function renderFilamentPanel(filament, nozzle) {
     }
   } else {
     // Fallback (no material data)
-    const temps = Engine.getAdjustedTemps(state.material, state.environment, state.nozzle, state.speed, state.printer);
+    const temps = Engine.getAdjustedTemps(state.material, state.environment, state.nozzle, state.speed, state.printer, state.profileMode);
     const tP = temps?._prov || {};
     html += `<div class="setting-section-label">${FS('secTemps')}</div>`;
     html += row(T('rowNozzleTemp'), temps.nozzle, 'val-temp', tP.nozzle);

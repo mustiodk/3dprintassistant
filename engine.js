@@ -43,6 +43,8 @@ const Engine = (() => {
   //         | 'rule'       — derived via an engine rule (patternFor, slicer map)
   //         | 'default'    — curated default from data/*.json; no better attribution yet
   //         | 'calculated' — computed from other values (nozzle-scaled, clamped)
+  //         | 'personal'   — user-accepted Workshop tuning offset applied in
+  //                          Mine mode (IMPL-044 W3; ref names offset + date)
   //
   //   ref: free-form pointer (e.g. 'bambu-wiki-a1', 'rule:_clampNum',
   //        'objective_profiles.json#draft'). Optional.
@@ -56,8 +58,11 @@ const Engine = (() => {
 
   // ── [IMPL-041 / DQ-2] Safe vs Tuned tier resolution ─────────────────────────
   //
-  // `profileMode` threads through state as 'safe' | 'tuned'. Default 'safe'
-  // preserves pre-DQ-2 output byte-for-byte for existing users.
+  // `profileMode` threads through state as 'safe' | 'tuned' | 'mine'. Default
+  // 'safe' preserves pre-DQ-2 output byte-for-byte for existing users.
+  // [IMPL-044 W3] 'mine' = Safe base + personal deltas injected via
+  // setPersonalTuning() — never the Tuned base (the user's journal evidence was
+  // gathered against what they actually printed, overwhelmingly Safe).
   //
   // Data convention: a preset in objective_profiles.json may optionally carry
   // a `_tuned` overrides object. Only keys that differ Safe → Tuned need to
@@ -73,12 +78,79 @@ const Engine = (() => {
   // Tuned override when mode==='tuned' AND the field exists in `_tuned`, else
   // the Safe value. Non-differentiated fields return the same value in both
   // tiers, so a Safe-default run is byte-equal to Tuned for them.
-  const _tier = (preset, field, mode) => {
+  // [IMPL-044 W3] Optional `personalOv` (4th arg) is the mine-tier layer: a
+  // sparse absolute-overrides object materialized by resolveProfile from the
+  // injected personal offsets against the SAFE base. Mode 'mine' consults it
+  // first, then falls through to the Safe value — never to `_tuned` (spec §5.2).
+  const _tier = (preset, field, mode, personalOv) => {
+    if (mode === 'mine') {
+      if (personalOv && personalOv[field] != null) return personalOv[field];
+      return preset ? preset[field] : undefined;
+    }
     if (mode === 'tuned' && preset && preset._tuned && preset._tuned[field] != null) {
       return preset._tuned[field];
     }
     return preset ? preset[field] : undefined;
   };
+
+  // ── [IMPL-044 W3] Personal tuning injection (the Mine tier) ─────────────────
+  //
+  // The app harvests accepted Workshop tuning offsets (workshop-tuning.js
+  // `acceptedFor(printer, material)`) and injects them here before resolving.
+  // Contract:
+  //   • setPersonalTuning(null) clears the layer.
+  //   • setPersonalTuning({ pairKey: '<printerId>|<materialId>', offsets })
+  //     where offsets = { [offsetKey]: { value, unit, date } } from the closed
+  //     §3.4 vocabulary below. Unknown keys are dropped; non-finite values are
+  //     dropped; values are RE-CLAMPED to the vocabulary bounds (the store
+  //     clamps at accept time; this is the engine-side re-enforcement).
+  //   • Offsets act ONLY when state.profileMode === 'mine' AND the injected
+  //     pairKey matches the resolving state's printer|material — the
+  //     stale-injection guard: a missed re-injection after a printer/material
+  //     switch can never silently apply another pair's offsets.
+  //   • Malformed payloads clear the layer (fail-safe: output falls back to
+  //     Safe, never to a partially-applied personal layer).
+  const PERSONAL_OFFSET_BOUNDS = {
+    nozzle_temp_delta:         { min: -15,  max: 15  },   // °C
+    bed_temp_delta:            { min: -10,  max: 10  },   // °C
+    fan_delta_pct:             { min: -20,  max: 20  },   // % points
+    retraction_distance_delta: { min: 0,    max: 0.6 },   // mm
+    speed_multiplier_delta:    { min: -0.3, max: 0   },   // ×
+  };
+  let _personal = null;
+
+  function setPersonalTuning(payload) {
+    if (payload == null) { _personal = null; return; }
+    if (typeof payload !== 'object' || typeof payload.pairKey !== 'string'
+        || !payload.offsets || typeof payload.offsets !== 'object') {
+      _personal = null; return;
+    }
+    const offsets = {};
+    for (const key of Object.keys(PERSONAL_OFFSET_BOUNDS)) {
+      const o = payload.offsets[key];
+      if (!o || typeof o !== 'object' || !Number.isFinite(o.value)) continue;
+      const b = PERSONAL_OFFSET_BOUNDS[key];
+      offsets[key] = {
+        value: Math.min(b.max, Math.max(b.min, o.value)),
+        unit:  typeof o.unit === 'string' ? o.unit : '',
+        date:  typeof o.date === 'string' ? o.date : '',
+      };
+    }
+    _personal = Object.keys(offsets).length ? { pairKey: payload.pairKey, offsets } : null;
+  }
+
+  // Stale-injection guard — the ONLY read path to the personal layer.
+  function _personalFor(printerId, materialId) {
+    if (!_personal || !printerId || !materialId) return null;
+    return _personal.pairKey === `${printerId}|${materialId}` ? _personal.offsets : null;
+  }
+
+  // [IMPL-044 W3 / spec §5.3] Provenance sidecar for a value a personal delta
+  // touched: 'workshop tuning: <offsetKey> <±value><unit> (accepted <date>)'.
+  function _personalProv(offsetKey, o) {
+    return { source: 'personal',
+      ref: `workshop tuning: ${offsetKey} ${o.value > 0 ? '+' : ''}${o.value}${o.unit}${o.date ? ` (accepted ${o.date})` : ''}` };
+  }
 
   // ── Init — load all JSON data files + locale files ──────────────────────────
   async function init() {
@@ -478,9 +550,14 @@ const Engine = (() => {
       // when no chip is selected (state.profileMode === undefined). Selecting
       // 'tuned' opts in to the aggressive community-validated speed/accel/
       // infill values wired through _tier() in resolveProfile.
+      // [IMPL-044 W3] 'mine' appears ONLY when the engine holds injected
+      // personal tuning matching this state's printer|material pair — the
+      // segment is conditional by design (spec §5.3).
       { key: 'profileMode', label: t('filterProfileMode'), multi: false, required: false, items: [
         { id: 'safe',  name: t('pmSafe'),  desc: t('pmSafeDesc')  },
         { id: 'tuned', name: t('pmTuned'), desc: t('pmTunedDesc') },
+        ...(state && _personalFor(state.printer, state.material)
+          ? [{ id: 'mine', name: t('pmMine'), desc: t('pmMineDesc') }] : []),
       ]},
       { key: 'seam',             label: t('filterSeam'),             multi: false, required: false, advanced: true, items: [
         { id: 'aligned',         name: t('seamAligned'),   desc: 'Seams line up vertically — visible line but predictable placement.' },
@@ -1178,7 +1255,11 @@ const Engine = (() => {
 
   // ── Temperature with environment + nozzle material offset ───────────────────
   // nozzleId is optional — pass it to include nozzle material compensation
-  function getAdjustedTemps(materialId, environmentId, nozzleId, speedId, printerId) {
+  // [IMPL-044 W3] Optional 6th arg `profileMode`: when 'mine', the injected
+  // personal temp deltas (setPersonalTuning) join beside the env adjustments —
+  // subject to the pairKey stale-injection guard. Existing callers that omit
+  // the arg are byte-identical to pre-W3 behavior.
+  function getAdjustedTemps(materialId, environmentId, nozzleId, speedId, printerId, profileMode) {
     const mat    = getMaterial(materialId);
     const env    = getEnv(environmentId);
     const nozzle = nozzleId ? getNozzle(nozzleId) : null;
@@ -1186,24 +1267,37 @@ const Engine = (() => {
     if (!mat) return { nozzle: '—', bed: '—' };
 
     const bs           = mat.base_settings;
+    // [IMPL-044 W3] Personal deltas — mine mode + matching pairKey only.
+    const pOff         = profileMode === 'mine' ? _personalFor(printerId, materialId) : null;
+    const pNozzleDelta = pOff && pOff.nozzle_temp_delta ? pOff.nozzle_temp_delta.value : 0;
+    const pBedDelta    = pOff && pOff.bed_temp_delta    ? pOff.bed_temp_delta.value    : 0;
     const envNozzleAdj = env    ? (env.nozzle_adj || 0) : 0;
     const envBedAdj    = env    ? (env.bed_adj    || 0) : 0;
     const nozzleOffset = nozzle ? (nozzle.temp_offset || 0) : 0;
     const speedAdj     = speedId === 'fast' ? 5 : 0;
-    const totalNozzle  = envNozzleAdj + nozzleOffset + speedAdj;
+    const totalNozzle  = envNozzleAdj + nozzleOffset + speedAdj + pNozzleDelta;
     const rawNozzle    = bs.nozzle_temp_base + totalNozzle;
-    const nozzleTemp   = _clampNozzleTemp(rawNozzle, mat, printer);
+    let   nozzleTemp   = _clampNozzleTemp(rawNozzle, mat, printer);
+    // [IMPL-044 W3] NEW lower bound — nothing pre-W3 clamps a temperature
+    // downward (env adjustments only ever raise); a cumulative −15°C personal
+    // delta can cross the material's minimum rated temp, so floor it here.
+    if (pOff && bs.nozzle_temp_min != null) {
+      nozzleTemp = Math.max(nozzleTemp, bs.nozzle_temp_min);
+    }
     const nozzleWasClamped = nozzleTemp !== rawNozzle;
 
     let nozzleStr = `${nozzleTemp} °C`;
     if (totalNozzle > 0 && !nozzleWasClamped) nozzleStr += `  (+${totalNozzle} adj)`;
 
-    let bedTemp = bs.bed_temp_base + envBedAdj;
+    let bedTemp = bs.bed_temp_base + envBedAdj + pBedDelta;
     const bedCap = printer && printer.max_bed_temp != null
       ? Math.min(bs.bed_temp_max, printer.max_bed_temp)
       : bs.bed_temp_max;
     const bedWasClamped = bedCap != null && bedTemp > bedCap;
     bedTemp = bedWasClamped ? bedCap : bedTemp;
+    // [IMPL-044 W3] NEW bed floor — conservative max(0, base − 10) bound on
+    // negative personal deltas (spec §5.1; no env path pushes the bed down).
+    if (pOff) bedTemp = Math.max(bedTemp, Math.max(0, bs.bed_temp_base - 10));
 
     let bedStr = `${bedTemp} °C`;
     if (envBedAdj > 0 && !bedWasClamped) bedStr += `  (+${envBedAdj} for environment)`;
@@ -1213,8 +1307,12 @@ const Engine = (() => {
       nozzle: nozzleStr,
       bed:    bedStr,
       _prov: {
-        nozzle: { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + (speed==="fast"?5:0), optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
-        bed:    { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, optionally clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
+        nozzle: pNozzleDelta !== 0
+          ? _personalProv('nozzle_temp_delta', pOff.nozzle_temp_delta)
+          : { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + (speed==="fast"?5:0), optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
+        bed: pBedDelta !== 0
+          ? _personalProv('bed_temp_delta', pOff.bed_temp_delta)
+          : { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, optionally clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
       },
     };
   }
@@ -1242,8 +1340,13 @@ const Engine = (() => {
 
     const bs           = mat.base_settings;
     const isPETG       = mat.group === 'PETG';
-    const nozzleAdj    = (env ? (env.nozzle_adj || 0) : 0) + (nozzle ? (nozzle.temp_offset || 0) : 0);
-    const bedAdj       = env ? (env.bed_adj || 0) : 0;
+    // [IMPL-044 W3] Personal temp deltas join beside the env adjustments —
+    // mine mode + matching pairKey only (stale-injection guard).
+    const pOff         = state.profileMode === 'mine' ? _personalFor(state.printer, state.material) : null;
+    const pNozzleDelta = pOff && pOff.nozzle_temp_delta ? pOff.nozzle_temp_delta.value : 0;
+    const pBedDelta    = pOff && pOff.bed_temp_delta    ? pOff.bed_temp_delta.value    : 0;
+    const nozzleAdj    = (env ? (env.nozzle_adj || 0) : 0) + (nozzle ? (nozzle.temp_offset || 0) : 0) + pNozzleDelta;
+    const bedAdj       = (env ? (env.bed_adj || 0) : 0) + pBedDelta;
     // v1.0.4 HIGH-07 — cold env first-layer bed boost. env.bed_first_layer_adj
     // applies only to the initial layer (not subsequent layers) — matches the
     // data file's intent of helping adhesion when ambient is cold.
@@ -1267,6 +1370,19 @@ const Engine = (() => {
     initNozzle  = _clampNozzleTemp(initNozzle,  mat, printer);
     otherNozzle = _clampNozzleTemp(otherNozzle, mat, printer);
 
+    // [IMPL-044 W3] NEW lower bounds on the personal-delta path (spec §5.1):
+    // nozzle ≥ material minimum rated temp; bed ≥ max(0, base − 10). No
+    // pre-W3 path pushes temps downward, so these bind only under mine mode.
+    if (pOff) {
+      if (bs.nozzle_temp_min != null) {
+        initNozzle  = Math.max(initNozzle,  bs.nozzle_temp_min);
+        otherNozzle = Math.max(otherNozzle, bs.nozzle_temp_min);
+      }
+      const bedFloor = Math.max(0, bs.bed_temp_base - 10);
+      initBed  = Math.max(initBed,  bedFloor);
+      otherBed = Math.max(otherBed, bedFloor);
+    }
+
     // v1.0.4 HIGH-07 — fan_multiplier from env scales cooling fan emission.
     // Mirror Task 1's hardening (speed_multiplier): guard against malformed
     // data with Number.isFinite + > 0. S9 M1: also clamp <= 1 to mirror
@@ -1278,17 +1394,23 @@ const Engine = (() => {
     // from future env composition arithmetic) as scaling. Treat anything within
     // 1e-9 of 1.0 as identity (no scaling applied).
     const fanMultIsIdentity = Math.abs(fanMult - 1.0) < 1e-9;
+    // [IMPL-044 W3] fan_delta_pct adds uniformly to EXACTLY these three
+    // emissions, post-fan_multiplier. The 0–100 bounds are NEW code: pre-W3
+    // values stayed in range only because bases are bounded and fanMult ≤ 1,
+    // so the bound is identity for every non-mine call (golden-pinned).
+    const pFanDelta = pOff && pOff.fan_delta_pct ? pOff.fan_delta_pct.value : 0;
+    const _fanBound = (v) => Math.max(0, Math.min(100, v));
     const fanMaxBase = 100;
-    const fanMaxScaled = Math.round(fanMaxBase * fanMult);
+    const fanMaxScaled = _fanBound(Math.round(fanMaxBase * fanMult) + pFanDelta);
     const fanMinScaled = bs.cooling_fan_min != null
-      ? Math.round((parseInt(bs.cooling_fan_min) || 0) * fanMult)
+      ? _fanBound(Math.round((parseInt(bs.cooling_fan_min) || 0) * fanMult) + pFanDelta)
       : null;
     // S8.5 Codex post-Phase-1 Important #1 — env.fan_multiplier was scoped to
     // min/max only; overhang fan stayed at raw material default. Same intent
     // (reduce cooling in cold envs to preserve layer adhesion); scale here too.
     // BS + text export read this via adv.cooling_fan_overhang.
     const overhangScaled = bs.cooling_fan_overhang != null
-      ? Math.round((parseInt(bs.cooling_fan_overhang) || 0) * fanMult)
+      ? _fanBound(Math.round((parseInt(bs.cooling_fan_overhang) || 0) * fanMult) + pFanDelta)
       : null;
 
     const result = {
@@ -1317,27 +1439,35 @@ const Engine = (() => {
         bedFirstLayerEnvAdj > 0
           ? `Bed first-layer raised +${bedFirstLayerEnvAdj}°C for cold environment to improve adhesion.`
           : 'First-layer bed temperature.',
-        { source: bedFirstLayerEnvAdj > 0 ? 'rule' : 'calculated',
+        pBedDelta !== 0 ? _personalProv('bed_temp_delta', pOff.bed_temp_delta)
+        : { source: bedFirstLayerEnvAdj > 0 ? 'rule' : 'calculated',
           ref: bedFirstLayerEnvAdj > 0
             ? 'env.bed_first_layer_adj'
             : 'bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0), clamped' }),
       bed_temperature: S(`${otherBed}`,
         'Bed temperature for layers after the first.',
-        { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' }),
+        pBedDelta !== 0 ? _personalProv('bed_temp_delta', pOff.bed_temp_delta)
+        : { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' }),
       fan_max_speed: S(`${fanMaxScaled}`,
         !fanMultIsIdentity
           ? `Cooling fan reduced to ${Math.round(fanMult * 100)}% of normal for cold environment.`
           : 'Maximum cooling fan speed.',
-        { source: !fanMultIsIdentity ? 'rule' : 'default',
+        pFanDelta !== 0 ? _personalProv('fan_delta_pct', pOff.fan_delta_pct)
+        : { source: !fanMultIsIdentity ? 'rule' : 'default',
           ref: !fanMultIsIdentity ? 'env.fan_multiplier' : 'engine:fan_max_default' }),
       // [IMPL-041 / DQ-1-followup] provenance sidecar. All fields numeric.
       _prov: {
-        initial_layer_temp:     { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + initial_layer_nozzle_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
-        other_layers_temp:      { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
-        initial_layer_bed_temp: { source: 'calculated', ref: `bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0)${bedFirstLayerEnvAdj > 0 ? ' + env.bed_first_layer_adj' : ''}, clamped to min(material.bed_temp_max, printer.max_bed_temp)` },
-        other_layers_bed_temp:  { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
+        initial_layer_temp:     pNozzleDelta !== 0 ? _personalProv('nozzle_temp_delta', pOff.nozzle_temp_delta)
+                                : { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset + initial_layer_nozzle_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
+        other_layers_temp:      pNozzleDelta !== 0 ? _personalProv('nozzle_temp_delta', pOff.nozzle_temp_delta)
+                                : { source: 'calculated', ref: 'nozzle_temp_base + env.nozzle_adj + nozzle.temp_offset, optionally clamped to min(material.nozzle_temp_max, printer.max_nozzle_temp)' },
+        initial_layer_bed_temp: pBedDelta !== 0 ? _personalProv('bed_temp_delta', pOff.bed_temp_delta)
+                                : { source: 'calculated', ref: `bed_temp_base + env.bed_adj + initial_layer_bed_offset + (PETG?+5:0)${bedFirstLayerEnvAdj > 0 ? ' + env.bed_first_layer_adj' : ''}, clamped to min(material.bed_temp_max, printer.max_bed_temp)` },
+        other_layers_bed_temp:  pBedDelta !== 0 ? _personalProv('bed_temp_delta', pOff.bed_temp_delta)
+                                : { source: 'calculated', ref: 'bed_temp_base + env.bed_adj, clamped to min(material.bed_temp_max, printer.max_bed_temp)' },
         cooling_fan_min:        { source: 'default',    ref: 'materials.json#base_settings.cooling_fan_min' },
-        cooling_fan_overhang:   { source: !fanMultIsIdentity ? 'rule' : 'default',
+        cooling_fan_overhang:   pFanDelta !== 0 ? _personalProv('fan_delta_pct', pOff.fan_delta_pct)
+                                : { source: !fanMultIsIdentity ? 'rule' : 'default',
                                    ref: !fanMultIsIdentity ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_overhang'
                                                            : 'materials.json#base_settings.cooling_fan_overhang' },
         slow_layer_time:        { source: 'default',    ref: 'materials.json#base_settings.slow_layer_time' },
@@ -1355,7 +1485,8 @@ const Engine = (() => {
         !fanMultIsIdentity
           ? `Minimum cooling fan reduced to ${Math.round(fanMult * 100)}% of normal for cold environment.`
           : 'Minimum cooling fan speed.',
-        { source: !fanMultIsIdentity ? 'rule' : 'default',
+        pFanDelta !== 0 ? _personalProv('fan_delta_pct', pOff.fan_delta_pct)
+        : { source: !fanMultIsIdentity ? 'rule' : 'default',
           ref: !fanMultIsIdentity ? 'env.fan_multiplier × materials.json#base_settings.cooling_fan_min'
                                   : 'materials.json#base_settings.cooling_fan_min' });
     }
@@ -2161,7 +2292,13 @@ const Engine = (() => {
 
     // [IMPL-041 / DQ-2] Safe vs Tuned profile tier. Missing/unknown → 'safe' so
     // pre-DQ-2 localStorage and legacy clients emit the unchanged Safe profile.
-    const profileMode = state.profileMode === 'tuned' ? 'tuned' : 'safe';
+    // [IMPL-044 W3] 'mine' = Safe base + personal deltas (see setPersonalTuning).
+    const profileMode = state.profileMode === 'tuned' ? 'tuned'
+                      : state.profileMode === 'mine'  ? 'mine'
+                      : 'safe';
+    // Personal offsets apply ONLY in mine mode AND only when the injected
+    // pairKey matches this resolve's printer|material (stale-injection guard).
+    const pOff = profileMode === 'mine' ? _personalFor(state.printer, state.material) : null;
 
     const surface   = getSurface(surfaceId);
     const strength  = getStrength(strengthId);
@@ -2373,8 +2510,26 @@ const Engine = (() => {
       // are tier-resolved; Tuned raises the caps where community-validated.
       // inner_* stay tier-agnostic today — add `_tuned.inner_*` to the data
       // file if DQ-2/DQ-3 want to differentiate those too.
-      let outerSpeed = isCoreXY ? _tier(sm, 'outer_corexy', profileMode) : _tier(sm, 'outer_bedslinger', profileMode);
+      // [IMPL-044 W3] Materialize personal speed overrides as ABSOLUTE values
+      // against the SAFE base (spec §5.1 limb 2). Only the outer-wall speed
+      // fields — the delta's evidence sources (ringing, tpu_jam) are outer-wall
+      // speed remedies; accel stays Safe (no journal evidence ties to accel).
+      const _mineOv = {};
+      if (pOff && pOff.speed_multiplier_delta && pOff.speed_multiplier_delta.value !== 0) {
+        const d = pOff.speed_multiplier_delta.value;
+        for (const f of ['outer_corexy', 'outer_bedslinger']) {
+          if (Number.isFinite(sm[f])) _mineOv[f] = Math.round(sm[f] * (1 + d));
+        }
+      }
+      let outerSpeed = isCoreXY ? _tier(sm, 'outer_corexy', profileMode, _mineOv) : _tier(sm, 'outer_bedslinger', profileMode, _mineOv);
       let innerSpeed = isCoreXY ? sm.inner_corexy : sm.inner_bedslinger;
+      // [IMPL-044 W3 / Codex review MEDIUM-3] Counterfactual twin: the SAFE
+      // base ridden through the SAME cap statements below. If the caps erase
+      // the personal base drop (outerSpeed === outerSpeedSafeRef at the end),
+      // the value was not effectively touched and must NOT claim 'personal'
+      // provenance. Twin lines sit adjacent to their originals — keep them in
+      // lockstep when editing the chain.
+      let outerSpeedSafeRef = isCoreXY ? sm.outer_corexy : sm.outer_bedslinger;
 
       // v1.0.4 — Strength speed multiplier (HIGH-09 / HIGH-04). Apply Strong/Maximum
       // slowdown to walls before material/printer/MVS caps clamp it further.
@@ -2383,6 +2538,7 @@ const Engine = (() => {
         : 1.0;
       if (strengthSlow !== 1.0) {
         outerSpeed = Math.round(outerSpeed * strengthSlow);
+        outerSpeedSafeRef = Math.round(outerSpeedSafeRef * strengthSlow);
         innerSpeed = Math.round(innerSpeed * strengthSlow);
       }
 
@@ -2390,24 +2546,28 @@ const Engine = (() => {
       if (isTPU) {
         const tpuMax = material.base_settings.max_speed || 40;
         outerSpeed = Math.min(outerSpeed, tpuMax);
+        outerSpeedSafeRef = Math.min(outerSpeedSafeRef, tpuMax);
         innerSpeed = Math.min(innerSpeed, Math.round(tpuMax * 1.25));
       }
 
       // ABS/ASA: moderate cap for warp prevention
       if (isABSlike) {
         outerSpeed = Math.min(outerSpeed, 60);
+        outerSpeedSafeRef = Math.min(outerSpeedSafeRef, 60);
         innerSpeed = Math.min(innerSpeed, 100);
       }
 
       // PC: slow outer wall essential for layer adhesion at high temps
       if (isPC) {
         outerSpeed = Math.min(outerSpeed, 40);
+        outerSpeedSafeRef = Math.min(outerSpeedSafeRef, 40);
         innerSpeed = Math.min(innerSpeed, 60);
       }
 
       // PA: moderate cap — Nylon needs time to bond between layers
       if (isPA) {
         outerSpeed = Math.min(outerSpeed, 50);
+        outerSpeedSafeRef = Math.min(outerSpeedSafeRef, 50);
         innerSpeed = Math.min(innerSpeed, 80);
       }
 
@@ -2421,6 +2581,7 @@ const Engine = (() => {
           const defaultLineWidth = nozzleSize * 1.05;
           const mvsSpeedCap = Math.floor(mvs / (defaultLineWidth * layerH));
           outerSpeed = Math.min(outerSpeed, mvsSpeedCap);
+          outerSpeedSafeRef = Math.min(outerSpeedSafeRef, mvsSpeedCap);
           innerSpeed = Math.min(innerSpeed, Math.floor(mvsSpeedCap * 1.4));
         }
       }
@@ -2433,15 +2594,20 @@ const Engine = (() => {
           outerSpeed = Math.min(outerSpeed, globalMvsCap);
           innerSpeed = Math.min(innerSpeed, Math.floor(globalMvsCap * 1.4));
         }
+        // Twin: the OR-condition + min decomposes to an unconditional
+        // per-value min (min is identity when already <= cap).
+        outerSpeedSafeRef = Math.min(outerSpeedSafeRef, globalMvsCap);
       }
 
       // PETG outer wall cap for surface quality
       const petgCapped = isPETG && outerSpeed > 80;
       if (petgCapped) outerSpeed = 80;
+      if (isPETG && outerSpeedSafeRef > 80) outerSpeedSafeRef = 80;
 
       // Beginner safety: cap at 80% of calculated speed
       if (isBeginnerMode) {
         outerSpeed = Math.round(outerSpeed * 0.8);
+        outerSpeedSafeRef = Math.round(outerSpeedSafeRef * 0.8);
         innerSpeed = Math.round(innerSpeed * 0.8);
       }
 
@@ -2450,11 +2616,17 @@ const Engine = (() => {
       // Ender 3 V3 SE at max_speed=250 vs a default outer_bedslinger=100).
       if (limits) {
         outerSpeed = Math.round(_clampNum(outerSpeed, null, limits.max_outer_wall_speed));
+        outerSpeedSafeRef = Math.round(_clampNum(outerSpeedSafeRef, null, limits.max_outer_wall_speed));
         innerSpeed = Math.round(_clampNum(innerSpeed, null, limits.max_inner_wall_speed));
       }
 
       const outerSpeedTuned = profileMode === 'tuned' && sm._tuned
         && (isCoreXY ? sm._tuned.outer_corexy != null : sm._tuned.outer_bedslinger != null);
+      // [IMPL-044 W3 / Codex review MEDIUM-3] 'personal' prov requires the
+      // override to be consulted for THIS printer type AND to have survived
+      // the caps (final value differs from the safe-base counterfactual).
+      const outerSpeedPersonal = (isCoreXY ? _mineOv.outer_corexy : _mineOv.outer_bedslinger) != null
+        && outerSpeed !== outerSpeedSafeRef;
       p.outer_wall_speed = S(`${outerSpeed} mm/s`,
         isTPU      ? 'TPU must print slowly — flexible filament stretches during fast moves causing under-extrusion and jams.' :
         isABSlike  ? 'Slower outer walls reduce warping risk by allowing each layer more time to cool gradually.' :
@@ -2464,7 +2636,8 @@ const Engine = (() => {
         petgCapped ? 'PETG surface quality degrades noticeably above 80 mm/s outer wall speed — capped for this material.' :
         sm.id === 'quality' ? 'Slow outer walls reduce vibration artifacts and give each layer more time to solidify uniformly.' :
         'Outer wall speed balanced for your printer type — CoreXY handles higher speeds without ringing.',
-        { source: 'calculated', ref: `rule:material_caps+printer_limits${outerSpeedTuned ? ' (base from _tuned)' : ''}${strengthSlow !== 1.0 ? '+strength_multiplier' : ''}` });
+        outerSpeedPersonal ? _personalProv('speed_multiplier_delta', pOff.speed_multiplier_delta)
+        : { source: 'calculated', ref: `rule:material_caps+printer_limits${outerSpeedTuned ? ' (base from _tuned)' : ''}${strengthSlow !== 1.0 ? '+strength_multiplier' : ''}` });
 
       p.inner_wall_speed = S(`${innerSpeed} mm/s`,
         isTPU     ? 'Inner walls also capped for flexible filament — consistent flow matters more than speed.' :
@@ -2674,6 +2847,10 @@ const Engine = (() => {
     // having to tick the optional filter).
     const effectiveExtruder = state.extruder_type || printer.extruder_type || 'direct_drive';
 
+    // [IMPL-044 W3] Personal retraction delta (hoisted — used by both the
+    // _scaleRetraction arithmetic and the emission's why/prov below).
+    const pRetractionDelta = pOff && pOff.retraction_distance_delta ? pOff.retraction_distance_delta.value : 0;
+
     // Retraction emission — nozzle-scaled (base value assumes 0.4mm direct-drive).
     // Small nozzles need less retraction (less melt in the nozzle path); large nozzles
     // need more. Scaling factor: sqrt(nozzleSize / 0.4), clamped to material.retraction_max.
@@ -2687,8 +2864,14 @@ const Engine = (() => {
         const mult = material.flexible ? 1.5 : 3.5;
         rd = Math.round(rd * mult * 10) / 10;
       }
+      // [IMPL-044 W3] Personal delta joins AFTER scaling (it means "final
+      // scaled value + X mm" — what the user physically dialed), BEFORE the
+      // material cap so over-retraction can never ride past retraction_max.
+      if (pRetractionDelta) rd = Math.round((rd + pRetractionDelta) * 10) / 10;
       if (material.retraction_max != null) rd = Math.min(rd, material.retraction_max);
-      return rd;
+      // Defensive ≥0 floor (vocabulary min is 0, so unreachable via
+      // setPersonalTuning — kept per spec §5.1 as the hard engine bound).
+      return Math.max(0, rd);
     };
 
     if (mbs.retraction_distance != null) {
@@ -2696,7 +2879,9 @@ const Engine = (() => {
       const isBowden = effectiveExtruder === 'bowden';
       const isScaled = Math.abs(rd - mbs.retraction_distance) > 1e-6;
       p.retraction_distance = S(`${rd} mm`,
-        isBowden
+        pRetractionDelta
+          ? `Includes your accepted Workshop tuning (+${pRetractionDelta} mm on the scaled base), capped at this material's safe maximum.`
+          : isBowden
           ? (material.flexible
               ? `Bowden retraction for flexible filament — modest increase to avoid grinding. Scaled for ${nozzleSize}mm nozzle. Fine-tune based on tube length.`
               : `Bowden retraction increased to compensate for the longer PTFE tube path. Scaled for ${nozzleSize}mm nozzle. Fine-tune based on tube length.`)
@@ -2705,7 +2890,8 @@ const Engine = (() => {
               : (isScaled
                   ? `Retraction scaled for ${nozzleSize}mm nozzle (base ${mbs.retraction_distance}mm for 0.4mm) — small nozzles need less, large nozzles need more.`
                   : (rd >= 1.0 ? 'Longer retraction to prevent ooze with this high-temp material.' : 'Standard retraction distance for this material.'))),
-        { source: 'calculated', ref: 'rule:_scaleRetraction' });
+        pRetractionDelta ? _personalProv('retraction_distance_delta', pOff.retraction_distance_delta)
+        : { source: 'calculated', ref: 'rule:_scaleRetraction' });
       // HIGH-001: export must read this SCALED value, never mbs.retraction_distance.
       sv(p.retraction_distance, String(rd));
     }
@@ -3756,6 +3942,7 @@ const Engine = (() => {
     isNozzleCompatibleWithMaterial,
     getCompatibleNozzles,
     getCompatibleNozzlesForPrinter,
+    setPersonalTuning,
     getSymptoms,
     getTroubleshootingTips,
     exportProfile,

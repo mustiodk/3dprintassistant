@@ -178,6 +178,37 @@ async function main() {
     check('round-trip keeps printer', back.printer === 'a1', `got ${back.printer}`);
   }
 
+  // ── TC8 — [IMPL-044 W3] profileMode 'mine' codec rules ──
+  // Codex mine-tier review HIGH-1: encodeToParams must KEEP mine — the live
+  // address bar feeds URL restore, which wins over storage on refresh, so
+  // mapping there silently reverted Mine to Safe on every reload. The
+  // mine→safe substitution belongs ONLY to the explicit share affordance
+  // (encodeForShare, consumed by copyShareUrl).
+  {
+    console.log('TC8 — W3 mine mode: address bar keeps mine; SHARE encode maps mine→safe');
+    const st = StateCodec.defaultState();
+    st.printer = 'a1'; st.profileMode = 'mine';
+    const qs = StateCodec.encodeToParams(st);
+    check('encodeToParams keeps mine (refresh must restore the selection)',
+      /(^|&)pm=mine(&|$)/.test(qs), `got ${qs}`);
+    const share = StateCodec.encodeForShare(st);
+    check('encodeForShare maps mine→safe (personal offsets never ride shared URLs)',
+      /(^|&)pm=safe(&|$)/.test(share), `got ${share}`);
+    check('encodeForShare does not mutate the input state', st.profileMode === 'mine');
+    const shareTuned = StateCodec.encodeForShare({ ...st, profileMode: 'tuned' });
+    check('encodeForShare passes tuned through', /(^|&)pm=tuned(&|$)/.test(shareTuned),
+      `got ${shareTuned}`);
+    const roundTrip = StateCodec.validateState(StateCodec.decodeFromParams('?' + qs), Engine);
+    check('URL round-trip keeps mine (refresh persistence)', roundTrip.profileMode === 'mine',
+      `got ${roundTrip.profileMode}`);
+    const stored = JSON.parse(StateCodec.encodeForStorage(st)).state;
+    check('storage keeps mine (session persistence)', stored.profileMode === 'mine',
+      `got ${stored.profileMode}`);
+    const bad = StateCodec.validateState({ profileMode: 'bogus' }, Engine);
+    check('unknown mode still degrades to default', bad.profileMode === null,
+      `got ${bad.profileMode}`);
+  }
+
   console.log('');
   if (failures === 0) {
     console.log('ALL TESTS PASS');

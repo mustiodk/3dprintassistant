@@ -169,13 +169,22 @@ function createWorkshopTuning(store, rules, engineFacts) {
     return store.revertTuning(pairKey, offsetKey);
   }
 
-  // The future Mine-tier consumption point (W3 engine train): cumulative,
+  // The Mine-tier consumption point (W3 engine train, live): cumulative,
   // clamped offsets for one printer+material pair. Zero-value entries omitted.
+  // Shape matches Engine.setPersonalTuning's offsets contract.
   function acceptedFor(printerId, materialId) {
     const pk = printerId + '|' + materialId;
     const out = {};
     store.getTuning().accepted.forEach(e => {
-      if (e.pairKey === pk && e.value !== 0) out[e.offsetKey] = { value: e.value, unit: e.unit };
+      if (e.pairKey === pk && e.value !== 0) {
+        // [IMPL-044 W3] Newest accept-op date rides along — the engine's
+        // personal-provenance ref renders "(accepted <date>)" from it.
+        let date = '';
+        (e.ops || []).forEach(o => {
+          if (o.kind === 'accept' && String(o.date) > date) date = String(o.date);
+        });
+        out[e.offsetKey] = { value: e.value, unit: e.unit, date };
+      }
     });
     return out;
   }
