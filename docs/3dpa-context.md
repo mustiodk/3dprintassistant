@@ -87,9 +87,9 @@ Web supports English + Danish. Strings live at `locales/en.json` and `locales/da
 {
   printer: "x1c", nozzle: "std_0.4", material: "pla_basic",
   useCase: ["functional"], surface: "standard", strength: "standard",
-  speed: "balanced", environment: "room_temp", support: "none",
+  speed: "balanced", environment: "normal", support: "none",   // env ids: normal | cold | vcold | humid
   colors: "single", userLevel: "intermediate", special: [],
-  profileMode: "safe"   // "safe" | "tuned" — DQ-2 toggle
+  profileMode: "safe"   // "safe" | "tuned" (DQ-2) | "mine" (IMPL-044 W3 — Safe base + accepted personal tuning)
 }
 ```
 
@@ -118,7 +118,7 @@ The mode flag is per-param on `resolveProfile` output. UI filters on it.
 
 Provenance was added in **DQ-1** (2026-04-24); every numeric emission carries `{source, ref}` data identifying where it originated. The intent is honesty and verifiability — pros want to know if a recommended speed is from Bambu's wiki or from a heuristic.
 
-`profileMode` ("safe" vs "tuned") was added in **DQ-2** (2026-04-24): "safe" returns vendor-published baselines; "tuned" returns the same fields with community-consensus overrides where they exist (sparse `_tuned` block in the data). Web exposes this as a segmented control; iOS uses `SlidingSegmentedControl` on `GoalsView`.
+`profileMode` ("safe" vs "tuned") was added in **DQ-2** (2026-04-24): "safe" returns vendor-published baselines; "tuned" returns the same fields with community-consensus overrides where they exist (sparse `_tuned` block in the data). Web exposes this as a segmented control; iOS uses `SlidingSegmentedControl` on `GoalsView`. **A third tier, "mine", was added in IMPL-044 W3 (2026-07-07):** Safe base + the user's accepted Workshop tuning deltas, injected via `Engine.setPersonalTuning` with a `pairKey` guard; the Mine segment appears only when accepted tuning exists for the current printer|material pair, and share URLs map mine→safe at the share affordance.
 
 ---
 
@@ -137,7 +137,7 @@ Provenance was added in **DQ-1** (2026-04-24); every numeric emission carries `{
 - **Deploy:** GitHub Actions workflow `testflight.yml` (manual-dispatch only via `gh workflow run testflight.yml --ref main`) builds on `macos-26` runners and uploads to TestFlight.
 - **Distribution:** App Store, live worldwide. EU was blocked on DSA Trader Status until 2026-04-27; resolved.
 - **Tests:**
-  - **`EngineServiceTests`** (XCTest) — currently 64 unit tests covering engine.js bridge correctness.
+  - **Unit XCTests** — 135 as of v1.0.7 (2026-07-08), spanning `EngineServiceTests` (bridge correctness) + service suites (catalog overlay, workshop, review prompt, persistence, feedback, analytics, output VM). Trust the latest local run / ROADMAP for the current count, not this file.
   - **`ScreenCaptureUITests`** (UITest target) — generates UI screenshots across simulator devices for cross-device review.
 
 ### Shared
