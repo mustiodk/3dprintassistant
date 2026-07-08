@@ -213,7 +213,7 @@ and low-risk fixes already covered by tests.
 ## What's intentionally NOT in scope (so reviewers don't propose it)
 
 - **Backwards-compatibility shims for retired data / removed code.** Web + iOS are versioned in lockstep; if engine.js drops a field, both sides drop it the same commit.
-- **Android.** No plans.
+- **Android — status changed 2026-07-08: a native Android app is now PLANNED (first priority), followed by a macOS assessment.** Planning bundle: `docs/reviews/2026-07-08-android-v1-audit-delta.md` → `docs/superpowers/specs/2026-07-08-android-v1-design.md` → `docs/superpowers/plans/2026-07-08-android-v1-plan.md` (+ `docs/superpowers/specs/2026-07-08-macos-companion-assessment.md`). Until Android ships, reviewers should still not propose Android-specific changes inside web/iOS code — the engine/data byte-mirror model simply extends to it. A WebView-wrapper Android UI remains out of scope (prototype retired).
 - **Slicer plugins / direct slicer integration.** Out of scope; the value prop is a recommendation tool, not a slicer wrapper.
 - **User accounts.** No login, no account, no cross-device sync. Privacy by default.
 - **Cloud-side profile generation.** Engine runs on-device (browser or iOS JSCore). No server-side compute. The only Cloudflare Worker is for the feedback proxy.
