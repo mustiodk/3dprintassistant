@@ -1,49 +1,29 @@
 # 3dpa — Next Session Kickoff
 
 **Purpose:** copy-paste kickoff prompt for the next fresh 3dpa session.
-**Last updated:** 2026-07-08 evening (OWNER PIVOT: the 2026-07-08 "iOS v2 rebuild" goal was mis-stated — the real goal is an **Android app** (first priority) and later a **macOS app**. The iOS v2 planning bundle is **PARKED as a reference/evidence base** (Gate 0 never ratified); its audit + contracts + review-hardened decision framework are the input for the Android/macOS planning session below.)
-**Locked next entry point:** the **Android + macOS planning session** (prompt below). Also still open: owner on-device Mine acceptance of iOS v1.0.7 on TestFlight.
+**Last updated:** 2026-07-09 (Trigger A close of the Android v1 planning session — the pivot's planning work is DONE: triple-reviewed Android bundle + light macOS companion committed; program gated on **owner AG0**).
+**Locked next entry point:** owner AG0 (ratify/override spec §2 + §4, create Play account, resolve prototype-repo remote state) → then AG1 on the mac-mini. Also still open: owner on-device Mine acceptance of iOS v1.0.7 on TestFlight; 3 mined web findings in the ROADMAP queue (**overlay validator RED blocks any overlay republish today**).
 
 ---
 
 Copy everything between the markers into a new session.
 
 >>> START >>>
-You are working on the 3D Print Assistant (3dpa) — live web app (3dprintassistant.com) + live iOS app, one shared engine. Run autonomously; I may not be here to answer questions — patch holes in this goal yourself, write your interpretation down explicitly, and turn genuine unknowns into Gate 0 owner decisions with recommended defaults instead of blocking.
 
-**Cold start (3dpa read order) — read fully before acting:**
-1. ~/dev/Claude/Projects/CLAUDE.md and 3dprintassistant/CLAUDE.md
-2. 3dprintassistant/docs/3dpa-context.md (evergreen context — NOTE: its "not in scope: Android — no plans" line is now FALSE per this pivot; fixing it is part of your job)
-3. 3dprintassistant/docs/planning/ROADMAP.md (source of truth; see the 2026-07-08 pivot note in the banner)
-4. docs/sessions/INDEX.md + last 3 session logs in full (start with 2026-07-08-cowork-appdev-ios-v2-audit-plan.md — its addendum records this pivot)
-5. **The reusable evidence base (read all four):** docs/reviews/2026-07-08-ios-v2-rebuild-audit.md (codebase audit + §4 cross-platform contracts — platform-neutral, your foundation) · docs/superpowers/specs/2026-07-08-ios-v2-rebuild-design.md (PARKED as a program, reuse its decision framework D0–D7/D5a/D5c and §3 quality bar) · docs/superpowers/plans/2026-07-08-ios-v2-rebuild-plan.md (reuse the gate-shape: standing protocol, one-gate-per-session, drift sweeps, autonomy map) · docs/reviews/2026-07-08-ios-v2-rebuild-review.md (what three hostile reviewers caught — avoid re-making those mistakes on Android)
-6. **Prior Android prototype:** top-level CLAUDE.md row `3dpa-android` + `Projects/3dprintassistant-android/` — CAUTION: may be MISSING on this machine (it lives on the other Mac, 4 commits ahead of origin). If missing locally, clone github.com/mustiodk/3dprintassistant-android read-only to inspect what origin has. HARD BOUNDARY: do NOT push to that repo (Phase 1 no-push rule stands until I relax it). Read its NEXT-SESSION.md/state and assess: reuse, mine for parts, or restart clean — with a recommendation.
+3dpa cold start.
 
-**Today's task (planning only — NO implementation; execution happens in later gated sessions):**
-Produce a triple-reviewed planning bundle, same shape as the 2026-07-08 iOS v2 bundle, for:
-(A) **Android app — first priority, full depth:** Android-specific audit-delta/research → design spec (decisions with autonomous defaults, owner can override at its Gate 0) → gated master plan (G0–Gn, one autonomous session per gate, per-gate micro-plans at gate entry).
-(B) **macOS app — second priority, lighter:** an assessment + phased plan section or short companion spec (stack decision, reuse surface, distribution), explicitly sequenced AFTER Android ships; do not let it bloat the Android work.
+Read in order: ~/dev/Claude/Projects/CLAUDE.md → 3dprintassistant/CLAUDE.md → 3dprintassistant/docs/3dpa-context.md → 3dprintassistant/docs/planning/ROADMAP.md (banner + Active Work Queue) → docs/sessions/INDEX.md → last 3 session logs in full (start with 2026-07-08-cowork-appdev-android-v1-planning.md) → this file.
 
-**Non-negotiable constraints (from the audit §4 contracts — verify each against Android reality):**
-- engine.js + data/*.json stay byte-identical, web is master — NEVER port engine logic to Kotlin/Swift. Android needs a JS runtime decision (research + compare: QuickJS wrappers, Javet/V8, WebView-as-bridge; startup cost, binary size, maintenance) — this is the load-bearing Android decision, treat it like the iOS bundle treated D5/D5a.
-- State-codec FIELDS, Workshop envelope v1 byte-compat + op-log semantics, learns layer as byte-identical JS (the D5 principle), analytics privacy shape (platform value for Android), feedback Worker path.
-- Overlay: ios-printer-overlay is iOS-specific — decide Android's printer-delta strategy (consume a same-shaped overlay, or bundle-only + releases).
-- Quality bar: the §3 invariants pattern (fixtures, golden mirrors, TDD RED-first, hostile review per gate, cross-model at architecture + release gates).
+Today's task — pick by what's true:
 
-**Known owner-side dependencies to surface in the autonomy map (don't guess — make them Gate 0 questions with defaults):** Google Play Console account + signing + fees (does it exist?), Android test device availability, which Mac carries Android Studio/toolchain, CI (GitHub Actions) for Play delivery, and for macOS: Apple distribution route (Mac App Store vs notarized direct) + stack (SwiftUI multiplatform reusing iOS learnings vs Catalyst).
+A) **If I have ratified Android AG0** (replied GO / overrides to spec §2 + §4 of docs/superpowers/specs/2026-07-08-android-v1-design.md): run **AG1 foundation** per docs/superpowers/plans/2026-07-08-android-v1-plan.md. HARD PRECONDITIONS: execution session on the **mac-mini** (Java 17 + Android cmdline tools + API-36 emulator; also verify `node --version` — unverified there); flip the AG0 row in docs/planning/ANDROID-V1-GATE-LEDGER.md to GO (quote my message + date) and commit the top-level CLAUDE.md + byte-identical AGENTS.md 3dpa-android row update (no-push boundary relaxed per ratified AD1); prototype-repo remote state resolved (I push from the mini or write it off). AG1 entry = the **QuickJS spike** (≤ half session, ledger-recorded GO — incl. which QuickJS the wrapper embeds) BEFORE anything else; then author the gate micro-plan at writing-plans granularity in docs/superpowers/plans/android-v1/gate-1-foundation.md, hostile-review it, then execute. One gate per session; wrap per Trigger A.
 
-**Scope question to answer explicitly in the spec:** is Android v1 parity-with-iOS-v1.0.7, or does it bake in the iOS-v2 improvement content (native learns-loop, troubleshooter, journal, a11y, i18n EN+DA) from day one? Recommend and justify (the audit says the learns-loop is the product's differentiator — weigh that).
+B) **If AG0 is still pending and the session is web work:** the queue's mined findings, most urgent first — (1) **iOS overlay validator RED** (add the 1.0.7 bundled-catalog baseline, ground-truth from iOS `51356de` — any overlay republish fails today); (2) analytics Worker: full-schema `EVENT_KEYS` fix (per-event allowed keys + `BLOB_FIELDS`/query columns for `symptom`/`type` + real-payload tests), and — separate commit — the `android` HMAC auth branch; (3) feedback Worker `android` auth branch + first-class source rendering. Each: one finding = one commit, TDD RED-first, hostile review per Work Protocol lane, curl-verify live after push.
 
-**Process (standing):** Work Protocol Full lane (user-facing, cross-platform, architecture, new-platform release). Write → hostile fresh-context sub-agent review (design gate AND plan gate, separately) → patch → Codex cross-model round (bridge --health first, then bridge --mode codex-only; direct codex exec -s read-only fallback) → patch → commit (one concern = one commit, web repo docs tree: audit-delta in docs/reviews/, spec in docs/superpowers/specs/, plan in docs/superpowers/plans/). Fix the 3dpa-context Android-scope line in its own commit. Update ROADMAP banner + queue. Progress bar every multi-step turn. When done: executive summary + full Trigger A wrap-up (3dpa scope).
+C) **Otherwise:** other queue items per ROADMAP (v1.0.7 on-device Mine acceptance is owner-side; max_mvs 0.8 data gap; Export Phase 2; Orca Phase 3; W4 custom filaments; S1 landing pages). macOS is deliberately parked behind Android (companion doc: docs/superpowers/specs/2026-07-08-macos-companion-assessment.md; my 5-min M0 check: ASC "Mac Availability" checkbox).
 
-**Housekeeping riders:** keep the iOS v2 bundle referenced as PARKED (do not delete anything); if the Android plan reuses its gates, cite rather than copy.
+Standing rules: web is master; engine.js/app.js never merge; engine/data changes require web + iOS (+ Android-plan) impact evaluation; one finding = one commit; iOS push gate; **Android prototype no-push boundary ACTIVE until my explicit AG0 GO**; quality > speed; progress bar every multi-step turn.
 
-My answers to Gate-0-style questions, if I filled them in before pasting (blank = decide a default yourself):
-- Play Console account exists: [ ]
-- Android test device I own: [ ]
-- Mac that should carry the Android toolchain: [ ]
-- Android v1 bar (iOS-parity vs improved-from-day-one): [ ]
-- Parked android prototype (evaluate vs skip): [ ]
-<<< END <<<
+>>> END <<<
 
-**Maintenance note:** regenerated on Trigger A / Trigger B / explicit owner ask only — a stale NEXT-SESSION between sessions is fine (see `CLAUDE.md → Session-log protocol`).
+Maintenance note: this file is regenerated on Trigger A / Trigger B / explicit owner ask only — a stale copy between sessions is expected and fine.
