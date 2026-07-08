@@ -41,3 +41,11 @@ Web `main`: `250f37a` (planning bundle) · `4c17f96` (3dpa-context fix) · wrap-
 ## Next session
 
 **If owner has ratified Gate 0:** start G1 per the master plan (create ledger row happens at G0 ratification itself). **If not:** any queue item stands — v1.0.7 on-device acceptance (owner), `max_mvs` 0.8 data gap, Export Phase 2, Orca Phase 3, W4 custom filaments, S1 landing pages. Resume via `NEXT-SESSION.md`.
+
+## Addendum — 2026-07-08 evening: owner pivot — the real goal was ANDROID (then macOS)
+
+Owner returned post-wrap: the ask "create an improved copy of the 3dpa-ios" was mis-stated — intended meaning was *an improved Android version of the iOS app* (natural next platform; macOS later). **iOS v2 is therefore PARKED as a program (Gate 0 never ratified); the bundle is retained as the reference/evidence base** — the audit + §4 contracts are platform-neutral, and the spec/plan contribute the decision framework, gate shape, and three-reviewer findings to the next session. Owner judgment: "the work is not waste."
+
+- Resume surfaces corrected same evening: ROADMAP banner (pivot note + bundle re-statused PARKED), NEXT-SESSION regenerated with the **Android (priority) + macOS planning-session kickoff prompt** (includes the parked `3dprintassistant-android` prototype caution — missing on this machine, no-push boundary — and the Gate-0 owner-dependency questions: Play Console, test device, toolchain Mac, v1 bar, prototype reuse).
+- Process observation (for the calibration record, no new finding): the spec's §1 explicit owner-intent restatement (`feedback_owner_intent_explicit_in_foundation_docs`) worked exactly as designed — it made the goal mismatch visible on the owner's first read, at planning cost only, zero implementation wasted.
+- Follow-up now owned by the planning session: fix `3dpa-context.md` "not in scope: Android — no plans" (now false).
