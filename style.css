@@ -804,6 +804,7 @@ body, header, .top-nav, .filters, .panel, .chip,
 .export-btn:hover { color: var(--text); border-color: var(--border2); }
 .export-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 .export-group { display: flex; align-items: center; gap: 6px; }
+.export-hint { font-size: 0.78rem; color: var(--text2); margin: 4px 0 0; text-align: right; }
 .beta-badge {
   font-family: 'DM Mono', monospace;
   font-size: 9px;

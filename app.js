@@ -1559,12 +1559,15 @@ function render() {
   // Show correct export UI based on slicer
   const exportGroup  = document.getElementById('exportGroup');
   const exportCopyBtn = document.getElementById('exportCopyBtn');
+  const exportHint   = document.getElementById('exportHint');
   const hasMin = state.printer && state.nozzle && state.material;
   if (hasMin && state.printer) {
     const slicer = Engine.getSlicerForPrinter(state.printer);
     if (slicer === 'bambu_studio') {
       exportGroup.style.display  = 'flex';
       exportCopyBtn.style.display = 'none';
+      exportHint.textContent = T('exportHintBambu');
+      exportHint.style.display = '';
       // Grey out filament button if no filament export available
       const result = Engine.exportBambuStudioJSON(state);
       const filamentBtn = document.getElementById('exportFilamentBtn');
@@ -1575,10 +1578,12 @@ function render() {
     } else {
       exportGroup.style.display  = 'none';
       exportCopyBtn.style.display = 'block';
+      exportHint.style.display = 'none';
     }
   } else {
     exportGroup.style.display  = 'none';
     exportCopyBtn.style.display = 'none';
+    exportHint.style.display = 'none';
   }
   if (hasMin) {
     const profileKey = JSON.stringify({

@@ -97,6 +97,7 @@
   "exportBambu":               "↓ Eksporter til Bambu Studio",
   "exportCopy":                "↓ Kopiér profil",
   "exportDownloaded":          "✓ Downloadet",
+  "exportHintBambu":           "Importér i Bambu Studio 2.5+: File → Import → Import Configs… — profilerne dukker op under dine User-presets for denne printer/dyse.",
   "exportCopied":              "✓ Kopieret til udklipsholder",
   "exportSaved":               "✓ Gemt",
   "shareBtn":                  "⤴ Del",
