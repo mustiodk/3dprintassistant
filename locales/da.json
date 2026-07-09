@@ -96,6 +96,8 @@
   "exportBtn":                 "↓ Eksporter",
   "exportBambu":               "↓ Eksporter til Bambu Studio",
   "exportCopy":                "↓ Kopiér profil",
+  "exportForSlicer":           "til {slicer}",
+  "exportCopyForSlicer":       "↓ Kopiér til {slicer}",
   "exportDownloaded":          "✓ Downloadet",
   "exportCopied":              "✓ Kopieret til udklipsholder",
   "exportSaved":               "✓ Gemt",

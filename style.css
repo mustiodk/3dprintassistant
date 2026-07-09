@@ -806,6 +806,12 @@ body, header, .top-nav, .filters, .panel, .chip,
 .save-btn:disabled { opacity: 0.6; cursor: default; pointer-events: none; }
 .save-btn.saved { color: #ffaa33; border-color: rgba(255,160,50,0.4); }
 .export-group { display: flex; align-items: center; gap: 6px; }
+.export-slicer {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text2);
+  white-space: nowrap;
+}
 .beta-badge {
   font-family: 'DM Mono', monospace;
   font-size: 9px;

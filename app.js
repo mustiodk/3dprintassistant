@@ -1652,9 +1652,15 @@ function render() {
   const hasMin = state.printer && state.nozzle && state.material;
   if (hasMin && state.printer) {
     const slicer = Engine.getSlicerForPrinter(state.printer);
+    // Always name the target slicer so it's clear which slicer the export
+    // targets (issue #4). Native .json export exists for Bambu Studio today;
+    // Orca/Prusa route to text copy until IMPL-043 Phases 3-4 land.
+    const slicerName = Engine.getSlicerDisplayName(slicer);
     if (slicer === 'bambu_studio') {
       exportGroup.style.display  = 'flex';
       exportCopyBtn.style.display = 'none';
+      const slicerLabel = document.getElementById('exportSlicerName');
+      if (slicerLabel) slicerLabel.textContent = T('exportForSlicer').replace('{slicer}', slicerName);
       // Grey out filament button if no filament export available
       const result = Engine.exportBambuStudioJSON(state);
       const filamentBtn = document.getElementById('exportFilamentBtn');
@@ -1665,6 +1671,7 @@ function render() {
     } else {
       exportGroup.style.display  = 'none';
       exportCopyBtn.style.display = 'block';
+      exportCopyBtn.textContent = T('exportCopyForSlicer').replace('{slicer}', slicerName);
     }
   } else {
     exportGroup.style.display  = 'none';
