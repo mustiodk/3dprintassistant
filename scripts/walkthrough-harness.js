@@ -1628,6 +1628,46 @@ const COMBOS = [
     console.log(`[Export P2 HIGH-2] OK retraction honesty: text + reference export read resolved _slicer_value (0.2-nozzle ${sv02} ≠ raw ${raw02}; mine-mode ${svM})`);
   }
 
+  // ─── Export P2 — dual-extruder-variant arrays ──────────────────────────────
+  // BS 2.5 writes 2-element per-extruder-variant arrays for these keys (golden
+  // X1C: ["v","v"]). We duplicate the value into both positions; identical
+  // values make variant mapping irrelevant. print_extruder_variant itself is
+  // deliberately NOT emitted (machine-inferred).
+  {
+    const stX = { printer: 'x1c', material: 'pla_basic', nozzle: 'std_0.4',
+      useCase: ['functional'], surface: 'standard', strength: 'standard',
+      speed: 'balanced', environment: 'normal', support: 'none',
+      colors: 'single', userLevel: 'intermediate', special: [] };
+    const ex = Engine.exportBambuStudioJSON(stX);
+    const DUAL_PROC = ['outer_wall_speed','inner_wall_speed','initial_layer_speed',
+      'top_surface_speed','gap_infill_speed','outer_wall_acceleration','initial_layer_acceleration'];
+    DUAL_PROC.forEach(k => {
+      const v = ex.process[k];
+      if (!Array.isArray(v) || v.length !== 2 || v[0] !== v[1]) {
+        throw new Error(`P2 dual-variant: process.${k} must be ["v","v"]; got ${JSON.stringify(v)}`);
+      }
+    });
+    // Filament temps stay 1-element (golden second element is "nil", not a value).
+    ['nozzle_temperature','nozzle_temperature_initial_layer'].forEach(k => {
+      const v = ex.filament[k];
+      if (!Array.isArray(v) || v.length !== 1) {
+        throw new Error(`P2 dual-variant: filament.${k} must stay 1-element (golden 2nd elem is "nil"); got ${JSON.stringify(v)}`);
+      }
+    });
+    if ('print_extruder_variant' in ex.process || 'filament_extruder_variant' in ex.filament) {
+      throw new Error('P2 dual-variant: variant-name keys must NOT be emitted');
+    }
+    // Single-element keys stay single (guard against blanket duplication).
+    // inner_wall_acceleration is in BAMBU_PROCESS_MAP + BAMBU_ARRAY_FIELDS but
+    // NOT in the golden dual set (review finding 9: sparse_infill_density is
+    // emitted scalar, so it would be a vacuous sentinel).
+    const iwa = ex.process.inner_wall_acceleration;
+    if (!Array.isArray(iwa) || iwa.length !== 1) {
+      throw new Error(`P2 dual-variant: inner_wall_acceleration must stay 1-element; got ${JSON.stringify(iwa)}`);
+    }
+    console.log('[Export P2 dual-variant] OK 7 process keys emit ["v","v"]; filament temps + inner_wall_acceleration stay 1-element; variant-name keys absent');
+  }
+
   // ─── W3 Mine tier — Task 5: provenance 'personal' on touched params ───────
   // [IMPL-044 §5.3] Every value a personal delta touched carries
   // prov {source:'personal', ref:'workshop tuning: <offsetKey> <±value><unit>
