@@ -1,0 +1,42 @@
+# 2026-07-09/10 — Cowork (appdev): overlay baseline fix + K2 SE intake debug + Intake Autonomy v2 (audit → spec → RATIFIED)
+
+> Owner-driven session on the **mac-mini** (Claude Code desktop, Opus 4.8). Session crossed midnight; docs dated 2026-07-09 to match the bundle family. Three arcs: (1) the queued overlay-validator RED fix; (2) live debugging of a "failed" printer request; (3) the full-pipeline autonomy audit → S5 verdict → Intake Autonomy v2 design → owner ratification with a no-babysitting amendment.
+
+## Durable context
+
+- **Intake Autonomy v2 is RATIFIED (PD0–PD8, both waivers) with the owner amendment "no shadow phase, no manual merges — full autonomy from run 1."** Spec: `docs/superpowers/specs/2026-07-09-intake-autonomy-v2-design.md` (hostile-reviewed GO-WITH-PATCHES, 14 findings applied, §10 record; owner quote verbatim in the status line). Audit: `docs/reviews/2026-07-09-printer-intake-autonomy-audit.md`. **S5 is SUPERSEDED** (kept as reference): its best rung ends at owner-merge and its human-free rung excludes overlay changes, so it structurally cannot ship a printer unattended. Next step: **gated impl plan (Codex cross-model review) → 4–5 build sessions, mac-mini-pinned** (launchd environment probe is the FIRST deliverable — headless `claude -p` + keychain auth under launchd is unproven).
+- **Why the intake "failed": nothing ran — nothing is scheduled anywhere.** Verified empty: launchd, crontab, web CI, agent-ops, Claude cloud crons, desktop scheduled tasks. Capture is automatic; everything downstream is session-manual. The Scout itself triaged the real request correctly when run.
+- **The K2 SE candidate is staged and is the v2 pipeline's first real candidate.** Creality K2 SE, iOS v1.0.4 general-feedback (S1 prefill misroute — S2's heuristic lane backstopped it), Scout → `needs-research`, `candidate-creality-k2_se.json` in the gitignored staging dir; KV key `req:1783615951531:a03e6e7e` kept live.
+- **CRITICAL design fact locked into PD6 (hostile-review catch): iOS rejects a remote overlay whose `content_version` is LOWER than the cached one** (`PrinterCatalogProvider` poisoned-cache guard) → any rollback/emergency republish must use `content_version = max(bad deployed, snapshot) + 1`, never a naive snapshot bump — else the rollback silently no-ops on exactly the devices that cached the bad payload.
+- **The overlay ship gate is green again** (`c381638`): 1.0.7 baseline added from iOS `51356de` ground truth (bundle byte-identical to 1.0.5, verified id-for-id); collision union unchanged {1.0.3, 1.0.4} so aries/mega_x/snapmaker/creator delivery untouched.
+- **Live KV queue cleaned 2026-07-09** (owner-approved): 19 stale keys deleted (16 seeded 2026-06-14 + 2 malformed `req:rehearsal:*` + the shipped Ender-3 V4 Combo); 3 real entries kept (K2 SE + two brand-only `incomplete`). Prior "queue cleaned" claims were incomplete. Requester emails sit plaintext in KV (30–90d TTL) → v2's KV-hygiene class policy addresses this.
+- **Cold-start sync reconcile (owner-approved):** web ff-pulled 77 commits; iOS `diverged:3:10` resolved by rebase — the 3 local printer-data commits (Snapmaker A350 / Creator 5 Pro / Ender-3 V4 Combo, verified NOT on origin and NOT touched by the remote 10) now sit on top of v1.0.7 `51356de`; iOS `ahead 3`, push gate intact.
+
+## What happened / Actions
+
+1. **Trigger C cold start:** health gate flagged `3dprintassistant behind:77` + `3dprintassistant-ios diverged:3:10` → halted, investigated read-only (local commits absent from origin by content; remote-10 don't touch printers.json), owner picked "pull web + rebase iOS" → both clean. Read spine: protocol → project CLAUDE → ROADMAP banner+queue → INDEX → newest session log (Android planning) in full → NEXT-SESSION. Owner picked queue option B(1): overlay validator RED.
+2. **Overlay validator RED fix** (TDD: existing live-smoke test case (e) was the natural RED): added the 1.0.7 baseline; validator green + 13/13 + byte-equal cross-check vs `51356de`; pushed `c381638`.
+3. **Printer-intake debugging** (owner: "we got a printer request but our automated process seems to fail"): observed runtime directly per `feedback_observe_runtime_before_root_cause` — live KV list (22 keys), watermark file, Scout read-only run. Found the real request (K2 SE, correctly captured + triaged) and the real cause (no scheduler exists — the "automated" pipeline is semi-automated by design). Owner then directed: run Scout, clean queue, observe-only (no intervention) → done; reported the process cannot progress itself.
+4. **Owner pivot: "fully automated is the goal — audit everything, then improve S5 if not good enough."** Ran 2 parallel audit agents (triage+ship mechanics; S4 loop + contracts) + controller read of S5 spec/plan + Assistant contract. Verdict: S5 structurally cannot meet the goal. Wrote the audit record + the Intake Autonomy v2 spec (PD0–PD8 decision points, fail-closed dual-review merge gate, live-verify + auto-rollback, park-don't-fabricate, kill switch).
+5. **Hostile sub-agent review: GO-WITH-PATCHES, 14 findings** (1 CRITICAL rollback version-ordering, 3 HIGH: watermark custody, pre-merge iOS mirror recreating the 2026-06-20 finding, unimplementable DOM probe) — all applied; committed bundle `a99aa27` + ROADMAP queue item.
+6. **Owner ratified 2026-07-10: "yes to all" + struck the shadow phase** ("it is ready for the end 2 end automation.. i dont need to babysit it anymore") → spec §5 rewritten (build phase self-verified → full autonomy from run 1, PD2+PD4 live immediately), all phase references reconciled, ROADMAP updated; `895c3a9`.
+
+## Files touched
+
+Web: `catalog/ios-bundled-catalog-baselines.json` (+1.0.7) · `docs/reviews/2026-07-09-printer-intake-autonomy-audit.md` (new) · `docs/superpowers/specs/2026-07-09-intake-autonomy-v2-design.md` (new) · ROADMAP (v2 queue item, S5 superseded, validator-RED ✅, follow-up (e) rebase note) · this log · INDEX · NEXT-SESSION. iOS: rebase only (no new commits; 3 pre-existing data mirrors now on v1.0.7 base, local). Live KV: 19 stale keys deleted. ai-om: lesson-spotter calibration row.
+
+## Commits
+
+Web `main`: `c381638` (1.0.7 baseline) · `a99aa27` (audit + v2 spec + ROADMAP) · `895c3a9` (ratification amendment) · wrap commit (this log + INDEX + NEXT-SESSION + ROADMAP flips). All pushed (web push free). iOS: no commits, push gate intact.
+
+## Open questions / Follow-up
+
+- **Locked next (two owner-declared tracks):** (1) **analytics Worker EVENT_KEYS full-schema fix** — owner said "I want to do 1" before the intake tangent; still undone; (2) **Intake Autonomy v2 impl plan** (Codex-reviewed) → build sessions (mac-mini). NEXT-SESSION carries both.
+- v2 build note: the two brand-only `incomplete` KV entries (Jun 19 `Cele`, Jul 3 `creality`) TTL-expire naturally; K2 SE is the first pipeline candidate.
+- Md-hygiene: protocol drift none; stray-tag sweep clean; new docs tracked+committed; ROADMAP validator-RED + follow-up (e) rows flipped this wrap; INDEX parity kept (log + line same commit). Carried observation: `docs/planning/` still holds 5 gate ledgers — archive sweep when convenient.
+- Findings sweep: **no K1/K3/K4 finding files** — the hostile-review-catches-real-defects pattern (CRITICAL rollback ordering) is the established, already-calibrated behavior (review layer working at planning cost only; same disposition as 2026-07-08). **Lesson-spotter (compact): 1 candidate** — controller designed residual owner-gates (shadow mode, owner merges ×3) into a plan whose stated goal was "fully automated"; owner had to strike them one turn later. Disposition: no finding file (single occurrence, cheap correction; scope-mismatch family already ledgered) — calibration row appended + memory proposed (below).
+- verify-before-mutate summary (verbatim): `verify-before-mutate ledger: 0 flags (0 resolved_same_turn, 0 resolved_late, 0 unresolved_by_session_end), 0 destructive-core, 6 unclassified, 0 generated-write` + `note: gate on unresolved_by_session_end; resolved_late = timing-health; resolved = not premise-proved (spec M1)`.
+
+## Next session
+
+**Option A (owner-declared "do 1"):** analytics Worker `EVENT_KEYS` full-schema fix + `android` auth branch (2 commits, TDD, ROADMAP queue row). **Option B:** Intake Autonomy v2 gated impl plan (Codex cross-model review) → build session 1 (launchd environment probe first). Both mac-mini-friendly; resume via `NEXT-SESSION.md`.
