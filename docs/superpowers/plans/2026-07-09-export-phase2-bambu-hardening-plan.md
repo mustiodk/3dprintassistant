@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Close IMPL-043 Phase 2 — harden the live Bambu Studio export (2-element per-extruder-variant arrays, retraction display honesty [mine-tier Codex HIGH-2], inherits-placeholder verification, import-hint UX, ironing display de-hardcode) and remove the export Beta badge behind a re-run recorded import test.
+**Goal:** Close IMPL-043 Phase 2 — harden the live Bambu Studio export (2-element per-extruder-variant arrays, retraction display honesty [mine-tier Codex HIGH-2], inherits-placeholder verification, import-hint UX) and remove the export Beta badge behind a re-run recorded import test. (Ironing display de-hardcode was in the original scope; DROPPED at plan review — see Task 5.)
 
 **Architecture:** All changes ride the existing IMPL-043 passthrough pipeline (`_slicer_value` sidecars → `exportBambuStudioJSON`); no new mapping architecture. Display surfaces that still read raw material base switch to the resolved sidecar (single source, IMPL-040 discipline). Everything lands on a branch; the exit gate is an owner-run Bambu Studio import re-test on the rebuilt output, then `merge --no-ff` → auto-deploy.
 
@@ -15,7 +15,7 @@
 ## Grounding facts (verified 2026-07-09 against working tree)
 
 - Passthrough export lives at `engine.js:3481` (`exportBambuStudioJSON`); legacy fallback `USE_LEGACY_EXPORT=false` at `engine.js:3220`; version constants `BAMBU_PROCESS_VERSION='2.5.0.14'` / `BAMBU_FILAMENT_VERSION='2.5.0.18'` at `engine.js:3226-3227`.
-- **2-element gap (empirical, this session; corrected at plan review):** golden `bambu-x1c-process.json` has 2-element `["v","v"]` arrays on exactly these keys the app also emits (app emits 1-element): `outer_wall_speed, inner_wall_speed, initial_layer_speed, top_surface_speed, gap_infill_speed, outer_wall_acceleration, initial_layer_acceleration` (7). Golden **filament** `nozzle_temperature`/`nozzle_temperature_initial_layer` are `["225","nil"]` / `["230","nil"]` — the second variant is **nil**, NOT a duplicated value (spec §1.4b F8 quotes this too), so the filament keys are OUT of the dual-emission scope (T2 covers the 7 process keys only, matching the ROADMAP queue item's wording). Golden also carries `print_extruder_id`/`print_extruder_variant`/`filament_extruder_variant` with machine-specific variant NAMES (`["Direct Drive Standard","Direct Drive High Flow"]`) — the app does NOT emit these and this plan deliberately keeps it that way (identical duplicated values make position mapping irrelevant; copying X1C variant names onto other printers would be actively wrong). `scripts/export-audit.js:111` currently WARNs on the element-count delta. **Residual risk (review finding 4):** single-variant machines (a1/a1mini/p1p) get dual arrays without an X1C-style golden proving it — mitigated by adding an A1 file to the Task 8 owner import test; fallback = allowlist emission to import-tested printers only.
+- **2-element gap (empirical, this session; corrected at plan review):** golden `bambu-x1c-process.json` has 2-element `["v","v"]` arrays on exactly these keys the app also emits (app emits 1-element): `outer_wall_speed, inner_wall_speed, initial_layer_speed, top_surface_speed, gap_infill_speed, outer_wall_acceleration, initial_layer_acceleration` (7). Golden **filament** `nozzle_temperature`/`nozzle_temperature_initial_layer` are `["225","nil"]` / `["230","nil"]` — the second variant is **nil**, NOT a duplicated value (spec §1.4b F8 quotes this too), so the filament keys are OUT of the dual-emission scope (T2 covers the 7 process keys only, matching the ROADMAP queue item's wording). Golden also carries `print_extruder_variant`/`filament_extruder_variant` with machine-specific variant NAMES (`["Direct Drive Standard","Direct Drive High Flow"]`) plus `print_extruder_id` (`["1","1"]` — ids, not names) — the app does NOT emit these and this plan deliberately keeps it that way (identical duplicated values make position mapping irrelevant; copying X1C variant names onto other printers would be actively wrong). `scripts/export-audit.js:111` currently WARNs on the element-count delta. **Residual risk (review finding 4):** single-variant machines (a1/a1mini/p1p) get dual arrays without an X1C-style golden proving it — mitigated by adding an A1 file to the Task 8 owner import test; fallback = allowlist emission to import-tested printers only.
 - **HIGH-2 raw-base reads (the two in-scope surfaces):** `engine.js:3704` (`formatProfileAsText` filament section reads `adv.retraction_distance` = raw `${bs.retraction_distance} mm` from `getAdvancedFilamentSettings` at `engine.js:1426`) and `engine.js:3777` (`exportProfile().filament.retraction_length` reads `material.base_settings.retraction_distance`). The resolved param `profile.retraction_distance` already carries the scaled+personal-delta'd `_slicer_value` (set at `engine.js:2896`, HIGH-001 comment at `:2895`). `exportBambuStudioJSON` already reads the sidecar (fixed in P1) — only the text/reference surfaces lag.
 - **Inherits placeholders (`CR1-L1`):** `BAMBU_PROCESS_INHERITS` at `engine.js:3109` has `x1e/p1s/p2s/x2d/h2d_pro: null // shares with X1C`. The owner's own golden proved cross-printer inherits are legit (their X1C preset inherits a P1S parent), so this is verify-and-document, not necessarily behavior change.
 - **Beta badge:** `index.html:131` `<span class="beta-badge">Beta</span>` inside `#exportGroup`. (`index.html:59` has a separate site-header beta badge — OUT of scope.)
@@ -34,7 +34,7 @@
 
 ## Mandatory data/logic-change evaluation (web + iOS)
 
-- **Engine changes:** T1 (two display-surface reads), T2 (array emission), T5 (ironing display string). No `data/` changes anywhere in this plan.
+- **Engine changes:** T1 (two display-surface reads), T2 (array emission), T3 (possible inherits map rows). No `data/` changes anywhere in this plan. (T5 ironing dropped at review — no display-string change.)
 - **Web UI:** T4 adds an import-hint line under the export buttons; T6 removes the Beta badge. No other UI change (sidecars invisible to existing UI).
 - **iOS:** engine.js byte-identical sync + XCTest mirrors (T7). No iOS UI change (export UI remains hidden on iOS). `formatProfileAsText` IS reachable on iOS via JSCore (Copy-as-text parity surfaces), so the T1 mirror test is mandatory, not optional.
 - **Android (planned):** exportBambuStudioJSON contract changes (array lengths) are engine-internal; the Android plan consumes the same engine.js byte-identical — no plan-doc update needed beyond this file.
@@ -70,10 +70,12 @@ git push -u origin export-phase2-20260709
 ```bash
 node scripts/validate-data.js                      # expect: 6/6 clean (17 max_mvs soft warnings are pre-existing, queued separately)
 node scripts/walkthrough-harness.js > /tmp/wt-base.txt && tail -3 /tmp/wt-base.txt   # expect: clean, no throw
-node scripts/profile-matrix-audit.js 2>&1 | grep -v '^Generated:' | shasum -a 256    # record hash H0
+# Codex round-2 finding 3: never pipe node straight into grep/shasum — the pipe
+# masks a non-zero exit. Two-step form, everywhere this gate appears:
+node scripts/profile-matrix-audit.js > /tmp/matrix.txt 2>&1 && grep -v '^Generated:' /tmp/matrix.txt | shasum -a 256   # record hash H0; the && makes a node crash visible
 node scripts/export-audit.js                       # expect: 0 FAIL / 1 warn (element-count) / 5 info
 node scripts/engine-golden-snapshot.js --check     # expect: NO DRIFT (39 states)
-for t in scripts/*.test.js; do node "$t" || echo "FAIL $t"; done   # expect: all pass
+for t in scripts/*.test.js; do node "$t" || exit 1; done   # expect: silence = all pass; a failure STOPS the gate (no `|| echo` false-green)
 ```
 
 - [ ] **Step 0.3: Create the gate ledger** with headings only (Gates T1–T8, OWNER-VERIFY block placeholder, merge/rollback commands from this plan's Task 8) and this preamble: baseline tag, branch name, matrix-audit hash H0. Commit:
@@ -170,7 +172,7 @@ with:
 ```bash
 node scripts/walkthrough-harness.js            # clean, new OK line present
 node scripts/validate-data.js                  # unchanged
-node scripts/profile-matrix-audit.js 2>&1 | grep -v '^Generated:' | shasum -a 256   # MUST equal H0 (display params untouched)
+node scripts/profile-matrix-audit.js > /tmp/matrix.txt 2>&1 && grep -v '^Generated:' /tmp/matrix.txt | shasum -a 256   # MUST equal H0 (display params untouched)
 node scripts/export-audit.js                   # 0 FAIL (warn count unchanged)
 node scripts/engine-golden-snapshot.js         # regenerate; diff MUST touch ONLY formatProfileAsText/exportProfile retraction lines on scaled combos — enumerate in commit body
 ```
@@ -283,13 +285,16 @@ guard upgraded warn→FAIL. Golden diff enumerated below.
 <paste enumeration>"
 ```
 
-Note for Step 2.4: after this scope correction the audit's element-count check will still see the 2 filament keys as length-mismatched vs golden (app 1 vs golden 2) — adjust the check to compare **process keys for equality** and **accept app-1-vs-golden-2 on the two filament temp keys** (golden's 2nd elem is "nil"), with a comment citing this plan. The upgraded checkFail must encode exactly that contract, not blanket length-equality.
+Note for Step 2.4 (rewritten per Codex round-2 finding 5 — the existing element-count loop at `scripts/export-audit.js:102` iterates PROCESS keys only and never sees filament temps, so "adjust the existing check" was a false premise): replace the single `checkWarn` with three explicit `checkFail`s —
+1. the set of emitted 2-element process arrays equals exactly the 7-key allowlist (both directions: every allowlisted key is 2-element AND no non-allowlisted process key is 2-element);
+2. `filament.nozzle_temperature` + `filament.nozzle_temperature_initial_layer` are 1-element AND the golden's second entries for those keys equal `"nil"` (so the check self-invalidates loudly if a future golden refresh changes the schema);
+3. `print_extruder_variant` / `filament_extruder_variant` / `print_extruder_id` are absent from the app output.
 
 ## Task 3: BAMBU_PROCESS_INHERITS placeholder verification (CR1-L1)
 
 **Files:** Modify: `engine.js:3109-3120` (comments, possibly map rows); `docs/planning/EXPORT-PHASE2-GATE-LEDGER.md` (evidence)
 
-- [ ] **Step 3.1: Desk-verify against Bambu Studio's own profile registry — at a BS 2.5 release tag, not master.** (Review finding 2: `master` is 2.6-era; preset existence there doesn't prove 2.5 availability. Review finding 2 also verified the registry's top-level key is `process_list`, NOT `process` — the naive key silently returns empty and invites a false "no presets" conclusion.) For each of `x1e, p1s, p2s, x2d, h2d_pro`:
+- [ ] **Step 3.1: Desk-verify against Bambu Studio's own profile registry — at a BS 2.5 release tag, not master.** (Review finding 2: `master` is 2.6-era; preset existence there doesn't prove 2.5 availability. Review finding 2 also verified the registry's top-level key is `process_list`, NOT `process` — the naive key silently returns empty and invites a false "no presets" conclusion.) For each of `x1e, p1s, p2s, x2d, h2d_pro` **AND `h2c, h2d, h2s`** (Codex round-2 finding 2: these three are recognized export targets — see the printer id list feeding `_findProcessParent` around `engine.js:3084` — but are entirely ABSENT from `BAMBU_PROCESS_INHERITS`, so the `|| BAMBU_PROCESS_INHERITS.x1c` fallback at `engine.js:3185` silently hands them X1C parents today; they need explicit map-or-null rows + ledger evidence just like the placeholder four):
 
 ```bash
 # 1) find the newest BS 2.5 release tag
@@ -302,7 +307,7 @@ d=json.load(sys.stdin)
 pl=d.get('process_list')
 assert pl is not None, 'process_list key missing — registry schema changed, STOP and inspect'
 names=[p.get('name','') for p in pl]
-hits=[n for n in names if any(m in n for m in ('X1E','P1S','P2S','X2D','H2D'))]
+hits=[n for n in names if any(m in n for m in ('X1E','P1S','P2S','X2D','H2D','H2C','H2S'))]
 print('\n'.join(hits) or 'NO MATCHES (verified against %d presets)' % len(names))"
 ```
 
@@ -310,7 +315,7 @@ If the sandbox proxy blocks raw.githubusercontent.com (probe first: `curl -s -o 
 
 - [ ] **Step 3.2: Apply the outcome.**
   - Presets EXIST for a model → **rebuild the map row name-by-name from the registry output, per layer height — NEVER string-substitute from the x1c row** (review finding 3: P2S/X2D presets use a different quality vocabulary and layer-height set, e.g. `0.08mm High Quality @BBL P2S`, plus nozzle-suffixed variants like `0.10mm Standard @BBL P2S 0.2 nozzle`; a substituted x1c name would be a nonexistent preset). Nozzle-suffixed variants: map only the suffix-free base presets in v1 of the row; record the suffixed set in the ledger for a later `_findProcessParent` nozzle-awareness pass. Add a RED-first walkthrough case asserting `exportBambuStudioJSON({printer:'<id>',…}).process.inherits` equals the new parent name.
-  - Presets DON'T exist → change the comment to record verification, e.g. `x1e: null,  // VERIFIED 2026-07-09 vs BBL.json @<commit-ish>: no @BBL X1E process presets in BS 2.5; X1C parents (cross-printer inherits import-tested 2026-07-06)`.
+  - Presets DON'T exist → change the comment to record verification, e.g. `x1e: null,  // VERIFIED 2026-07-09 vs BBL.json @<commit-ish>: no @BBL X1E process presets in BS 2.5; X1C parents (cross-printer inherits import-tested 2026-07-06)`. For `h2c/h2d/h2s`, ADD explicit rows (map or verified-null) — today they don't exist in the map at all and ride the silent x1c fallback; after this task every recognized Bambu export target has an explicit, evidence-backed row.
   - Either way, paste the verification evidence (command + output excerpt) into the ledger. **No mutation on an unverified premise — if verification is impossible this session, comments say `UNVERIFIED`, not `verified`.**
 
 - [ ] **Step 3.3: Gate + commit** (walkthrough/audit/golden as in 1.4; golden moves only if map rows changed):
@@ -392,26 +397,33 @@ diff -q ~/dev/Claude/Projects/3dprintassistant/engine.js ~/dev/Claude/Projects/3
 - [ ] **Step 7.2: Mirror tests** (follow the existing `testV104_*`/W3 export-test idioms in `EngineServiceTests.swift`; TDD-RED breadcrumb per `3dprintassistant/CLAUDE.md` — inverted-first on the retraction test, `// RED demo verified 2026-07-09` comment):
   - `testP2_TextExportRetractionReadsResolvedSlicerValue` — x1c+pla_basic+std_0.2: parse `Retraction length:` from `formatProfileAsText`, assert equals `resolveProfile` sidecar, not raw base.
   - `testP2_BambuExportEmitsDualVariantArrays` — assert `outer_wall_speed` count==2 && [0]==[1]; `nozzle_temperature` count==**1** (filament temps stay single — golden 2nd elem is "nil"); `print_extruder_variant` absent.
-- [ ] **Step 7.3: Full XCTest** — expect 135 existing + 2 new = **137/137** (rerun count from the actual suite; 135 is the last recorded total). NOTE: this machine is the MacBook Air — if Xcode is unavailable here, the iOS mirror commits are prepared but the XCTest run moves to the mac-mini and the ledger records `UNVERIFIED: XCTest pending mac-mini run` (do NOT claim green).
-- [ ] **Step 7.4: Commit locally (NO push — iOS push gate)** — one commit for byte-sync, one for tests.
+- [ ] **Step 7.3: Full XCTest** — expect 135 existing + 2 new = **137/137** (rerun count from the actual suite; 135 is the last recorded total). NOTE: this machine is the MacBook Air — if Xcode is unavailable here, the XCTest run moves to the mac-mini and the ledger records `UNVERIFIED: XCTest pending mac-mini run` (do NOT claim green). **An `UNVERIFIED` XCTest state BLOCKS Step 8.3 (merge)** — Codex round-2 finding 4: every fallback must converge to ONE tested web+iOS state; a merge on unverified iOS is exactly the divergence this plan exists to prevent.
+- [ ] **Step 7.4: Commit locally (NO push — iOS push gate)** — **one iOS commit per web delta, each containing that delta's byte-sync AND its mirror test** (T1 commit: engine sync + retraction test; T2 commit: engine sync + dual-variant test; T3 commit only if map rows changed: engine sync + inherits mirror if applicable). This makes a single-task web revert cleanly matchable by reverting the corresponding iOS commit (Codex round-2 finding 4 — the earlier "one commit for byte-sync, one for tests" bundling made partial rollback impossible).
 
 ## Task 8: Exit gate — owner import re-test → merge → live verification
 
 - [ ] **Step 8.1: Stage owner-verify artifacts** — regenerate export files from the branch (same recipe as `scripts/fixtures/slicer-golden/_owner-verify/` in the learns-export session): `_owner-verify/p2-x1c-process.json` + `p2-x1c-filament.json` **+ `p2-a1-process.json`** (review finding 4: a1/a1mini/p1p are single-variant machines with no golden proving the dual schema — one A1-class import validates the whole class before it ships to production); commit.
 - [ ] **Step 8.2: OWNER (human):** Import all three into Bambu Studio 2.5. Checks: imports accepted (X1C **and A1**); the 7 dual-array keys display sane single values; nozzle temps correct; retraction shows the scaled value. Record PASS/FAIL verbatim in the ledger OWNER-VERIFY block.
-  - **FAIL on arrays (either machine) → fallback:** revert Task 2's web commit alone (`git revert <sha>`), re-run gates, re-stage, re-test (1-element form is proven) — OR, if only the A1-class fails, gate `BAMBU_DUAL_VARIANT_PROCESS_FIELDS` emission to an import-tested printer allowlist instead of reverting. **Coordinate iOS on any T2 revert (review finding 10):** re-run the Step 7.1 byte-copy from the reverted web engine and drop/revert the `testP2_BambuExportEmitsDualVariantArrays` commit — the iOS local commits must never hold an engine the web train abandoned. `USE_LEGACY_EXPORT=true` remains the nuclear fallback for the whole passthrough (note: the legacy path is frozen WITH the pre-P1 raw-retraction display and 1-element arrays — flipping it is a known-regression emergency lever, not a clean rollback).
-- [ ] **Step 8.3: Merge + deploy**
+  - **FAIL on arrays (either machine) → fallback loop (Codex round-2 finding 4 — every fallback converges to ONE tested web+iOS state before merge):** (i) apply the chosen strategy — full T2 revert (`git revert <sha>`; 1-element form is proven) OR, if only the A1-class fails, gate `BAMBU_DUAL_VARIANT_PROCESS_FIELDS` emission to an import-tested printer allowlist; (ii) re-run ALL web gates; (iii) **regenerate + re-commit the `_owner-verify` artifacts and REPEAT the owner import test on the new output** (never merge output no one imported); (iv) re-sync iOS from the final web engine and revert/adjust the matching per-delta iOS commit (T2's commit carries its own test — finding 10 + per-delta structure from Step 7.4); (v) re-run full XCTest green. `USE_LEGACY_EXPORT=true` remains the nuclear fallback for the whole passthrough (note: the legacy path is frozen WITH the pre-P1 raw-retraction display and 1-element arrays — flipping it is a known-regression emergency lever, not a clean rollback).
+- [ ] **Step 8.3: Merge + deploy — preconditions (ALL required):** OWNER-VERIFY PASS recorded on the exact artifacts of the final strategy; final `diff -q` of web vs iOS `engine.js` = byte-identical; full iOS XCTest green (an `UNVERIFIED` ledger state blocks this step); all web gates green on the branch tip.
 
 ```bash
 git checkout main && git merge --no-ff export-phase2-20260709 && git push
 ```
 
-- [ ] **Step 8.4: Verify live (commit ≠ deploy)**
+- [ ] **Step 8.4: Verify live (commit ≠ deploy) — expectations are STRATEGY-DEPENDENT (Codex round-2 finding 4):**
 
 ```bash
-sleep 45 && curl -s https://3dprintassistant.com/engine.js | grep -c "BAMBU_DUAL_VARIANT_PROCESS_FIELDS"   # expect ≥1
+sleep 45
+# If T2 landed (dual or allowlisted): symbol present + audit 0 warn
+curl -s https://3dprintassistant.com/engine.js | grep -c "BAMBU_DUAL_VARIANT_PROCESS_FIELDS"   # expect ≥1
+# If T2 was fully reverted: symbol ABSENT is correct — verify a T1 marker instead
+#   curl -s https://3dprintassistant.com/engine.js | grep -c "HIGH-2 (Export P2)"              # expect ≥1
 node scripts/engine-golden-snapshot.js --check   # on main post-merge: NO DRIFT
+node scripts/export-audit.js                     # T2 landed: 0 FAIL / 0 warn; T2 reverted: 0 FAIL / 1 warn (the documented legacy element-count warn returns)
 ```
+
+- [ ] **Step 8.4b: Post-merge rollback rule** — any post-merge web rollback (`git revert -m 1 <merge-sha>`) MUST be mirrored into the pending iOS local train (re-sync engine byte-copy + revert the matching per-delta iOS commits) before that train ships to TestFlight.
 
 - [ ] **Step 8.5: Close the books** — ROADMAP: flip the Export row (Bambu stable, badge removed; Phase 3/4 remain), tick the queue items (Phase 2 + HIGH-2 follow-up); ledger final state; wrap per Trigger A. IMPL-036 retirement + Phase 2.7a archive-close happen at full-spec completion (Phase 4), not now.
 
@@ -423,10 +435,10 @@ node scripts/engine-golden-snapshot.js --check   # on main post-merge: NO DRIFT
 |---|---|---|
 | Data | `node scripts/validate-data.js` | 6/6 clean (pre-existing max_mvs warns only) |
 | Behavior | `node scripts/walkthrough-harness.js` | clean + new OK lines cumulative |
-| Display | `matrix-audit \| grep -v '^Generated:' \| shasum` | H0 throughout (T5 dropped — no display change in this plan) |
+| Display | `matrix-audit > /tmp/matrix.txt 2>&1 && grep -v '^Generated:' /tmp/matrix.txt \| shasum` | H0 throughout (T5 dropped — no display change in this plan); the `&&` keeps a node crash visible |
 | Export | `node scripts/export-audit.js` | 0 FAIL; 0 warn after Task 2 |
 | Golden | `engine-golden-snapshot.js` regenerate | diff enumerated per commit; empty for non-engine commits |
-| Unit | `for t in scripts/*.test.js; do node $t; done` | all pass |
+| Unit | `for t in scripts/*.test.js; do node "$t" \|\| exit 1; done` | silence = pass; failure stops the gate |
 | iOS | XCTest full suite | all green (count recorded; mac-mini if Air lacks Xcode) |
 
 ## Rollback
