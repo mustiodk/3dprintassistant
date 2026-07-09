@@ -3108,14 +3108,25 @@ const Engine = (() => {
   // These names MUST match installed system profiles exactly. P1S/X1C/X1E share CoreXY process profiles.
   const BAMBU_PROCESS_INHERITS = {
     x1c:    { '0.08': '0.08mm Extra Fine @BBL X1C', '0.12': '0.12mm Fine @BBL X1C', '0.15': '0.16mm Optimal @BBL X1C', '0.20': '0.20mm Standard @BBL X1C', '0.24': '0.24mm Draft @BBL X1C', '0.28': '0.28mm Extra Draft @BBL X1C', '0.30': '0.28mm Extra Draft @BBL X1C' },
-    x1e:    null,  // shares with X1C
-    p1s:    null,  // shares with X1C
-    p2s:    null,  // shares with X1C
+    // Export P2 (CR1-L1): rows below verified 2026-07-09 against BBL.json at BS 2.5
+    // release tag v02.05.03.62 — preset names copied verbatim from the registry
+    // (all instantiation=true), NEVER string-substituted from the x1c row (these
+    // machines use a different quality vocabulary: High Quality/Standard, and
+    // H2D/H2DP use Extra Fine/Fine). Nozzle-suffixed variants ("… 0.2 nozzle" etc.)
+    // exist for all six and are deliberately NOT mapped in v1 (suffix-free base
+    // presets only); ledgered in EXPORT-PHASE2-GATE-LEDGER.md for a later
+    // _findProcessParent nozzle-awareness pass.
+    x1e:    null,  // VERIFIED 2026-07-09 vs BBL.json @v02.05.03.62: no @BBL X1E process presets in BS 2.5; X1C parents (cross-printer inherits import-tested 2026-07-06)
+    p1s:    null,  // VERIFIED 2026-07-09 vs BBL.json @v02.05.03.62: no @BBL P1S process presets in BS 2.5; X1C parents (cross-printer inherits import-tested 2026-07-06)
+    p2s:    { '0.08': '0.08mm High Quality @BBL P2S', '0.12': '0.12mm High Quality @BBL P2S', '0.15': '0.16mm Standard @BBL P2S', '0.20': '0.20mm Standard @BBL P2S', '0.24': '0.24mm Standard @BBL P2S', '0.28': '0.24mm Standard @BBL P2S', '0.30': '0.24mm Standard @BBL P2S' },
     p1p:    { '0.08': '0.08mm Extra Fine @BBL P1P', '0.12': '0.12mm Fine @BBL P1P', '0.15': '0.16mm Optimal @BBL P1P', '0.20': '0.20mm Standard @BBL P1P', '0.24': '0.24mm Draft @BBL P1P', '0.28': '0.28mm Extra Draft @BBL P1P', '0.30': '0.28mm Extra Draft @BBL P1P' },
     a1:     { '0.08': '0.08mm Extra Fine @BBL A1', '0.12': '0.12mm Fine @BBL A1', '0.15': '0.16mm Optimal @BBL A1', '0.20': '0.20mm Standard @BBL A1', '0.24': '0.24mm Draft @BBL A1', '0.28': '0.28mm Extra Draft @BBL A1', '0.30': '0.28mm Extra Draft @BBL A1' },
     a1mini: { '0.08': '0.08mm Extra Fine @BBL A1M', '0.12': '0.12mm Fine @BBL A1M', '0.15': '0.16mm Optimal @BBL A1M', '0.20': '0.20mm Standard @BBL A1M', '0.24': '0.24mm Draft @BBL A1M', '0.28': '0.28mm Extra Draft @BBL A1M', '0.30': '0.28mm Extra Draft @BBL A1M' },
-    x2d:    null,  // shares with X1C until exact X2D process presets are verified
-    h2d_pro: null,  // shares with X1C until exact H2D Pro process presets are verified
+    x2d:    { '0.08': '0.08mm High Quality @BBL X2D', '0.12': '0.12mm High Quality @BBL X2D', '0.15': '0.16mm Standard @BBL X2D', '0.20': '0.20mm Standard @BBL X2D', '0.24': '0.24mm Standard @BBL X2D', '0.28': '0.24mm Standard @BBL X2D', '0.30': '0.24mm Standard @BBL X2D' },
+    h2c:    { '0.08': '0.08mm High Quality @BBL H2C', '0.12': '0.12mm High Quality @BBL H2C', '0.15': '0.16mm Standard @BBL H2C', '0.20': '0.20mm Standard @BBL H2C', '0.24': '0.24mm Standard @BBL H2C', '0.28': '0.24mm Standard @BBL H2C', '0.30': '0.24mm Standard @BBL H2C' },
+    h2d:    { '0.08': '0.08mm Extra Fine @BBL H2D', '0.12': '0.12mm Fine @BBL H2D', '0.15': '0.16mm Standard @BBL H2D', '0.20': '0.20mm Standard @BBL H2D', '0.24': '0.24mm Standard @BBL H2D', '0.28': '0.24mm Standard @BBL H2D', '0.30': '0.24mm Standard @BBL H2D' },
+    h2d_pro: { '0.08': '0.08mm Extra Fine @BBL H2DP', '0.12': '0.12mm Fine @BBL H2DP', '0.15': '0.16mm Standard @BBL H2DP', '0.20': '0.20mm Standard @BBL H2DP', '0.24': '0.24mm Standard @BBL H2DP', '0.28': '0.24mm Standard @BBL H2DP', '0.30': '0.24mm Standard @BBL H2DP' },
+    h2s:    { '0.08': '0.08mm High Quality @BBL H2S', '0.12': '0.12mm High Quality @BBL H2S', '0.15': '0.16mm Standard @BBL H2S', '0.20': '0.20mm Standard @BBL H2S', '0.24': '0.24mm Standard @BBL H2S', '0.28': '0.24mm Standard @BBL H2S', '0.30': '0.24mm Standard @BBL H2S' },
   };
 
   // Bambu Studio filament profile inheritance: material_id → exact system profile name
