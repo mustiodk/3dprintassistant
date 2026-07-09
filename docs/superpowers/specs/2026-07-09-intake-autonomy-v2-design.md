@@ -1,0 +1,105 @@
+# Intake Autonomy v2 — fully automated printer-intake pipeline (design spec)
+
+**Date:** 2026-07-09
+**Status:** Hostile-reviewed (GO-WITH-PATCHES, 14 findings — ALL applied, see §10) — pending owner ratification of decision points PD0–PD8. Cross-model (Codex) review is deliberately scheduled at the impl-plan stage, before any build session.
+**Supersedes:** S5 autonomy ladder (spec + plan, 2026-06-15) — parked as reference. S5 was supervised autonomy (terminal owner-merge gate; its human-free rung excluded overlay changes, so it could never ship a printer unattended). Owner directive 2026-07-09: **"I want a fully automated process, that's the goal"** + explicit approval to improve the plan.
+**Evidence base:** [`../../reviews/2026-07-09-printer-intake-autonomy-audit.md`](../../reviews/2026-07-09-printer-intake-autonomy-audit.md) (full-pipeline audit, 2 audit agents + live-runtime observation).
+
+---
+
+## 1. Goal and honest boundary
+
+**Goal:** a user submits a printer request → the printer is live on web + current-iOS (overlay) **with zero owner action** for every candidate whose specs are verifiable from authoritative sources — on a schedule, end to end: triage → research → fill → validate → review → merge → deploy → live-verify → ledger → notify.
+
+**Honest boundary (the park lane, not a human-in-the-loop):** a pipeline that *never* needs a human would have to fabricate safety-relevant values (temps, speeds, acceleration) when sources don't exist or conflict — the exact failure the evidence rules exist to prevent. So the design target is: **auto-ship everything verifiable; park the unverifiable with a notification; never block on a human for anything mechanical.** A parked candidate is an exception report, not an approval request — the pipeline keeps running.
+
+**Safety invariants (S5 §4.4 minus the three owner-gates this design explicitly replaces):** the FDM-scope check; validate-data; picker-dry-run; walkthrough-harness; profile-matrix-audit; the overlay-collision validator; validate-guardrails (when touched); the iOS push gate (mirror commits stay local; TestFlight owner-dispatched); park-don't-fabricate; PII-safe artifacts. **Replaced, not dropped — each with a named successor the owner must ratify:** visual-picker check → PD3 (scripted live picker probe + post-ship spot check); new-brand sign-off → PD4 (autonomous criteria, Phase C only); committed-≠-deployed live verification → PD6 (strengthened: automatic, with auto-rollback).
+
+## 2. Decision points (owner ratifies/overrides — PD0–PD8)
+
+- **PD0 — Goal ratification.** Full automation with a park lane (above) replaces S5's supervised ladder. S5's spec/plan stay in the tree as reference; the ladder is not executed. *(Recommended: ratify.)*
+- **PD1 — Runner host + cadence.** **Recommended: mac-mini `launchd` → headless Claude Code (`claude -p`) pipeline session, daily.** The mac-mini carries the full toolchain (node, wrangler auth, git identity + push rights, Xcode for the mirror check, `bridge`/Codex for cross-model review). **Caveat (review #7): agent-ops' launchd plist is a *pattern*, not a proven host** — it runs a deterministic zsh script with no LLM/keychain auth, and its paths are pre-migration. Keychain access (Claude OAuth, git creds, wrangler OAuth) from a launchd session is a known failure class. **Therefore Phase A's FIRST deliverable is a launchd environment probe:** a scheduled `claude -p` no-op + `wrangler whoami` + `bridge --health` + push to a scratch branch, before anything else is built. Alternatives: Claude scheduled cloud agent (needs cloud-provisioned secrets, no local XCTest/bridge) — possible later; GitHub Actions — rejected for the judgment stage. Cadence: daily (requests/week ≈ single digits; capture is instant regardless).
+- **PD2 — Day-one autonomy class (Phase B):** auto-merge+deploy only candidates that are (a) existing catalog brand, (b) every profile/safety field `confirmed` from manufacturer-class sources, (c) no unresolved risk flags, (d) no app-cap needed, **(e) `series_group` exactly equals an existing sibling label under that brand — inventing a series_group parks (`auto-parked:new-series-group`)** (review #11; runbook: "reuse a sibling's label; do not invent"). Everything else parks. New brands and app-cap candidates graduate in Phase C (PD4).
+- **PD3 — Visual picker check → replaced, not skipped.** Pre-ship: `picker-dry-run.js` (already scripted: brand/series/printer resolution + wrong-brand-absence assertion). Post-deploy: **`verify-live-picker.js` (new, §4) — an engine-level live probe, not a DOM render probe** (review #4: the picker is JS-generated; a plain fetch can assert nothing): fetch the LIVE deployed `data/printers.json` and run the picker-dry-run engine bootstrap against it (the `vm` + fetch-shim pattern already in `picker-dry-run.js` works with a URL source), asserting the new id resolves under the right brand/series on production data. The human aesthetic glance moves to the post-ship notification; owner spot-checks after the fact. **Explicit owner waiver of a today-mandatory gate — must be answered, not defaulted.**
+- **PD4 — New-brand sign-off → autonomous criteria (Phase C).** A new `brands[]` row may auto-ship only when ALL hold: verified FDM manufacturer with an official manufacturer domain (not marketplace-only); ≥2 independent non-reseller sources agree the model is FDM; brand name collides with nothing in the catalog (`collectKnownBrandIds`); the cross-model reviewer (PD5) explicitly GOes the brand row. Otherwise park. **Explicit owner waiver — must be answered.**
+- **PD5 — The merge gate that replaces the owner.** A candidate merges only when: all deterministic validators green AND a hostile sub-agent review returns GO AND a cross-model review (`bridge --health` → `bridge --mode codex-only`, fallback direct `codex exec -s read-only`) returns GO on the actual diff. **Any NO-GO parks the candidate** (no retry-until-green in the same run; the park report carries the finding). If Codex is unreachable, the candidate parks as `review-unavailable` — **fail-closed, and retried automatically on the next scheduled run** (review #2: transient outages must not permanently strand a candidate).
+- **PD6 — Deploy verification + auto-rollback.** After merge+push: poll the live overlay (bounded retries; **the retry budget is derived from observed Cloudflare deploy latency measured in Phase A, not guessed** — review #13) and assert `content_version` + `payload_sha256` == committed; then run the PD3 live-picker probe. On mismatch/timeout: **auto-rollback = republish the previous known-good payload with `content_version = max(bad deployed version, snapshot version) + 1` within the YYYYMMDDXX scheme** — NEVER a naive snapshot bump. (Review #1 CRITICAL: iOS rejects any remote overlay whose version is *lower* than the cached one — `PrinterCatalogProvider` poisoned-cache guard — so a rollback below the bad version silently no-ops on every device that cached the bad payload. Same rule applies to the `enabled:false` emergency republish. Counter-99 / the 2099 cap → fail LOUD, freeze, notify CRITICAL.) `republish-overlay.js` carries a unit test rolling back a same-day second publish. If rollback verification also fails: `enabled:false` republish (same version rule), CRITICAL notification, pipeline self-freeze (PD8). Web `data/printers.json` is additive and validator-proven → no automatic data rollback; flagged in the notification.
+- **PD7 — Ledger semantics in autonomous mode.** **The `ownerResolution` field name is KEPT** (review #6: `intake-retrospective-gather.js` reads it; renaming breaks the S4 reader) — values extended additively: `auto-shipped`, `auto-parked:<reason>`. **Owner retro-tags are appended correction lines** (same `candidateKey`, later line wins in gather clustering — the gather change ships in the same commit as the value extension, one finding one commit); the ledger's append-only contract is never violated. The schema marker line is migrated once by the owner outside the pipeline. S4's propose→owner-`--apply` loop is unchanged.
+- **PD8 — Kill switch + freeze semantics.** (a) Flag file `scripts/.intake-autonomy-freeze` (**gitignored, as is the run lock** — review #9) — runner exits immediately if present; the pipeline creates it on CRITICAL (failed rollback, shipped-error detection, shipped-but-unreported per §4 notifier); only the owner deletes it. (b) `launchctl unload` stops scheduling. (c) Overlay `enabled:false` (with the PD6 version rule) is the content emergency stop. Any freeze → notification with reason.
+
+## 3. Architecture (what runs, in order)
+
+One scheduled **pipeline run** = a headless Claude Code session executing a versioned contract (`ai-operating-model/docs/agents/intake-pipeline-runner.md`, new) that chains:
+
+1. **Preflight (deterministic, fail-closed):** freeze-flag + stale-lock check (lock older than 6h → warn + proceed; else exit) → **per-repo health predicates** (web: clean + in-sync with origin; iOS: clean, *ahead-only allowed* — mirror commits accumulate by design; behind/diverged blocks — review #9) → wrangler auth probe **incl. KV delete-scope check** (review #8) → `bridge --health`. Any failure → notify + exit.
+2. **Triage:** Scout `--source kv` **with `--no-watermark`; watermark custody moves to the RUNNER** (review #2: the Scout writes its watermark on script exit, so a mid-pipeline crash would strand fetched-but-unprocessed requests forever). The runner advances its own watermark file per candidate **only after that candidate's ledger line is appended**; on crash, the next run resumes from staging. **Staging lifecycle (defined):** terminal resolution → skeleton deleted; parked → moved to a parked dir with per-reason retry policy (`review-unavailable` → retry next run; `unverified-model` → retry weekly ×4 then expire with notification); crash leftovers → resumed next run.
+3. **Research + fill (agent judgment, evidence rules unchanged):** per candidate, the Printer Addition Assistant contract in **autonomous mode** — FDM confirm, spec research with the source hierarchy, per-field confidence, taxonomy per the documented defaults (one-vs-many → documented safe default + flag, per the existing autonomous-run rules). Unverifiable/conflicting → park.
+4. **Mechanical ship — STRICTLY SERIAL per candidate** (review #5: parallel branches collide on `content_version`; a run-start snapshot would roll back an earlier candidate's verified work): for each candidate in turn — branch `intake/<printer-id>` off *current* `main` → printers.json row + walkthrough combo (**diff-path guard: the walkthrough-harness diff must touch only the `COMBOS[]` block, else fail the run** — review #14) → all validators → `republish-overlay.js` → overlay validator. **The iOS mirror is NOT touched here** (review #3).
+5. **Merge gate (PD5):** hostile sub-agent review + Codex cross-model review on the branch diff. GO+GO → **re-verify `main` unchanged** (the owner may have pushed mid-run) → merge to `main`, push (web auto-deploys), delete the branch. Any NO-GO → park; branch preserved for the report.
+6. **Post-merge: iOS mirror + live verify + rollback:** **only now** the iOS mirror cp + `diff -q` + local commit (+ XCTest when void conditions fire; the mini has full Xcode) — this ordering keeps iOS `main` from ever carrying an unshipped printer (review #3; matches the Assistant contract's branch-isolation autonomous-run rule and finding `2026-06-20-autonomous-printer-add-ios-mirror-not-branch-isolated`). Then `verify-live-overlay.js` + `verify-live-picker.js` → on failure, the PD6 rollback path. **Snapshot refresh after each verified candidate** before the next one starts.
+7. **Ledger + hygiene + notify:** S4 ledger append per candidate (PD7 semantics). **KV hygiene (runner-owned script, §4** — review #8: the Scout is contractually read-only): delete processed keys per class policy — dupes/declines deleted after a 7-day contact window (the raw KV record is the only requester reply-to path; a dupe reply is exactly the case that needs it), unactionable immediately, `parse-error` keys deleted after ledgering once (they otherwise reprocess every run = daily noise for 90 days); `incomplete` left to TTL. Run report → Discord via a **dedicated webhook whose URL lives in the gitignored `scripts/.printer-intake.local.json`** (review #12; never printed — memory `feedback_mask_secrets_before_printing`): shipped/parked/errored counts, per-candidate one-liners, commits, park reasons, live-probe results. **Notify failure path:** report also written to a local `scripts/.printer-intake-out/last-run-report.md` always; if a candidate SHIPPED and the webhook POST failed → create the freeze flag (shipped-and-unreported is the one silent state never allowed).
+
+**Hosting:** everything runs on the mac-mini (local repos + wrangler + bridge). No new cloud infrastructure. New secrets: the Discord webhook URL only.
+
+## 4. New components (build inventory)
+
+| Component | Type | Replaces / closes |
+|---|---|---|
+| **Phase-A-first: launchd environment probe** | deterministic | PD1 caveat — proves `claude -p` + keychain (OAuth/git/wrangler) + `bridge --health` work under launchd before anything else is built (review #7) |
+| `scripts/republish-overlay.js` (+ test incl. same-day rollback version ordering) | deterministic | hand-editing overlay, hand-bumping `content_version`, hand-computing `payload_sha256` (reuses the validator's exported `stableStringify`/`sha256`; always ends by invoking the validator) |
+| `scripts/verify-live-overlay.js` (+ test) | deterministic | manual curl live-verify; PD6 with bounded, latency-derived retries + snapshot rollback |
+| `scripts/verify-live-picker.js` (+ test) | deterministic | the visual-picker replacement probe (PD3): live `data/printers.json` + the picker-dry-run engine bootstrap (review #4) |
+| `scripts/intake-kv-hygiene.js` (+ test) | deterministic | runner-owned KV deletion per §3.7 class policy (review #8) |
+| `scripts/intake-run-preflight.sh` + run lock + freeze flag (+ `.gitignore` entries) | deterministic | §3.1 preflight; stale-lock TTL; kill switch (reviews #9, #12) |
+| Run notifier (in-runner, webhook from gitignored config) + local `last-run-report.md` fallback + shipped-and-unreported freeze rule | deterministic | §3.7 (review #12) |
+| `scripts/launchd/dk.mragile.3dpa-intake.plist` (installed once) | scheduler | the missing runner |
+| `ai-operating-model/docs/agents/intake-pipeline-runner.md` | agent contract | orchestration: serial-per-candidate, runner watermark custody, staging lifecycle, PD2 class rules, PD5 gate, park/retry semantics, walkthrough diff-path guard |
+| Printer Addition Assistant contract amendment | contract | autonomous-mode section (PD5 replaces per-candidate approval for PD2/PD4 classes; park lane; ledger `auto-*` values; **iOS mirror strictly post-merge**; Forbidden Actions tightened: never push iOS, branch or main) |
+| Runbook amendment (`printer-addition-protocol.md`) | doc | records the PD3/PD4 waivers + the autonomous path as a first-class mode; manual path remains valid and canonical on conflict |
+| S4 gather retro-tag support (last-line-wins per candidateKey) + additive ledger values | code+data | PD7 (review #6; one commit) |
+
+Explicitly **not** built: no new telemetry, no new web Worker, no queue UI, no engine/app/data-semantics changes, no iOS push automation, no S4 auto-apply.
+
+## 5. Rollout phases (earned, but the destination is full autonomy)
+
+- **Phase A — probe + build + shadow (est. 4–5 sessions — review verdict: the original 2–3 understated the inventory).** Launchd environment probe FIRST; then build §4; pipeline runs scheduled in **propose mode** (everything through stage-5 reviews, stops before merge; leaves branch + would-have-merged report; owner merges manually). Deploy-latency measurements collected here set the PD6 retry budget. **Exit: 3 consecutive candidates where the owner merged the branch with zero corrections.**
+- **Phase B — auto-merge, PD2 class.** Entry additionally requires **one supervised live rollback drill** (publish a benign known-good bump, roll it back for real through the full chain — review #13). Existing-brand/all-confirmed/no-flag/sibling-series candidates ship unattended. **Exit: 5 clean auto-ships, 0 rollbacks, 0 owner retro-corrections.**
+- **Phase C — full scope.** PD4 new-brand criteria enabled; app-cap candidates auto-ship only with the reviewer-GO condition the protocol already demands. Park lane remains forever.
+- **Demotion (any phase):** a shipped error → self-freeze (PD8) + notification; owner review to unfreeze; re-entry one phase down. Owner may freeze/demote at will.
+
+Phase A's exit gate deliberately replaces S4's unreachable statistical gates (0 runs today) with direct evidence: the owner comparing the pipeline's merge judgment to his own, 3 times, on real candidates (the live `K2 SE` candidate is the first).
+
+## 6. Testing / validation strategy
+
+- New scripts: unit tests RED-first; existing validator suites stay green; `republish-overlay.js` round-trips the live overlay byte-identically when only version/hash change, and proves the PD6 version-ordering rule on a same-day rollback case.
+- The runner contract is exercised end-to-end in Phase A shadow mode on real queue candidates.
+- The rollback chain is exercised for real once (Phase B entry drill), not only against fixtures.
+- Each build session: implement → hostile sub-agent review → patch → QA → commit. The impl plan gets a Codex cross-model review before Phase A build starts.
+
+## 7. Cross-platform impact (mandatory evaluation)
+
+- **Engine/app:** untouched — the pipeline ships data + overlay only, same as the manual path.
+- **Web:** printers.json adds via the same validator gates; auto-deploy unchanged.
+- **iOS:** delivery via overlay (unchanged mechanism); the bundled mirror stays a local commit (push gate rung-invariant), now strictly post-merge; XCTest local on the mini when applicable.
+- **Android (planned):** the runner contract notes the future sibling `android-printer-overlay-v1.json` as a Phase-C+ extension point (AD8 alignment); no Android work in v2.
+
+## 8. Risks
+
+1. **Agent research quality without an owner check** → PD5 dual review on the real diff; park-don't-fabricate; Phase A shadow calibration; S4 retro-tagging as drift detector.
+2. **Runaway/looping runs** → single-flight lock with stale-TTL, bounded per-run candidate count (default 3), freeze flag.
+3. **Headless reliability (auth expiry, bridge 401s)** → preflight fail-closed + notification; **the runner-owned watermark means a crashed run strands nothing** (review #2) — entries resume from staging/KV next run.
+4. **Silent divergence from the manual protocol** → the runbook remains canonical; the runner contract defers to it explicitly.
+5. **Owner blindness** → every run notifies; shipped-and-unreported → freeze; append-only ledger; monthly digest of auto-shipped rows in the run report on the 1st.
+6. **PII** → unchanged posture + KV hygiene shrinks the plaintext-email window (with the 7-day dupe contact window preserved).
+
+## 9. Success criteria
+
+- A real user request reaches live web + iOS overlay with **zero owner actions** (observed on a PD2-class candidate in Phase B).
+- Every §1 safety invariant demonstrably fires on every autonomous ship (validator outputs captured in the run report).
+- A NO-GO or verification failure parks/rolls back without owner intervention and notifies — including on devices that cached the bad payload (the PD6 version-ordering rule).
+- The owner can freeze the whole pipeline with one file/command.
+- The manual path still works unchanged (the autonomous mode is additive).
+
+## 10. Review record (hostile sub-agent, 2026-07-09 — GO-WITH-PATCHES)
+
+14 findings, all applied: **#1 CRITICAL** rollback version-ordering vs the iOS poisoned-cache guard → PD6 `max(bad, snapshot)+1` rule + test; **#2 HIGH** Scout-exit watermark strands crashed-run requests → runner watermark custody + staging lifecycle + retry policies; **#3 HIGH** pre-merge iOS mirror recreates the 2026-06-20 branch-isolation finding → mirror moved post-merge (§3.6); **#4 HIGH** DOM probe unimplementable (JS-generated picker) → engine-level `verify-live-picker.js`; **#5** serialization + per-candidate snapshot refresh + `main` re-verify; **#6** PD7 field rename broke the S4 reader / append-only contract → name kept, retro-tags as appended lines; **#7** launchd keychain/auth risk → environment probe is Phase A's first deliverable; **#8** KV hygiene ownership/token-scope/contact-window/parse-error noise → runner-owned script + class policy; **#9** per-repo preflight predicates + gitignored flag/lock; **#10** honest §1 inheritance framing (three replaced gates named); **#11** new-series_group hole → PD2(e); **#12** lock/notifier/secret-home + shipped-and-unreported freeze; **#13** real rollback drill + latency-derived retry budget; **#14** walkthrough diff-path guard. Phase A estimate revised 2–3 → 4–5 sessions per the verdict.

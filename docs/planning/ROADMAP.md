@@ -70,6 +70,7 @@
 > Live, actionable items. Pick the next one based on owner priority.
 
 - **[Android v1 program — OWNER GATE AG0]** — triple-reviewed bundle ready (see banner). Owner: spec §2+§4 GO/override + Play account + prototype-commit push. After GO: AG1 foundation (mac-mini execution session — QuickJS spike first). `[Android + process]`
+- **[Intake Autonomy v2 — OWNER GATE PD0–PD8] (2026-07-09)** — full-pipeline audit + hostile-reviewed design spec for a **fully automated** printer-intake pipeline (owner directive; **supersedes S5**): scheduled headless runner on the mac-mini → Scout triage (runner-owned watermark) → autonomous research/fill (park-don't-fabricate) → scripted ship (`republish-overlay.js` closes the hand-hash gap) → dual merge gate (hostile sub-agent + Codex, any NO-GO parks) → auto-merge/deploy → live verify + auto-rollback (`max(bad,snapshot)+1` version rule vs the iOS poisoned-cache guard) → post-merge iOS mirror → ledger + KV hygiene + Discord run report. Audit: [`../reviews/2026-07-09-printer-intake-autonomy-audit.md`](../reviews/2026-07-09-printer-intake-autonomy-audit.md) · spec: [`../superpowers/specs/2026-07-09-intake-autonomy-v2-design.md`](../superpowers/specs/2026-07-09-intake-autonomy-v2-design.md) (review record §10 — 14 findings incl. 1 CRITICAL, all applied). **Owner next: ratify/override PD0–PD8** (PD3 visual-picker waiver + PD4 new-brand waiver must be explicitly answered) → gated impl plan (Codex cross-model review) → Phase A (launchd environment probe FIRST; 4–5 sessions shadow mode; first real candidate = the live **Creality K2 SE**, staged 2026-07-09). `[Web + automation + process]`
 - **[Web finding — analytics Worker rejects 2 of web's own 5 events + no android auth path] (2026-07-09, mined by the Android audit-delta)** — `functions/api/analytics.js` `EVENT_KEYS` allowlists only the original 3 events; web `app.js` sends `troubleshoot_used`/`export_clicked` → `invalid_event`, silently dropped for EVERY platform today. Fix = FULL schema patch (per-event allowed keys + `BLOB_FIELDS`/query columns for `symptom`/`type` + real-payload tests), plus a second commit extending the auth branch to accept `android` as an HMAC-verified source (today non-iOS natives 403 on `forbidden_origin`). Standalone web repair + Android AG3 prerequisite. `[Web]`
 - **[Web finding — feedback Worker 403s native non-iOS clients] (2026-07-09)** — `functions/api/feedback.js` HMAC-checks only `X-App-Source: ios`; anything else needs a browser Origin → native Android feedback would never reach Discord. Fix = auth-branch extension + first-class `android` source rendering. Android AG4 prerequisite. `[Web]`
 - **[Web finding — iOS overlay validator RED] (2026-07-09, run-verified)** — `scripts/validate-ios-printer-overlay.js` fails: "missing iOS bundled catalog baseline for current MARKETING_VERSION 1.0.7" (baselines stop at 1.0.5). **Any overlay republish today would fail** — independent of Android. Fix = add the 1.0.7 baseline (ground-truth from iOS `51356de`). `[Web]`
@@ -120,9 +121,10 @@
     + calibration ledger (G3). **Dormant until the outcomes ledger has real entries** (the Assistant appends one per
     processed candidate). Per-gate hostile review GO-WITH-NITS. Commits 3dpa `736a6a8`→`a23b834` + ai-om `b51c4b6`/`8710494`.
     **Unblocks S5.** `[automation]`
-  - **S5** Assistant autonomy ladder — branch + review note + **PR** + owner go/no-go, autonomy earned
-    by guardrail maturity. **Now unblocked (S4 landed); QA-green spec+plan, not executed — owner-gated.**
-    Consumes S4's calibration record (the outcomes-ledger `was-*` rate). `[Web + process]`
+  - **S5** Assistant autonomy ladder — ⛔ **SUPERSEDED 2026-07-09 by Intake Autonomy v2** (owner
+    directive: "fully automated is the goal"; S5's supervised design — owner merges every PR, and its
+    human-free rung excludes overlay changes — structurally cannot ship a printer unattended).
+    S5 spec+plan stay in the tree as reference; see the **Intake Autonomy v2** queue item above. `[Web + process]`
 - **Printer Intake Automation** — turn missing-printer Discord feedback into a reviewed,
   shippable printer add. Designed 2026-06-12 via ai-om Agent Factory; spec = two
   contracts at [`../../../ai-operating-model/docs/agents/printer-intake-scout.md`](../../../ai-operating-model/docs/agents/printer-intake-scout.md)
