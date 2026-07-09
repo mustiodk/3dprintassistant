@@ -1233,6 +1233,7 @@ function restoreWorkshopProfile(id) {
   _savedStateKey  = currentStateKey();
   _savedProfileId = p.id;
   syncSaveBtnState();
+  track('workshop_loaded');
   showToast(Engine.t('wsLoaded'));
 }
 
@@ -1348,6 +1349,7 @@ function bindControls() {
         _savedStateKey  = currentStateKey();
         _savedProfileId = r.profile.id;
         syncSaveBtnState();
+        track('workshop_saved');
       }
       showToast(r.ok ? Engine.t('profileSaved') : Engine.t('wsSaveFailed'));
     });
@@ -1459,7 +1461,7 @@ function bindControls() {
     if (!state.printer || !state.nozzle || !state.material) return;
     const T = Engine.t;
     const btn = document.getElementById('exportProcessBtn');
-    track('export_clicked', { type: 'process', printer: state.printer, nozzle: state.nozzle, material: state.material });
+    track('export_clicked', { exportType: 'process', printerModel: state.printer, nozzle: state.nozzle, material: state.material });
     const result = Engine.exportBambuStudioJSON(state);
     if (result?.process) {
       _downloadJSON(result.process, `3DPA_process_${state.material}.json`);
@@ -1472,7 +1474,7 @@ function bindControls() {
     if (!state.printer || !state.nozzle || !state.material) return;
     const T = Engine.t;
     const btn = document.getElementById('exportFilamentBtn');
-    track('export_clicked', { type: 'filament', printer: state.printer, nozzle: state.nozzle, material: state.material });
+    track('export_clicked', { exportType: 'filament', printerModel: state.printer, nozzle: state.nozzle, material: state.material });
     const result = Engine.exportBambuStudioJSON(state);
     if (result?.filament) {
       _downloadJSON(result.filament, `3DPA_filament_${state.material}.json`);
@@ -1485,7 +1487,7 @@ function bindControls() {
     if (!state.printer || !state.nozzle || !state.material) return;
     const T = Engine.t;
     const btn = document.getElementById('exportCopyBtn');
-    track('export_clicked', { type: 'copy', printer: state.printer, nozzle: state.nozzle, material: state.material });
+    track('export_clicked', { exportType: 'copy', printerModel: state.printer, nozzle: state.nozzle, material: state.material });
     const text = Engine.formatProfileAsText(state);
     if (text) {
       navigator.clipboard.writeText(text).then(() => _flashBtn(btn, T('exportCopied')));

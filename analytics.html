@@ -782,6 +782,18 @@
       <article class="panel span-12">
         <header class="panel-head">
           <div>
+            <h2>Feature Usage</h2>
+            <p>Slicer exports, Workshop saves/loads, backup export/import, and troubleshooter use.</p>
+          </div>
+        </header>
+        <div class="panel-body">
+          <div id="featureUsage" class="bar-list"></div>
+        </div>
+      </article>
+
+      <article class="panel span-12">
+        <header class="panel-head">
+          <div>
             <h2>Product Signals</h2>
             <p>Roadmap hints from printers, materials, and print context.</p>
           </div>
@@ -823,6 +835,7 @@
       { id: "top_printers", title: "Most common printers", countKey: "profiles" },
       { id: "top_materials", title: "Most common materials", countKey: "profiles" },
       { id: "environments", title: "Print context", countKey: "profiles" },
+      { id: "features", title: "Feature usage (exports, Workshop, troubleshooter)", countKey: "uses" },
       { id: "feedback", title: "Feedback opens", countKey: "opens" },
       { id: "versions", title: "Release adoption", countKey: "events" },
     ];
@@ -831,6 +844,12 @@
       app_opened: "App opened",
       profile_generated: "Generated profiles",
       feedback_opened: "Feedback opened",
+      export_clicked: "Slicer export",
+      workshop_saved: "Profile saved",
+      workshop_loaded: "Profile loaded",
+      workshop_exported: "Backup exported",
+      workshop_imported: "Backup imported",
+      troubleshoot_used: "Troubleshooter used",
     };
 
     const platformLabels = {
@@ -1036,6 +1055,7 @@
       const allVersions = productionVersionRows(state.results.versions || []);
       const allFeedback = state.results.feedback || [];
       const allMix = state.results.profile_mix || [];
+      const allFeatures = state.results.features || [];
 
       const summary = filterByPlatform(allSummary);
       const profiles = filterByPlatform(allProfiles);
@@ -1055,6 +1075,20 @@
       renderPlatformBarList("modeMix", allMix, rows => modeRows(rows), row => row.label, "profiles", 8);
       renderPlatformBarList("topPrinters", allPrinters, rows => rows, row => printerName(row.printer_model, row.printer_brand), "profiles", 8);
       renderPlatformBarList("topMaterials", allMaterials, rows => rows, row => materialName(row.material), "profiles", 8);
+      renderPlatformBarList("featureUsage", allFeatures, featureRows, row => row.label, "uses", 10);
+    }
+
+    // Collapses feature rows to "event — detail" totals (e.g. "Slicer export — process").
+    function featureRows(rows) {
+      const totals = new Map();
+      rows.forEach(row => {
+        const base = eventLabels[row.event] || prettyId(row.event);
+        const label = row.detail ? `${base} — ${prettyId(row.detail)}` : base;
+        totals.set(label, (totals.get(label) || 0) + (Number(row.uses) || 0));
+      });
+      return [...totals.entries()]
+        .map(([label, uses]) => ({ label, uses }))
+        .sort((a, b) => b.uses - a.uses);
     }
 
     function renderPlatformMetrics(data) {
@@ -1255,21 +1289,21 @@
     }
 
     function tableCell(column, value, row) {
-      const numeric = typeof value === "number" || ["events", "profiles", "opens"].includes(column);
+      const numeric = typeof value === "number" || ["events", "profiles", "opens", "uses"].includes(column);
       const label = columnLabel(column);
       return `<td class="${numeric ? "numeric" : ""}" data-label="${escapeHtml(label)}">${escapeHtml(formatCell(column, value, row))}</td>`;
     }
 
     function formatCell(column, value, row) {
       if (value == null || value === "") return "-";
-      if (["events", "profiles", "opens"].includes(column)) return formatNumber(value);
+      if (["events", "profiles", "opens", "uses"].includes(column)) return formatNumber(value);
       if (column === "event") return eventLabels[value] || prettyId(value);
       if (column === "platform") return platformVersionLabel(row);
       if (column === "printer_brand") return brandName(value);
       if (column === "printer_model") return printerName(value);
       if (column === "material") return materialName(value);
       if (column === "slicer") return slicerLabels[value] || prettyId(value);
-      if (column.endsWith("_mode") || ["channel", "environment", "support", "colors", "feedback_category", "nozzle", "material_group"].includes(column)) {
+      if (column.endsWith("_mode") || ["channel", "environment", "support", "colors", "feedback_category", "detail", "nozzle", "material_group"].includes(column)) {
         return prettyId(value);
       }
       return String(value);

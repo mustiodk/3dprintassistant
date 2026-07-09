@@ -49,6 +49,33 @@ const EVENT_KEYS = {
     ...COMMON_KEYS,
     "feedbackCategory",
   ]),
+  // v1.1 — features shipped after the dashboard (slicer export, Workshop,
+  // troubleshooter). Their one event-specific dimension lands in the shared
+  // `detail` blob (blob19); see docs/specs/analytics-v1.md.
+  export_clicked: new Set([
+    ...COMMON_KEYS,
+    "exportType",
+    "printerModel",
+    "material",
+    "nozzle",
+  ]),
+  workshop_saved: new Set([
+    ...COMMON_KEYS,
+  ]),
+  workshop_loaded: new Set([
+    ...COMMON_KEYS,
+  ]),
+  workshop_exported: new Set([
+    ...COMMON_KEYS,
+    "exportScope",
+  ]),
+  workshop_imported: new Set([
+    ...COMMON_KEYS,
+  ]),
+  troubleshoot_used: new Set([
+    ...COMMON_KEYS,
+    "symptom",
+  ]),
 };
 
 const BLOB_FIELDS = [
@@ -70,7 +97,7 @@ const BLOB_FIELDS = [
   "colors",
   "profileMode",
   "slicer",
-  "feedbackCategory",
+  "detail",
   "outputMode",
 ];
 
@@ -203,7 +230,9 @@ function toDataPoint(event, props) {
     colors: props.colors || "",
     profileMode: props.profileMode || "",
     slicer: props.slicer || "",
-    feedbackCategory: props.feedbackCategory || "",
+    // blob19 is the per-event detail dimension: feedback category, export
+    // type/scope, or troubleshooter symptom — never more than one per event.
+    detail: props.feedbackCategory || props.exportType || props.exportScope || props.symptom || "",
     outputMode: props.outputMode || "",
   };
 

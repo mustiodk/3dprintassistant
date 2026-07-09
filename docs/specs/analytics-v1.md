@@ -31,7 +31,8 @@ All events use this envelope:
 }
 ```
 
-Only the three events below are accepted.
+Only the events listed below are accepted. Anything else is rejected with
+`invalid_event`.
 
 ### `app_opened`
 
@@ -88,6 +89,27 @@ Allowed properties:
 | `locale` | `en_DK` | |
 | `feedbackCategory` | `missingPrinter` | Category selected at open time when known. |
 
+### v1.1 feature events (2026-07)
+
+Added for GitHub issue #5: features shipped after the dashboard (slicer
+export, Workshop, troubleshooter) were sending events the worker rejected.
+Each event carries the common keys plus at most ONE event-specific dimension,
+which the worker stores in the shared `detail` blob (blob19):
+
+| Event | When | Extra allowed keys | `detail` value |
+|---|---|---|---|
+| `export_clicked` | Slicer profile export (Process/Filament download or Copy) | `exportType`, `printerModel`, `material`, `nozzle` | `exportType`: `process`, `filament`, `copy` |
+| `workshop_saved` | Profile saved to the Workshop | — | empty |
+| `workshop_loaded` | Saved profile loaded from the Workshop | — | empty |
+| `workshop_exported` | Workshop backup file downloaded | `exportScope` | `exportScope`: `all`, `single` |
+| `workshop_imported` | Workshop backup file imported successfully | — | empty |
+| `troubleshoot_used` | Troubleshooter symptom selected | `symptom` | symptom id, e.g. `stringing` |
+
+`printerModel` / `material` / `nozzle` on `export_clicked` reuse blobs 9/11/13.
+The client-side selection events (`printer_selected`, `nozzle_selected`,
+`material_selected`, `use_case_selected`) remain deliberately unlisted —
+`profile_generated` already captures the final selection.
+
 ## Worker Storage Mapping
 
 Workers Analytics Engine stores ordered arrays, so the field order is fixed:
@@ -112,7 +134,7 @@ Workers Analytics Engine stores ordered arrays, so the field order is fixed:
 | `blob16` | colors |
 | `blob17` | profile mode |
 | `blob18` | slicer |
-| `blob19` | feedback category |
+| `blob19` | event detail (feedback category / export type / export scope / symptom) |
 | `blob20` | output mode |
 | `double1` | count (`1`) |
 | `index1` | coarse sampling key (`event:platform`) |
