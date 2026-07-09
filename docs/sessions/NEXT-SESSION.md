@@ -1,8 +1,8 @@
 # 3dpa — Next Session Kickoff
 
 **Purpose:** copy-paste kickoff prompt for the next fresh 3dpa session.
-**Last updated:** 2026-07-10 (Trigger A close of the intake-autonomy session — Intake Autonomy v2 is RATIFIED incl. the no-babysitting amendment; overlay validator green again; K2 SE staged as the pipeline's first candidate).
-**Locked next entry point:** two owner-declared tracks — (A) the analytics Worker `EVENT_KEYS` fix (owner: "I want to do 1") and (B) the Intake Autonomy v2 impl plan → build (mac-mini-pinned). Android AG0 remains open in parallel.
+**Last updated:** 2026-07-10 (Trigger A close of the analytics-fix + intake-plan session — the analytics Worker 5-event fix is LIVE on prod; the Intake Autonomy v2 impl plan is dual-reviewed and committed; build is cleared to start).
+**Locked next entry point:** **Intake Autonomy v2 build session 1 = Gate B0 (launchd environment probe), mac-mini only.** Android AG0 remains open in parallel; two owner decisions are queued (selection events; v1.0.7 on-device Mine acceptance).
 
 ---
 
@@ -12,17 +12,19 @@ Copy everything between the markers into a new session.
 
 3dpa cold start.
 
-Read in order: ~/dev/Claude/Projects/CLAUDE.md → 3dprintassistant/CLAUDE.md → 3dprintassistant/docs/3dpa-context.md → 3dprintassistant/docs/planning/ROADMAP.md (banner + Active Work Queue) → docs/sessions/INDEX.md → last 3 session logs in full (start with 2026-07-09-cowork-appdev-intake-autonomy.md) → this file.
+Read in order: ~/dev/Claude/Projects/CLAUDE.md → 3dprintassistant/CLAUDE.md → 3dprintassistant/docs/3dpa-context.md → 3dprintassistant/docs/planning/ROADMAP.md (banner + Active Work Queue) → docs/sessions/INDEX.md → last 3 session logs in full (start with 2026-07-10-cowork-appdev-analytics-fix-intake-plan.md) → this file.
 
 Today's task — pick by what I say:
 
-A) **Analytics Worker fix (my declared "do 1"):** `functions/api/analytics.js` `EVENT_KEYS` allowlists only 3 events — web's own `troubleshoot_used`/`export_clicked` are silently dropped for EVERY platform today. Fix = FULL schema patch (per-event allowed keys + `BLOB_FIELDS`/query columns for `symptom`/`type` + real-payload tests), then a SEPARATE commit extending the auth branch to accept `android` as an HMAC-verified source. One finding = one commit, TDD RED-first, hostile review, curl-verify live after push. (The sibling feedback-Worker `android` auth row in the queue is a natural follow-on.)
+A) **Intake Autonomy v2 build session 1 — Gate B0 (mac-mini ONLY):** the impl plan is dual-reviewed (hostile ×17 + Codex ×6, all applied) at `docs/superpowers/plans/2026-07-10-intake-autonomy-v2-impl-plan.md` — read it IN FULL plus the spec `docs/superpowers/specs/2026-07-09-intake-autonomy-v2-design.md` §3–§5. Gate B0 = the launchd environment probe (`intake-launchd-probe.sh` + probe plist): prove `claude -p` headless auth + `wrangler whoami` + `bridge --health` + a worktree-neutral git push probe all PASS under launchd BEFORE building anything else. `mkdir -p scripts/.printer-intake-out` first; per-probe guards, no bare `set -e` abort; commit script+plist+gate-ledger row (create `docs/planning/INTAKE-AUTONOMY-V2-GATE-LEDGER.md` empty-first). If claude-under-launchd fails structurally → STOP and surface PD1 alternatives to me. Per-gate pattern: implement → hostile sub-agent review → patch → QA → commit.
 
-B) **Intake Autonomy v2 — impl plan then build (mac-mini only):** the design is RATIFIED (PD0–PD8 + my amendment: no shadow phase, no manual merges — full autonomy from run 1). Read the spec `docs/superpowers/specs/2026-07-09-intake-autonomy-v2-design.md` + audit `docs/reviews/2026-07-09-printer-intake-autonomy-audit.md` IN FULL first. Next artifact = the gated impl plan (writing-plans granularity, hostile sub-agent review + **Codex cross-model review — mandatory before any build**), then build session 1 whose FIRST deliverable is the launchd environment probe (headless `claude -p` + wrangler + bridge + git push under launchd is unproven). Build inventory is spec §4; PD6's rollback version-ordering rule (max(bad,snapshot)+1) is CRITICAL — never lose it. First real candidate: the staged Creality K2 SE (`candidate-creality-k2_se.json`, KV `req:1783615951531:a03e6e7e`).
+B) **Android AG0 (if I ratify):** spec §2+§4 GO/override + Play account + prototype-commit decision → AG1 QuickJS spike per docs/superpowers/plans/2026-07-08-android-v1-plan.md (mac-mini).
 
-C) **If I have ratified Android AG0:** per the Android bundle (spec §2+§4, plan AG0–AG8, ledger PENDING-GO) — QuickJS spike first, mac-mini, per docs/superpowers/plans/2026-07-08-android-v1-plan.md.
+C) **Owner-decision rows (if I pick one):** (1) the 4 selection events (`printer_selected`/`nozzle_selected`/`material_selected`/`use_case_selected`) still 400 on every chip click — allowlist (needs shared-column design: `brand`/`group`/`use_case` have no blob columns; AE 20-blob cap) or delete the dead `track()` calls; (2) v1.0.7 on-device Mine acceptance (TestFlight; import a web Workshop backup to surface the Mine segment).
 
 Standing rules: web is master; engine.js/app.js never merge; engine/data changes require web + iOS (+ Android-plan) impact evaluation; one finding = one commit; iOS push gate (3 local data-mirror commits ride on v1.0.7 — flush only with the next TestFlight train); Android prototype no-push until AG0 GO; quality > speed; progress bar every multi-step turn.
+
+Context nuggets for A: the K2 SE candidate lives in KV `req:1783615951531:a03e6e7e` (staging file is machine-local — re-stage from KV); the outcomes ledger is git-tracked (ledger custody = own commit per candidate, plan-review C1); `picker-dry-run.js`'s fetch shim is local-file-only; `.assetsignore` excludes docs/scripts (deploy latency only observable via served assets); never use the semver-only `compareVersions` for `content_version`. Owner setup inputs during build: Discord webhook for run reports (hard B5 enablement gate) + schedule time (proposed 07:45).
 
 >>> END <<<
 
