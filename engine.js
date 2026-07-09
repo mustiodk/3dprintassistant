@@ -3701,7 +3701,9 @@ const Engine = (() => {
       lines.push('  EXTRUSION');
       if (adv.pressure_advance !== '—') lines.push(`    Pressure advance:        ${adv.pressure_advance}`);
       if (adv.flow_ratio !== '—')       lines.push(`    Flow ratio:              ${adv.flow_ratio}`);
-      lines.push(`    Retraction length:       ${adv.retraction_distance}`);
+      // HIGH-2 (Export P2): text export reads the resolved scaled/personal value.
+      const _retSv = profile.retraction_distance && profile.retraction_distance._slicer_value;
+      lines.push(`    Retraction length:       ${_retSv != null ? `${_retSv} mm` : adv.retraction_distance}`);
       lines.push(`    Retraction speed:        ${adv.retraction_speed}`);
       lines.push('');
     }
@@ -3774,7 +3776,7 @@ const Engine = (() => {
         bed_temperature_other_layers:    adv?.other_layers_bed_temp  ?? null,
         pressure_advance:                _resolvePA(material.base_settings, nozzle),
         flow_ratio:                      material.base_settings.flow_ratio,
-        retraction_length:               `${material.base_settings.retraction_distance} mm`,
+        retraction_length:               `${(profile.retraction_distance && profile.retraction_distance._slicer_value) ?? material.base_settings.retraction_distance} mm`,
         retraction_speed:                `${material.base_settings.retraction_speed} mm/s`,
       },
       process: flat,

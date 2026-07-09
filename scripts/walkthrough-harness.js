@@ -1583,6 +1583,51 @@ const COMBOS = [
     console.log('[W3 T4] OK retraction delta: post-_scaleRetraction, pre-retraction_max cap (pla 0.6+0.4→1.0; tpu 0.8+0.6→1.4→capped 1.2); _slicer_value sidecar carries the delta’d value; mode gate holds.');
   }
 
+  // ─── Export P2 — HIGH-2: text/reference export retraction honesty ─────────
+  // formatProfileAsText filament "Retraction length" + exportProfile().filament
+  // .retraction_length must equal the resolved _slicer_value (scaled + personal
+  // delta), never the raw material base. Repro family: mine-tier Codex HIGH-2.
+  {
+    // (a) Scaled-differs-from-base combo: 0.2mm nozzle scales retraction down.
+    const st02 = { printer: 'x1c', material: 'pla_basic', nozzle: 'std_0.2',
+      useCase: ['functional'], surface: 'standard', strength: 'standard',
+      speed: 'balanced', environment: 'normal', support: 'none',
+      colors: 'single', userLevel: 'intermediate', special: [] };
+    const prof02 = Engine.resolveProfile(st02);
+    const sv02 = prof02.retraction_distance?._slicer_value;
+    const raw02 = Engine.getMaterial('pla_basic').base_settings.retraction_distance;
+    if (sv02 == null) throw new Error('P2 HIGH-2(a): missing retraction _slicer_value on x1c+pla+0.2');
+    if (String(sv02) === String(raw02)) throw new Error(`P2 HIGH-2(a): combo no longer differs (sv=${sv02} raw=${raw02}) — pick another combo`);
+    const txt02 = Engine.formatProfileAsText(st02);
+    const line02 = txt02.match(/Retraction length:\s*([\d.]+)/);
+    if (!line02) throw new Error('P2 HIGH-2(a): text export missing "Retraction length:" line');
+    if (parseFloat(line02[1]) !== parseFloat(sv02)) {
+      throw new Error(`P2 HIGH-2(a): text export retraction=${line02[1]} must equal resolved ${sv02} (raw base ${raw02})`);
+    }
+    const ref02 = Engine.exportProfile(st02);
+    if (parseFloat(ref02.filament.retraction_length) !== parseFloat(sv02)) {
+      throw new Error(`P2 HIGH-2(a): exportProfile retraction_length=${ref02.filament.retraction_length} must equal resolved ${sv02}`);
+    }
+    // (b) Mine-mode delta must surface too (the original Codex HIGH-2 repro shape).
+    // Payload shape per engine.js setPersonalTuning + harness W3 T4 above: offsets
+    // are {value, unit, date} objects — a bare number is SILENTLY DROPPED
+    // (fail-safe), which would make this test pass vacuously. Hence the svM
+    // absolute-value assertion below (pla scaled 0.6 + 0.4 delta → '1').
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { retraction_distance_delta: { value: 0.4, unit: 'mm', date: '2026-07-09' } } });
+    const stM = Object.assign({}, st02, { nozzle: 'std_0.4', profileMode: 'mine' });
+    const profM = Engine.resolveProfile(stM);
+    const svM = profM.retraction_distance?._slicer_value;
+    if (svM !== '1') throw new Error(`P2 HIGH-2(b): delta must actually apply (expected _slicer_value '1' = 0.6+0.4); got ${svM} — vacuity guard`);
+    const txtM = Engine.formatProfileAsText(stM);
+    const lineM = txtM.match(/Retraction length:\s*([\d.]+)/);
+    if (!lineM || parseFloat(lineM[1]) !== parseFloat(svM)) {
+      throw new Error(`P2 HIGH-2(b): mine-mode text retraction=${lineM && lineM[1]} must equal resolved ${svM}`);
+    }
+    Engine.setPersonalTuning(null);
+    console.log(`[Export P2 HIGH-2] OK retraction honesty: text + reference export read resolved _slicer_value (0.2-nozzle ${sv02} ≠ raw ${raw02}; mine-mode ${svM})`);
+  }
+
   // ─── W3 Mine tier — Task 5: provenance 'personal' on touched params ───────
   // [IMPL-044 §5.3] Every value a personal delta touched carries
   // prov {source:'personal', ref:'workshop tuning: <offsetKey> <±value><unit>
