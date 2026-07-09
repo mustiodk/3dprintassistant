@@ -1768,6 +1768,25 @@ dialog.feedback-modal {
 .workshop-empty { text-align: center; padding: 60px 20px; color: var(--text2); }
 .workshop-empty-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
 
+/* Export-picker modal (issue #4) — pick full backup or a single profile */
+.ws-export-list { display: flex; flex-direction: column; gap: 8px; }
+.ws-export-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.ws-export-item:hover { border-color: var(--green-border); }
+.ws-export-item .ws-export-name { font-weight: 700; font-size: 13px; color: var(--text); word-break: break-word; }
+.ws-export-item .ws-export-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text2); }
+.ws-export-all { border-style: dashed; }
+
 .name-input {
   width: 100%;
   padding: 10px 12px;

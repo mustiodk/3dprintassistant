@@ -214,10 +214,17 @@ function createWorkshopStore(storage) {
     return _write(profiles);
   }
 
-  function exportJSON() {
-    const out = { v: VERSION, profiles: _read() };
-    const t = getTuning();
-    if (t.accepted.length || t.dismissed.length) out.tuning = t;
+  // exportJSON() → full backup (all profiles + global tuning).
+  // exportJSON([ids]) → selected profiles only; tuning is global and stays out
+  // of partial exports. Both shapes import through importJSON unchanged.
+  function exportJSON(ids) {
+    const all = _read();
+    const partial = Array.isArray(ids);
+    const out = { v: VERSION, profiles: partial ? all.filter(p => ids.includes(p.id)) : all };
+    if (!partial) {
+      const t = getTuning();
+      if (t.accepted.length || t.dismissed.length) out.tuning = t;
+    }
     return JSON.stringify(out, null, 2);
   }
 

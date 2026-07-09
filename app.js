@@ -1371,10 +1371,59 @@ function bindControls() {
     renderWorkshop();
   });
 
+  // Export: with more than one saved profile the user picks what the file
+  // contains — everything, or a single named profile (issue #4).
+  const wsExportModal = document.getElementById('wsExportModal');
+  document.getElementById('wsExportModalClose').addEventListener('click', () => wsExportModal.close());
+  wsExportModal.addEventListener('click', e => { if (e.target === wsExportModal) wsExportModal.close(); });
+
+  function _exportWorkshopAll() {
+    _downloadJSONText(WorkshopStore.exportJSON(), '3dpa-workshop-backup.json');
+    track('workshop_exported', { exportScope: 'all' });
+  }
+
+  function _exportWorkshopProfile(p) {
+    const slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'profile';
+    _downloadJSONText(WorkshopStore.exportJSON([p.id]), `3dpa-profile-${slug}.json`);
+    track('workshop_exported', { exportScope: 'single' });
+  }
+
   document.getElementById('wsExportBtn').addEventListener('click', () => {
     if (!WorkshopStore) return;
-    _downloadJSONText(WorkshopStore.exportJSON(), '3dpa-workshop-backup.json');
+    const T = Engine.t;
+    const profiles = WorkshopStore.list();
+    if (profiles.length <= 1) { _exportWorkshopAll(); return; }
+
+    document.getElementById('wsExportModalTitle').textContent = T('wsExportTitle');
+    const listEl = document.getElementById('wsExportList');
+    listEl.innerHTML = `
+      <button class="ws-export-item ws-export-all">
+        <span class="ws-export-name">${T('wsExportAll').replace('{n}', String(profiles.length))}</span>
+        <span class="ws-export-meta">${T('wsExportAllSub')}</span>
+      </button>` + profiles.map(p => {
+        const printer = p.state.printer ? Engine.getPrinter(p.state.printer) : null;
+        const mat     = p.state.material ? Engine.getMaterial(p.state.material) : null;
+        const meta    = [printer?.name, mat?.name].filter(Boolean).join(' · ') || '—';
+        return `
+      <button class="ws-export-item" data-id="${escHtml(p.id)}">
+        <span class="ws-export-name">${escHtml(p.name)}</span>
+        <span class="ws-export-meta">${escHtml(meta)}</span>
+      </button>`;
+      }).join('');
+
+    listEl.querySelector('.ws-export-all').addEventListener('click', () => {
+      wsExportModal.close();
+      _exportWorkshopAll();
+    });
+    listEl.querySelectorAll('.ws-export-item[data-id]').forEach(b =>
+      b.addEventListener('click', () => {
+        const p = WorkshopStore.get(b.dataset.id);
+        wsExportModal.close();
+        if (p) _exportWorkshopProfile(p);
+      }));
+    wsExportModal.showModal();
   });
+
   document.getElementById('wsImportBtn').addEventListener('click', () =>
     document.getElementById('wsImportFile').click());
   document.getElementById('wsImportFile').addEventListener('change', e => {
@@ -1383,7 +1432,11 @@ function bindControls() {
     const reader = new FileReader();
     reader.onload = () => {
       const r = WorkshopStore.importJSON(String(reader.result));
-      showToast(r.ok ? Engine.t('wsImported') : Engine.t('wsImportFailed'));
+      // Name what arrived so it's clear what the file contained (issue #4).
+      showToast(r.ok
+        ? Engine.t('wsImportedCount').replace('{n}', String(r.count))
+        : Engine.t('wsImportFailed'));
+      if (r.ok) track('workshop_imported');
       renderWorkshop();
     };
     reader.readAsText(file);

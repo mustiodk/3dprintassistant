@@ -128,6 +128,33 @@ console.log('# workshop-store.js tests\n');
   check('import merges with existing', merged.list().length === 3, `len=${merged.list().length}`);
 }
 
+// ── TC6b — single-profile export (issue #4) ──
+{
+  console.log('TC6b — single-profile export');
+  const ws = createWorkshopStore(mockStorage());
+  const { profile: one } = ws.save('One', STATE_A);
+  ws.save('Two', STATE_B);
+  ws.addTuningOp('x1c|pla_basic', 'nozzle_temp_delta', '°C',
+    { kind: 'accept', step: 5, clampMin: -15, clampMax: 15 });
+
+  const single = JSON.parse(ws.exportJSON([one.id]));
+  check('partial export keeps only selected profile',
+    single.profiles.length === 1 && single.profiles[0].id === one.id,
+    JSON.stringify(single.profiles.map(p => p.name)));
+  check('partial export omits global tuning', single.tuning === undefined);
+  check('unknown id → empty selection', JSON.parse(ws.exportJSON(['nope'])).profiles.length === 0);
+
+  const full = JSON.parse(ws.exportJSON());
+  check('argless export unchanged (all profiles + tuning)',
+    full.profiles.length === 2 && !!full.tuning);
+
+  // a single-profile file imports into another store like any backup
+  const fresh = createWorkshopStore(mockStorage());
+  const imp = fresh.importJSON(ws.exportJSON([one.id]));
+  check('single-profile file imports', imp.ok === true && imp.count === 1 &&
+    fresh.list()[0].name === 'One', JSON.stringify(imp));
+}
+
 // ── TC7 — import rejects garbage ──
 {
   console.log('TC7 — import validation');
