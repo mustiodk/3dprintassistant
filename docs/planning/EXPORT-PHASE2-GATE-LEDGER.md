@@ -77,7 +77,16 @@
 
 ## OWNER-VERIFY (Step 8.2 — owner import test, recorded verbatim)
 
-_(pending — import `scripts/fixtures/slicer-golden/_owner-verify/p2-p1s-process.json` + `p2-p1s-filament.json` via BS → File → Import → Import Configs…; look for the two `ZZ P2 TEST …` presets under User presets)_
+**2026-07-09 — PASS (screenshot evidence, Bambu Studio on the owner's P1S).** Owner imported both
+`ZZ P2 TEST …` files and posted 4 screenshots:
+
+- Both presets accepted and selectable on `Bambu Lab P1S` (process `ZZ P2 TEST PROC OWS123 BRIM8 @…`, filament `ZZ P2 TEST FIL N201 R0.77`).
+- **Dual-array sentinels display as ONE sane value each** (the Phase 2 class question, answered): Outer wall **123**, Inner wall **124**, Initial layer **21** (Speed tab).
+- Brim width **8** (Others tab; greyed under Brim type=Auto, value intact).
+- Filament nozzle temps: Initial layer **202** / Other layers **201** (Filament tab) — 1-element temps accepted; BS renders its Direct Drive Standard/High Flow variant tabs without complaint.
+- Not visible in the screenshots (not inspected): top surface 122, gap infill 125, accels 1260/1270 (same emission mechanism as the three verified speed keys), and filament retraction 0.77 (Setting Overrides tab; the 2026-07-06 import test already proved retraction round-trip). Owner asked for one optional glance at retraction 0.77; not treated as blocking.
+
+**Step 8.3 remaining blocker: iOS XCTest on the mac-mini (T7 UNVERIFIED).**
 
 ## Merge / rollback commands (from plan Task 8)
 
