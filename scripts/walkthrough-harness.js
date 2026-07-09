@@ -1668,6 +1668,36 @@ const COMBOS = [
     console.log('[Export P2 dual-variant] OK 7 process keys emit ["v","v"]; filament temps + inner_wall_acceleration stay 1-element; variant-name keys absent');
   }
 
+  // ─── Export P2 — BAMBU_PROCESS_INHERITS explicit rows (CR1-L1) ─────────────
+  // Verified 2026-07-09 against BBL.json @ v02.05.03.62 (BS 2.5 release tag):
+  // P2S/X2D/H2C/H2D/H2DP/H2S HAVE own instantiated process presets → own rows;
+  // X1E/P1S have NO own process presets → verified-null (X1C parents correct).
+  // Evidence: docs/planning/EXPORT-PHASE2-GATE-LEDGER.md (T3 block).
+  {
+    const mkB = (p) => ({ printer: p, material: 'pla_basic', nozzle: 'std_0.4',
+      useCase: ['functional'], surface: 'standard', strength: 'standard',
+      speed: 'balanced', environment: 'normal', support: 'none',
+      colors: 'single', userLevel: 'intermediate', special: [] });
+    const EXPECT = {
+      p2s:     '0.20mm Standard @BBL P2S',
+      x2d:     '0.20mm Standard @BBL X2D',
+      h2c:     '0.20mm Standard @BBL H2C',
+      h2d:     '0.20mm Standard @BBL H2D',
+      h2d_pro: '0.20mm Standard @BBL H2DP',   // BS preset suffix is "H2DP", not "H2D Pro"
+      h2s:     '0.20mm Standard @BBL H2S',
+      x1e:     '0.20mm Standard @BBL X1C',    // verified-null: no X1E presets in BS 2.5
+      p1s:     '0.20mm Standard @BBL X1C',    // verified-null: no P1S presets in BS 2.5
+    };
+    Object.entries(EXPECT).forEach(([pid, parent]) => {
+      const ex = Engine.exportBambuStudioJSON(mkB(pid));
+      if (!ex) throw new Error(`P2 inherits: exportBambuStudioJSON returned null for ${pid}`);
+      if (ex.process.inherits !== parent) {
+        throw new Error(`P2 inherits: ${pid} process.inherits must be "${parent}"; got "${ex.process.inherits}"`);
+      }
+    });
+    console.log('[Export P2 inherits] OK explicit parents: p2s/x2d/h2c/h2d/h2d_pro/h2s own presets @0.20; x1e/p1s verified-null → X1C');
+  }
+
   // ─── W3 Mine tier — Task 5: provenance 'personal' on touched params ───────
   // [IMPL-044 §5.3] Every value a personal delta touched carries
   // prov {source:'personal', ref:'workshop tuning: <offsetKey> <±value><unit>
