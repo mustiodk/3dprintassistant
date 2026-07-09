@@ -1,0 +1,66 @@
+{
+    "from": "User",
+    "inherits": "Bambu PLA Basic @BBL X1C",
+    "name": "3DPA PLA Basic",
+    "filament_settings_id": [
+        "3DPA PLA Basic"
+    ],
+    "filament_type": [
+        "PLA"
+    ],
+    "version": "2.5.0.18",
+    "compatible_printers": [
+        "Bambu Lab X1 Carbon 0.4 nozzle"
+    ],
+    "nozzle_temperature": [
+        "220"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "225"
+    ],
+    "hot_plate_temp": [
+        "55"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "55"
+    ],
+    "textured_plate_temp": [
+        "55"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "55"
+    ],
+    "cool_plate_temp": [
+        "35"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "35"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "pressure_advance": [
+        "0.04"
+    ],
+    "filament_retraction_length": [
+        "0.6"
+    ],
+    "filament_retraction_speed": [
+        "45"
+    ],
+    "filament_max_volumetric_speed": [
+        "21"
+    ],
+    "fan_min_speed": [
+        "70"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "slow_down_layer_time": [
+        "10"
+    ]
+}
