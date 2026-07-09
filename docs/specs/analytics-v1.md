@@ -31,7 +31,7 @@ All events use this envelope:
 }
 ```
 
-Only the three events below are accepted.
+Only the five events below are accepted. (`troubleshoot_used` and `export_clicked` were added to the Worker schema 2026-07-10 — the web app had been sending them since Phase 2, but the Worker rejected them as `invalid_event`.)
 
 ### `app_opened`
 
@@ -88,6 +88,39 @@ Allowed properties:
 | `locale` | `en_DK` | |
 | `feedbackCategory` | `missingPrinter` | Category selected at open time when known. |
 
+### `troubleshoot_used`
+
+Sent when a troubleshooter symptom is opened.
+
+Allowed properties:
+
+| Key | Example | Notes |
+|---|---|---|
+| `platform` | `web`, `ios` | |
+| `channel` | `production`, `preview`, `local`, `debug`, `appstore`, `sandbox_or_testflight` | |
+| `appVersion` | `1.0.3` | |
+| `buildNumber` | `202605081930` | iOS only. |
+| `locale` | `en_DK` | |
+| `symptom` | `stringing` | Symptom id from the troubleshooter data. Stored in the shared event-detail blob (`blob19`). |
+
+### `export_clicked`
+
+Sent when an export/copy action is used on the output panel.
+
+Allowed properties:
+
+| Key | Example | Notes |
+|---|---|---|
+| `platform` | `web`, `ios` | |
+| `channel` | `production`, `preview`, `local`, `debug`, `appstore`, `sandbox_or_testflight` | |
+| `appVersion` | `1.0.3` | |
+| `buildNumber` | `202605081930` | iOS only. |
+| `locale` | `en_DK` | |
+| `type` | `process`, `filament`, `copy` | Export flavor. Stored in the shared event-detail blob (`blob19`). |
+| `printerModel` | `x1c` | Printer id (same column as `profile_generated`). |
+| `nozzle` | `std_0.4` | Nozzle id. |
+| `material` | `pla_basic` | Material id. |
+
 ## Worker Storage Mapping
 
 Workers Analytics Engine stores ordered arrays, so the field order is fixed:
@@ -112,12 +145,14 @@ Workers Analytics Engine stores ordered arrays, so the field order is fixed:
 | `blob16` | colors |
 | `blob17` | profile mode |
 | `blob18` | slicer |
-| `blob19` | feedback category |
+| `blob19` | event detail (shared per-event column — see below) |
 | `blob20` | output mode |
 | `double1` | count (`1`) |
 | `index1` | coarse sampling key (`event:platform`) |
 
 Queries must use `_sample_interval` when summing counts.
+
+**`blob19` — shared event-detail column.** Analytics Engine caps a data point at 20 blobs and all 20 positions are assigned, so per-event detail values share position 19: `feedback_opened` writes `feedbackCategory`, `troubleshoot_used` writes `symptom`, `export_clicked` writes `type`. This is unambiguous because every dashboard query filters on `blob2` (event) first, and it is backward compatible: before 2026-07-10 only `feedback_opened` ever populated this position.
 
 ## Privacy Boundary
 

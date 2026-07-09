@@ -49,6 +49,17 @@ const EVENT_KEYS = {
     ...COMMON_KEYS,
     "feedbackCategory",
   ]),
+  troubleshoot_used: new Set([
+    ...COMMON_KEYS,
+    "symptom",
+  ]),
+  export_clicked: new Set([
+    ...COMMON_KEYS,
+    "type",
+    "printerModel",
+    "nozzle",
+    "material",
+  ]),
 };
 
 const BLOB_FIELDS = [
@@ -70,7 +81,12 @@ const BLOB_FIELDS = [
   "colors",
   "profileMode",
   "slicer",
-  "feedbackCategory",
+  // blob19 — shared per-event detail column. Analytics Engine caps a data
+  // point at 20 blobs and all 20 are assigned, so per-event detail values
+  // share this position: feedback_opened → feedbackCategory,
+  // troubleshoot_used → symptom, export_clicked → type. Unambiguous because
+  // every query filters on blob2 (event) first.
+  "eventDetail",
   "outputMode",
 ];
 
@@ -203,7 +219,7 @@ function toDataPoint(event, props) {
     colors: props.colors || "",
     profileMode: props.profileMode || "",
     slicer: props.slicer || "",
-    feedbackCategory: props.feedbackCategory || "",
+    eventDetail: props.feedbackCategory || props.symptom || props.type || "",
     outputMode: props.outputMode || "",
   };
 

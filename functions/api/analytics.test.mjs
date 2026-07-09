@@ -90,6 +90,126 @@ test("onRequestPost writes valid web events to Analytics Engine", async () => {
   assert.deepEqual(written[0].indexes, ["feedback_opened:web"]);
 });
 
+// Real web payload — exactly what app.js track('troubleshoot_used', { symptom: id })
+// emits after merging analyticsBaseProps() (app.js:1227).
+test("validatePayload accepts the real web troubleshoot_used payload", () => {
+  const result = __test.validatePayload({
+    event: "troubleshoot_used",
+    properties: {
+      platform: "web",
+      channel: "production",
+      appVersion: "20260706",
+      locale: "en-DK",
+      symptom: "stringing",
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.event, "troubleshoot_used");
+  assert.equal(result.props.symptom, "stringing");
+});
+
+test("onRequestPost writes troubleshoot_used with symptom in the event-detail blob", async () => {
+  const written = [];
+  const res = await onRequestPost({
+    request: request({
+      event: "troubleshoot_used",
+      properties: {
+        platform: "web",
+        channel: "production",
+        appVersion: "20260706",
+        locale: "en-DK",
+        symptom: "stringing",
+      },
+    }),
+    env: {
+      ANALYTICS: {
+        writeDataPoint(point) { written.push(point); },
+      },
+    },
+  });
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(await json(res), { ok: true, stored: true });
+  assert.equal(written.length, 1);
+  assert.equal(written[0].blobs[1], "troubleshoot_used");
+  // blob19 is the shared per-event detail column (feedbackCategory | symptom | export type)
+  assert.equal(written[0].blobs[18], "stringing");
+  assert.deepEqual(written[0].indexes, ["troubleshoot_used:web"]);
+});
+
+// Real web payload — app.js track('export_clicked', { type, printerModel, nozzle, material })
+// (app.js export buttons: process / filament / copy).
+test("validatePayload accepts the real web export_clicked payload", () => {
+  const result = __test.validatePayload({
+    event: "export_clicked",
+    properties: {
+      platform: "web",
+      channel: "production",
+      appVersion: "20260706",
+      locale: "en-DK",
+      type: "process",
+      printerModel: "x1c",
+      nozzle: "std_0.4",
+      material: "pla_basic",
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.event, "export_clicked");
+  assert.equal(result.props.type, "process");
+  assert.equal(result.props.printerModel, "x1c");
+});
+
+test("onRequestPost writes export_clicked with type in the event-detail blob and selection columns", async () => {
+  const written = [];
+  const res = await onRequestPost({
+    request: request({
+      event: "export_clicked",
+      properties: {
+        platform: "web",
+        channel: "production",
+        appVersion: "20260706",
+        locale: "en-DK",
+        type: "filament",
+        printerModel: "x1c",
+        nozzle: "std_0.4",
+        material: "pla_basic",
+      },
+    }),
+    env: {
+      ANALYTICS: {
+        writeDataPoint(point) { written.push(point); },
+      },
+    },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(written.length, 1);
+  assert.equal(written[0].blobs[1], "export_clicked");
+  assert.equal(written[0].blobs[18], "filament");   // event-detail blob (blob19)
+  assert.equal(written[0].blobs[8], "x1c");         // printerModel (blob9)
+  assert.equal(written[0].blobs[10], "pla_basic");  // material (blob11)
+  assert.equal(written[0].blobs[12], "std_0.4");    // nozzle (blob13)
+  assert.deepEqual(written[0].indexes, ["export_clicked:web"]);
+});
+
+test("validatePayload still rejects detail keys on the wrong event", () => {
+  const crossed = __test.validatePayload({
+    event: "feedback_opened",
+    properties: { platform: "web", symptom: "stringing" },
+  });
+  assert.equal(crossed.ok, false);
+  assert.equal(crossed.error, "invalid_property_symptom");
+
+  const crossed2 = __test.validatePayload({
+    event: "troubleshoot_used",
+    properties: { platform: "web", type: "process" },
+  });
+  assert.equal(crossed2.ok, false);
+  assert.equal(crossed2.error, "invalid_property_type");
+});
+
 test("onRequestPost accepts valid iOS HMAC requests", async () => {
   const secret = "test-secret";
   const timestamp = String(Math.floor(Date.now() / 1000));

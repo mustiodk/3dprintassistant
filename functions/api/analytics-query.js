@@ -177,6 +177,37 @@ ORDER BY profiles DESC
 LIMIT ${limit}
 FORMAT JSON`,
 
+  troubleshoot: ({ days, limit }) => `
+SELECT
+  blob3 AS platform,
+  blob5 AS app_version,
+  blob19 AS symptom,
+  SUM(_sample_interval * double1) AS uses
+FROM ${DATASET_TABLE}
+WHERE timestamp > ${interval(days)}
+  AND blob2 = 'troubleshoot_used'
+GROUP BY platform, app_version, symptom
+ORDER BY uses DESC
+LIMIT ${limit}
+FORMAT JSON`,
+
+  exports: ({ days, limit }) => `
+SELECT
+  blob3 AS platform,
+  blob5 AS app_version,
+  blob19 AS export_type,
+  blob9 AS printer_model,
+  blob11 AS material,
+  blob13 AS nozzle,
+  SUM(_sample_interval * double1) AS clicks
+FROM ${DATASET_TABLE}
+WHERE timestamp > ${interval(days)}
+  AND blob2 = 'export_clicked'
+GROUP BY platform, app_version, export_type, printer_model, material, nozzle
+ORDER BY clicks DESC
+LIMIT ${limit}
+FORMAT JSON`,
+
   feedback: ({ days, limit }) => `
 SELECT
   blob3 AS platform,

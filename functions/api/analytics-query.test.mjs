@@ -66,6 +66,24 @@ test("buildQuery includes profile mix dimensions", () => {
   assert.match(sql, /AND blob2 = 'profile_generated'/);
 });
 
+test("buildQuery troubleshoot reads the event-detail blob as symptom", () => {
+  const sql = __test.buildQuery("troubleshoot", { days: 7, limit: 25 });
+
+  assert.match(sql, /blob19 AS symptom/);
+  assert.match(sql, /AND blob2 = 'troubleshoot_used'/);
+  assert.match(sql, /SUM\(_sample_interval \* double1\) AS uses/);
+});
+
+test("buildQuery exports reads the event-detail blob as export_type plus selection columns", () => {
+  const sql = __test.buildQuery("exports", { days: 7, limit: 25 });
+
+  assert.match(sql, /blob19 AS export_type/);
+  assert.match(sql, /blob9 AS printer_model/);
+  assert.match(sql, /blob11 AS material/);
+  assert.match(sql, /blob13 AS nozzle/);
+  assert.match(sql, /AND blob2 = 'export_clicked'/);
+});
+
 test("optionsFromPayload clamps days and limit", () => {
   assert.deepEqual(__test.optionsFromPayload({ days: 999, limit: 999 }), {
     days: 90,

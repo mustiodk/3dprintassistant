@@ -824,6 +824,8 @@
       { id: "top_materials", title: "Most common materials", countKey: "profiles" },
       { id: "environments", title: "Print context", countKey: "profiles" },
       { id: "feedback", title: "Feedback opens", countKey: "opens" },
+      { id: "troubleshoot", title: "Troubleshooter symptoms", countKey: "uses" },
+      { id: "exports", title: "Export clicks", countKey: "clicks" },
       { id: "versions", title: "Release adoption", countKey: "events" },
     ];
 
@@ -831,6 +833,8 @@
       app_opened: "App opened",
       profile_generated: "Generated profiles",
       feedback_opened: "Feedback opened",
+      troubleshoot_used: "Troubleshooter used",
+      export_clicked: "Export clicked",
     };
 
     const platformLabels = {
@@ -1255,21 +1259,21 @@
     }
 
     function tableCell(column, value, row) {
-      const numeric = typeof value === "number" || ["events", "profiles", "opens"].includes(column);
+      const numeric = typeof value === "number" || ["events", "profiles", "opens", "uses", "clicks"].includes(column);
       const label = columnLabel(column);
       return `<td class="${numeric ? "numeric" : ""}" data-label="${escapeHtml(label)}">${escapeHtml(formatCell(column, value, row))}</td>`;
     }
 
     function formatCell(column, value, row) {
       if (value == null || value === "") return "-";
-      if (["events", "profiles", "opens"].includes(column)) return formatNumber(value);
+      if (["events", "profiles", "opens", "uses", "clicks"].includes(column)) return formatNumber(value);
       if (column === "event") return eventLabels[value] || prettyId(value);
       if (column === "platform") return platformVersionLabel(row);
       if (column === "printer_brand") return brandName(value);
       if (column === "printer_model") return printerName(value);
       if (column === "material") return materialName(value);
       if (column === "slicer") return slicerLabels[value] || prettyId(value);
-      if (column.endsWith("_mode") || ["channel", "environment", "support", "colors", "feedback_category", "nozzle", "material_group"].includes(column)) {
+      if (column.endsWith("_mode") || ["channel", "environment", "support", "colors", "feedback_category", "nozzle", "material_group", "symptom", "export_type"].includes(column)) {
         return prettyId(value);
       }
       return String(value);
