@@ -210,6 +210,99 @@ test("validatePayload still rejects detail keys on the wrong event", () => {
   assert.equal(crossed2.error, "invalid_property_type");
 });
 
+test("onRequestPost accepts valid Android HMAC requests", async () => {
+  const secret = "test-secret";
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const body = {
+    event: "app_opened",
+    properties: {
+      platform: "android",
+      channel: "play",
+      appVersion: "2.0.0",
+      buildNumber: "1",
+    },
+  };
+  const rawBody = JSON.stringify(body);
+  const signature = createHmac("sha256", secret)
+    .update(`${timestamp}\n${rawBody}`)
+    .digest("base64");
+  const written = [];
+
+  const res = await onRequestPost({
+    request: new Request("https://3dprintassistant.com/api/analytics", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-App-Source": "android",
+        "X-Timestamp": timestamp,
+        "X-Signature": signature,
+      },
+      body: rawBody,
+    }),
+    env: {
+      FEEDBACK_HMAC_SECRET: secret,
+      ANALYTICS: {
+        writeDataPoint(point) { written.push(point); },
+      },
+    },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(written.length, 1);
+  assert.equal(written[0].blobs[2], "android");
+  assert.deepEqual(written[0].indexes, ["app_opened:android"]);
+});
+
+test("onRequestPost rejects Android requests with a bad signature", async () => {
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const rawBody = JSON.stringify({
+    event: "app_opened",
+    properties: { platform: "android" },
+  });
+
+  const res = await onRequestPost({
+    request: new Request("https://3dprintassistant.com/api/analytics", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-App-Source": "android",
+        "X-Timestamp": timestamp,
+        "X-Signature": Buffer.from("wrong-signature").toString("base64"),
+      },
+      body: rawBody,
+    }),
+    env: {
+      FEEDBACK_HMAC_SECRET: "test-secret",
+      ANALYTICS: { writeDataPoint() {} },
+    },
+  });
+
+  assert.equal(res.status, 401);
+  assert.equal((await json(res)).error, "signature_mismatch");
+});
+
+test("onRequestPost still rejects unknown native sources without an allowed origin", async () => {
+  const res = await onRequestPost({
+    request: new Request("https://3dprintassistant.com/api/analytics", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-App-Source": "windows",
+      },
+      body: JSON.stringify({
+        event: "app_opened",
+        properties: { platform: "windows" },
+      }),
+    }),
+    env: {
+      ANALYTICS: { writeDataPoint() {} },
+    },
+  });
+
+  assert.equal(res.status, 403);
+  assert.equal((await json(res)).error, "forbidden_origin");
+});
+
 test("onRequestPost accepts valid iOS HMAC requests", async () => {
   const secret = "test-secret";
   const timestamp = String(Math.floor(Date.now() / 1000));

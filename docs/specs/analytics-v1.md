@@ -42,9 +42,9 @@ Allowed properties:
 | Key | Example | Notes |
 |---|---|---|
 | `platform` | `web`, `ios` | Required by clients. |
-| `channel` | `production`, `preview`, `local`, `debug`, `appstore`, `sandbox_or_testflight` | Coarse release channel, not a user identifier. |
+| `channel` | `production`, `preview`, `local`, `debug`, `appstore`, `sandbox_or_testflight`, `play`, `internal` | Coarse release channel, not a user identifier. |
 | `appVersion` | `1.0.3` | Marketing version. |
-| `buildNumber` | `202605081930` | iOS only. |
+| `buildNumber` | `202605081930` | Native apps only (iOS, Android). |
 | `locale` | `en_DK` | Device/browser locale. |
 
 ### `profile_generated`
@@ -56,9 +56,9 @@ Allowed properties:
 | Key | Example | Notes |
 |---|---|---|
 | `platform` | `web`, `ios` | |
-| `channel` | `production`, `preview`, `local`, `debug`, `appstore`, `sandbox_or_testflight` | |
+| `channel` | `production`, `preview`, `local`, `debug`, `appstore`, `sandbox_or_testflight`, `play`, `internal` | |
 | `appVersion` | `1.0.3` | |
-| `buildNumber` | `202605081930` | iOS only. |
+| `buildNumber` | `202605081930` | Native apps only (iOS, Android). |
 | `locale` | `en_DK` | |
 | `printerBrand` | `bambu_lab` | Printer manufacturer id. |
 | `printerModel` | `x1c` | Printer id, not a custom name. |
@@ -82,9 +82,9 @@ Allowed properties:
 | Key | Example | Notes |
 |---|---|---|
 | `platform` | `web`, `ios` | |
-| `channel` | `production`, `preview`, `local`, `debug`, `appstore`, `sandbox_or_testflight` | |
+| `channel` | `production`, `preview`, `local`, `debug`, `appstore`, `sandbox_or_testflight`, `play`, `internal` | |
 | `appVersion` | `1.0.3` | |
-| `buildNumber` | `202605081930` | iOS only. |
+| `buildNumber` | `202605081930` | Native apps only (iOS, Android). |
 | `locale` | `en_DK` | |
 | `feedbackCategory` | `missingPrinter` | Category selected at open time when known. |
 
@@ -97,9 +97,9 @@ Allowed properties:
 | Key | Example | Notes |
 |---|---|---|
 | `platform` | `web`, `ios` | |
-| `channel` | `production`, `preview`, `local`, `debug`, `appstore`, `sandbox_or_testflight` | |
+| `channel` | `production`, `preview`, `local`, `debug`, `appstore`, `sandbox_or_testflight`, `play`, `internal` | |
 | `appVersion` | `1.0.3` | |
-| `buildNumber` | `202605081930` | iOS only. |
+| `buildNumber` | `202605081930` | Native apps only (iOS, Android). |
 | `locale` | `en_DK` | |
 | `symptom` | `stringing` | Symptom id from the troubleshooter data. Stored in the shared event-detail blob (`blob19`). |
 
@@ -112,9 +112,9 @@ Allowed properties:
 | Key | Example | Notes |
 |---|---|---|
 | `platform` | `web`, `ios` | |
-| `channel` | `production`, `preview`, `local`, `debug`, `appstore`, `sandbox_or_testflight` | |
+| `channel` | `production`, `preview`, `local`, `debug`, `appstore`, `sandbox_or_testflight`, `play`, `internal` | |
 | `appVersion` | `1.0.3` | |
-| `buildNumber` | `202605081930` | iOS only. |
+| `buildNumber` | `202605081930` | Native apps only (iOS, Android). |
 | `locale` | `en_DK` | |
 | `type` | `process`, `filament`, `copy` | Export flavor. Stored in the shared event-detail blob (`blob19`). |
 | `printerModel` | `x1c` | Printer id (same column as `profile_generated`). |
@@ -174,6 +174,6 @@ Do not collect:
 ## Operational Notes
 
 - Web requests are authenticated by origin allowlist.
-- iOS requests are HMAC signed with the existing app-to-worker HMAC secret.
+- Native app requests (`X-App-Source: ios` or `android`) are HMAC signed with the existing app-to-worker HMAC secret. Any other `X-App-Source` value falls through to the origin allowlist (403 for non-browser clients).
 - If the Analytics Engine binding is missing, the endpoint returns `{ ok: true, stored: false }` so analytics cannot break the product.
 - Web users can opt out locally with `localStorage.setItem('3dpa_notrack', '1')`.

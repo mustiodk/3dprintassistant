@@ -1,7 +1,7 @@
 // Cloudflare Worker route — POST /api/analytics
 //
 // Receives aggregate, first-party product-usage events from the web app and
-// iOS app, validates an allowlisted schema, and writes one data point to
+// native apps (iOS, Android), validates an allowlisted schema, and writes one data point to
 // Workers Analytics Engine. No user id, session id, IP, user-agent, email,
 // free-text feedback, or generated profile output is accepted.
 
@@ -17,6 +17,10 @@ const ALLOWED_ORIGIN_SUFFIXES = [
 const MAX_REQUEST_BYTES = 4 * 1024;
 const HMAC_MAX_SKEW_SECONDS = 5 * 60;
 const SCHEMA_VERSION = "analytics_v1";
+
+// Native app sources authenticated via HMAC (X-App-Source header) instead of
+// the browser Origin allowlist. Shared secret: FEEDBACK_HMAC_SECRET.
+const HMAC_APP_SOURCES = new Set(["ios", "android"]);
 
 const COMMON_KEYS = new Set([
   "platform",
@@ -123,7 +127,7 @@ function corsHeaders(origin) {
   };
 }
 
-async function verifyIOSSignature(request, rawBody, secret) {
+async function verifyAppSignature(request, rawBody, secret) {
   const timestamp = request.headers.get("X-Timestamp");
   const signature = request.headers.get("X-Signature");
 
@@ -241,8 +245,8 @@ export async function onRequestOptions({ request }) {
 export async function onRequestPost({ request, env }) {
   const origin = request.headers.get("Origin");
   const appSource = (request.headers.get("X-App-Source") || "").toLowerCase();
-  const isIOS = appSource === "ios";
-  const cors = isIOS ? {} : corsHeaders(origin);
+  const isNativeApp = HMAC_APP_SOURCES.has(appSource);
+  const cors = isNativeApp ? {} : corsHeaders(origin);
 
   const contentLength = Number(request.headers.get("Content-Length") || 0);
   if (contentLength > MAX_REQUEST_BYTES) {
@@ -251,12 +255,12 @@ export async function onRequestPost({ request, env }) {
 
   const rawBody = await request.text();
 
-  if (isIOS) {
+  if (isNativeApp) {
     const secret = env.FEEDBACK_HMAC_SECRET;
     if (!secret || typeof secret !== "string") {
       return jsonResponse(500, { ok: false, error: "hmac_not_configured" });
     }
-    const verdict = await verifyIOSSignature(request, rawBody, secret);
+    const verdict = await verifyAppSignature(request, rawBody, secret);
     if (!verdict.ok) {
       return jsonResponse(401, { ok: false, error: verdict.error });
     }
