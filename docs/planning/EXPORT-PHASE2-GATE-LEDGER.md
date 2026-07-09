@@ -70,13 +70,14 @@
 
 ### T8 — exit gate ⏳ (artifacts staged; owner steps pending)
 
-- Step 8.1 ✅: `_owner-verify/p2-x1c-process.json` + `p2-x1c-filament.json` + `p2-a1-process.json` regenerated from branch tip (x1c `outer_wall_speed ["100","100"]`, a1 `["80","80"]`, filament `nozzle_temperature ["220"]`).
-- Step 8.2 ⏳ OWNER: import all three in Bambu Studio 2.5 (X1C **and A1**); check dual-array keys show sane single values, temps correct, retraction shows the scaled value. Record verbatim below.
+- Step 8.1 ✅ (rev. 2026-07-09, owner ask): artifacts retargeted to the owner's **P1S** with sentinel names/values (zz-importtest precedent) — `_owner-verify/p2-p1s-process.json` + `p2-p1s-filament.json`. The earlier `p2-x1c-*`/`p2-a1-*` files were removed. **Class coverage note:** P1S is a single-variant machine, i.e. exactly the residual-risk class from review finding 4 (A1 was its stand-in); the X1C dual-variant class is anchored by BS's own golden (`["v","v"]` written by BS 2.5 itself), so a P1S PASS covers the open class question.
+- **Sentinels (encoded in preset names):** process `ZZ P2 TEST PROC OWS123 BRIM8` — the 7 dual keys carry spottable pairs: outer wall speed **123**, inner wall **124**, top surface **122**, gap infill **125**, initial layer **21**, outer wall accel **1260**, initial layer accel **1270**; brim width **8**. Filament `ZZ P2 TEST FIL N201 R0.77` — nozzle **201**, first-layer **202**, retraction **0.77**. Process inherits `0.20mm Standard @BBL X1C` (P1S is verified-null → cross-printer parent, the form the owner's own preset already proved).
+- Step 8.2 ⏳ OWNER: import both files in Bambu Studio 2.5 on the P1S; PASS = both accepted, and each sentinel shows as ONE sane value (outer wall 123 — not doubled/garbled), nozzle 201/202, retraction 0.77. Record verbatim below.
 - Step 8.3 blocked until: OWNER-VERIFY PASS + iOS XCTest green on mac-mini + byte-identical diff (already ✓) + web gates green on tip (✓ as of `89a848d`+UI commits).
 
 ## OWNER-VERIFY (Step 8.2 — owner import test, recorded verbatim)
 
-_(pending — import `scripts/fixtures/slicer-golden/_owner-verify/p2-x1c-process.json`, `p2-x1c-filament.json`, `p2-a1-process.json` via BS → File → Import → Import Configs…)_
+_(pending — import `scripts/fixtures/slicer-golden/_owner-verify/p2-p1s-process.json` + `p2-p1s-filament.json` via BS → File → Import → Import Configs…; look for the two `ZZ P2 TEST …` presets under User presets)_
 
 ## Merge / rollback commands (from plan Task 8)
 

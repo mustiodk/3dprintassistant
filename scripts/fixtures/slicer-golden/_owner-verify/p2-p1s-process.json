@@ -1,8 +1,8 @@
 {
     "from": "User",
-    "inherits": "0.20mm Standard @BBL A1",
-    "name": "3DPA PLA Basic 0.2mm @Bambu Lab A1",
-    "print_settings_id": "3DPA PLA Basic 0.2mm @Bambu Lab A1",
+    "inherits": "0.20mm Standard @BBL X1C",
+    "name": "ZZ P2 TEST PROC OWS123 BRIM8 @Bambu Lab P1S",
+    "print_settings_id": "ZZ P2 TEST PROC OWS123 BRIM8 @Bambu Lab P1S",
     "version": "2.5.0.14",
     "layer_height": "0.2",
     "initial_layer_print_height": "0.20",
@@ -24,35 +24,35 @@
     "bottom_surface_pattern": "monotonic",
     "internal_solid_infill_pattern": "rectilinear",
     "outer_wall_speed": [
-        "80",
-        "80"
+        "123",
+        "123"
     ],
     "inner_wall_speed": [
-        "160",
-        "160"
+        "124",
+        "124"
     ],
     "initial_layer_speed": [
-        "25",
-        "25"
+        "21",
+        "21"
     ],
     "top_surface_speed": [
-        "50",
-        "50"
+        "122",
+        "122"
     ],
     "gap_infill_speed": [
-        "70",
-        "70"
+        "125",
+        "125"
     ],
     "outer_wall_acceleration": [
-        "2500",
-        "2500"
+        "1260",
+        "1260"
     ],
     "inner_wall_acceleration": [
-        "3000"
+        "8000"
     ],
     "initial_layer_acceleration": [
-        "500",
-        "500"
+        "1270",
+        "1270"
     ],
-    "brim_width": "5"
+    "brim_width": "8"
 }
