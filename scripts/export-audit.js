@@ -108,8 +108,25 @@ async function main() {
     else if (a && g && proc[k].length !== goldenProcess[k].length) elementCountDelta++;
   });
   if (!arrayFormMismatch) PASS('array/scalar form agrees with golden for all shared process keys');
-  checkWarn('array element count matches golden (dual-extruder-variant schema)', elementCountDelta === 0,
-    `${elementCountDelta} shared keys where golden has 2-element per-extruder-variant arrays, app emits 1-element (BS 2.5 X1C writes ["v","v"]; whether 1-element imports needs the owner import test)`);
+  checkFail('array element count matches golden (dual-extruder-variant schema)', elementCountDelta === 0,
+    `${elementCountDelta} shared keys where element count differs from golden (Export P2: app now emits the 7-key dual ["v","v"] form)`);
+
+  // — Export P2 dual-variant contract (three explicit guards; Codex round-2 finding 5:
+  //   the shared-key loop above iterates PROCESS keys only and never sees filament) —
+  const DUAL_ALLOWLIST = ['outer_wall_speed', 'inner_wall_speed', 'initial_layer_speed',
+    'top_surface_speed', 'gap_infill_speed', 'outer_wall_acceleration', 'initial_layer_acceleration'];
+  const emittedDual = Object.keys(proc).filter(k => Array.isArray(proc[k]) && proc[k].length === 2).sort();
+  checkFail('emitted 2-element process arrays equal exactly the 7-key allowlist (both directions)',
+    JSON.stringify(emittedDual) === JSON.stringify([...DUAL_ALLOWLIST].sort()),
+    `emitted dual: ${JSON.stringify(emittedDual)} vs allowlist ${JSON.stringify([...DUAL_ALLOWLIST].sort())}`);
+  const filTempKeys = ['nozzle_temperature', 'nozzle_temperature_initial_layer'];
+  checkFail('filament temps stay 1-element AND golden 2nd entries are "nil" (schema self-check)',
+    filTempKeys.every(k => Array.isArray(fil[k]) && fil[k].length === 1
+      && Array.isArray(goldenFilament[k]) && goldenFilament[k][1] === 'nil'),
+    filTempKeys.map(k => `app.${k}=${JSON.stringify(fil[k])} golden.${k}=${JSON.stringify(goldenFilament[k])}`).join('; '));
+  checkFail('variant-name/id keys are never emitted (machine-inferred by BS)',
+    !('print_extruder_variant' in proc) && !('filament_extruder_variant' in fil) && !('print_extruder_id' in proc),
+    `present: ${['print_extruder_variant' in proc && 'print_extruder_variant', 'filament_extruder_variant' in fil && 'filament_extruder_variant', 'print_extruder_id' in proc && 'print_extruder_id'].filter(Boolean).join(', ')}`);
 
   // — Key inventory: app keys the golden lacks (user presets are sparse = expected) —
   const appOnly = Object.keys(proc).filter(k => !(k in goldenProcess));

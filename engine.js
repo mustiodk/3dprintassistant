@@ -3226,6 +3226,17 @@ const Engine = (() => {
   const BAMBU_PROCESS_VERSION  = '2.5.0.14';
   const BAMBU_FILAMENT_VERSION = '2.5.0.18';
 
+  // BS 2.5 dual-extruder-variant schema: these keys are written as 2-element
+  // per-variant arrays by BS 2.5 itself (golden X1C fixtures). We duplicate the
+  // single resolved value into both positions — identical values make variant
+  // position irrelevant, and the golden proved 1-element also imports, so this
+  // is robustness for future multi-variant machines (H2D), not a bug fix.
+  const BAMBU_DUAL_VARIANT_PROCESS_FIELDS = new Set([
+    'outer_wall_speed', 'inner_wall_speed', 'initial_layer_speed',
+    'top_surface_speed', 'gap_infill_speed',
+    'outer_wall_acceleration', 'initial_layer_acceleration',
+  ]);
+
   // Numeric-only extraction for the passthrough pipeline: units/ranges are
   // mechanical ("0.2 mm" → "0.2", "5–8 mm" → "5", "15%" → "15%"); anything
   // non-numeric without a _slicer_value sidecar is SKIPPED, never guessed.
@@ -3530,7 +3541,9 @@ const Engine = (() => {
         val = _numericValue(param.value ?? param);    // numeric-only, no guessing
         if (val == null) return;
       }
-      process[bsKey] = BAMBU_ARRAY_FIELDS.has(bsKey) ? [val] : val;
+      process[bsKey] = BAMBU_DUAL_VARIANT_PROCESS_FIELDS.has(bsKey) ? [val, val]
+                     : BAMBU_ARRAY_FIELDS.has(bsKey)                ? [val]
+                     :                                                val;
     });
 
     // IMPL-036 3a/3b: ironing splits into ironing_type (mapped above from
