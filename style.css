@@ -803,6 +803,8 @@ body, header, .top-nav, .filters, .panel, .chip,
 .compare-btn:hover { box-shadow: 0 4px 14px rgba(123,110,246,0.14); }
 .export-btn:hover { color: var(--text); border-color: var(--border2); }
 .export-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+.save-btn:disabled { opacity: 0.6; cursor: default; pointer-events: none; }
+.save-btn.saved { color: #ffaa33; border-color: rgba(255,160,50,0.4); }
 .export-group { display: flex; align-items: center; gap: 6px; }
 .beta-badge {
   font-family: 'DM Mono', monospace;

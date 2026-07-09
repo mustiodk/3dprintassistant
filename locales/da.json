@@ -107,6 +107,7 @@
   "workshopEmpty":             "Ingen gemte profiler endnu",
   "workshopEmptySub":          "Konfigurer en profil, og tryk ★ Gem ved resultaterne.",
   "saveProfileBtn":            "★ Gem",
+  "saveProfileBtnSaved":       "✓ Gemt",
   "saveProfileTitle":          "Gem profil i værkstedet",
   "profileSaved":              "Gemt i dit værksted",
   "wsSaveFailed":              "Kunne ikke gemme — lageret er fuldt eller utilgængeligt",

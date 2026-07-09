@@ -84,6 +84,8 @@ let currentView       = 'configure';     // 'configure' | 'troubleshoot' | 'work
 let activeSymptom     = null;            // troubleshooter selected symptom id
 let comparisonProfile = null;            // { profile, label } when Profile A is locked
 let _lastTrackedProfileKey = null;       // deduplicates profile_generated events
+let _savedStateKey  = null;              // codec key of the state last saved to / loaded from Workshop
+let _savedProfileId = null;              // Workshop profile id backing _savedStateKey
 let pickerBrand       = null;            // currently expanded brand in printer picker
 let pickerShowMore    = false;           // whether secondary brands are visible
 let pickerCollapsed   = false;           // auto-collapse picker after printer selected + other filter clicked
@@ -327,8 +329,7 @@ function applyLang() {
   if (lockBtn) lockBtn.textContent = comparisonProfile ? T('compareClear') : T('compareBtn');
   const shareBtnEl = document.getElementById('shareBtn');
   if (shareBtnEl) shareBtnEl.textContent = T('shareBtn');
-  const saveBtnEl = document.getElementById('saveProfileBtn');
-  if (saveBtnEl) saveBtnEl.textContent = T('saveProfileBtn');
+  syncSaveBtnState();
 
   // Workshop static text + list re-render for language
   document.getElementById('workshopHeroTitle').textContent = T('workshopTitle');
@@ -1112,6 +1113,12 @@ function renderWorkshop() {
     b.addEventListener('click', () => {
       if (b.dataset.armed === '1') {
         WorkshopStore.remove(b.dataset.id);
+        // The deleted profile no longer backs the current state — saving is fine again.
+        if (b.dataset.id === _savedProfileId) {
+          _savedProfileId = null;
+          _savedStateKey  = null;
+          syncSaveBtnState();
+        }
         renderWorkshop();
         return;
       }
@@ -1194,6 +1201,24 @@ function _syncOutcomeToggle() {
   document.getElementById('outcomeSymptoms').style.display = _outcomeResult === 'failed' ? '' : 'none';
 }
 
+// A profile that was just loaded (or just saved) and hasn't been changed must
+// not be saveable again — that would only create duplicates. Multi fields are
+// sorted so chip toggle order can't fake a change.
+function currentStateKey() {
+  const env = JSON.parse(StateCodec.encodeForStorage(state));
+  Object.values(env.state).forEach(v => { if (Array.isArray(v)) v.sort(); });
+  return JSON.stringify(env.state);
+}
+
+function syncSaveBtnState() {
+  const btn = document.getElementById('saveProfileBtn');
+  if (!btn) return;
+  const unchanged = _savedStateKey !== null && _savedStateKey === currentStateKey();
+  btn.disabled = unchanged;
+  btn.classList.toggle('saved', unchanged);
+  btn.textContent = Engine.t(unchanged ? 'saveProfileBtnSaved' : 'saveProfileBtn');
+}
+
 function restoreWorkshopProfile(id) {
   const p = WorkshopStore.get(id);
   if (!p) return;
@@ -1203,6 +1228,11 @@ function restoreWorkshopProfile(id) {
   renderPrinterSummary();
   setView('configure');
   render();
+  // Key is taken after render() so per-render state syncs (e.g. profileMode
+  // 'mine' → 'safe' degrade) are already settled.
+  _savedStateKey  = currentStateKey();
+  _savedProfileId = p.id;
+  syncSaveBtnState();
   showToast(Engine.t('wsLoaded'));
 }
 
@@ -1314,6 +1344,11 @@ function bindControls() {
       // Snapshot through the codec so only known state fields are stored.
       const snapshot = JSON.parse(StateCodec.encodeForStorage(state)).state;
       const r = WorkshopStore.save(name, snapshot);
+      if (r.ok) {
+        _savedStateKey  = currentStateKey();
+        _savedProfileId = r.profile.id;
+        syncSaveBtnState();
+      }
       showToast(r.ok ? Engine.t('profileSaved') : Engine.t('wsSaveFailed'));
     });
   });
@@ -1621,7 +1656,10 @@ function render() {
   const shareBtn = document.getElementById('shareBtn');
   if (shareBtn) shareBtn.classList.toggle('visible', !!hasMin);
   const saveBtn = document.getElementById('saveProfileBtn');
-  if (saveBtn) saveBtn.classList.toggle('visible', !!hasMin);
+  if (saveBtn) {
+    saveBtn.classList.toggle('visible', !!hasMin);
+    syncSaveBtnState();
+  }
 
   if (!hasMin) {
     // Clear comparison banner if no selection

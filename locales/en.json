@@ -107,6 +107,7 @@
   "workshopEmpty":             "No saved profiles yet",
   "workshopEmptySub":          "Configure a profile, then hit ★ Save next to the results.",
   "saveProfileBtn":            "★ Save",
+  "saveProfileBtnSaved":       "✓ Saved",
   "saveProfileTitle":          "Save profile to Workshop",
   "profileSaved":              "Saved to your Workshop",
   "wsSaveFailed":              "Could not save — storage is full or unavailable",
