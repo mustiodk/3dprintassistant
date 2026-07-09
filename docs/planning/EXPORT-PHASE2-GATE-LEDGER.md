@@ -84,7 +84,8 @@
 - **Dual-array sentinels display as ONE sane value each** (the Phase 2 class question, answered): Outer wall **123**, Inner wall **124**, Initial layer **21** (Speed tab).
 - Brim width **8** (Others tab; greyed under Brim type=Auto, value intact).
 - Filament nozzle temps: Initial layer **202** / Other layers **201** (Filament tab) — 1-element temps accepted; BS renders its Direct Drive Standard/High Flow variant tabs without complaint.
-- Not visible in the screenshots (not inspected): top surface 122, gap infill 125, accels 1260/1270 (same emission mechanism as the three verified speed keys), and filament retraction 0.77 (Setting Overrides tab; the 2026-07-06 import test already proved retraction round-trip). Owner asked for one optional glance at retraction 0.77; not treated as blocking.
+- Filament retraction **0.77 mm CONFIRMED** (5th screenshot, Setting Overrides → Length = 0.77 mm, Retraction Speed 45) — the full sentinel set is now green.
+- Not separately inspected (same emission mechanism as the verified keys, not treated as blocking): top surface 122, gap infill 125, accels 1260/1270.
 
 **Step 8.3 remaining blocker: iOS XCTest on the mac-mini (T7 UNVERIFIED).**
 
