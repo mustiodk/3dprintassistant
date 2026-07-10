@@ -32,6 +32,12 @@ const MANUFACTURER_SOURCE_CLASSES = new Set([
   'manufacturer-firmware-profile',
 ]);
 
+const ABSENCE_BOOLEAN_FIELDS = new Set([
+  'active_chamber_heating',
+  'has_camera',
+  'has_lidar',
+]);
+
 function nonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -111,7 +117,8 @@ function fieldPasses(name, field) {
       && hasAppCapSweep(field)) {
     return true;
   }
-  return field.evidenceType === 'absence-rationale'
+  return ABSENCE_BOOLEAN_FIELDS.has(name)
+    && field.evidenceType === 'absence-rationale'
     && field.value === false
     && hasAbsenceRationale(field);
 }

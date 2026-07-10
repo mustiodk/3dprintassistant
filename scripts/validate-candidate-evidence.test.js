@@ -108,6 +108,21 @@ test('absence rationale with silence parks', () => {
   assert.equal(result.reviewRequests, 0);
 });
 
+test('absence rationale cannot stand in for a non-boolean critical value', () => {
+  const candidate = baseCandidate();
+  candidate.printersJsonRow.max_nozzle_temp = {
+    value: false,
+    source: null,
+    confidence: 'confirmed',
+    evidenceType: 'absence-rationale',
+    absenceRationale: absenceRationale(),
+  };
+  const result = validateCandidateEvidence(candidate);
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'research-defect');
+  assert.equal(result.reviewRequests, 0);
+});
+
 test('complete source sweep can classify absence as world-absent', () => {
   const candidate = baseCandidate();
   candidate.printersJsonRow.max_speed = {
