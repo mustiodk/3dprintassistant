@@ -55,6 +55,16 @@ test('graph validation rejects unsanctioned tainted review edges', () => {
   assert.match(result.violations.join('\n'), /weekly-retry.*not sanctioned/i);
 });
 
+test('graph validation rejects a missing required tainted review edge', () => {
+  const t = structuredClone(loadTaxonomy());
+  t.sanctionedTaintedReviewEdges = t.sanctionedTaintedReviewEdges.filter(
+    (edge) => edge !== 'rd3-external-evidence'
+  );
+  const result = validateTaxonomyGraph(t);
+  assert.equal(result.ok, false);
+  assert.match(result.violations.join('\n'), /required.*missing.*rd3-external-evidence/i);
+});
+
 test('future needs-source-resolution:conflicting is not active yet', () => {
   const t = loadTaxonomy();
   const c = classifyParkReason('needs-source-resolution:conflicting', { tainted: false }, t);
