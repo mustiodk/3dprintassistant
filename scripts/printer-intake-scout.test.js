@@ -285,6 +285,20 @@ let adv, advRaw;
         && ep.assistedOnlyOutcomes.includes('needs-source-resolution')
         && ep.assistedOnlyOutcomes.includes('ship-ready'),
       `got ${JSON.stringify(ep.assistedOnlyOutcomes)}`);
+    const row = cand.printersJsonRow || {};
+    const evidenceKeys = ['absenceRationale', 'confidence', 'evidenceType', 'source', 'value'].sort();
+    check('candidate evidence slots expose the complete v2.1 shape',
+      JSON.stringify(Object.keys(row.max_speed || {}).sort()) === JSON.stringify(evidenceKeys),
+      `got ${JSON.stringify(row.max_speed)}`);
+    for (const field of [
+      'series', 'extruder_type', 'enclosure', 'max_nozzle_temp', 'max_bed_temp',
+      'max_speed', 'max_acceleration', 'available_nozzle_sizes', 'available_plates',
+      'multi_color_systems', 'active_chamber_heating', 'has_camera', 'has_lidar',
+      'notes',
+    ]) {
+      check(`candidate skeleton carries evidence slot ${field}`, !!row[field],
+        `missing ${field}; row=${JSON.stringify(row)}`);
+    }
   }
   try { fs.rmSync(STAGING, { recursive: true, force: true }); } catch (_) {}
 }
