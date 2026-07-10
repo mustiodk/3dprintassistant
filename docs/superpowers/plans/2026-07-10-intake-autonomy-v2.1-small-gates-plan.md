@@ -52,6 +52,35 @@
 
 ---
 
+## Task R-1: Execution Branch Setup
+
+**Files:**
+- No file edits.
+
+**Interfaces:**
+- Produces: implementation branch `codex/intake-v21-impl`.
+- Consumes: clean `main` after the planning PR is merged.
+
+- [ ] **Step 1: Sync main**
+
+```bash
+git switch main
+git pull --ff-only
+git status --short --branch
+```
+
+Expected: `## main...origin/main` and no dirty files.
+
+- [ ] **Step 2: Create implementation branch**
+
+```bash
+git switch -c codex/intake-v21-impl
+```
+
+Expected: `Switched to a new branch 'codex/intake-v21-impl'`.
+
+---
+
 ## Task R0: Taxonomy Config And NO-GO Taint Graph
 
 **Files:**
@@ -1046,8 +1075,8 @@ git commit -m "chore(intake): mark v2.1 implementation ready"
 - [ ] **Step 5: PR and merge**
 
 ```bash
-git push -u origin codex/intake-v21-review-plan
-gh pr create --base main --head codex/intake-v21-review-plan --title "Plan Intake Autonomy v2.1 small-gate build" --body-file /tmp/intake-v21-pr.md
+git push -u origin codex/intake-v21-impl
+gh pr create --base main --head codex/intake-v21-impl --title "Implement Intake Autonomy v2.1 small-gate build" --body-file /tmp/intake-v21-pr.md
 gh pr merge --merge --delete-branch
 git switch main
 git pull --ff-only
