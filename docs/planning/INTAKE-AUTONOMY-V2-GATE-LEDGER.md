@@ -8,6 +8,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 | Gate | Status | Evidence |
 |---|---|---|
+| R5 provenance store + custody preflight | ✅ 2026-07-10 | RED missing provenance module + preflight lacking repo/dry-run custody pass → 2/2 provenance tests + custody shell harness; direct hostile review NO-GO with 3 findings; accepted coverage findings landed one-per-commit; focused re-review GO; see R5 row |
 | R4 RD3 retry gate | ✅ 2026-07-10 | RED missing module → 16/16 tests; direct hostile review NO-GO with 2 behavior findings + coverage gap; findings applied one-per-commit; focused re-review GO; see R4 row |
 | R3 parked store v2 + K2 SE migration | ✅ 2026-07-10 | RED missing module → 14/14 tests; direct hostile review NO-GO ×2, both findings applied one-per-commit; focused re-review GO; K2 SE fixture migrates only, no re-attempt; see R3 row |
 | R2 structured reviewer-output contract | ✅ 2026-07-10 | RED missing module → 12/12 tests; direct hostile review NO-GO ×3, all findings applied one-per-commit; focused re-review GO; see R2 row |
@@ -23,6 +24,14 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 ---
 
 ## Rows (newest first)
+
+### R5 — provenance store + custody preflight ✅ (2026-07-10; `d513cc9` + `89169a8` + `119fa8a`)
+
+**TDD:** `node scripts/intake-provenance-store.test.js` first failed on the missing module; `bash scripts/intake-run-preflight.test.sh` first failed because the old preflight ignored `--repo/--dry-run` and blocked on the controller worktree dirt. Final provenance coverage proves idempotent upsert by printer id, preservation of existing printer provenance, and no mutation of either the source document or the passed provenance object. Final custody shell harness proves dirty custody paths pass, dirty `data/printers.json` fails, a custody-subject ahead commit touching only custody paths passes, a custody-subject commit touching `data/printers.json` fails, and a non-custody subject touching a custody path fails. A zsh-specific regression was caught during GREEN: `local path` shadowed zsh's command-search `path` array; renaming to `file_path` restored command lookup.
+
+**Review chain:** direct read-only `gpt-5.4` review session `019f4dbd-3c42-7582-b58c-7bb323996fa9` returned **NO-GO** ([record](../../codex/intake-autonomy-v2.1-review/direct-codex-2026-07-10-r5.md)): the provenance file was still untracked pre-commit, dry-run coverage did not prove `origin/main` was preserved, and provenance-object immutability was not asserted. The tracked-file issue was closed by the baseline R5 commit. The two accepted coverage findings landed one-per-commit: `89169a8` proves dry-run preserves `origin/main` and leaves the repo one custody commit ahead; `119fa8a` proves the provenance argument is not mutated. Mutation checks confirmed both tests fail against the rejected behavior before being restored green. Focused re-review session `019f4dc1-7b2d-7201-a674-e96a6ec5e392` returned **GO** ([record](../../codex/intake-autonomy-v2.1-review/direct-codex-2026-07-10-r5-followup.md)).
+
+**Contract proven:** `docs/printer-provenance.json` is tracked and starts as `printer-provenance@1`; `upsertPrinterProvenance()` writes by printer id without mutating inputs. `intake-run-preflight.sh` now recognises RD10 custody state before the generic web clean/sync predicate: only `scripts/printer-intake-outcomes.jsonl` and `docs/printer-provenance.json` are tolerated as dirty custody paths; ahead commits are tolerated only when every ahead commit has subject `chore(intake): custody*` and touches only those two paths; `behind` still fail-closes first. Dry-run preserves an existing `refs/remotes/origin/main` so tests cannot erase ahead evidence. Engine, shipped printer data, overlays, web UI, iOS, and Android plan are untouched, so no app/data utilization change is needed at this gate.
 
 ### R4 — RD3 judgment retry gate ✅ (2026-07-10; `1537bdf` + `0c8cf5e` + `12efd9f`)
 
