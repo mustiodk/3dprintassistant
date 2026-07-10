@@ -1075,6 +1075,32 @@ git commit -m "chore(intake): mark v2.1 implementation ready"
 - [ ] **Step 5: PR and merge**
 
 ```bash
+cat > /tmp/intake-v21-pr.md <<'EOF'
+## Summary
+- implements Intake Autonomy v2.1 in small gates R0-R8
+- records evidence before review, enforces NO-GO taint, and preserves shipped-printer provenance
+- keeps K2 SE parked unless the owner explicitly authorizes a re-attempt
+
+## Verification
+- node scripts/intake-park-taxonomy.test.js
+- node scripts/lib/intake-source-normalizer.test.js
+- node scripts/validate-candidate-evidence.test.js
+- node scripts/validate-reviewer-output.test.js
+- node scripts/intake-parked-store.test.js
+- node scripts/intake-retry-gate.test.js
+- node scripts/intake-provenance-store.test.js
+- bash scripts/intake-run-preflight.test.sh
+- node scripts/printer-intake-scout.test.js
+- node scripts/republish-overlay.test.js
+- node scripts/verify-live-overlay.test.js
+- node scripts/verify-live-picker.test.js
+- node scripts/intake-kv-hygiene.test.js
+- node scripts/intake-notify.test.js
+- node scripts/intake-diff-guards.test.js
+- node scripts/validate-data.js
+- node scripts/validate-ios-printer-overlay.js
+- git diff --check
+EOF
 git push -u origin codex/intake-v21-impl
 gh pr create --base main --head codex/intake-v21-impl --title "Implement Intake Autonomy v2.1 small-gate build" --body-file /tmp/intake-v21-pr.md
 gh pr merge --merge --delete-branch
