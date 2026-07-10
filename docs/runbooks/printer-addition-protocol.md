@@ -442,7 +442,8 @@ the wrap-up is blocked.
 
 - [ ] Sources cited in plan or commit body (path or URL).
 - [ ] Taxonomy matches existing brand picker; new `brands[]` row, if any, has
-      explicit owner sign-off.
+      explicit owner sign-off in manual mode OR satisfies the autonomous PD4
+      criteria above, including reviewer GO.
 - [ ] Phase 2 picker dry-run output captured in commit body or session log.
 - [ ] Web commit is one printer; no `engine.js`, marketing, or correction-sweep
       mixing.
@@ -456,8 +457,10 @@ the wrap-up is blocked.
       local XCTest, and the void conditions were checked and none fired.
 - [ ] No `engine.js`, `app.js`, validator, or spec file edited in printer
       commits.
-- [ ] Owner visual picker check OK (only if overlay touched, new brand, or new
-      series_group).
+- [ ] Manual mode: owner visual picker check OK (only if overlay touched, new
+      brand, or new series_group). Autonomous mode: `picker-dry-run` and
+      `verify-live-picker` are green, and the Discord report flags the owner's
+      post-ship spot-check cue when overlay/new-brand/new-series conditions fire.
 - [ ] Live overlay URL confirms published `content_version` (only if overlay
       was deployed).
 - [ ] Overlay → bundled graduation (Phase 4b): if a printer was baked into a new
