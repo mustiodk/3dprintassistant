@@ -15,7 +15,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { gather, parseCorrectiveSignal, readLedger } = require('./intake-retrospective-gather.js');
+const { gather, parseCorrectiveSignal, readLedger, normalizeCandidateKey } = require('./intake-retrospective-gather.js');
 const { applyDiff } = require('./apply-guardrails-diff.js');
 const { validateDiff } = require('./validate-guardrails-diff.js');
 
@@ -74,6 +74,49 @@ try {
   check('gather conflict: brandAliases.x collision surfaced in errors', cf.errors.some(e => e.includes('target conflict on brandAliases.x')));
   check('gather conflict: colliding signals excluded; only w/case remains', cf.diff.changes.length === 1 && cf.diff.changes[0].target === 'modelSuffixStrip');
   check('gather conflict: emitted diff still passes the validator', validateDiff(cf.diff).ok, JSON.stringify(validateDiff(cf.diff).errors));
+
+  // ── PD7 (Intake Autonomy v2, B4.4): last-line-wins + full-ledger corrections ──
+  // A later correction line for the same candidateKey supersedes the original.
+  const flipEntries = [
+    { candidateKey: 'kx', runId: '2026-07-01T00:00:00.000Z', ownerResolution: 'was-brand-typo', correctiveSignal: 'brandAliases:zzz->creality' },
+    { candidateKey: 'kx', runId: '2026-07-02T00:00:00.000Z', ownerResolution: 'declined-correct', correctiveSignal: 'none' },
+  ];
+  const flipped = gather(flipEntries, null);
+  check('PD7 flip: correction line removes the clustered miss', flipped.diff.changes.length === 0, JSON.stringify(flipped.diff.changes));
+
+  // Cross-watermark: the original miss was consumed by a prior gather (pre-
+  // watermark); the appended correction is post-watermark. The winning line is
+  // the correction — the flip must land even though the original is gated out.
+  const crossWm = gather(flipEntries, '2026-07-01T12:00:00.000Z');
+  check('PD7 cross-watermark flip: no cluster resurfaces', crossWm.diff.changes.length === 0 && !crossWm.clusters.length, JSON.stringify(crossWm.clusters));
+  // And the inverse: a post-watermark correction that ADDS a miss clusters alone.
+  const lateTag = [
+    { candidateKey: 'ky', runId: '2026-07-01T00:00:00.000Z', ownerResolution: 'declined-correct', correctiveSignal: 'none' },
+    { candidateKey: 'ky', runId: '2026-07-02T00:00:00.000Z', ownerResolution: 'was-mis-declined', correctiveSignal: 'resinKeywords:-neptune' },
+  ];
+  const lateGather = gather(lateTag, '2026-07-01T12:00:00.000Z');
+  check('PD7 cross-watermark retro-tag: correction clusters', lateGather.diff.changes.length === 1 && lateGather.diff.changes[0].value === 'neptune');
+
+  // Array-vs-string candidateKey identity: ["req:a"] supersedes "req:a".
+  const arrayFlip = gather([
+    { candidateKey: 'req:a', runId: '2026-07-01T00:00:00.000Z', ownerResolution: 'was-suffix-variant', correctiveSignal: 'modelSuffixStrip:w/kit' },
+    { candidateKey: ['req:a'], runId: '2026-07-02T00:00:00.000Z', ownerResolution: 'declined-correct', correctiveSignal: 'none' },
+  ], null);
+  check('PD7 array-key identity: ["req:a"] correction supersedes "req:a"', arrayFlip.diff.changes.length === 0);
+  check('PD7 normalize: order-insensitive arrays match', normalizeCandidateKey(['b', 'a']) === normalizeCandidateKey(['a', 'b']) && normalizeCandidateKey('a') === normalizeCandidateKey(['a']));
+
+  // Autonomous values are NON-miss: runner-written lines never cluster.
+  const autoEntries = [
+    { candidateKey: 'ka', runId: '2026-07-05T00:00:00.000Z', scoutOutcome: 'needs-research', ownerResolution: 'auto-shipped', correctiveSignal: 'none', ledgeredAt: '2026-07-05T00:00:00.000Z' },
+    { candidateKey: 'kb', runId: '2026-07-05T00:00:00.000Z', scoutOutcome: 'needs-research', ownerResolution: 'auto-parked:unverified-model', correctiveSignal: 'brandTokens:whatever' },
+  ];
+  check('PD7 auto-* values never enter miss clusters', gather(autoEntries, null).clusters.length === 0);
+
+  // Existing single-line-per-candidate behavior unchanged (fixture re-check
+  // happens above); a duplicated IDENTICAL line still dedupes via last-line-wins.
+  const dupLine = { candidateKey: 'kd', runId: '2026-07-05T00:00:00.000Z', ownerResolution: 'was-brand-typo', correctiveSignal: 'brandAliases:qq->creality' };
+  const dd = gather([dupLine, dupLine], null);
+  check('PD7 duplicated identical line clusters once with corroboration 1', dd.clusters.length === 1 && dd.clusters[0].corroboration === 1);
 
   // parseCorrectiveSignal units
   check('parse: brandAliases:x->creality', JSON.stringify(parseCorrectiveSignal('brandAliases:x->creality')) === JSON.stringify({ target: 'brandAliases.x', action: 'add', value: 'creality' }));

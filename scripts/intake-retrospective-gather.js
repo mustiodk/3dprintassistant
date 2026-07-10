@@ -37,7 +37,20 @@ const DIFF_SCHEMA_ID    = 'printer-intake-guardrails-diff@1';
 
 const ARRAY_TARGETS    = ['modelSuffixStrip', 'resinKeywords', 'nonFdmTech', 'nonFdmNoteAcronyms'];
 // Owner resolutions that signal a Scout MISS a guardrail could prevent.
+// Autonomous-mode values (PD7, additive): 'auto-shipped' and 'auto-parked:<reason>'
+// are NON-miss outcomes — deliberately absent here, so runner-written lines never
+// enter miss clusters. Owner retro-tags stay appended correction lines.
 const MISS_RESOLUTIONS = ['was-duplicate-missed', 'was-brand-typo', 'was-suffix-variant', 'was-mis-declined', 'was-noise'];
+
+// PD7 candidate identity: string candidateKey and array candidateKey (collapsed
+// candidates) must resolve to the same identity, order-insensitively — a
+// correction written as ["req:a"] supersedes an original written as "req:a".
+function normalizeCandidateKey(candidateKey) {
+  const keys = Array.isArray(candidateKey)
+    ? candidateKey.map(String)
+    : (candidateKey != null ? [String(candidateKey)] : []);
+  return keys.length ? keys.slice().sort().join('\u0000') : null;
+}
 
 function validTs(v) { return typeof v === 'string' && !Number.isNaN(Date.parse(v)); }
 
@@ -107,10 +120,28 @@ function gather(entries, watermark) {
   if (wm != null && !validTs(wm)) { errors.push(`watermark ${JSON.stringify(wm)} is not a valid timestamp — ignored (LOUD full rebuild this run)`); wm = null; }
   const fullRebuild = wm == null;
 
-  // Watermark gate: keep entries strictly newer than the watermark. Entries with a
-  // missing/invalid runId are ALWAYS kept (never silently dropped) — they
-  // re-surface until fixed, mirroring the Scout's no-silent-drop discipline.
-  const gathered = (Array.isArray(entries) ? entries : []).filter(e => {
+  // PD7 last-line-wins: reduce the FULL entries list (file order — the ledger
+  // is append-only) to each candidate's NEWEST line before any watermark
+  // gating. Correction resolution must read the whole ledger, not the
+  // watermark-gated slice: a correction appended after the original line was
+  // consumed by a prior incremental gather would otherwise arrive alone —
+  // either silently no-opping (a flip to non-miss) or clustering next to a
+  // stale superseded line (plan-review M7). Keyless lines have no identity to
+  // supersede and pass through unchanged.
+  const lastByKey = new Map();
+  const currentEntries = [];
+  for (const e of (Array.isArray(entries) ? entries : [])) {
+    const nk = normalizeCandidateKey(e && e.candidateKey);
+    if (nk == null) { currentEntries.push(e); continue; }
+    lastByKey.set(nk, e); // later lines overwrite — last line wins
+  }
+  for (const e of lastByKey.values()) currentEntries.push(e);
+
+  // Watermark gate — applied to each candidate's WINNING line: keep lines
+  // strictly newer than the watermark. Lines with a missing/invalid runId are
+  // ALWAYS kept (never silently dropped) — they re-surface until fixed,
+  // mirroring the Scout's no-silent-drop discipline.
+  const gathered = currentEntries.filter(e => {
     const r = e && e.runId;
     if (!validTs(r)) return true;
     return wm == null ? true : Date.parse(r) > Date.parse(wm);
@@ -230,5 +261,7 @@ function main() {
 if (require.main === module) {
   main();
 } else {
-  module.exports = { gather, parseCorrectiveSignal, readLedger, readWatermark, ARRAY_TARGETS, MISS_RESOLUTIONS, DIFF_SCHEMA_ID };
+  // normalizeCandidateKey is exported so the pipeline runner's startup ledger
+  // reconciliation (Codex MF-3) uses the SAME candidate identity as gather.
+  module.exports = { gather, parseCorrectiveSignal, readLedger, readWatermark, normalizeCandidateKey, ARRAY_TARGETS, MISS_RESOLUTIONS, DIFF_SCHEMA_ID };
 }
