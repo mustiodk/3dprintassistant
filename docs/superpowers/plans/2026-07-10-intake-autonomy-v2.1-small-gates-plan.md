@@ -14,6 +14,7 @@
 - Engine/app/data profile semantics are unchanged until a real printer ships. No `engine.js`, `app.js`, or `data/*.json` edit is part of gates R0-R7.
 - Web UI: no change. iOS: no binary/TestFlight change. Android plan: no change.
 - Gate order is binding. Do not create a component that can write a v2.1 parked sidecar before R0 taxonomy validation is green.
+- There is no `package.json`; tests are direct `node scripts/*.test.js` and `bash scripts/*.test.sh` commands.
 - Every gate ends with: implementation tests green, relevant project validators green, hostile review, patch findings, cross-model check, then commit.
 - Cross-model command when Codex is driving: `bridge --mode claude-only "<focused gate review prompt>" --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200`.
 - Cross-model command when Claude is driving: `bridge --mode codex-only "<focused gate review prompt>" --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200`.
@@ -248,6 +249,10 @@ module.exports = { loadTaxonomy, classifyParkReason, validateTaxonomyGraph };
 Run: `node scripts/intake-park-taxonomy.test.js && node scripts/intake-park-taxonomy.js`
 
 Expected: tests pass and CLI prints `[intake-park-taxonomy] ok=true`.
+
+Note: R0 proves the taxonomy graph half of the NO-GO invariant. R3 completes the
+write-side half with `assertWritableClass()` refusing tainted sidecars in
+`research-defect`, `world-absent`, or `availability-blocked`.
 
 - [ ] **Step 6: Gate review**
 
