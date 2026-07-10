@@ -78,6 +78,12 @@ test('reviewer id must be a stable non-whitespace token', () => {
   assert.match(result.errors.join('\n'), /reviewer/);
 });
 
+test('reviewer id must use canonical lowercase spelling', () => {
+  const result = validateReviewerOutput({ reviewer: 'Codex', verdict: 'GO', objections: [] });
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /reviewer/);
+});
+
 test('objections must be an array', () => {
   const result = validateReviewerOutput({ reviewer: 'codex', verdict: 'NO-GO', objections: {} });
   assert.equal(result.ok, false);

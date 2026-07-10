@@ -1,5 +1,5 @@
 const ISO_8601 = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})$/;
-const REVIEWER_ID = /^[a-z0-9](?:[a-z0-9._-]{0,63})$/i;
+const REVIEWER_ID = /^[a-z0-9](?:[a-z0-9._-]{0,63})$/;
 
 function nonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
@@ -35,7 +35,7 @@ function validateReviewerOutput(output) {
   }
 
   if (!nonEmptyString(output.reviewer) || !REVIEWER_ID.test(output.reviewer)) {
-    errors.push('reviewer must be a stable non-whitespace token');
+    errors.push('reviewer must be a stable lowercase token');
   }
   if (!['GO', 'NO-GO'].includes(output.verdict)) {
     errors.push('verdict must be GO or NO-GO');
