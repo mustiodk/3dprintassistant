@@ -115,7 +115,13 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
   | `decision-required` | `new-series-group`, `app-cap-no-go`, `pd4-criteria-unmet`, `review-split`, `needs-owner-taxonomy`, `needs-taxonomy-decision`, `blocked`, **unsuffixed legacy `needs-source-resolution`**, any expired park, **any unrecognised reason** | **owner** | never auto |
   | `transient-pipeline` | `main-moved` | immediate | ×2 |
 
-  **Why `evidence-incomplete` was split (Codex must-fix #2).** Draft 2 filed it under a weekly timer with the rationale *"a fresh research pass may find what the last one missed."* That is not a changed input — it is a **research-stage re-roll**, which §2 condemns. The split honours the sharpened principle: `research-defect` gets **one** bounded repair (it must still clear a *deterministic* gate, so re-running is safe and self-limiting); `world-absent` gets the weekly clock **only after the researcher has documented a complete source sweep**, because there the timer genuinely re-queries the world.
+  **Why `evidence-incomplete` was split (Codex must-fix #2).** Draft 2 filed it under a weekly timer with the rationale *"a fresh research pass may find what the last one missed."* That is not a changed input — it is a **research-stage re-roll**, which §2 condemns. The split honours the sharpened principle: `research-defect` gets **one** bounded repair (it must still clear a *deterministic* gate, so re-running is safe and self-limiting); `world-absent` gets the weekly clock **only after the validator has recorded a complete source sweep**, because there the timer genuinely re-queries the world.
+
+  **Research-defect bound enforcement.** The sidecar carries `repairAttempts`.
+  `intake-parked-store.js` increments it before allowing a `research-defect`
+  candidate into the retry sweep. If `repairAttempts >= 1`, the candidate is
+  reclassified to `decision-required` + notify before any research or review
+  turn runs.
 
   **Why RD3 failures get their own reason (Codex must-fix #1).** Draft 2 said an RD3 failure parks as `evidence-incomplete` → which sat in a *timed* lane. That silently converted a corroborated NO-GO back into weekly re-research: the ratchet, reintroduced by the very rule meant to kill it. A retry-gate failure now parks as **`review-no-go-unresolved`, which stays in `judgment-on-evidence`** — event-only, forever, no clock. **Invariant: nothing that has ever received a corroborated NO-GO may re-enter a timed lane.**
 
@@ -170,6 +176,7 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
 - **RD5 — The parked sidecar becomes the candidate's memory (fixes D2; DELIVERS D4). ✅ (amended by Codex should-fix #7)**
   ```
   { schema: "intake-parked@2", candidateKey, reason, class, firstParkedAt, lastAttemptAt,
+    repairAttempts,
     attempts: [{ at, runId, diffSha, outcome }],
     diffSha, baseSha, preservedRef, nextEligibleTrigger,
     candidateArtifact,            // path + sha of the filled candidate packet
