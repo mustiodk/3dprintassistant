@@ -941,7 +941,21 @@ expect_fail
 
 - [ ] **Step 4: Patch preflight**
 
-Add a function before the generic clean/in-sync predicate:
+Add test-only argument parsing near the top of `scripts/intake-run-preflight.sh`,
+before `cd "$REPO"`:
+
+```sh
+DRY_RUN=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --repo) REPO="$2"; FREEZE="$REPO/scripts/.intake-autonomy-freeze"; LOCK="$REPO/scripts/.intake-run.lock"; shift 2 ;;
+    --dry-run) DRY_RUN=true; shift ;;
+    *) fail bad-args "unknown argument $1" ;;
+  esac
+done
+```
+
+Add custody helpers before the generic web dirty/sync predicate:
 
 ```sh
 is_custody_path() {
@@ -950,9 +964,68 @@ is_custody_path() {
     *) return 1 ;;
   esac
 }
+
+all_dirty_paths_are_custody() {
+  local path
+  git status --porcelain | while read -r _ path; do
+    is_custody_path "$path" || return 1
+  done
+}
+
+ahead_commits_are_custody_only() {
+  local commit paths subject path
+  for commit in $(git rev-list origin/main..HEAD); do
+    subject="$(git log -1 --format=%s "$commit")"
+    [[ "$subject" == chore\(intake\):\ custody* ]] || return 1
+    paths="$(git diff-tree --no-commit-id --name-only -r "$commit")"
+    for path in ${(f)paths}; do
+      is_custody_path "$path" || return 1
+    done
+  done
+}
 ```
 
-Then recognize dirty/ahead custody states exactly. Anything outside those two paths or outside the custody commit subject pattern remains fail-closed.
+Replace the current web dirty/sync predicate with this shape:
+
+```sh
+if [[ -n "$(git status --porcelain)" ]]; then
+  if all_dirty_paths_are_custody; then
+    echo "PREFLIGHT-WARN custody-dirty — runner will repair before normal work"
+  else
+    fail web-dirty "$(git status --porcelain | head -3 | tr '\n' ' ')"
+  fi
+fi
+
+if [[ "$DRY_RUN" == "false" ]]; then
+  git fetch origin main --quiet || fail web-fetch-failed ""
+else
+  git update-ref refs/remotes/origin/main HEAD 2>/dev/null || true
+fi
+behind=$(git rev-list HEAD..origin/main --count)
+ahead=$(git rev-list origin/main..HEAD --count)
+if [[ "$behind" != "0" ]]; then
+  fail web-out-of-sync "behind=$behind ahead=$ahead"
+fi
+if [[ "$ahead" != "0" ]]; then
+  if ahead_commits_are_custody_only; then
+    echo "PREFLIGHT-WARN custody-ahead — runner will push/repair before normal work"
+  else
+    fail web-out-of-sync "behind=$behind ahead=$ahead"
+  fi
+fi
+```
+
+In `--dry-run`, skip wrangler, iOS, and bridge checks after the web predicate:
+
+```sh
+if [[ "$DRY_RUN" == "true" ]]; then
+  echo "PREFLIGHT ok=true reason=none detail=dry-run"
+  exit 0
+fi
+```
+
+Anything outside the two custody paths or outside the custody commit subject
+pattern remains fail-closed.
 
 - [ ] **Step 5: Run GREEN**
 
