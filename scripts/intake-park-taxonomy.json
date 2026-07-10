@@ -1,0 +1,57 @@
+{
+  "schema": "intake-park-taxonomy@1",
+  "classes": {
+    "availability-blocked": {
+      "reasons": ["review-unavailable"],
+      "trigger": "next-run",
+      "bound": 5,
+      "reviewEntry": true,
+      "taintedAllowed": false
+    },
+    "research-defect": {
+      "reasons": ["research-defect"],
+      "trigger": "next-run",
+      "bound": 1,
+      "reviewEntry": true,
+      "taintedAllowed": false
+    },
+    "world-absent": {
+      "reasons": ["world-absent"],
+      "trigger": "weekly",
+      "bound": 4,
+      "reviewEntry": true,
+      "taintedAllowed": false
+    },
+    "judgment-on-evidence": {
+      "reasons": ["review-no-go", "review-no-go-unresolved"],
+      "trigger": "event",
+      "bound": null,
+      "reviewEntry": false,
+      "taintedAllowed": true
+    },
+    "decision-required": {
+      "reasons": [
+        "new-series-group",
+        "app-cap-no-go",
+        "pd4-criteria-unmet",
+        "review-split",
+        "needs-owner-taxonomy",
+        "needs-taxonomy-decision",
+        "blocked",
+        "needs-source-resolution"
+      ],
+      "trigger": "owner",
+      "bound": null,
+      "reviewEntry": false,
+      "taintedAllowed": true
+    },
+    "transient-pipeline": {
+      "reasons": ["main-moved"],
+      "trigger": "immediate",
+      "bound": 2,
+      "reviewEntry": false,
+      "taintedAllowed": false
+    }
+  },
+  "sanctionedTaintedReviewEdges": ["owner-instruction", "rd3-external-evidence"]
+}
