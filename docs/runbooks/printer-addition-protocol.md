@@ -10,7 +10,50 @@ risk-triggered instead of mandatory. See
 [`codex/printer-addition-protocol-review/codex-2026-05-15-printer-addition-protocol-packet.md`](../../codex/printer-addition-protocol-review/codex-2026-05-15-printer-addition-protocol-packet.md)
 for the full simplification trail. v4 (2026-05-15) added Phase 1 step 0
 (FDM-only scope check) after a Photon Mono M7 Pro request surfaced the implicit
-assumption.
+assumption. v5 (2026-07-10) added the autonomous execution mode + the PD3/PD4
+owner-ratified waivers (Intake Autonomy v2, Gate B4).
+
+## Execution modes (v5, 2026-07-10)
+
+This protocol has two first-class execution modes; **the protocol steps are
+identical in both — the modes differ only in who approves.**
+
+1. **Manual (owner-gated)** — the original mode. Owner approves per candidate;
+   the owner visual picker check and new-brand sign-off apply as written below.
+2. **Autonomous (Intake Autonomy v2)** — a scheduled headless runner executes
+   this protocol per
+   [`../superpowers/specs/2026-07-09-intake-autonomy-v2-design.md`](../superpowers/specs/2026-07-09-intake-autonomy-v2-design.md)
+   (owner-ratified 2026-07-10, PD0–PD8 + the no-shadow-phase amendment) and the
+   runner contract `ai-operating-model/docs/agents/intake-pipeline-runner.md`.
+   The PD5 dual-review merge gate (hostile sub-agent GO + Codex GO on the
+   actual diff; any NO-GO parks) replaces per-candidate owner approval for the
+   PD2/PD4 auto classes; everything unverifiable parks with a notification.
+
+   **Owner-ratified waivers (2026-07-10), recorded here as protocol law:**
+   - **PD3 — the owner visual picker check is REPLACED in autonomous mode** by
+     `scripts/picker-dry-run.js` pre-ship + `scripts/verify-live-picker.js`
+     post-deploy (engine-level probe on production data); the owner's aesthetic
+     glance moves to a post-ship spot check via the Discord run report.
+   - **PD4 — new-brand owner sign-off is REPLACED in autonomous mode** by four
+     autonomous criteria (official manufacturer domain; ≥2 independent
+     non-reseller FDM sources; no catalog collision per `collectKnownBrandIds`;
+     explicit cross-model reviewer GO on the brand row). Any criterion unmet →
+     park.
+   - The overlay is published ONLY via `scripts/republish-overlay.js` (version
+     rule + hash + validator built in); delivery is verified via
+     `scripts/verify-live-overlay.js` (full-envelope compare) with PD6
+     auto-rollback (`content_version = max(bad, snapshot)+1` — the iOS
+     poisoned-cache guard).
+   - **One-time PD7 ledger marker migration (owner, outside the pipeline):**
+     edit line 1 of `scripts/printer-intake-outcomes.jsonl` so the
+     `ownerResolution` field doc reads
+     `"shipped | auto-shipped | auto-parked:<reason> | declined-correct | was-*"`,
+     and commit as `docs(intake): PD7 marker migration`. Documented here; the
+     runner never edits the marker.
+
+   **This manual protocol remains canonical on any conflict** — an autonomous
+   runner that cannot satisfy a step parks the candidate; it never improvises
+   around the protocol.
 
 ## Mental model (read first — load-bearing)
 
