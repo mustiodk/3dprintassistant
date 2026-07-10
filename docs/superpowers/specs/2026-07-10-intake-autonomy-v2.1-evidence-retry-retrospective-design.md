@@ -261,7 +261,7 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
 - **RD10 crash-injection test:** kill between ledger-write and commit → preflight's custody pass recognises the two-path dirt and the runner repairs; kill between commit and push → `ahead=1` recognised, repaired; **a third dirty path or a foreign ahead-commit still fail-closes.**
 - **RD1 regressions:** an app-cap `max_acceleration` candidate **passes** the evidence gate and reaches the reviewer; a `has_lidar:false` with a three-component absence rationale **passes**; the same with silence **parks**; a `null`-source `max_speed` parks without a review turn.
 - **RD10:** provenance append is idempotent per printer id; ledger + provenance land in one commit; a simulated crash between them is repaired by stage-0 reconciliation; `git status` is clean afterwards (preflight green — the C1 proof).
-- Migration proven against the **real** K2 SE (from the tag; never mutated in place until the migration commit), asserting it lands in `research-defect`.
+- Migration proven against the **real** K2 SE (from the tag; never mutated in place until the migration commit), asserting it lands in `decision-required`.
 - Per-gate: implement → hostile sub-agent review → patch → QA → commit → ledger tick. Codex review gates the impl plan.
 
 ## 8. Success criteria
@@ -314,7 +314,7 @@ Transcript: [`codex/intake-autonomy-v2.1-review/bridge-2026-07-10-154723-685395.
 **must-fix**
 1. **RD3 failure reclassified a corroborated NO-GO into a weekly retry lane** — the ratchet, reintroduced by the anti-ratchet rule. → RD3 failures park as `review-no-go-unresolved`, staying `judgment-on-evidence`; **no timed lane is reachable from a NO-GO** (unit-enforced, criterion 3).
 2. **`evidence-incomplete` on a weekly timer contradicts the spec's own principle** — "fresh research may find what the last one missed" is a research-stage re-roll, not a changed input. → Split into `research-defect` (ONE bounded repair; must clear a *deterministic* gate) and `world-absent` (weekly, only after a recorded complete source sweep). §2 sharpened: *the hazard is repeated attempts at a **stochastic** gate.*
-3. **RD3's novelty check is trivially bypassed on the real K2 SE park** (its `evidence[]` is empty ⇒ every source is "novel"; cheapest bypass = cite any new-looking URL). → Canonical source identity + mandatory `excerpt` + `claim` per objection; K2 SE migrates as `research-defect`.
+3. **RD3's novelty check is trivially bypassed on the real K2 SE park** (its `evidence[]` is empty ⇒ every source is "novel"; cheapest bypass = cite any new-looking URL). → Canonical source identity + mandatory `excerpt` + `claim` per objection; K2 SE initially moved toward `research-defect`, then Codex pass #2 refuted that migration and §13 supersedes it with `decision-required`.
 4. **The `needs-source-resolution:missing/conflicting` subtypes don't exist in the producers** (runbook `:199`, runner `:116` emit it unsuffixed). → Unsuffixed = fail-closed `decision-required`; subtypes only after an explicit producer-contract change.
 5. **RD10 recreates the v2 CRITICAL-C1 dirty-tree deadlock** (`docs/**` is asset-ignored, which does not solve git dirt). → ONE atomic custody commit (ledger + provenance) pushed before watermark advance; stage-0 repairs disagreement.
 
