@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
 const { validateReviewerOutput } = require('./validate-reviewer-output.js');
 
 const OBJECTION = {
@@ -88,4 +90,14 @@ test('objections must be an array', () => {
   const result = validateReviewerOutput({ reviewer: 'codex', verdict: 'NO-GO', objections: {} });
   assert.equal(result.ok, false);
   assert.match(result.errors.join('\n'), /array/);
+});
+
+test('operational docs preserve the RD4 split-verdict decision-required branch', () => {
+  const repo = path.join(__dirname, '..');
+  const kickoff = fs.readFileSync(path.join(repo, 'scripts/intake-run-kickoff.md'), 'utf8');
+  const runbook = fs.readFileSync(path.join(repo, 'docs/runbooks/printer-addition-protocol.md'), 'utf8');
+  for (const [name, content] of [['kickoff', kickoff], ['runbook', runbook]]) {
+    assert.doesNotMatch(content, /any NO-GO parks/i, `${name} collapses split verdicts`);
+    assert.match(content, /review-split[^\n]*decision-required/i, `${name} omits RD4 split routing`);
+  }
 });

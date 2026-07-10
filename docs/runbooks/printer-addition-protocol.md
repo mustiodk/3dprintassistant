@@ -25,9 +25,10 @@ identical in both — the modes differ only in who approves.**
    [`../superpowers/specs/2026-07-09-intake-autonomy-v2-design.md`](../superpowers/specs/2026-07-09-intake-autonomy-v2-design.md)
    (owner-ratified 2026-07-10, PD0–PD8 + the no-shadow-phase amendment) and the
    runner contract `ai-operating-model/docs/agents/intake-pipeline-runner.md`.
-   The PD5 dual-review merge gate (hostile sub-agent GO + Codex GO on the
-   actual diff; any NO-GO parks) replaces per-candidate owner approval for the
-   PD2/PD4 auto classes; everything unverifiable parks with a notification.
+   The PD5 dual-review merge gate replaces per-candidate owner approval for the
+   PD2/PD4 auto classes. `{GO, GO}` ships; `{NO-GO, NO-GO}` parks as
+   `review-no-go`; a split verdict routes `review-split` → `decision-required`.
+   Everything unverifiable parks with a notification.
 
    **Owner-ratified waivers (2026-07-10), recorded here as protocol law:**
    - **PD3 — the owner visual picker check is REPLACED in autonomous mode** by
@@ -460,6 +461,8 @@ result with `scripts/validate-reviewer-output.js`. `NO-GO` requires at least one
 structured objection; `GO` requires none. Malformed output becomes
 `review-unavailable` and parks without a merge decision — never infer a verdict
 or reconstruct objections from prose.
+Classify both validated verdicts as a multiset: `{GO, GO}` ships;
+`{NO-GO, NO-GO}` parks as `review-no-go`; `{GO, NO-GO}` routes `review-split` → `decision-required`.
 
 Escalate to `superpowers:requesting-code-review` against the printer-add diff
 when **any** of these fire:
