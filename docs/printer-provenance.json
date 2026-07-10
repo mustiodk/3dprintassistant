@@ -1,4 +1,158 @@
 {
   "schema": "printer-provenance@1",
-  "printers": {}
+  "printers": {
+    "k2_se": {
+      "runId": "2026-07-10T22:15:29Z",
+      "candidateKey": [
+        "req:1783615951531:a03e6e7e"
+      ],
+      "gatheredAt": "2026-07-10T22:15:29Z",
+      "ownerResolution": "Owner approved RD2 with max_acceleration=20000 after comparing official K2 SE product/store pages and Creality sibling models against the conflicting K2 SE support-page 2000 value.",
+      "manufacturer": {
+        "value": "creality",
+        "source": "https://www.creality.com/products/k2-se",
+        "canonicalSource": "creality.com/products/k2-se",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-10T22:15:29Z"
+      },
+      "name": {
+        "value": "K2 SE",
+        "source": "https://www.creality.com/products/k2-se",
+        "canonicalSource": "creality.com/products/k2-se",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-10T22:15:29Z"
+      },
+      "series": {
+        "value": "corexy",
+        "source": "https://www.creality.com/support/k2-se",
+        "canonicalSource": "creality.com/support/k2-se",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-10T22:15:29Z"
+      },
+      "series_group": {
+        "value": "K Series",
+        "source": "https://www.creality.com/products/k2-se",
+        "canonicalSource": "creality.com/products/k2-se",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-10T22:15:29Z"
+      },
+      "enclosure": {
+        "value": "none",
+        "source": "https://www.creality.com/products/k2-se",
+        "canonicalSource": "creality.com/products/k2-se",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-10T22:15:29Z",
+        "absenceRationale": "Official product title and marketing describe K2 SE as open-frame; no chamber enclosure or chamber temperature is listed."
+      },
+      "active_chamber_heating": {
+        "value": false,
+        "source": "https://www.creality.com/products/k2-se",
+        "canonicalSource": "creality.com/products/k2-se",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer-absence-rationale",
+        "gatheredAt": "2026-07-10T22:15:29Z",
+        "absenceRationale": "Official K2 SE product/store/spec surfaces list open-frame construction and no max chamber temperature; active chamber heating is advertised for K2 Pro/Plus siblings, not K2 SE."
+      },
+      "extruder_type": {
+        "value": "direct_drive",
+        "source": "https://www.creality.com/support/k2-se",
+        "canonicalSource": "creality.com/support/k2-se",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-10T22:15:29Z"
+      },
+      "max_nozzle_temp": {
+        "value": 300,
+        "source": "https://www.creality.com/support/k2-se",
+        "canonicalSource": "creality.com/support/k2-se",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-10T22:15:29Z"
+      },
+      "max_bed_temp": {
+        "value": 100,
+        "source": "https://www.creality.com/support/k2-se",
+        "canonicalSource": "creality.com/support/k2-se",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-10T22:15:29Z"
+      },
+      "max_speed": {
+        "value": 500,
+        "source": "https://www.creality.com/products/k2-se",
+        "canonicalSource": "creality.com/products/k2-se",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-10T22:15:29Z"
+      },
+      "max_acceleration": {
+        "value": 20000,
+        "source": "https://www.creality.com/products/k2-se",
+        "canonicalSource": "creality.com/products/k2-se",
+        "confidence": "confirmed-owner-resolved-conflict",
+        "evidenceType": "manufacturer-with-owner-resolution",
+        "gatheredAt": "2026-07-10T22:15:29Z",
+        "conflict": {
+          "conflictingSource": "https://www.creality.com/support/k2-se",
+          "conflictingValue": 2000,
+          "resolution": "Owner selected 20000. Creality product and store pages list 20000; K2/K2 Pro/K1C/K1 SE/Ender-3 V3 family specs cluster at 20000, making support-page 2000 likely a missing-zero typo."
+        }
+      },
+      "has_lidar": {
+        "value": false,
+        "source": "https://www.creality.com/products/k2-se",
+        "canonicalSource": "creality.com/products/k2-se",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer-absence-rationale",
+        "gatheredAt": "2026-07-10T22:15:29Z",
+        "absenceRationale": "Official product, store, support, and K-series comparison pages were checked; LiDAR is not listed where Creality lists sensing/camera features."
+      },
+      "has_camera": {
+        "value": false,
+        "source": "https://store.creality.com/products/k2-se-combo-3d-printer",
+        "canonicalSource": "store.creality.com/products/k2-se-combo-3d-printer",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer-store-absence-rationale",
+        "gatheredAt": "2026-07-10T22:15:29Z",
+        "absenceRationale": "Official store spec table lists AI Camera as '-' for K2 SE. K2/K2 Pro sibling spec tables explicitly list chamber/nozzle cameras when present."
+      },
+      "multi_color_systems": {
+        "value": [
+          "cfs"
+        ],
+        "source": "https://www.creality.com/products/k2-se",
+        "canonicalSource": "creality.com/products/k2-se",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-10T22:15:29Z"
+      },
+      "available_plates": {
+        "value": [
+          "textured_pei"
+        ],
+        "source": "https://store.creality.com/products/k2-se-combo-3d-printer",
+        "canonicalSource": "store.creality.com/products/k2-se-combo-3d-printer",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer-plus-reseller-mapping",
+        "gatheredAt": "2026-07-10T22:15:29Z",
+        "mappingNote": "Official Creality spec says epoxy resin build plate; official Amazon listing corroborates textured epoxy-resin spring-steel magnetic flex plate, mapped to textured_pei."
+      },
+      "available_nozzle_sizes": {
+        "value": [
+          0.4
+        ],
+        "source": "https://www.creality.com/support/k2-se",
+        "canonicalSource": "creality.com/support/k2-se",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-10T22:15:29Z",
+        "resolution": "Official K2 SE support/spec lists Nozzle Diameter 0.4 mm; no official K2 SE source verified 0.6 mm, so 0.6 was not inherited from K-series siblings."
+      }
+    }
+  }
 }

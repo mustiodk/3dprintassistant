@@ -1,7 +1,7 @@
 {
-  "content_version": 2026071004,
+  "content_version": 2026071005,
   "enabled": true,
-  "generated_at": "2026-07-10T09:03:40.390Z",
+  "generated_at": "2026-07-10T22:15:29.514Z",
   "min_app_version": "1.0.3",
   "payload": {
     "brands": [
@@ -178,9 +178,38 @@
           "Official spec lists 0.4mm nozzle and PEI plate; other quick-swap nozzle sizes are referenced but not enumerated",
           "Built-in camera supported by Creality Wiki camera maintenance/replacement guides; no LiDAR is listed in official product specs or support docs"
         ]
+      },
+      {
+        "id": "k2_se",
+        "name": "K2 SE",
+        "manufacturer": "creality",
+        "series": "corexy",
+        "series_group": "K Series",
+        "enclosure": "none",
+        "active_chamber_heating": false,
+        "extruder_type": "direct_drive",
+        "max_nozzle_temp": 300,
+        "max_bed_temp": 100,
+        "max_speed": 500,
+        "max_acceleration": 20000,
+        "has_lidar": false,
+        "has_camera": false,
+        "multi_color_systems": [
+          "cfs"
+        ],
+        "available_plates": [
+          "textured_pei"
+        ],
+        "available_nozzle_sizes": [
+          0.4
+        ],
+        "open_door_threshold_bed_temp": null,
+        "notes": [
+          "CFS multicolor — up to 16 colors"
+        ]
       }
     ]
   },
-  "payload_sha256": "5bc895e279362e6f00d8e185b7e433995452dbe32c49346ec24bca4c5a14daec",
+  "payload_sha256": "67760c1dcb45ce4e17afe86192c49bb2edcb580a6cbf38d3b998c088553d4205",
   "schema_version": 1
 }
