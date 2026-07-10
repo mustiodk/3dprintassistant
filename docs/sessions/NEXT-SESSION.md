@@ -1,18 +1,18 @@
 # 3dpa — Next Session Kickoff
 
 **Purpose:** copy-paste kickoff prompt for the next fresh 3dpa session.
-**Last updated:** 2026-07-10 (Trigger A close after v2.1 cross-model review + patched small-gate plan PR #6 merged).
-**Locked next entry point:** **Execute Intake Autonomy v2.1 plan R-1/R0 first.** Do not redesign the plan unless fresh evidence shows a blocker.
+**Last updated:** 2026-07-10 (R8 close after Intake Autonomy v2.1 implementation + final review GO).
+**Locked next entry point:** **Publish/PR Intake Autonomy v2.1 only if the owner explicitly authorizes push/PR/merge.** Do not restart R0–R8.
 
 ---
 
 ## State of play (read before anything)
 
-- **The live pipeline is safe.** Runner contract **v1.1** (ai-om `c99d1ed`): `review-no-go` is event-only, the `others → weekly ×4` catch-all is deleted, unrecognised reasons → `decision-required`. Daily 12:00 schedule runs; preflight is fail-closed.
-- **K2 SE is parked, tainted, and stationary.** It will not be retried on any timer. Its branch is preserved as tag **`intake-k2se-first-run-evidence`** (diff hash `b88ae6df048d75c6`; stage 2b deleted the branch ref itself). Any re-attempt requires explicit owner instruction.
-- **v2.1 spec is patched to v5.** Spec path: `docs/superpowers/specs/2026-07-10-intake-autonomy-v2.1-evidence-retry-retrospective-design.md`. Review trail: Codex NO-GO #1, Codex NO-GO #2, Claude hostile review; all findings applied.
-- **v2.1 plan is ready and merged.** Plan path: `docs/superpowers/plans/2026-07-10-intake-autonomy-v2.1-small-gates-plan.md`. It is R-1/R0–R8, and its own hostile plan review found 5 must-fix + 8 should-fix + 3 optional; all patched. Planning PR #6 merged.
-- **Nothing has been built for v2.1 yet.** The next session starts execution, not implementation catch-up.
+- **v2.1 implementation is complete locally, not pushed/PR/merged.** Web branch: `codex/intake-v21-impl`; final web close commit is the R8 docs commit from the prior session. Cross-repo ai-om commits are local on `ai-operating-model/main`: `9bc6e0c` (v2.1 runner contract integration) + `a118bd5` (split-review routing fix).
+- **R0–R8 are closed and reviewed.** R8 full local suite passed: all intake unit/shell tests, `validate-data`, `validate-ios-printer-overlay`, and `git diff --check`. Final direct cross-model review first returned NO-GO on split verdict routing, then GO after `a118bd5`.
+- **No external state change was performed at R8 close.** No push, no PR, no merge. Keep that boundary unless the owner explicitly says to proceed with publishing.
+- **K2 SE remains parked, tainted, and stationary.** No timer retry. No Scout rerun. No PD5 re-entry unless the owner explicitly instructs RD2 re-attempt or supplies new external evidence for supervised `judgment-on-evidence`.
+- **Live v2 baseline remains safe.** The daily 12:00 schedule exists, but the v2.1 implementation is not live until the branch/contract commits are published and merged.
 
 Copy everything between the markers into a new session.
 
@@ -20,24 +20,35 @@ Copy everything between the markers into a new session.
 
 3dpa cold start.
 
-Read in order: `~/dev/Claude/Projects/CLAUDE.md` → `3dprintassistant/CLAUDE.md` → `3dprintassistant/docs/3dpa-context.md` → `3dprintassistant/docs/planning/ROADMAP.md` (banner + Active Work Queue) → `docs/sessions/INDEX.md` → the last 2 relevant session logs (`2026-07-10-cowork-appdev-intake-v2.1-spec.md`, `2026-07-10-cowork-appdev-intake-autonomy-build.md`) → this file.
+Read in order: `~/dev/Claude/Projects/CLAUDE.md` → `3dprintassistant/CLAUDE.md` → `3dprintassistant/docs/3dpa-context.md` → `3dprintassistant/docs/planning/ROADMAP.md` (banner + Active Work Queue) → `docs/planning/INTAKE-AUTONOMY-V2-GATE-LEDGER.md` (R8 row) → this file.
 
-Then execute the plan:
+Then verify local state:
 
-`docs/superpowers/plans/2026-07-10-intake-autonomy-v2.1-small-gates-plan.md`
+```bash
+cd ~/dev/Claude/Projects/3dprintassistant
+git status --short --branch
+git log --oneline -5
+git -C ../ai-operating-model status --short --branch
+git -C ../ai-operating-model log --oneline -3
+```
 
-Start at **Task R-1: Execution Branch Setup**, then **Task R0: Taxonomy Config And NO-GO Taint Graph**. Stop after R0 unless the gate is fully green and reviewed.
+Expected: web branch `codex/intake-v21-impl` contains R0–R8, and ai-om `main` is ahead with the v2.1 contract commits.
+
+If the owner explicitly authorizes push/PR/merge:
+
+1. Re-run the R8 smoke set (`node scripts/validate-reviewer-output.test.js`, `node scripts/validate-data.js`, `node scripts/validate-ios-printer-overlay.js`, `git diff --check`; run the full R8 suite if anything changed).
+2. Push the ai-om commits and the web branch.
+3. Open the web PR using the v2.1 summary from `docs/superpowers/plans/2026-07-10-intake-autonomy-v2.1-small-gates-plan.md` Step 5, updated with the R8 final-review/fix evidence.
+4. Watch checks. Merge only when checks are green and review status is clear.
+5. After merge, fast-forward local `main`; do **not** reattempt K2 SE unless separately instructed.
 
 Rules for this work:
 
-- Follow the plan's gates exactly.
-- Set `BRIDGE_MODE` correctly for the executor: `claude-only` when Codex is driving, `codex-only` when Claude is driving.
-- Every gate: implement → hostile review → patch → QA evidence → cross-model check → commit → gate-ledger row.
+- Do not restart R0–R8; they are already closed.
 - One accepted review finding = one commit.
-- No v2.1 sidecar writer before R0 taxonomy config + validator is green.
-- K2 SE migration proves `decision-required`; do **not** re-attempt K2 SE unless the owner explicitly instructs it.
-- Engine/app/data profile semantics are untouched until a real printer ships; if a future printer ships, run the web+iOS impact evaluation and keep iOS push gate in force.
-- Leave the tree clean at every stopping point; dirty/ahead web repo blocks the live runner.
+- No iOS push. Printer additions remain web data + remote overlay; TestFlight is not part of this workflow.
+- K2 SE re-entry is owner-explicit only.
+- If not authorized to publish, stop after reporting clean local readiness.
 
 >>> END <<<
 

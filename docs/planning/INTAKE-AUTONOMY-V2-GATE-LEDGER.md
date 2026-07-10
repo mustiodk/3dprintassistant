@@ -8,6 +8,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 | Gate | Status | Evidence |
 |---|---|---|
+| R8 final validation + ready state | ✅ 2026-07-10 | Expected test files exist; full R8 intake suite + project validators green; final review NO-GO on ai-om split-routing fixed by `a118bd5`; focused re-review GO; no push/PR/merge; see R8 row |
 | R7 K2 SE migration drill | ✅ 2026-07-10 | Existing R3 fixture drill re-run: `node scripts/intake-parked-store.test.js` **14/14**; K2 SE v1 sidecar migrates to `decision-required`, remains tainted, fixture byte-unchanged; no automatic reattempt; see R7 row |
 | R6 runner contract integration | ✅ 2026-07-10 | web `e3c3d44` + ai-om `9bc6e0c`; direct review NO-GO chain closed by `d749925`/`fbe7ccc`/`b15f430`/`6de7f86`/`1ad308d`; final focused re-review GO; verification green; see R6 row |
 | R5 provenance store + custody preflight | ✅ 2026-07-10 | RED missing provenance module + preflight lacking repo/dry-run custody pass → 2/2 provenance tests + custody shell harness; direct hostile review NO-GO with 3 findings; accepted coverage findings landed one-per-commit; focused re-review GO; see R5 row |
@@ -26,6 +27,14 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 ---
 
 ## Rows (newest first)
+
+### R8 — final validation + ready state ✅ (2026-07-10; web final-docs close + ai-om `a118bd5`)
+
+**Verification:** R8 Step 0 proved all expected test files exist. Full local intake suite passed: `node scripts/intake-park-taxonomy.test.js` **11/11**; `node scripts/lib/intake-source-normalizer.test.js` **3/3**; `node scripts/validate-candidate-evidence.test.js` **15/15**; `node scripts/validate-reviewer-output.test.js` **12/12**; `node scripts/intake-parked-store.test.js` **14/14**; `node scripts/intake-retry-gate.test.js` **16/16**; `node scripts/intake-provenance-store.test.js` **2/2**; `bash scripts/intake-run-preflight.test.sh`; `node scripts/printer-intake-scout.test.js` **ALL TESTS PASS**; `node scripts/republish-overlay.test.js` **21/21**; `node scripts/verify-live-overlay.test.js` **15/15**; `node scripts/verify-live-picker.test.js` **10/10**; `node scripts/intake-kv-hygiene.test.js` **15/15**; `node scripts/intake-notify.test.js` **11/11**; `node scripts/intake-diff-guards.test.js` **10/10**. Project validators passed: `node scripts/validate-data.js`, `node scripts/validate-ios-printer-overlay.js`, and `git diff --check`.
+
+**Final review:** direct read-only `gpt-5.4` fallback reviewed the full R0–R7 implementation in session `019f4dd7-7630-7031-9f88-081617d5bea3` and returned **NO-GO** ([record](../../codex/intake-autonomy-v2.1-review/direct-codex-2026-07-10-r8-final.md)): two ai-om executable contracts still collapsed split `{GO, NO-GO}` verdicts into generic `review-no-go`, contradicting the canonical v2.1 multiset rule. The accepted finding landed in ai-om commit `a118bd5` (`docs(agents): preserve intake split-review routing`), updating both `intake-pipeline-runner.md` and `printer-addition-assistant.md`. Affected test rerun: `node scripts/validate-reviewer-output.test.js` **12/12**. Focused re-review session `019f4dda-8c4d-7bb3-902a-1f63060f941e` returned **GO** ([record](../../codex/intake-autonomy-v2.1-review/direct-codex-2026-07-10-r8-final-followup.md)).
+
+**Ready state:** v2.1 implementation is complete locally on web branch `codex/intake-v21-impl`; cross-repo ai-om contract commits are local on `ai-operating-model/main` (`9bc6e0c`, `a118bd5`). No push, PR, or merge was performed in this R8 run. K2 SE remains parked + tainted + stationary: no Scout rerun, no PD5 re-entry, no timer retry, and no automatic acceptance path. R8 does not change engine/app/printer-data semantics or publish an overlay; web/iOS/Android user-visible behavior remains unchanged until the branch is explicitly pushed, reviewed, and merged.
 
 ### R7 — K2 SE migration drill ✅ (2026-07-10; existing R3 fixture/test, ledger-only close)
 
