@@ -93,6 +93,26 @@ function computeDeleteSet({ keys, ledgerLines, nowMs }) {
       continue;
     }
 
+    // Shipped candidates (scoutOutcome usually needs-research) get the same
+    // 7-day contact window, then delete — otherwise the watermark-less Scout
+    // re-stages the shipped request daily until the 90-day TTL (B4 review #14).
+    if (entry.ownerResolution === 'shipped' || entry.ownerResolution === 'auto-shipped') {
+      const tsPart = key.split(':')[1];
+      let ts = /^\d+$/.test(tsPart || '') ? Number(tsPart) : NaN;
+      if (!Number.isFinite(ts)) {
+        kept.push({ key, reason: 'unparseable key timestamp — kept conservatively' });
+        continue;
+      }
+      const ledgeredAt = Date.parse(entry.ledgeredAt || '');
+      if (Number.isFinite(ledgeredAt)) ts = Math.max(ts, ledgeredAt);
+      if (nowMs - ts > SEVEN_DAYS_MS) {
+        deletes.push({ key, reason: `${entry.ownerResolution}, contact window (7d) elapsed` });
+      } else {
+        kept.push({ key, reason: `${entry.ownerResolution}, inside 7-day contact window` });
+      }
+      continue;
+    }
+
     const outcome = entry.scoutOutcome;
     if (NEVER_DELETE_OUTCOMES.has(outcome)) {
       kept.push({ key, reason: outcome === 'incomplete' ? 'incomplete — left to KV TTL' : `${outcome} — staged/parked/shipped lane, never deleted by hygiene` });

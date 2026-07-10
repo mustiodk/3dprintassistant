@@ -85,20 +85,33 @@ test('incomplete: left to TTL, never deleted', () => {
   assert.strictEqual(kept[0].key, k);
 });
 
-test('needs-research / staged / parked / shipped keys are NEVER deleted', () => {
+test('needs-research / staged / parked keys are NEVER deleted', () => {
   const staged = key(old, 'stag');
-  const shipped = key(old, 'ship');
   const parked = key(old, 'park');
   const { deletes } = computeDeleteSet({
-    keys: [staged, shipped, parked],
+    keys: [staged, parked],
     ledgerLines: [
       ledgerLine([staged], 'needs-research', 'auto-parked:review-unavailable'),
-      ledgerLine([shipped], 'needs-research', 'auto-shipped'),
       ledgerLine([parked], 'needs-research', 'auto-parked:unverified-model'),
     ],
     nowMs: NOW,
   });
   assert.strictEqual(deletes.length, 0);
+});
+
+test('shipped keys: kept inside the 7-day contact window, deleted after (B4 #14 — stops daily re-staging)', () => {
+  const freshShip = key(fresh, 'shf');
+  const oldShip = key(old, 'sho');
+  const { deletes, kept } = computeDeleteSet({
+    keys: [freshShip, oldShip],
+    ledgerLines: [
+      ledgerLine([freshShip], 'needs-research', 'auto-shipped'),
+      ledgerLine([oldShip], 'needs-research', 'auto-shipped'),
+    ],
+    nowMs: NOW,
+  });
+  assert.deepStrictEqual(deletes.map((d) => d.key), [oldShip]);
+  assert.ok(kept.some((e) => e.key === freshShip && /contact window/.test(e.reason)));
 });
 
 test('unledgered keys are kept (pending work), non-req keys are ignored entirely', () => {
