@@ -1285,8 +1285,10 @@ cat > /tmp/intake-v21-pr.md <<'EOF'
 - git diff --check
 EOF
 git push -u origin codex/intake-v21-impl
-gh pr create --base main --head codex/intake-v21-impl --title "Implement Intake Autonomy v2.1 small-gate build" --body-file /tmp/intake-v21-pr.md
-gh pr merge --merge --delete-branch
+PR_URL="$(gh pr create --base main --head codex/intake-v21-impl --title "Implement Intake Autonomy v2.1 small-gate build" --body-file /tmp/intake-v21-pr.md)"
+PR_NUMBER="$(basename "$PR_URL")"
+gh pr checks "$PR_NUMBER" --watch
+gh pr merge "$PR_NUMBER" --merge --delete-branch
 git switch main
 git pull --ff-only
 ```
