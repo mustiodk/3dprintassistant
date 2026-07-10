@@ -1,11 +1,14 @@
-# Intake Autonomy v2 — Gate Ledger
+# Intake Autonomy v2 / v2.1 — Gate Ledger
 
-**Plan:** [`../superpowers/plans/2026-07-10-intake-autonomy-v2-impl-plan.md`](../superpowers/plans/2026-07-10-intake-autonomy-v2-impl-plan.md) · **Spec:** [`../superpowers/specs/2026-07-09-intake-autonomy-v2-design.md`](../superpowers/specs/2026-07-09-intake-autonomy-v2-design.md)
+**v2:** [plan](../superpowers/plans/2026-07-10-intake-autonomy-v2-impl-plan.md) · [spec](../superpowers/specs/2026-07-09-intake-autonomy-v2-design.md)
+
+**v2.1:** [small-gates plan](../superpowers/plans/2026-07-10-intake-autonomy-v2.1-small-gates-plan.md) · [evidence/retry spec](../superpowers/specs/2026-07-10-intake-autonomy-v2.1-evidence-retry-retrospective-design.md)
 
 Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carries evidence (command output lines, commit SHAs, verbatim log lines). One row per gate exit; failure branches recorded verbatim.
 
 | Gate | Status | Evidence |
 |---|---|---|
+| R0 taxonomy + NO-GO taint graph | ✅ 2026-07-10 | RED missing module → 11/11 tests + CLI `ok=true`; hostile review NO-GO then GO-WITH-PATCHES, 5 accepted findings landed one-per-commit; final Claude re-review GO; see R0 row |
 | B0 launchd environment probe | ✅ 2026-07-10 | 4/4 PASS on a real launchd run (`ppid=1`); see B0 row below |
 | B1 republish-overlay.js | ✅ 2026-07-10 | `c3abe4e` — 21/21 TDD, hostile GO-WITH-PATCHES ×8 applied, live-overlay no-op sanity clean; see B1 row |
 | B2 live verification probes | ✅ 2026-07-10 | `cc9ba95`+`d1f84cd`+`bcdf510` — 25/25 probe tests, both probes green on real prod, refactor byte-for-byte; see B2 row |
@@ -16,6 +19,14 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 ---
 
 ## Rows (newest first)
+
+### R0 — taxonomy config + NO-GO taint graph ✅ (2026-07-10; `cd0d97c` + `5a1f035` + `d22d84b` + `850a056` + `4b7044e`)
+
+**TDD:** `node scripts/intake-park-taxonomy.test.js` first failed with `Cannot find module './intake-park-taxonomy.js'`; implementation then reached 6/6. The controller added adversarial mutation coverage before review so the graph validator itself was exercised, not only the committed happy-path config. Final suite: **11/11**, plus `node scripts/intake-park-taxonomy.js` → `[intake-park-taxonomy] ok=true`.
+
+**Hostile review chain:** first parent-scope Claude review **NO-GO** — M1 found the runtime taint redirect could be deleted while all tests stayed green; M2/S1/S2 tightened unknown-reason closure, all automatic review classes, and required-edge removal. Accepted findings landed one-per-commit (`cd0d97c`, `5a1f035`, `d22d84b`, `850a056`). Re-review returned **GO-WITH-PATCHES** on a future-schema bypass: omitted/null `taintedAllowed` escaped both runtime redirect and static validation. RED reproduced (`future-auto-review` classified into itself), then `4b7044e` made runtime default-deny (`!== true`) and validation require an explicit boolean / flag all non-false automatic paths. Final re-review: **GO** ([transcript](../../codex/intake-autonomy-v2.1-review/bridge-2026-07-10-193144-014492.md)).
+
+**Contract proven:** unknown reasons → `decision-required` / owner / no review; `review-no-go` + `review-no-go-unresolved` stay event-only; tainted candidates are runtime-redirected away from `availability-blocked`, `research-defect`, and `world-absent`; only `owner-instruction` and `rd3-external-evidence` are sanctioned tainted review-entry edges. No v2.1 sidecar writer exists yet; R1 may now open.
 
 ### B5 — latency + rollback drill + exit checklist 🟡 (2026-07-10; B5.0–B5.3 complete, **B5.4 deliberately NOT executed**)
 
