@@ -522,7 +522,9 @@ aligns with the risk-based second-model rule in
   it — see Phase 4b.)
 - Mixing a printer add with engine, marketing, correction-sweep, or validator
   work.
-- Adding a new `brands[]` row without owner sign-off.
+- Adding a new `brands[]` row without owner sign-off in manual mode, or without
+  satisfying the autonomous PD4 criteria plus PD5 dual-review GO in autonomous
+  mode.
 - Trusting a single source for taxonomy.
 - Running Trigger A wrap-up before Phase 5 self-check is fully `[x]` (and
   reviewer dispatch returned GO, if triggered).
