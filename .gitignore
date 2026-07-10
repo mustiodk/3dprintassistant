@@ -13,6 +13,15 @@ scripts/.printer-intake-out/
 # rename must not dirty the tree — the runner preflight fail-closes on dirt).
 catalog/*.republish-tmp
 
+# Intake Autonomy v2 runner state (Gate B3). NOTE: .intake-runner-state/ is
+# the runner's DURABLE local state (parked candidates, run reports, digest
+# offset) — deliberately separate from .printer-intake-out/, which the Scout
+# test suite rmSync-wipes (see gate ledger B1 row).
+scripts/.intake-autonomy-freeze
+scripts/.intake-run.lock
+scripts/.printer-intake-runner.watermark.json
+scripts/.intake-runner-state/
+
 # Personal scratch — owner keeps these locally; not part of the public repo.
 bambu configs/
 research md/
