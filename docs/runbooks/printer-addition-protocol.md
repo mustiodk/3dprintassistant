@@ -52,6 +52,20 @@ identical in both — the modes differ only in who approves.**
      and commit as `docs(intake): PD7 marker migration`. Documented here; the
      runner never edits the marker.
 
+   ### Intake Autonomy v2.1 additions (2026-07-10)
+
+   Autonomous v2.1 additions:
+   - Every profile/safety-critical field must carry
+     `value`/`source`/`confidence`/`evidenceType` before review.
+   - `world-absent` is validator-assigned only after a typed absence rationale
+     and complete source-class sweep.
+   - Reviewer NO-GO emits structured objections; malformed reviewer output
+     parks as `review-unavailable` and never spends a merge decision.
+   - Any NO-GO taints the candidate; tainted candidates cannot enter
+     timer/research repair lanes.
+   - Shipped printer provenance is committed to
+     `docs/printer-provenance.json` beside the append-only intake outcome line.
+
    **This manual protocol remains canonical on any conflict** — an autonomous
    runner that cannot satisfy a step parks the candidate; it never improvises
    around the protocol.
