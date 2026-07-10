@@ -52,6 +52,23 @@ expect_fail() {
   grep -q "PREFLIGHT ok=false reason=$reason" "$OUT"
 }
 
+assert_ahead_state_preserved() {
+  local origin_before="$1"
+  local origin_after
+  local ahead_count
+  origin_after="$(git -C "$TMP/repo" rev-parse refs/remotes/origin/main)"
+  ahead_count="$(git -C "$TMP/repo" rev-list refs/remotes/origin/main..HEAD --count)"
+
+  if [[ "$origin_after" != "$origin_before" ]]; then
+    echo "origin/main moved during dry-run preflight" >&2
+    exit 1
+  fi
+  if [[ "$ahead_count" != "1" ]]; then
+    echo "expected repo to remain one custody commit ahead, got $ahead_count" >&2
+    exit 1
+  fi
+}
+
 init_repo
 printf '{}\n' > "$TMP/repo/docs/printer-provenance.json"
 printf '{"candidateKey":"k2_se"}\n' >> "$TMP/repo/scripts/printer-intake-outcomes.jsonl"
@@ -66,7 +83,9 @@ printf '{}\n' > "$TMP/repo/docs/printer-provenance.json"
 printf '{"candidateKey":"k2_se"}\n' >> "$TMP/repo/scripts/printer-intake-outcomes.jsonl"
 git -C "$TMP/repo" add docs/printer-provenance.json scripts/printer-intake-outcomes.jsonl
 git -C "$TMP/repo" commit -qm "chore(intake): custody k2_se provenance"
+origin_before="$(git -C "$TMP/repo" rev-parse refs/remotes/origin/main)"
 expect_ok
+assert_ahead_state_preserved "$origin_before"
 
 init_repo
 printf bad > "$TMP/repo/data/printers.json"
