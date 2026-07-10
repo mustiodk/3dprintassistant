@@ -379,6 +379,26 @@ test('absence rationale with silence parks', () => {
   assert.equal(r.ok, false);
   assert.equal(r.reason, 'research-defect');
 });
+
+test('complete source sweep can classify absence as world-absent', () => {
+  const c = baseCandidate();
+  c.printersJsonRow.max_speed = {
+    value: null,
+    source: null,
+    confidence: 'low-confidence',
+    evidenceType: 'absence-rationale',
+    absenceRationale: {
+      sourceClassesChecked: ['official-product-page', 'manual', 'support-wiki'],
+      checkedSources: [{ canonicalSource: 'creality.com/products/k2-se', retrievedAt: '2026-07-10T00:00:00Z' }],
+      normallyAdvertisedIfPresent: 'Maximum speed is normally advertised on printer product/spec pages.',
+      omissionSafeBecause: 'The field cannot be safely invented; the candidate must park until the world changes.'
+    }
+  };
+  const r = validateCandidateEvidence(c);
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, 'world-absent');
+  assert.equal(r.worldAbsentFields.includes('max_speed'), true);
+});
 ```
 
 Run: `node scripts/validate-candidate-evidence.test.js`
@@ -419,6 +439,11 @@ function hasAbsenceRationale(field) {
     && r.normallyAdvertisedIfPresent && r.omissionSafeBecause);
 }
 
+function hasCompleteSourceSweep(field) {
+  const classes = new Set(((field && field.absenceRationale && field.absenceRationale.sourceClassesChecked) || []));
+  return classes.has('official-product-page') && classes.has('manual') && classes.has('support-wiki');
+}
+
 function fieldPasses(name, field) {
   if (!field || field.value === null || field.value === undefined) return false;
   if (field.confidence === 'confirmed' && field.source) return true;
@@ -430,10 +455,15 @@ function fieldPasses(name, field) {
 function validateCandidateEvidence(candidate) {
   const row = candidate.printersJsonRow || {};
   const errors = [];
+  const worldAbsentFields = [];
   for (const name of CRITICAL_FIELDS) {
-    if (!fieldPasses(name, row[name])) errors.push(`missing or insufficient evidence for ${name}`);
+    if (!fieldPasses(name, row[name])) {
+      errors.push(`missing or insufficient evidence for ${name}`);
+      if (row[name] && row[name].evidenceType === 'absence-rationale' && hasCompleteSourceSweep(row[name])) worldAbsentFields.push(name);
+    }
   }
-  return { ok: errors.length === 0, reason: errors.length ? 'research-defect' : null, errors };
+  const reason = errors.length ? (worldAbsentFields.length === errors.length ? 'world-absent' : 'research-defect') : null;
+  return { ok: errors.length === 0, reason, errors, worldAbsentFields };
 }
 
 if (require.main === module) {
