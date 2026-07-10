@@ -160,6 +160,16 @@ test('notes citation must match the recorded manufacturer source', () => {
   assert.equal(result.reviewRequests, 0);
 });
 
+test('notes citation tolerates trailing prose punctuation', () => {
+  const candidate = baseCandidate();
+  candidate.printersJsonRow.notes.value = [
+    `Manufacturer source: ${SOURCE}.`,
+    `max_acceleration 20000 mm/s² is a conservative app-side cap because no manufacturer maximum is published — ${SOURCE}.`,
+  ];
+  const result = validateCandidateEvidence(candidate);
+  assert.equal(result.ok, true);
+});
+
 test('app-cap requires its value and unpublished-source rationale in notes', () => {
   const candidate = baseCandidate();
   candidate.printersJsonRow.notes.value = [`Manufacturer source: ${SOURCE}`];

@@ -129,7 +129,8 @@ function notesCarryManufacturerCitation(field) {
     const urls = line.match(/https?:\/\/[^\s)\]}>,]+/gi) || [];
     return urls.some((url) => {
       try {
-        return canonicalSource(url) === recordedSource;
+        const withoutProsePunctuation = url.replace(/[.,;:!?]+$/, '');
+        return canonicalSource(withoutProsePunctuation) === recordedSource;
       } catch (_) {
         return false;
       }
