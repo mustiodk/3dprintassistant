@@ -1,14 +1,17 @@
 # 3dpa — Next Session Kickoff
 
 **Purpose:** copy-paste kickoff prompt for the next fresh 3dpa session.
-**Last updated:** 2026-07-10 (go-live COMPLETE: webhook set, plist loaded, first live run finished 12:02–12:17 CEST — K2 SE `auto-parked:review-no-go`; gate ledger B5.4 is ✅ FINAL).
-**Locked next entry point:** **Owner decision on the parked K2 SE candidate** (see below — the pipeline itself needs nothing further; this is a judgment call, not a blocker).
+**Last updated:** 2026-07-10 (Trigger A close of the v2.1 spec session — spec written, hostile-reviewed, owner-ratified, then **NO-GO'd twice by Codex**; both applied. Live runner contract patched to v1.1. **Owner halted before the build, citing work quality.**)
+**Locked next entry point:** **An independent, adversarial cross-model hostile review of the v2.1 spec — brief: find the holes, validate every assumption and claim. Not a confirmatory pass.** Only if it clears do we write the implementation plan, and it must be **small gates**, each gated by hostile sub-agent review + QA approval + cross-model check before the next gate opens.
 
 ---
 
-## Status: LIVE, first run complete (2026-07-10)
+## State of play (read before anything)
 
-The pipeline is enabled and ran for real. Webhook set (private `#3dpa-intake-runs`), daily plist loaded (12:00). **First run outcome: K2 SE parked, not shipped** — the hostile reviewer NO-GO'd on CFS-support and 500mm/s-speed concerns that a same-session controller cross-check against Creality's own K2 SE page suggests were false alarms (not overridden — parks are the owner's call). Branch `intake/k2_se` preserved; retry weekly ×4. **Still owner-optional, one-time:** the PD7 marker migration (runbook `docs/runbooks/printer-addition-protocol.md` → Execution modes → last waiver bullet — one line-1 edit + commit).
+- **The live pipeline is safe.** Runner contract **v1.1** (ai-om `c99d1ed`): `review-no-go` is event-only, the `others → weekly ×4` catch-all is deleted, unrecognised reasons → `decision-required`. Daily 12:00 schedule runs; preflight is fail-closed.
+- **K2 SE is parked, tainted, and stationary.** It will not be retried on any timer. Its branch is preserved as tag **`intake-k2se-first-run-evidence`** (diff hash `b88ae6df048d75c6`; stage 2b deleted the branch ref itself).
+- **Nothing has been built for v2.1.** The spec is v4 and is *not* trusted. Three drafts reintroduced the same bug class three times; the last two rounds were Codex NO-GOs, one of which refuted its own prior advice (K1 finding: `ai-operating-model/docs/findings/2026-07-10-codex-round2-refuted-its-own-round1-fix-advice.md`).
+- **Owner's standing concern:** the controller's design assertions were refuted five times this session. Assume the spec contains further unverified claims. Treat every "verified"/"proven"/"impossible" in it as a hypothesis.
 
 Copy everything between the markers into a new session.
 
@@ -16,19 +19,34 @@ Copy everything between the markers into a new session.
 
 3dpa cold start.
 
-Read in order: ~/dev/Claude/Projects/CLAUDE.md → 3dprintassistant/CLAUDE.md → 3dprintassistant/docs/3dpa-context.md → 3dprintassistant/docs/planning/ROADMAP.md (banner + Active Work Queue) → docs/sessions/INDEX.md → last 3 session logs in full (start with 2026-07-10-cowork-appdev-intake-autonomy-build.md) → docs/planning/INTAKE-AUTONOMY-V2-GATE-LEDGER.md (B5 row) → this file.
+Read in order: ~/dev/Claude/Projects/CLAUDE.md → 3dprintassistant/CLAUDE.md → 3dprintassistant/docs/3dpa-context.md → 3dprintassistant/docs/planning/ROADMAP.md (banner + Active Work Queue) → docs/sessions/INDEX.md → the last 2 session logs in full (2026-07-10-cowork-appdev-intake-v2.1-spec.md, then 2026-07-10-cowork-appdev-intake-autonomy-build.md) → this file.
 
-Today's task — pick by what I say:
+**Task 1 (do this first, and do NOT skip to the plan): an adversarial cross-model hostile review of the v2.1 spec.**
 
-A) **K2 SE parked-candidate decision:** read `scripts/.intake-runner-state/parked/k2_se/parked.json` + the run report + the Discord message. The reviewer NO-GO'd on (1) `multi_color_systems:["cfs"]` and (2) `max_speed:500` vs K-series siblings at 600. A same-session cross-check against creality.com/products/k2-se suggests both are real manufacturer-stated values for THIS specific (cheaper) model, not errors — but that was a controller read-only assessment, never acted on. Options: (a) accept as parked, let the weekly ×4 auto-retry run against unchanged evidence (will likely re-park identically each time — the retry policy re-runs the SAME research+review, not a fresh look); (b) manually re-stage from KV `req:1783615951531:a03e6e7e` and walk through the protocol supervised, feeding the manufacturer-page URLs directly to short-circuit the ambiguity; (c) do nothing — it's genuinely not urgent, one request in a low-volume queue.
+Target: `docs/superpowers/specs/2026-07-10-intake-autonomy-v2.1-evidence-retry-retrospective-design.md` (v4).
 
-B) **Steady-state observation:** let the 12:00 schedule keep running; skim daily reports in `#3dpa-intake-runs`; only intervene on a freeze (`scripts/.intake-autonomy-freeze` present → read the reason, fix, `rm` the flag).
+Route it via `bridge --health` → `bridge --mode codex-only` with an **absolute** `--out-dir` (`.../3dprintassistant/codex/intake-autonomy-v2.1-review/`), and confirm a fresh `Wrote <path>` line before trusting the output. Also run an independent hostile sub-agent pass with a *different* brief so the two are not correlated.
 
-C) **Other queue items:** Android AG0 (owner ratification) → AG1 QuickJS spike; the 4 selection-events decision (allowlist vs delete); v1.0.7 on-device Mine acceptance (TestFlight).
+The brief is **find the holes in the cheese — validate assumptions and claims. Do not approve.** Specifically require the reviewer to:
+- Take every load-bearing claim in the spec and mark it **verified (with file:line or command output) / unverified / false**. The spec has a track record: the controller asserted "the reviewer was overcautious" (false), "re-rolling is structurally impossible" (false premise), "no free-text channel exists" (false — one is in the same document), "blocked candidates are rare" (asserted against a 100%-park sample), "v2.1 won't be ready by the 17th" (never checked).
+- Attack the **NO-GO taint invariant** and its graph-reachability test: is there any path — including migration, expiry, owner instruction, crash recovery, or the `research-defect` repair pass — by which a NO-GO'd candidate reaches a review turn? Three prior drafts each had one.
+- Attack **RD3** (presence + canonical novelty + excerpt/claim): what is the cheapest bypass now?
+- Attack **RD10's custody commit + the preflight custody-state pass** — it is a deliberate, narrowly-scoped relaxation of a safety predicate. Is it exactly-recognised, or is there a foreign-dirt path through it?
+- Attack the **scope**: is v2.1 (≈10 components) justified by the evidence (one live defect — now fixed — plus one recording discipline), or should it shrink to (a) record sources, (b) never re-roll a NO-GO?
+- Verify the spec against the **live** contract v1.1 and the runbook, not against its own prose.
 
-Standing rules: web is master; engine.js/app.js never merge; engine/data changes require web + iOS (+ Android-plan) impact evaluation; one finding = one commit; iOS push gate (3 local data-mirror commits ride v1.0.7); Android prototype no-push until AG0 GO; quality > speed; progress bar every multi-step turn.
+Read the two prior transcripts first so the reviewer does not repeat settled points: `codex/intake-autonomy-v2.1-review/bridge-2026-07-10-154723-685395.md` and `...-155809-076395.md`.
 
-Context nuggets: headless `claude -p` auth on the mac-mini = `~/.config/claude-code/oauth.env` (keychain is 401-stale; memory `mac-mini-headless-claude-auth-oauth-env`); the Scout test suite WIPES `scripts/.printer-intake-out/` — runner durable state lives in `scripts/.intake-runner-state/`; `data/printers.json` is hand-formatted — rows are added by string splice, guarded by `scripts/intake-diff-guards.js --base main`; live overlay is at `content_version=2026071004` (post-drill, payload unchanged); runner contract = `ai-operating-model/docs/agents/intake-pipeline-runner.md` v1; missed-run semantics: powered-off at 12:00 = no run + no report (see scripts/launchd/README.md).
+**Task 2 (only after Task 1 clears, and only with my go):** the implementation plan. Requirements I have set:
+- **Small gates.** Each gate is one concern, independently revertible.
+- **Every gate:** implement → hostile sub-agent review → patch → **QA approval (tests green, evidence captured)** → **cross-model check** → commit → gate-ledger row with evidence. **No gate opens until the previous one has passed all four.**
+- **Gate R0 is already delivered** (runner contract v1.1 — record it as such, don't redo it).
+- Build order is constrained: nothing that writes a v2.1 sidecar may land before the contract that reads it correctly.
+- The plan itself gets a hostile review + a cross-model review before any code is written.
+
+Standing rules: web is master; engine.js/app.js never merge; engine/data changes require web + iOS (+ Android-plan) impact evaluation; one finding = one commit; iOS push gate (3 local data-mirror commits ride v1.0.7); Android prototype no-push until AG0 GO; quality > speed; progress bar every multi-step turn. **And for this work specifically: mark every load-bearing claim with its evidence or an explicit `UNVERIFIED:` — the controller's unmarked assertions were refuted five times last session.**
+
+Context nuggets: the pipeline runs daily at 12:00 and is fail-closed — a dirty tree or `ahead != 0` blocks the run, so leave the tree clean at every stopping point. `bridge --out-dir` is cwd-relative (use absolute + confirm the `Wrote` line). The Scout test suite `rmSync`-wipes `scripts/.printer-intake-out/`; runner state lives in `scripts/.intake-runner-state/`. `data/printers.json` is hand-formatted — rows go in by string splice, guarded by `scripts/intake-diff-guards.js --base main`. Live overlay is `content_version=2026071004`.
 
 >>> END <<<
 
