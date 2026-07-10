@@ -1,17 +1,14 @@
 # 3dpa — Next Session Kickoff
 
 **Purpose:** copy-paste kickoff prompt for the next fresh 3dpa session.
-**Last updated:** 2026-07-10 (Trigger A close of the Intake Autonomy v2 FULL BUILD session — B0→B5 built + verified in one autonomous run; real prod rollback drill green; the daily plist is NOT loaded).
-**Locked next entry point:** **OWNER supplies the Discord webhook → test POST → load the plist → first live run (daily 12:00) ships the staged K2 SE as the real e2e test.** Everything else is green and pushed.
+**Last updated:** 2026-07-10 (go-live COMPLETE: webhook set, plist loaded, first live run finished 12:02–12:17 CEST — K2 SE `auto-parked:review-no-go`; gate ledger B5.4 is ✅ FINAL).
+**Locked next entry point:** **Owner decision on the parked K2 SE candidate** (see below — the pipeline itself needs nothing further; this is a judgment call, not a blocker).
 
 ---
 
-## Owner go-live steps (no session needed — 5 minutes)
+## Status: LIVE, first run complete (2026-07-10)
 
-1. Create a Discord webhook (suggested channel: `#3dpa-intake-runs`).
-2. Add it to `scripts/.printer-intake.local.json` (gitignored): `"discordWebhookUrl": "https://discord.com/api/webhooks/…"`.
-3. Optional but recommended: one-time PD7 marker migration (runbook `docs/runbooks/printer-addition-protocol.md` → Execution modes → last waiver bullet).
-4. Tell the next session "webhook is set — enable the pipeline" (it will run the test POST + bootstrap the plist), OR do it yourself per `scripts/launchd/README.md`.
+The pipeline is enabled and ran for real. Webhook set (private `#3dpa-intake-runs`), daily plist loaded (12:00). **First run outcome: K2 SE parked, not shipped** — the hostile reviewer NO-GO'd on CFS-support and 500mm/s-speed concerns that a same-session controller cross-check against Creality's own K2 SE page suggests were false alarms (not overridden — parks are the owner's call). Branch `intake/k2_se` preserved; retry weekly ×4. **Still owner-optional, one-time:** the PD7 marker migration (runbook `docs/runbooks/printer-addition-protocol.md` → Execution modes → last waiver bullet — one line-1 edit + commit).
 
 Copy everything between the markers into a new session.
 
@@ -23,9 +20,9 @@ Read in order: ~/dev/Claude/Projects/CLAUDE.md → 3dprintassistant/CLAUDE.md �
 
 Today's task — pick by what I say:
 
-A) **Intake Autonomy go-live (mac-mini ONLY; requires my webhook already in `scripts/.printer-intake.local.json`):** B5.4 enablement — verify the webhook with one test POST via `node scripts/intake-notify.js` on a dummy report (nothing shipped → no freeze risk), then `mkdir -p scripts/.printer-intake-out && cp scripts/launchd/dk.mragile.3dpa-intake.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/dk.mragile.3dpa-intake.plist` (per scripts/launchd/README.md), confirm `launchctl print` shows it loaded, flip the gate ledger B5 row to ✅ with evidence, and update ROADMAP. The first scheduled run (12:00) processes the staged Creality K2 SE (KV `req:1783615951531:a03e6e7e`) end-to-end — I read the Discord run report afterwards. If I want it to run TODAY without waiting for 12:00: `launchctl kickstart -k gui/$(id -u)/dk.mragile.3dpa-intake` (supervised first run is fine — it's the same pipeline).
+A) **K2 SE parked-candidate decision:** read `scripts/.intake-runner-state/parked/k2_se/parked.json` + the run report + the Discord message. The reviewer NO-GO'd on (1) `multi_color_systems:["cfs"]` and (2) `max_speed:500` vs K-series siblings at 600. A same-session cross-check against creality.com/products/k2-se suggests both are real manufacturer-stated values for THIS specific (cheaper) model, not errors — but that was a controller read-only assessment, never acted on. Options: (a) accept as parked, let the weekly ×4 auto-retry run against unchanged evidence (will likely re-park identically each time — the retry policy re-runs the SAME research+review, not a fresh look); (b) manually re-stage from KV `req:1783615951531:a03e6e7e` and walk through the protocol supervised, feeding the manufacturer-page URLs directly to short-circuit the ambiguity; (c) do nothing — it's genuinely not urgent, one request in a low-volume queue.
 
-B) **Post-first-run review:** read `scripts/.intake-runner-state/last-run-report.md` + the Discord report + the ledger line + live overlay state; flip B5.4 evidence; triage any parked candidates; file findings.
+B) **Steady-state observation:** let the 12:00 schedule keep running; skim daily reports in `#3dpa-intake-runs`; only intervene on a freeze (`scripts/.intake-autonomy-freeze` present → read the reason, fix, `rm` the flag).
 
 C) **Other queue items:** Android AG0 (owner ratification) → AG1 QuickJS spike; the 4 selection-events decision (allowlist vs delete); v1.0.7 on-device Mine acceptance (TestFlight).
 
