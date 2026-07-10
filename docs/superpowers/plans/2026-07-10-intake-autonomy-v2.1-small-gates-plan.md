@@ -644,7 +644,25 @@ test('research-defect gets one repair attempt only', () => {
 });
 ```
 
-- [ ] **Step 2: Implement parked store**
+- [ ] **Step 2: Create K2 SE v1 fixture**
+
+Create `scripts/fixtures/k2-se-parked-v1.json`:
+
+```json
+{
+  "reason": "review-no-go",
+  "candidateKey": ["req:1783615951531:a03e6e7e"],
+  "firstParkedAt": "2026-07-10T10:16:47Z",
+  "lastAttemptAt": "2026-07-10T10:16:47Z",
+  "diffSha": "b88ae6df048d75c6",
+  "objections": [
+    { "reviewer": "hostile", "field": "multi_color_systems", "question": "Verify CFS support from manufacturer evidence.", "raisedAt": "2026-07-10T10:16:47Z" },
+    { "reviewer": "hostile", "field": "max_speed", "question": "Verify 500mm/s is the K2 SE cap.", "raisedAt": "2026-07-10T10:16:47Z" }
+  ]
+}
+```
+
+- [ ] **Step 3: Implement parked store**
 
 ```js
 const fs = require('fs');
@@ -695,13 +713,13 @@ function writeParked(filePath, sidecar) {
 module.exports = { isTainted, assertWritableClass, migrateParkedV1, enterResearchRepair, readParked, writeParked };
 ```
 
-- [ ] **Step 3: Run GREEN**
+- [ ] **Step 4: Run GREEN**
 
 Run: `node scripts/intake-parked-store.test.js`
 
 Expected: tests pass.
 
-- [ ] **Step 4: Gate review and commit**
+- [ ] **Step 5: Gate review and commit**
 
 ```bash
 bridge --mode "$BRIDGE_MODE" "Review R3 parked-store v2 and K2 SE migration. Verify tainted review-no-go cannot become research-defect/world-absent/availability-blocked and repairAttempts is enforced." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
@@ -1001,21 +1019,9 @@ cd /Users/mustafaozturk-macmini/dev/Claude/Projects/3dprintassistant
 
 - [ ] **Step 1: Add fixture-based migration test**
 
-Use `scripts/fixtures/k2-se-parked-v1.json`:
-
-```json
-{
-  "reason": "review-no-go",
-  "candidateKey": ["req:1783615951531:a03e6e7e"],
-  "firstParkedAt": "2026-07-10T10:16:47Z",
-  "lastAttemptAt": "2026-07-10T10:16:47Z",
-  "diffSha": "b88ae6df048d75c6",
-  "objections": [
-    { "reviewer": "hostile", "field": "multi_color_systems", "question": "Verify CFS support from manufacturer evidence.", "raisedAt": "2026-07-10T10:16:47Z" },
-    { "reviewer": "hostile", "field": "max_speed", "question": "Verify 500mm/s is the K2 SE cap.", "raisedAt": "2026-07-10T10:16:47Z" }
-  ]
-}
-```
+Reuse `scripts/fixtures/k2-se-parked-v1.json` created in R3. Do not recreate or
+edit the fixture in R7; this gate only proves the already-defined migration
+contract remains true after runner integration.
 
 Test:
 
