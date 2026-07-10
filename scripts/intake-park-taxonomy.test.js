@@ -27,6 +27,7 @@ test('unknown reasons fail closed to decision-required', () => {
   const c = classifyParkReason('future-surprise', { tainted: false }, t);
   assert.equal(c.className, 'decision-required');
   assert.equal(c.trigger, 'owner');
+  assert.equal(c.reviewEntry, false);
 });
 
 test('NO-GO taint has no automatic path to a review turn', () => {
