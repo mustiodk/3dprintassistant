@@ -289,7 +289,7 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
 
 ## 8. Success criteria
 
-1. **K2 SE is the end-to-end acceptance test.** Under v2.1 it either ships with a `notes[]` citation + per-field sources in `docs/printer-provenance.json`, or parks for a **different, better** reason. *Re-parking for the identical unexamined reason is a failure of this spec.*
+1. **K2 SE is the end-to-end acceptance test after the owner explicitly authorises a re-attempt.** Under v2.1 it either ships with a `notes[]` citation + per-field sources in `docs/printer-provenance.json`, or parks for a **different, better** reason. *Re-parking for the identical unexamined reason is a failure of this spec.* Without that owner instruction, K2 SE correctly remains `decision-required` after migration and is not an automatic acceptance run.
 2. **A `judgment-on-evidence` candidate without a canonically-novel, substantiated source consumes zero review turns** — provable from the report (review-invocation count = 0).
 3. **No path exists from any NO-GO verdict to a review turn**, except new RD3-satisfying external evidence or an explicit owner instruction — unit-enforced over the taxonomy graph, migration included.
 4. **No park reason lacks a class**; the catch-all is gone; unsuffixed legacy reasons fail closed.
