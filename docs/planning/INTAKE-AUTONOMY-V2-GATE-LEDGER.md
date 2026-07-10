@@ -8,6 +8,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 | Gate | Status | Evidence |
 |---|---|---|
+| R4 RD3 retry gate | ✅ 2026-07-10 | RED missing module → 16/16 tests; direct hostile review NO-GO with 2 behavior findings + coverage gap; findings applied one-per-commit; focused re-review GO; see R4 row |
 | R3 parked store v2 + K2 SE migration | ✅ 2026-07-10 | RED missing module → 14/14 tests; direct hostile review NO-GO ×2, both findings applied one-per-commit; focused re-review GO; K2 SE fixture migrates only, no re-attempt; see R3 row |
 | R2 structured reviewer-output contract | ✅ 2026-07-10 | RED missing module → 12/12 tests; direct hostile review NO-GO ×3, all findings applied one-per-commit; focused re-review GO; see R2 row |
 | R1 evidence slots + candidate evidence gate | ✅ 2026-07-10 | RED-first source/evidence modules + Scout skeleton; final 3/3 normalizer, 15/15 evidence, full Scout green; Claude GO-WITH-PATCHES findings applied one-per-commit; final direct fallback re-review GO after Claude spend-limit outage; see R1 row |
@@ -22,6 +23,14 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 ---
 
 ## Rows (newest first)
+
+### R4 — RD3 judgment retry gate ✅ (2026-07-10; `1537bdf` + `0c8cf5e` + `12efd9f`)
+
+**TDD:** `node scripts/intake-retry-gate.test.js` first failed on the missing module. Final **16/16** coverage pins bare URLs, canonical-source replay, unchanged/missing diffs, absent resolution fields, invalid URLs, non-judgment classes, malformed inputs, objection count/identity/order drift, and malformed or impossible `resolvedAt` timestamps. Every rejection returns `review-no-go-unresolved` with `reviewRequests:0`; only a structurally complete retry returns exactly one review request.
+
+**Review chain:** canonical direct read-only `gpt-5.4` fallback initial verdict **NO-GO** ([record](../../codex/intake-autonomy-v2.1-review/direct-codex-2026-07-10-r4.md)). The reviewer reproduced reordered and extra-leading objections reaching review and a free-text timestamp passing. Identity/order binding and strict timestamp validation landed as separate commits with their own RED tests. Focused re-review session `019f4d91-e745-7b11-9fa7-6d886ca04223` returned **GO**, including direct proof that a valid multi-objection retry still requests exactly one review.
+
+**Contract proven:** a retry reaches PD5 only from `judgment-on-evidence`, with a changed diff, the exact persisted objection set, and per-objection canonically novel `source` + `excerpt` + `claim` + valid `resolvedAt`. Structural failure never spends a review turn and remains in the event-only `review-no-go-unresolved` lane. This gate changes no engine, printer data, overlay, web UI, iOS, or Android behavior; no app/data utilization change is needed.
 
 ### R3 — parked store v2 + K2 SE migration ✅ (2026-07-10; `318fd90` + `868c950` + `1d96535`)
 
