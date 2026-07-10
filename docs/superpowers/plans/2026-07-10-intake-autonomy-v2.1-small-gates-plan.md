@@ -919,14 +919,11 @@ Autonomous v2.1 additions:
 - Shipped printer provenance is committed to `docs/printer-provenance.json`.
 ```
 
-- [ ] **Step 3: Update ai-operating-model runner contract in the execution session**
+- [ ] **Step 3: Edit ai-operating-model runner contract but do not commit yet**
 
-From `/Users/mustafaozturk-macmini/dev/Claude/Projects/ai-operating-model`, update `docs/agents/intake-pipeline-runner.md` to call the v2.1 scripts in the same order. Commit that repo separately:
-
-```bash
-git add docs/agents/intake-pipeline-runner.md
-git commit -m "docs(agents): integrate intake autonomy v2.1 contract"
-```
+From `/Users/mustafaozturk-macmini/dev/Claude/Projects/ai-operating-model`, update
+`docs/agents/intake-pipeline-runner.md` to call the v2.1 scripts in the same
+order. Leave the ai-om change uncommitted until the R6 bridge review has read it.
 
 - [ ] **Step 4: Run docs/protocol verification**
 
@@ -947,9 +944,13 @@ Expected: all exit 0.
 - [ ] **Step 5: Gate review and commit**
 
 ```bash
-bridge --mode "$BRIDGE_MODE" "Review R6 runner/runbook integration for Intake Autonomy v2.1. Verify stage order and cross-repo contract wording cannot create a sidecar before R0 taxonomy or spend a review turn before evidence validation." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
+bridge --mode "$BRIDGE_MODE" "Review R6 runner/runbook integration for Intake Autonomy v2.1. Verify stage order and cross-repo contract wording cannot create a sidecar before R0 taxonomy or spend a review turn before evidence validation. Include these files: scripts/intake-run-kickoff.md, docs/runbooks/printer-addition-protocol.md, docs/planning/INTAKE-AUTONOMY-V2-GATE-LEDGER.md, and /Users/mustafaozturk-macmini/dev/Claude/Projects/ai-operating-model/docs/agents/intake-pipeline-runner.md." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
 git add scripts/intake-run-kickoff.md docs/runbooks/printer-addition-protocol.md docs/planning/INTAKE-AUTONOMY-V2-GATE-LEDGER.md
 git commit -m "docs(intake): integrate v2.1 runner contract"
+cd /Users/mustafaozturk-macmini/dev/Claude/Projects/ai-operating-model
+git add docs/agents/intake-pipeline-runner.md
+git commit -m "docs(agents): integrate intake autonomy v2.1 contract"
+cd /Users/mustafaozturk-macmini/dev/Claude/Projects/3dprintassistant
 ```
 
 ## Task R7: K2 SE Migration Drill
