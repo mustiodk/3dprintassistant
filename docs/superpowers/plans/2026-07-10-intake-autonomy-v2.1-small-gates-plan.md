@@ -292,11 +292,33 @@ const assert = require('node:assert/strict');
 const { validateCandidateEvidence } = require('./validate-candidate-evidence.js');
 
 function baseCandidate(overrides = {}) {
+  const confirmed = (value) => ({ value, source: 'https://creality.com/products/k2-se', confidence: 'confirmed', evidenceType: 'manufacturer' });
   return {
     schema: 'printer-intake-candidate@1',
     printersJsonRow: {
-      max_speed: { value: 500, source: 'https://creality.com/products/k2-se', confidence: 'confirmed', evidenceType: 'manufacturer' },
+      extruder_type: confirmed('direct_drive'),
+      enclosure: confirmed('open'),
+      max_nozzle_temp: confirmed(300),
+      max_bed_temp: confirmed(100),
+      max_speed: confirmed(500),
       max_acceleration: { value: 20000, source: null, confidence: 'inferred', evidenceType: 'app-cap' },
+      available_nozzle_sizes: confirmed([0.4]),
+      multi_color_systems: confirmed(['cfs']),
+      available_plates: confirmed(['textured_pei']),
+      active_chamber_heating: { value: false, source: null, confidence: 'confirmed', evidenceType: 'absence-rationale',
+        absenceRationale: {
+          sourceClassesChecked: ['official-product-page'],
+          checkedSources: [{ canonicalSource: 'creality.com/products/k2-se', retrievedAt: '2026-07-10T00:00:00Z' }],
+          normallyAdvertisedIfPresent: 'Creality advertises active chamber heating on K-series pages when present.',
+          omissionSafeBecause: 'False is conservative for open-frame thermal handling.'
+        } },
+      has_camera: { value: false, source: null, confidence: 'confirmed', evidenceType: 'absence-rationale',
+        absenceRationale: {
+          sourceClassesChecked: ['official-product-page'],
+          checkedSources: [{ canonicalSource: 'creality.com/products/k2-se', retrievedAt: '2026-07-10T00:00:00Z' }],
+          normallyAdvertisedIfPresent: 'Creality advertises camera features when present.',
+          omissionSafeBecause: 'False disables optional feature assumptions.'
+        } },
       has_lidar: { value: false, source: null, confidence: 'confirmed', evidenceType: 'absence-rationale',
         absenceRationale: {
           sourceClassesChecked: ['official-product-page'],
