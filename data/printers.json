@@ -509,6 +509,27 @@
       "notes": ["Active chamber heating 60\u00b0C", "CFS multicolor \u2014 up to 16 colors"]
     },
     {
+      "id": "k2_se",
+      "name": "K2 SE",
+      "manufacturer": "creality",
+      "series": "corexy",
+      "series_group": "K Series",
+      "enclosure": "none",
+      "active_chamber_heating": false,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 300,
+      "max_bed_temp": 100,
+      "max_speed": 500,
+      "max_acceleration": 20000,
+      "has_lidar": false,
+      "has_camera": false,
+      "multi_color_systems": ["cfs"],
+      "available_plates": ["textured_pei"],
+      "available_nozzle_sizes": [0.4],
+      "open_door_threshold_bed_temp": null,
+      "notes": ["CFS multicolor \u2014 up to 16 colors"]
+    },
+    {
       "id": "ender3_v3_plus",
       "name": "Ender-3 V3 Plus",
       "manufacturer": "creality",
