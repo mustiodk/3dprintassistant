@@ -8,6 +8,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 | Gate | Status | Evidence |
 |---|---|---|
+| R7 K2 SE migration drill | ✅ 2026-07-10 | Existing R3 fixture drill re-run: `node scripts/intake-parked-store.test.js` **14/14**; K2 SE v1 sidecar migrates to `decision-required`, remains tainted, fixture byte-unchanged; no automatic reattempt; see R7 row |
 | R6 runner contract integration | ✅ 2026-07-10 | web `e3c3d44` + ai-om `9bc6e0c`; direct review NO-GO chain closed by `d749925`/`fbe7ccc`/`b15f430`/`6de7f86`/`1ad308d`; final focused re-review GO; verification green; see R6 row |
 | R5 provenance store + custody preflight | ✅ 2026-07-10 | RED missing provenance module + preflight lacking repo/dry-run custody pass → 2/2 provenance tests + custody shell harness; direct hostile review NO-GO with 3 findings; accepted coverage findings landed one-per-commit; focused re-review GO; see R5 row |
 | R4 RD3 retry gate | ✅ 2026-07-10 | RED missing module → 16/16 tests; direct hostile review NO-GO with 2 behavior findings + coverage gap; findings applied one-per-commit; focused re-review GO; see R4 row |
@@ -25,6 +26,14 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 ---
 
 ## Rows (newest first)
+
+### R7 — K2 SE migration drill ✅ (2026-07-10; existing R3 fixture/test, ledger-only close)
+
+**Drill:** R7 reused the existing R3 fixture `scripts/fixtures/k2-se-parked-v1.json` and did not recreate or edit it. The already-landed fixture tests are stronger than the plan snippet: `K2 SE v1 review-no-go migrates to decision-required and tainted` proves `schema=intake-parked@2`, `class=decision-required`, `tainted=true`, `repairAttempts=0`, empty evidence, and a synthesized durable NO-GO `verdictRefs` entry; `readParked migrates the real-like K2 SE fixture without mutating it` proves the fixture is byte-unchanged by the migration path.
+
+**Verification:** `node scripts/intake-parked-store.test.js` passed **14/14** after R6 integration, including the two K2 SE fixture checks plus taint-laundering, malformed repair counter, and allowed-update preservation coverage.
+
+**Boundary:** R7 proves migration only. A real K2 SE re-attempt requires explicit owner instruction under RD2; without that, migrated K2 SE remains `decision-required`. R7 does **not** re-run Scout, does not re-enter PD5, does not touch `data/printers.json`, does not publish an overlay, and does not change web/iOS/Android behavior.
 
 ### R6 — runner contract integration + docs alignment ✅ (2026-07-10; web `e3c3d44` + `d749925` + `fbe7ccc` + `b15f430` + `6de7f86` + `1ad308d`; ai-om `9bc6e0c`)
 
