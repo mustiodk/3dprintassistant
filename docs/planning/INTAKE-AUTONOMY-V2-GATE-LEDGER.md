@@ -8,6 +8,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 | Gate | Status | Evidence |
 |---|---|---|
+| R2 structured reviewer-output contract | ✅ 2026-07-10 | RED missing module → 12/12 tests; direct hostile review NO-GO ×3, all findings applied one-per-commit; focused re-review GO; see R2 row |
 | R1 evidence slots + candidate evidence gate | ✅ 2026-07-10 | RED-first source/evidence modules + Scout skeleton; final 3/3 normalizer, 15/15 evidence, full Scout green; Claude GO-WITH-PATCHES findings applied one-per-commit; final direct fallback re-review GO after Claude spend-limit outage; see R1 row |
 | R0 taxonomy + NO-GO taint graph | ✅ 2026-07-10 | RED missing module → 11/11 tests + CLI `ok=true`; hostile review NO-GO then GO-WITH-PATCHES, 5 accepted findings landed one-per-commit; final Claude re-review GO; see R0 row |
 | B0 launchd environment probe | ✅ 2026-07-10 | 4/4 PASS on a real launchd run (`ppid=1`); see B0 row below |
@@ -20,6 +21,14 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 ---
 
 ## Rows (newest first)
+
+### R2 — structured reviewer-output contract ✅ (2026-07-10; `868904e` + `b6bdb6e` + `96ff8fd`)
+
+**TDD:** `validate-reviewer-output.test.js` first failed on the missing module. The final **12/12** suite covers null/non-object input, GO/NO-GO objection cardinality, malformed objections, strict ISO syntax + impossible calendar dates, canonical lowercase reviewer ids, and a structural test pinning RD4 split-verdict routing in both operational docs.
+
+**Review chain:** Claude was unavailable under the confirmed monthly spend limit, so the canonical read-only direct fallback reviewed R2. First pass **NO-GO ×3** ([record](../../codex/intake-autonomy-v2.1-review/direct-codex-2026-07-10-r2.md)): JavaScript normalised impossible dates; reviewer ids allowed case drift; kickoff/runbook still collapsed split verdicts into generic parking. Each finding landed separately. Focused re-review session `019f4d33-83af-7890-b379-08ea2f0f6054` reran the tests and returned **GO**.
+
+**Contract proven:** malformed output never throws or infers from prose and routes `review-unavailable`; `GO` requires zero objections; `NO-GO` requires structured objections with stable lowercase reviewer id + real ISO-8601 calendar time. Both verdicts are always classified as a multiset: `{GO, GO}` ships, `{NO-GO, NO-GO}` parks as `review-no-go`, and a split routes `review-split` → `decision-required`.
 
 ### R1 — evidence slots + deterministic candidate evidence gate ✅ (2026-07-10; `56d139a` + `92c98cd` + `aa48967` + `a526b61` + `b459db9`)
 

@@ -26,3 +26,11 @@ read-only direct fallback was therefore used for the gate review.
 
 All three findings were accepted for one-finding-per-commit remediation before
 R2 re-review.
+
+## Final re-review
+
+**Session:** `019f4d33-83af-7890-b379-08ea2f0f6054`
+
+The focused read-only re-review reran the 12-test contract suite, verified the
+calendar-date round trip, lowercase reviewer ids, and explicit RD4 multiset
+routing in both operational docs, then returned `GO`.
