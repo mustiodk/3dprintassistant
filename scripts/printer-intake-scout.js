@@ -659,7 +659,13 @@ function candidateSkeleton(item) {
   riskFlags.push('series_group not yet decided — reuse a sibling label, never invent');
   riskFlags.push('overlay publish reaches current iOS users — taxonomy must be confirmed');
 
-  const FIELD = () => ({ value: null, source: null, confidence: 'low-confidence' });
+  const FIELD = () => ({
+    value: null,
+    source: null,
+    confidence: 'low-confidence',
+    evidenceType: null,
+    absenceRationale: null,
+  });
   return {
     schema: 'printer-intake-candidate@1',
     _private: true, // contains requester note text — keep out of git / served assets
@@ -709,9 +715,12 @@ function candidateSkeleton(item) {
     },
     printersJsonRow: {
       id: r.suggestedId, name: r.model, manufacturer: r.manufacturer,
-      series: FIELD(), series_group: FIELD(), enclosure: FIELD(),
+      series: FIELD(), series_group: FIELD(), enclosure: FIELD(), extruder_type: FIELD(),
       max_nozzle_temp: FIELD(), max_bed_temp: FIELD(), max_speed: FIELD(),
-      available_nozzle_sizes: FIELD(), multi_color_systems: FIELD(), available_plates: FIELD(),
+      max_acceleration: FIELD(), available_nozzle_sizes: FIELD(),
+      multi_color_systems: FIELD(), available_plates: FIELD(),
+      active_chamber_heating: FIELD(), has_camera: FIELD(), has_lidar: FIELD(),
+      notes: FIELD(),
     },
     overlayPayloadEntry: {
       note: 'additive overlay entry — fill only fields the overlay validator accepts '

@@ -1,0 +1,21 @@
+{
+  "reason": "review-no-go",
+  "candidateKey": ["req:1783615951531:a03e6e7e"],
+  "firstParkedAt": "2026-07-10T10:16:47Z",
+  "lastAttemptAt": "2026-07-10T10:16:47Z",
+  "diffSha": "b88ae6df048d75c6",
+  "objections": [
+    {
+      "reviewer": "hostile",
+      "field": "multi_color_systems",
+      "question": "Verify CFS support from manufacturer evidence.",
+      "raisedAt": "2026-07-10T10:16:47Z"
+    },
+    {
+      "reviewer": "hostile",
+      "field": "max_speed",
+      "question": "Verify 500mm/s is the K2 SE cap.",
+      "raisedAt": "2026-07-10T10:16:47Z"
+    }
+  ]
+}

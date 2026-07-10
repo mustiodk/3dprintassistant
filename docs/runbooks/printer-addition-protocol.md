@@ -15,8 +15,9 @@ owner-ratified waivers (Intake Autonomy v2, Gate B4).
 
 ## Execution modes (v5, 2026-07-10)
 
-This protocol has two first-class execution modes; **the protocol steps are
-identical in both — the modes differ only in who approves.**
+This protocol has two first-class execution modes; **the protocol gates are the
+same except where a step explicitly calls out mode-specific approval or
+sequencing.**
 
 1. **Manual (owner-gated)** — the original mode. Owner approves per candidate;
    the owner visual picker check and new-brand sign-off apply as written below.
@@ -25,9 +26,10 @@ identical in both — the modes differ only in who approves.**
    [`../superpowers/specs/2026-07-09-intake-autonomy-v2-design.md`](../superpowers/specs/2026-07-09-intake-autonomy-v2-design.md)
    (owner-ratified 2026-07-10, PD0–PD8 + the no-shadow-phase amendment) and the
    runner contract `ai-operating-model/docs/agents/intake-pipeline-runner.md`.
-   The PD5 dual-review merge gate (hostile sub-agent GO + Codex GO on the
-   actual diff; any NO-GO parks) replaces per-candidate owner approval for the
-   PD2/PD4 auto classes; everything unverifiable parks with a notification.
+   The PD5 dual-review merge gate replaces per-candidate owner approval for the
+   PD2/PD4 auto classes. `{GO, GO}` ships; `{NO-GO, NO-GO}` parks as
+   `review-no-go`; a split verdict routes `review-split` → `decision-required`.
+   Everything unverifiable parks with a notification.
 
    **Owner-ratified waivers (2026-07-10), recorded here as protocol law:**
    - **PD3 — the owner visual picker check is REPLACED in autonomous mode** by
@@ -50,6 +52,20 @@ identical in both — the modes differ only in who approves.**
      `"shipped | auto-shipped | auto-parked:<reason> | declined-correct | was-*"`,
      and commit as `docs(intake): PD7 marker migration`. Documented here; the
      runner never edits the marker.
+
+   ### Intake Autonomy v2.1 additions (2026-07-10)
+
+   Autonomous v2.1 additions:
+   - Every profile/safety-critical field must carry
+     `value`/`source`/`confidence`/`evidenceType` before review.
+   - `world-absent` is validator-assigned only after a typed absence rationale
+     and complete source-class sweep.
+   - Reviewer NO-GO emits structured objections; malformed reviewer output
+     parks as `review-unavailable` and never spends a merge decision.
+   - Any NO-GO taints the candidate; tainted candidates cannot enter
+     timer/research repair lanes.
+   - Shipped printer provenance is committed to
+     `docs/printer-provenance.json` beside the append-only intake outcome line.
 
    **This manual protocol remains canonical on any conflict** — an autonomous
    runner that cannot satisfy a step parks the candidate; it never improvises
@@ -257,7 +273,7 @@ The script is tested by `scripts/picker-dry-run.test.js`; run
 
 ## Phase 3 — Implementation + verification
 
-**Commits.** One printer = one focused commit per repo:
+**Commits — manual mode.** One printer = one focused commit per repo:
 
 1. **Web commit** — `data/printers.json` + `scripts/walkthrough-harness.js`
    combo for the new printer. Subject: `data: add <brand> <model> (<series_group>)`.
@@ -277,7 +293,15 @@ The script is tested by `scripts/picker-dry-run.test.js`; run
 edits, correction sweeps across other printers, validator code changes.
 Those land in their own arc.
 
-**Verification — all green before Phase 5:**
+**Autonomous mode commit sequencing.** The runner's pre-merge printer branch
+contains only the web printer commit and, if needed, the overlay publish commit.
+Do not touch the iOS repo before the web branch has merged, pushed, and passed
+live overlay + picker verification. The iOS mirror is a **local-only post-merge
+PD6 commit** per the runner contract; never push iOS from an autonomous run.
+
+**Verification.** Manual mode: all green before Phase 5. Autonomous mode: the
+web/overlay gates below are green before PD5; the iOS mirror diff and XCTest (or
+data-only waiver) run only in post-merge PD6 after live verify.
 
 From the **web repo** (`Projects/3dprintassistant/`):
 
@@ -289,7 +313,8 @@ node scripts/profile-matrix-audit.js
 node scripts/validate-ios-printer-overlay.js   # only if overlay touched
 ```
 
-From the **iOS repo** (`Projects/3dprintassistant-ios/`):
+From the **iOS repo** (`Projects/3dprintassistant-ios/`; manual mode before
+Phase 5, autonomous mode post-merge PD6 only):
 
 ```bash
 xcodebuild test -project 3DPrintAssistant.xcodeproj -scheme 3DPrintAssistant \
@@ -427,22 +452,26 @@ the wrap-up is blocked.
 
 - [ ] Sources cited in plan or commit body (path or URL).
 - [ ] Taxonomy matches existing brand picker; new `brands[]` row, if any, has
-      explicit owner sign-off.
+      explicit owner sign-off in manual mode OR satisfies the autonomous PD4
+      criteria above, including reviewer GO.
 - [ ] Phase 2 picker dry-run output captured in commit body or session log.
 - [ ] Web commit is one printer; no `engine.js`, marketing, or correction-sweep
       mixing.
-- [ ] iOS mirror commit byte-identical (`diff -q web iOS` exit 0).
+- [ ] Manual mode: iOS mirror commit byte-identical (`diff -q web iOS` exit 0).
+      Autonomous mode: iOS mirror deferred until post-merge PD6, local-only, and
+      byte-identical after live verify.
 - [ ] Overlay commit (if any): `content_version` bumped, `payload_sha256`
       recomputed, validator green.
-- [ ] `validate-data` + `walkthrough-harness` + `profile-matrix-audit` + iOS
-      XCTest all green at HEAD — OR, for a data-only add (no engine / Swift /
-      schema / new-data-key change), the **data-only iOS XCTest waiver** is
-      invoked and logged: web gates green + `diff -q` byte-identical stand in for
-      local XCTest, and the void conditions were checked and none fired.
+- [ ] `validate-data` + `walkthrough-harness` + `profile-matrix-audit` green.
+      Manual mode: iOS XCTest is green at HEAD, OR the **data-only iOS XCTest
+      waiver** is invoked and logged. Autonomous mode: the same iOS XCTest/waiver
+      check is deferred to post-merge PD6 with the local-only mirror.
 - [ ] No `engine.js`, `app.js`, validator, or spec file edited in printer
       commits.
-- [ ] Owner visual picker check OK (only if overlay touched, new brand, or new
-      series_group).
+- [ ] Manual mode: owner visual picker check OK (only if overlay touched, new
+      brand, or new series_group). Autonomous mode: `picker-dry-run` and
+      `verify-live-picker` are green, and the Discord report flags the owner's
+      post-ship spot-check cue when overlay/new-brand/new-series conditions fire.
 - [ ] Live overlay URL confirms published `content_version` (only if overlay
       was deployed).
 - [ ] Overlay → bundled graduation (Phase 4b): if a printer was baked into a new
@@ -451,10 +480,23 @@ the wrap-up is blocked.
       otherwise kept) AND a `ios-bundled-catalog-baselines.json` baseline was added
       for the new binary version. (N/A if no binary graduated a printer this cycle.)
 
-### Risk-triggered reviewer dispatch
+### Reviewer dispatch rules
 
-Escalate to `superpowers:requesting-code-review` against the printer-add diff
-when **any** of these fire:
+Every autonomous reviewer emits this v2.1 structured result before prose:
+`{ reviewer, verdict:"GO"|"NO-GO", objections:[{field,question,raisedAt}] }`.
+The reviewer id is a stable token; `raisedAt` is explicit ISO-8601. Validate the
+result with `scripts/validate-reviewer-output.js`. `NO-GO` requires at least one
+structured objection; `GO` requires none. Malformed output becomes
+`review-unavailable` and parks without a merge decision — never infer a verdict
+or reconstruct objections from prose.
+Classify both validated verdicts as a multiset: `{GO, GO}` ships;
+`{NO-GO, NO-GO}` parks as `review-no-go`; `{GO, NO-GO}` routes `review-split` → `decision-required`.
+
+In autonomous mode, PD5 dual review is mandatory for every candidate that
+reaches the merge gate after `validate-candidate-evidence.js`; the trigger list
+below never waives that gate. In manual mode, escalate to
+`superpowers:requesting-code-review` against the printer-add diff when **any**
+of these fire:
 
 - New `brands[]` row added.
 - New `series_group` introduced under an existing brand.
@@ -472,8 +514,8 @@ when **any** of these fire:
 - Deprecation or removal (Phase 4).
 - More than one printer added in the same session.
 
-If none of those fire, the self-check above is sufficient. This aligns with
-the risk-based second-model rule in
+In manual mode, if none of those fire, the self-check above is sufficient. This
+aligns with the risk-based second-model rule in
 [`../../../ai-operating-model/docs/ai-collab.md`](../../../ai-operating-model/docs/ai-collab.md).
 
 ## What this protocol forbids
@@ -491,7 +533,9 @@ the risk-based second-model rule in
   it — see Phase 4b.)
 - Mixing a printer add with engine, marketing, correction-sweep, or validator
   work.
-- Adding a new `brands[]` row without owner sign-off.
+- Adding a new `brands[]` row without owner sign-off in manual mode, or without
+  satisfying the autonomous PD4 criteria plus PD5 dual-review GO in autonomous
+  mode.
 - Trusting a single source for taxonomy.
 - Running Trigger A wrap-up before Phase 5 self-check is fully `[x]` (and
   reviewer dispatch returned GO, if triggered).
