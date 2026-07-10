@@ -15,8 +15,9 @@ owner-ratified waivers (Intake Autonomy v2, Gate B4).
 
 ## Execution modes (v5, 2026-07-10)
 
-This protocol has two first-class execution modes; **the protocol steps are
-identical in both — the modes differ only in who approves.**
+This protocol has two first-class execution modes; **the protocol gates are the
+same except where a step explicitly calls out mode-specific approval or
+sequencing.**
 
 1. **Manual (owner-gated)** — the original mode. Owner approves per candidate;
    the owner visual picker check and new-brand sign-off apply as written below.
@@ -272,7 +273,7 @@ The script is tested by `scripts/picker-dry-run.test.js`; run
 
 ## Phase 3 — Implementation + verification
 
-**Commits.** One printer = one focused commit per repo:
+**Commits — manual mode.** One printer = one focused commit per repo:
 
 1. **Web commit** — `data/printers.json` + `scripts/walkthrough-harness.js`
    combo for the new printer. Subject: `data: add <brand> <model> (<series_group>)`.
@@ -292,7 +293,15 @@ The script is tested by `scripts/picker-dry-run.test.js`; run
 edits, correction sweeps across other printers, validator code changes.
 Those land in their own arc.
 
-**Verification — all green before Phase 5:**
+**Autonomous mode commit sequencing.** The runner's pre-merge printer branch
+contains only the web printer commit and, if needed, the overlay publish commit.
+Do not touch the iOS repo before the web branch has merged, pushed, and passed
+live overlay + picker verification. The iOS mirror is a **local-only post-merge
+PD6 commit** per the runner contract; never push iOS from an autonomous run.
+
+**Verification.** Manual mode: all green before Phase 5. Autonomous mode: the
+web/overlay gates below are green before PD5; the iOS mirror diff and XCTest (or
+data-only waiver) run only in post-merge PD6 after live verify.
 
 From the **web repo** (`Projects/3dprintassistant/`):
 
@@ -304,7 +313,8 @@ node scripts/profile-matrix-audit.js
 node scripts/validate-ios-printer-overlay.js   # only if overlay touched
 ```
 
-From the **iOS repo** (`Projects/3dprintassistant-ios/`):
+From the **iOS repo** (`Projects/3dprintassistant-ios/`; manual mode before
+Phase 5, autonomous mode post-merge PD6 only):
 
 ```bash
 xcodebuild test -project 3DPrintAssistant.xcodeproj -scheme 3DPrintAssistant \
@@ -447,14 +457,15 @@ the wrap-up is blocked.
 - [ ] Phase 2 picker dry-run output captured in commit body or session log.
 - [ ] Web commit is one printer; no `engine.js`, marketing, or correction-sweep
       mixing.
-- [ ] iOS mirror commit byte-identical (`diff -q web iOS` exit 0).
+- [ ] Manual mode: iOS mirror commit byte-identical (`diff -q web iOS` exit 0).
+      Autonomous mode: iOS mirror deferred until post-merge PD6, local-only, and
+      byte-identical after live verify.
 - [ ] Overlay commit (if any): `content_version` bumped, `payload_sha256`
       recomputed, validator green.
-- [ ] `validate-data` + `walkthrough-harness` + `profile-matrix-audit` + iOS
-      XCTest all green at HEAD — OR, for a data-only add (no engine / Swift /
-      schema / new-data-key change), the **data-only iOS XCTest waiver** is
-      invoked and logged: web gates green + `diff -q` byte-identical stand in for
-      local XCTest, and the void conditions were checked and none fired.
+- [ ] `validate-data` + `walkthrough-harness` + `profile-matrix-audit` green.
+      Manual mode: iOS XCTest is green at HEAD, OR the **data-only iOS XCTest
+      waiver** is invoked and logged. Autonomous mode: the same iOS XCTest/waiver
+      check is deferred to post-merge PD6 with the local-only mirror.
 - [ ] No `engine.js`, `app.js`, validator, or spec file edited in printer
       commits.
 - [ ] Manual mode: owner visual picker check OK (only if overlay touched, new
