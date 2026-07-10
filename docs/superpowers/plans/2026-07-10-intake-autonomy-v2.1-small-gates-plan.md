@@ -49,6 +49,7 @@
 - Modify `scripts/intake-run-kickoff.md`: contract version note and v2.1 gate order.
 - Modify `docs/runbooks/printer-addition-protocol.md`: v2.1 evidence/retry/provenance operational amendment.
 - Modify `docs/planning/INTAKE-AUTONOMY-V2-GATE-LEDGER.md`: append v2.1 gate rows as gates finish.
+- Cross-repo modify `/Users/mustafaozturk-macmini/dev/Claude/Projects/ai-operating-model/docs/agents/intake-pipeline-runner.md`: canonical runner contract wording for v2.1 gate order.
 
 ---
 
