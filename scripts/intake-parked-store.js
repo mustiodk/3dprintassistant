@@ -67,7 +67,26 @@ function readParked(filePath) {
 }
 
 function writeParked(filePath, sidecar) {
-  const normalized = normalizeParkedV2({ ...sidecar, schema: 'intake-parked@2' });
+  const previous = fs.existsSync(filePath) ? readParked(filePath) : null;
+  const verdictRefs = [];
+  const seenVerdicts = new Set();
+  for (const verdict of [
+    ...(Array.isArray(previous?.verdictRefs) ? previous.verdictRefs : []),
+    ...(Array.isArray(sidecar.verdictRefs) ? sidecar.verdictRefs : []),
+  ]) {
+    const identity = JSON.stringify(verdict);
+    if (!seenVerdicts.has(identity)) {
+      seenVerdicts.add(identity);
+      verdictRefs.push(verdict);
+    }
+  }
+
+  const normalized = normalizeParkedV2({
+    ...sidecar,
+    schema: 'intake-parked@2',
+    verdictRefs,
+    tainted: isTainted(previous || {}) || isTainted(sidecar),
+  });
   fs.writeFileSync(filePath, `${JSON.stringify(normalized, null, 2)}\n`);
 }
 

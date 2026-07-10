@@ -90,3 +90,52 @@ test('writeParked derives taint from verdictRefs in the persisted v2 sidecar', (
   }
 });
 
+test('writeParked cannot launder taint already persisted on disk', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'intake-parked-store-'));
+  const filePath = path.join(tempDir, 'parked.json');
+
+  try {
+    writeParked(filePath, {
+      schema: 'intake-parked@2',
+      class: 'judgment-on-evidence',
+      verdictRefs: [{ reviewer: 'hostile', verdict: 'NO-GO', ref: 'review-1' }],
+    });
+    const before = fs.readFileSync(filePath, 'utf8');
+
+    assert.throws(() => writeParked(filePath, {
+      schema: 'intake-parked@2',
+      class: 'research-defect',
+      tainted: false,
+      verdictRefs: [],
+    }), /tainted/i);
+    assert.equal(fs.readFileSync(filePath, 'utf8'), before);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('allowed updates preserve persisted NO-GO verdict references', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'intake-parked-store-'));
+  const filePath = path.join(tempDir, 'parked.json');
+
+  try {
+    const noGo = { reviewer: 'hostile', verdict: 'NO-GO', ref: 'review-1' };
+    writeParked(filePath, {
+      schema: 'intake-parked@2',
+      class: 'judgment-on-evidence',
+      verdictRefs: [noGo],
+    });
+    writeParked(filePath, {
+      schema: 'intake-parked@2',
+      class: 'decision-required',
+      tainted: false,
+      verdictRefs: [],
+    });
+
+    const persisted = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    assert.equal(persisted.tainted, true);
+    assert.deepEqual(persisted.verdictRefs, [noGo]);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
