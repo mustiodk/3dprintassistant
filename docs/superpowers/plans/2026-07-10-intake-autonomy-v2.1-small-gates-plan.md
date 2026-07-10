@@ -751,6 +751,12 @@ test('new source with excerpt and claim passes structural gate', () => {
   const r = canRetryJudgment(sidecar(), { diffSha: 'new', objections: [{ resolvedBy: { source: 'https://support.creality.com/k2-se-specs', excerpt: 'Maximum speed 500 mm/s', claim: 'max_speed=500' } }] });
   assert.equal(r.ok, true);
 });
+
+test('unchanged diffSha refuses retry before any review turn', () => {
+  const r = canRetryJudgment(sidecar(), { diffSha: 'old', objections: [{ resolvedBy: { source: 'https://support.creality.com/k2-se-specs', excerpt: 'Maximum speed 500 mm/s', claim: 'max_speed=500' } }] });
+  assert.equal(r.ok, false);
+  assert.equal(r.reviewRequests, 0);
+});
 ```
 
 - [ ] **Step 2: Implement retry gate**
