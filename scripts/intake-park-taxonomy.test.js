@@ -65,6 +65,24 @@ test('graph validation rejects a missing required tainted review edge', () => {
   assert.match(result.violations.join('\n'), /required.*missing.*rd3-external-evidence/i);
 });
 
+test('a class missing taintedAllowed defaults to deny and fails validation', () => {
+  const t = structuredClone(loadTaxonomy());
+  t.classes['future-auto-review'] = {
+    reasons: ['future-auto-review'],
+    trigger: 'weekly',
+    bound: 1,
+    reviewEntry: true,
+  };
+
+  const classified = classifyParkReason('future-auto-review', { tainted: true }, t);
+  assert.equal(classified.className, 'decision-required');
+  assert.equal(classified.reviewEntry, false);
+
+  const result = validateTaxonomyGraph(t);
+  assert.equal(result.ok, false);
+  assert.match(result.violations.join('\n'), /future-auto-review.*taintedAllowed/i);
+});
+
 test('future needs-source-resolution:conflicting is not active yet', () => {
   const t = loadTaxonomy();
   const c = classifyParkReason('needs-source-resolution:conflicting', { tainted: false }, t);

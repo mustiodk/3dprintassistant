@@ -12,7 +12,7 @@ function loadTaxonomy(filePath = DEFAULT_PATH) {
 function classifyParkReason(reason, sidecar = {}, taxonomy = loadTaxonomy()) {
   for (const [className, def] of Object.entries(taxonomy.classes || {})) {
     if ((def.reasons || []).includes(reason)) {
-      if (sidecar.tainted && def.taintedAllowed === false) {
+      if (sidecar.tainted && def.taintedAllowed !== true) {
         return { className: 'decision-required', trigger: 'owner', bound: null, reviewEntry: false };
       }
       return { className, trigger: def.trigger, bound: def.bound, reviewEntry: !!def.reviewEntry };
@@ -24,10 +24,13 @@ function classifyParkReason(reason, sidecar = {}, taxonomy = loadTaxonomy()) {
 function validateTaxonomyGraph(taxonomy = loadTaxonomy()) {
   const violations = [];
   for (const [className, def] of Object.entries(taxonomy.classes || {})) {
-    if (def.taintedAllowed === true && def.reviewEntry === true) {
+    if (typeof def.taintedAllowed !== 'boolean') {
+      violations.push(`${className} must declare boolean taintedAllowed`);
+    }
+    if (def.taintedAllowed !== false && def.reviewEntry === true) {
       violations.push(`${className} allows taint and automatic review entry`);
     }
-    if (def.taintedAllowed === true && ['next-run', 'weekly', 'immediate'].includes(def.trigger)) {
+    if (def.taintedAllowed !== false && ['next-run', 'weekly', 'immediate'].includes(def.trigger)) {
       violations.push(`${className} allows taint and automatic trigger ${def.trigger}`);
     }
   }
