@@ -1182,6 +1182,32 @@ git commit -m "test(intake): prove k2 se v2.1 migration"
 - Consumes all prior gates.
 - Produces final implementation-ready state; does not dispatch a live candidate unless a separate owner instruction exists.
 
+- [ ] **Step 0: Verify expected test files exist**
+
+```bash
+for f in \
+  scripts/intake-park-taxonomy.test.js \
+  scripts/lib/intake-source-normalizer.test.js \
+  scripts/validate-candidate-evidence.test.js \
+  scripts/validate-reviewer-output.test.js \
+  scripts/intake-parked-store.test.js \
+  scripts/intake-retry-gate.test.js \
+  scripts/intake-provenance-store.test.js \
+  scripts/intake-run-preflight.test.sh \
+  scripts/printer-intake-scout.test.js \
+  scripts/republish-overlay.test.js \
+  scripts/verify-live-overlay.test.js \
+  scripts/verify-live-picker.test.js \
+  scripts/intake-kv-hygiene.test.js \
+  scripts/intake-notify.test.js \
+  scripts/intake-diff-guards.test.js
+do
+  test -f "$f" || { echo "missing test file: $f" >&2; exit 1; }
+done
+```
+
+Expected: exits 0.
+
 - [ ] **Step 1: Run the full local intake suite**
 
 ```bash
