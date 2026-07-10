@@ -469,7 +469,7 @@ the wrap-up is blocked.
       otherwise kept) AND a `ios-bundled-catalog-baselines.json` baseline was added
       for the new binary version. (N/A if no binary graduated a printer this cycle.)
 
-### Risk-triggered reviewer dispatch
+### Reviewer dispatch rules
 
 Every autonomous reviewer emits this v2.1 structured result before prose:
 `{ reviewer, verdict:"GO"|"NO-GO", objections:[{field,question,raisedAt}] }`.
@@ -481,8 +481,11 @@ or reconstruct objections from prose.
 Classify both validated verdicts as a multiset: `{GO, GO}` ships;
 `{NO-GO, NO-GO}` parks as `review-no-go`; `{GO, NO-GO}` routes `review-split` → `decision-required`.
 
-Escalate to `superpowers:requesting-code-review` against the printer-add diff
-when **any** of these fire:
+In autonomous mode, PD5 dual review is mandatory for every candidate that
+reaches the merge gate after `validate-candidate-evidence.js`; the trigger list
+below never waives that gate. In manual mode, escalate to
+`superpowers:requesting-code-review` against the printer-add diff when **any**
+of these fire:
 
 - New `brands[]` row added.
 - New `series_group` introduced under an existing brand.
@@ -500,8 +503,8 @@ when **any** of these fire:
 - Deprecation or removal (Phase 4).
 - More than one printer added in the same session.
 
-If none of those fire, the self-check above is sufficient. This aligns with
-the risk-based second-model rule in
+In manual mode, if none of those fire, the self-check above is sufficient. This
+aligns with the risk-based second-model rule in
 [`../../../ai-operating-model/docs/ai-collab.md`](../../../ai-operating-model/docs/ai-collab.md).
 
 ## What this protocol forbids
