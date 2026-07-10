@@ -17,9 +17,8 @@
 //
 // See docs/runbooks/printer-addition-protocol.md Phase 2.
 
-const fs   = require('fs');
 const path = require('path');
-const vm   = require('vm');
+const { loadEngine, initEngine, collectPickerFailures } = require('./lib/engine-bootstrap.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -35,74 +34,23 @@ function usage(msg) {
 const [brandId, seriesGroup, printerId, wrongBrandId] = process.argv.slice(2);
 if (!brandId || !seriesGroup || !printerId) usage('missing required args');
 
-// ─── Engine bootstrap (mirrors scripts/walkthrough-harness.js) ───────────────
-global.localStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
-
-global.fetch = async function localFetch(url) {
-  if (typeof url !== 'string') throw new Error('picker dry-run fetch expects string URL');
-  const rel = url.replace(/^\.\//, '');
-  const filePath = path.join(ROOT, rel);
-  try {
-    const content = await fs.promises.readFile(filePath, 'utf8');
-    return { ok: true, status: 200, url, json: async () => JSON.parse(content), text: async () => content };
-  } catch (e) {
-    return { ok: false, status: 404, url, json: async () => null, text: async () => '' };
-  }
-};
-
-const engineSrc = fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8');
-vm.runInThisContext(engineSrc + '\n;globalThis.__Engine = Engine;\n', { filename: 'engine.js' });
-const Engine = globalThis.__Engine;
+// ─── Engine bootstrap (shared: scripts/lib/engine-bootstrap.js) ──────────────
+const Engine = loadEngine(ROOT);
 
 // ─── Run ─────────────────────────────────────────────────────────────────────
 (async () => {
   // Capture engine.init()'s pre-existing soft-warning chatter (k_factor_matrix
   // gaps, etc.). It's informational and unrelated to picker shape. On GREEN
   // we drop it; on RED we re-emit so it's available for debugging.
-  const captured = [];
-  const origWarn = console.warn;
-  const origLog  = console.log;
-  console.warn = (...a) => captured.push(a.join(' '));
-  console.log  = (...a) => captured.push(a.join(' '));
-
-  try {
-    await Engine.init();
-  } catch (e) {
-    console.warn = origWarn;
-    console.log  = origLog;
+  const init = await initEngine(Engine);
+  const captured = init.captured;
+  if (!init.ok) {
     if (captured.length) captured.forEach(line => process.stderr.write(line + '\n'));
-    console.error(`RED: Engine.init() threw: ${e.message}`);
+    console.error(`RED: Engine.init() threw: ${init.error.message}`);
     process.exit(1);
   }
 
-  console.warn = origWarn;
-  console.log  = origLog;
-
-  const failures = [];
-
-  const brands = Engine.getBrands();
-  const brand = brands.find(b => b.id === brandId);
-  if (!brand) {
-    failures.push(`brand id '${brandId}' not found in getBrands(); known: ${brands.map(b => b.id).join(', ')}`);
-  }
-
-  const groups = Engine.getPrintersByBrand(brandId);
-  const group = groups.find(g => g.label === seriesGroup);
-  if (!group) {
-    failures.push(`series_group '${seriesGroup}' not found under brand '${brandId}'; known: ${groups.map(g => g.label).join(', ') || '(none)'}`);
-  }
-
-  const model = group && group.models.find(m => m.id === printerId);
-  if (group && !model) {
-    failures.push(`printer id '${printerId}' not in group '${seriesGroup}'; group contains: ${group.models.map(m => m.id).join(', ') || '(none)'}`);
-  }
-
-  if (wrongBrandId) {
-    const spurious = brands.find(b => b.id === wrongBrandId);
-    if (spurious) {
-      failures.push(`spurious brand '${wrongBrandId}' is registered in getBrands() (taxonomy regression)`);
-    }
-  }
+  const failures = collectPickerFailures(Engine, { brandId, seriesGroup, printerId, wrongBrandId });
 
   if (failures.length === 0) {
     const wrongBrandNote = wrongBrandId ? `, no spurious '${wrongBrandId}' brand` : '';
