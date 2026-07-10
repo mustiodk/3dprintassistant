@@ -8,6 +8,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 | Gate | Status | Evidence |
 |---|---|---|
+| R1 evidence slots + candidate evidence gate | ✅ 2026-07-10 | RED-first source/evidence modules + Scout skeleton; final 3/3 normalizer, 15/15 evidence, full Scout green; Claude GO-WITH-PATCHES findings applied one-per-commit; final direct fallback re-review GO after Claude spend-limit outage; see R1 row |
 | R0 taxonomy + NO-GO taint graph | ✅ 2026-07-10 | RED missing module → 11/11 tests + CLI `ok=true`; hostile review NO-GO then GO-WITH-PATCHES, 5 accepted findings landed one-per-commit; final Claude re-review GO; see R0 row |
 | B0 launchd environment probe | ✅ 2026-07-10 | 4/4 PASS on a real launchd run (`ppid=1`); see B0 row below |
 | B1 republish-overlay.js | ✅ 2026-07-10 | `c3abe4e` — 21/21 TDD, hostile GO-WITH-PATCHES ×8 applied, live-overlay no-op sanity clean; see B1 row |
@@ -19,6 +20,14 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 ---
 
 ## Rows (newest first)
+
+### R1 — evidence slots + deterministic candidate evidence gate ✅ (2026-07-10; `56d139a` + `92c98cd` + `aa48967` + `a526b61` + `b459db9`)
+
+**TDD:** source normalizer first failed on missing module; evidence validator first failed on missing module; the pre-implementation Scout regression produced 7 expected failures (missing v2.1 slot keys plus `extruder_type`, `max_acceleration`, chamber/camera/lidar, and `notes`). Final evidence surface covers the runbook's required always-on critical fields plus optional `max_chamber_temp` / `open_door_threshold_bed_temp` when proposed. Manufacturer evidence, typed boolean absence rationale, complete-sweep `world-absent`, app-cap documentation, durable matching `notes[]` citations, and zero-review-turn rejection are test-pinned.
+
+**Hostile review chain:** independent Claude review **GO-WITH-PATCHES** ([transcript](../../codex/intake-autonomy-v2.1-review/bridge-2026-07-10-194437-060173.md)). Accepted findings landed one-per-commit: all rejection paths assert `reviewRequests=0`; equivalent manufacturer-not-published app-cap wording; trailing citation punctuation; distinct notes metadata diagnostics; boolean-only absence rationale. `series_group` was correctly left taxonomy-only because the canonical runbook's profile/safety-critical field list excludes it. Planned Claude re-review then failed before verdict on the account's monthly spend limit; the default direct fallback also failed because configured `gpt-5.6-sol` requires a newer CLI. One bounded read-only `gpt-5.4` fallback completed **GO** ([record](../../codex/intake-autonomy-v2.1-review/direct-codex-2026-07-10-r1-final.md), session `019f4d27-84f4-7e43-927c-c4e823e4e952`).
+
+**Contract proven:** invalid evidence returns `reviewRequests:0`; only the validator assigns `world-absent`; confirmed safety/profile values require manufacturer evidence; app-cap is acceleration-only and must name the value + unpublished-source rationale in row notes; absence rationale is typed, canonical-source checked, and boolean-field-only. Engine, app, shipped data, web UI, iOS, and Android plan remain untouched.
 
 ### R0 — taxonomy config + NO-GO taint graph ✅ (2026-07-10; `cd0d97c` + `5a1f035` + `d22d84b` + `850a056` + `4b7044e`)
 
