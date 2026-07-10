@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>dk.mragile.3dpa-intake</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>/Users/mustafaozturk-macmini/dev/Claude/Projects/3dprintassistant/scripts/intake-run-wrapper.sh</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/mustafaozturk-macmini/dev/Claude/Projects/3dprintassistant</string>
+  <!-- Daily 12:00 local — owner-set 2026-07-10 (supersedes the plan's proposed
+       07:45). Keep scripts/intake-runner.config.json "schedule" in sync. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>12</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+  <!-- ~/Library/Logs always exists; launchd opens these BEFORE the wrapper
+       runs, so they must not point into a dir the wrapper itself creates. -->
+  <key>StandardOutPath</key>
+  <string>/Users/mustafaozturk-macmini/Library/Logs/3dpa-intake.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/mustafaozturk-macmini/Library/Logs/3dpa-intake.err.log</string>
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>
