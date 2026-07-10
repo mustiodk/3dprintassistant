@@ -1,9 +1,9 @@
 # Intake Autonomy v2.1 — Evidence provenance and retry semantics (design spec)
 
 **Date:** 2026-07-10
-**Status:** DRAFT v4. Hostile sub-agent review (GO-WITH-PATCHES, 14 findings) → owner ratification (RD0–RD10) → Codex review #1 (**NO-GO**, 9 findings, applied — §12) → Codex review #2 (**NO-GO**, 5 findings, applied — §13). Ready for the impl plan.
+**Status:** DRAFT v5. Hostile sub-agent review (GO-WITH-PATCHES, 14 findings) → owner ratification (RD0–RD10) → Codex review #1 (**NO-GO**, 9 findings, applied — §12) → Codex review #2 (**NO-GO**, 5 findings, applied — §13) → Claude cross-model review (**GO-AFTER-PATCHES**, 3 must-fix + 4 should-fix + 3 optional, applied — §15). Ready for the impl plan.
 
-> **⚠ LIVE-SYSTEM ACTION REQUIRED (Codex #2, must-fix 2 — owner decision).** The **running** runner contract v1 still says `review-no-go → weekly ×4` and `others → weekly ×4` (`intake-pipeline-runner.md:234`). The ratchet is live *today*: K2 SE's weekly retry falls due **2026-07-17**. See §14.
+> **Live-system note (resolved 2026-07-10).** The running runner contract is now **v1.1** (`ai-operating-model` commit `c99d1ed`): `review-no-go` is event-only and the old `others → weekly ×4` catch-all is deleted. See §14.
 **Type:** Amendment to [`2026-07-09-intake-autonomy-v2-design.md`](2026-07-09-intake-autonomy-v2-design.md) (v2 remains authoritative for everything not restated here). Not a new system.
 **Evidence base:** the FIRST live autonomous run, 2026-07-10T10:02:33Z–10:17:30Z (`shipped:0 parked:1`), its branch preserved as tag `intake-k2se-first-run-evidence` (diff hash `b88ae6df048d75c6`), its parked sidecar, and the v2 spec/contract git history. Every claim is grounded in an artifact.
 
@@ -100,7 +100,7 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
                          normallyAdvertisedIfPresent: "<why this feature would be advertised>",
                          omissionSafeBecause: "<why the omission is safe for THIS field>" }
      ```
-     All four keys required and non-empty; `sourceClassesChecked` must include ≥1 manufacturer-class entry. This mirrors `printer-addition-protocol.md`'s definition (*"which source classes were checked, what feature would normally be advertised if present, and why the omission is safe for this field"*); *"silence alone is `low-confidence`"* and still parks. *Without this, `has_lidar:false`, `has_camera:false`, `active_chamber_heating:false` — which manufacturers rarely state explicitly — would deadlock every candidate.*
+    All four keys required and non-empty; `sourceClassesChecked` must include ≥1 manufacturer-class entry, and every `checkedSources[].canonicalSource` uses the same canonical-source normalizer as RD3. `validate-candidate-evidence.js` is the only component allowed to classify an absence as `world-absent`, and only after this typed rationale plus the source-sweep completeness predicate pass. The researcher cannot self-select `world-absent`. This mirrors `printer-addition-protocol.md`'s definition (*"which source classes were checked, what feature would normally be advertised if present, and why the omission is safe for this field"*); *"silence alone is `low-confidence`"* and still parks. *Without this, `has_lidar:false`, `has_camera:false`, `active_chamber_heating:false` — which manufacturers rarely state explicitly — would deadlock every candidate.*
 
   **Producer change required:** the Scout skeleton (`printer-intake-scout.js:710`) has **no `{value,source,confidence}` slot for `extruder_type` or `max_acceleration`** (nor chamber/camera/lidar). Adding the slots + the `evidenceType` field is an explicit build item.
 
@@ -110,12 +110,18 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
   |---|---|---|---|
   | `availability-blocked` | `review-unavailable`, bridge/network down | next run | ×5 → `decision-required` + notify |
   | `research-defect` **(untainted candidates ONLY)** | `evidence` missing/unrecorded although the source **plausibly exists** — a *repair*, not a re-roll (must clear the **deterministic** evidence gate before any review turn) | **next run, ONE bounded repair pass** — never a weekly clock | ×1 → `decision-required` + notify |
-  | `world-absent` **(untainted candidates ONLY)** | evidence genuinely not published — **assignable only with a recorded complete source sweep** | **slow clock (weekly)** — re-queries the *world*, the only input a timer changes | ×4 → `decision-required` + notify |
-  | `judgment-on-evidence` | `review-no-go` (corroborated), **`review-no-go-unresolved`** (an RD3 retry-gate failure), `needs-source-resolution:conflicting` | **event only**: new *external* evidence answering the objections / rules change / owner instruction. **Never a timer, and never reclassified into a timed lane.** | none; **14-day** silence → `decision-required` + one notify (RD9) |
+  | `world-absent` **(untainted candidates ONLY)** | evidence genuinely not published — **assigned only by `validate-candidate-evidence.js` after a typed absence rationale and complete source sweep pass** | **slow clock (weekly)** — re-queries the *world*, the only input a timer changes | ×4 → `decision-required` + notify |
+  | `judgment-on-evidence` | `review-no-go` (corroborated), **`review-no-go-unresolved`** (an RD3 retry-gate failure), `needs-source-resolution:conflicting` **(future — omit from taxonomy config until producer contracts emit it)** | **event only**: new *external* evidence answering the objections / rules change / owner instruction. **Never a timer, and never reclassified into a timed lane.** | none; **14-day** silence → `decision-required` + one notify (RD9) |
   | `decision-required` | `new-series-group`, `app-cap-no-go`, `pd4-criteria-unmet`, `review-split`, `needs-owner-taxonomy`, `needs-taxonomy-decision`, `blocked`, **unsuffixed legacy `needs-source-resolution`**, any expired park, **any unrecognised reason** | **owner** | never auto |
   | `transient-pipeline` | `main-moved` | immediate | ×2 |
 
-  **Why `evidence-incomplete` was split (Codex must-fix #2).** Draft 2 filed it under a weekly timer with the rationale *"a fresh research pass may find what the last one missed."* That is not a changed input — it is a **research-stage re-roll**, which §2 condemns. The split honours the sharpened principle: `research-defect` gets **one** bounded repair (it must still clear a *deterministic* gate, so re-running is safe and self-limiting); `world-absent` gets the weekly clock **only after the researcher has documented a complete source sweep**, because there the timer genuinely re-queries the world.
+  **Why `evidence-incomplete` was split (Codex must-fix #2).** Draft 2 filed it under a weekly timer with the rationale *"a fresh research pass may find what the last one missed."* That is not a changed input — it is a **research-stage re-roll**, which §2 condemns. The split honours the sharpened principle: `research-defect` gets **one** bounded repair (it must still clear a *deterministic* gate, so re-running is safe and self-limiting); `world-absent` gets the weekly clock **only after the validator has recorded a complete source sweep**, because there the timer genuinely re-queries the world.
+
+  **Research-defect bound enforcement.** The sidecar carries `repairAttempts`.
+  `intake-parked-store.js` increments it before allowing a `research-defect`
+  candidate into the retry sweep. If `repairAttempts >= 1`, the candidate is
+  reclassified to `decision-required` + notify before any research or review
+  turn runs.
 
   **Why RD3 failures get their own reason (Codex must-fix #1).** Draft 2 said an RD3 failure parks as `evidence-incomplete` → which sat in a *timed* lane. That silently converted a corroborated NO-GO back into weekly re-research: the ratchet, reintroduced by the very rule meant to kill it. A retry-gate failure now parks as **`review-no-go-unresolved`, which stays in `judgment-on-evidence`** — event-only, forever, no clock. **Invariant: nothing that has ever received a corroborated NO-GO may re-enter a timed lane.**
 
@@ -123,7 +129,7 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
 
   **Producer compatibility (Codex #1, must-fix #4).** The runbook and runner emit **unsuffixed** `needs-source-resolution` (`printer-addition-protocol.md:199`, `intake-pipeline-runner.md:116`). The `:missing` / `:conflicting` subtypes do **not exist** until the producer contracts are amended to emit them — a build item. Until then, an unsuffixed reason classifies **fail-closed → `decision-required`.** The spec does not invent taxonomy its producers cannot emit.
 
-  **Build-order constraint (Codex #2, must-fix 2 — binding on the impl plan).** The **live** runner contract v1 still carries `review-no-go → weekly ×4` and `others → weekly ×4` (`intake-pipeline-runner.md:234`). Under it, a brand-new `review-no-go-unresolved` sidecar would fall into `others` and inherit a weekly timer. **Therefore the FIRST build gate must be the taxonomy config + the runner-contract patch that fails closed on unknown reasons — before any v2.1 sidecar, store, or schema can exist.** No component that can write a v3 sidecar may land before the contract that reads it correctly. See §14 for the interim live-risk decision.
+  **Build-order constraint (Codex #2, must-fix 2 — binding on the impl plan; live half already resolved).** The live runner contract v1 once carried `review-no-go → weekly ×4` and `others → weekly ×4`; that defect is already removed by contract v1.1 (`ai-operating-model` commit `c99d1ed`). **Therefore the FIRST v2.1 build gate is now the taxonomy config + validator that fail closed on unknown reasons.** No component that can write a v2.1 sidecar may land before the taxonomy reader classifies it correctly. See §14 for the closed live-risk decision.
 
   **The `others → weekly ×4` catch-all is DELETED.** Unrecognised reason → `decision-required` + notify.
 
@@ -147,6 +153,22 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
 
   On a **retry**, both reviewers additionally verify each `resolvedBy.excerpt` against its source (RD3c).
 
+  **Reviewer output contract (precondition for RD3).** Each reviewer turn emits a
+  structured result before any prose summary:
+  ```
+  { reviewer: "<stable reviewer id>",
+    verdict: "GO" | "NO-GO",
+    objections: [
+      { field: "<printer field or 'taxonomy'/'evidence'/'process'>",
+        question: "<the exact objection the next attempt must answer>",
+        raisedAt: "<ISO-8601 timestamp>" }
+    ] }
+  ```
+  `verdict:"NO-GO"` requires at least one objection. `verdict:"GO"` requires an
+  empty `objections[]`. The shipping agent may copy these objections into the
+  sidecar but may not edit their `field` or `question`; malformed reviewer output
+  parks as `review-unavailable` without consuming the merge decision.
+
   **Cost, stated without motivated minimisation (Codex #2, should-fix 5).** Both reviewers run on **every** candidate that reaches the gate — that is the rule, not "the second runs only on a NO-GO." v2 already ran both whenever the first GOed (both GOs are required to ship), so the *incremental* cost over v2's fail-fast is one extra turn **on NO-GO paths**. Draft 3's risk table said "second reviewer only on a NO-GO," which contradicted the rule; it is corrected. **Park frequency is unknown (N=1, which parked 1/1) and will be measured** — draft 1's "blocked candidates are rare" was reasoning from the desired conclusion.
 
   *(Note the demonstration: the hostile sub-agent's F7 — "move `evidence-incomplete` to the timed lane" — is precisely what created Codex must-fix #1 and #2. Two reviewers, opposite conclusions, and the second was right. RD4's thesis, proven on the spec that proposes RD4.)*
@@ -154,6 +176,7 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
 - **RD5 — The parked sidecar becomes the candidate's memory (fixes D2; DELIVERS D4). ✅ (amended by Codex should-fix #7)**
   ```
   { schema: "intake-parked@2", candidateKey, reason, class, firstParkedAt, lastAttemptAt,
+    repairAttempts,
     attempts: [{ at, runId, diffSha, outcome }],
     diffSha, baseSha, preservedRef, nextEligibleTrigger,
     candidateArtifact,            // path + sha of the filled candidate packet
@@ -173,7 +196,7 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
 - **RD6 — The retrospective AGENT is DEFERRED. ✅ (trigger corrected per Codex should-fix #8)**
   **Rationale.** The most valuable retrospective this pipeline will ever get already happened — manually, one day after go-live, because the owner asked *"why?"*. An automated retrospective scoped to *read the run's artifacts* would plausibly have found D1, maybe D2, and **almost certainly not D3** (that required git archaeology plus a conceptual argument). Its realistic ceiling is "catches shallow things when nobody is looking," at ~35–40% of this amendment's build cost, with its own influence surface. Further: (i) building a defect-finder while holding a backlog of found-but-unfixed defects is out of order; (ii) automated reflection always produces findings, signal or not — the existing `lesson-spotter` + calibration ledger is the same shape.
 
-  **Build trigger:** **five non-trivial runs** (park/error/rollback/freeze) have accumulated, **or the owner asks.**
+  **Build trigger:** **five non-trivial runs** (park/error/rollback/freeze with at least one candidate or rollback/freeze event; empty queue runs do not count) have accumulated, **or the owner asks.**
   *Draft 2's second trigger — "nobody reads the report within seven days" — is **deleted**. Codex correctly observed it has **no observable signal**: `intake-notify.js` overwrites `last-run-report.md` and there is no ack/read tracking. A "falsifiable" trigger that cannot be evaluated is exactly the unfalsifiable rubbish this spec keeps catching in itself.*
 
 - **RD6b — Richer bad-run reports (the cheap 80%). ✅** On a non-trivial run the report carries: **verbatim** verdicts from both reviewers, the branch diff ref/stat, structured `objections[]`, the evidence table, the validator summary, and per-stage timings. Zero new components.
@@ -261,12 +284,12 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
 - **RD10 crash-injection test:** kill between ledger-write and commit → preflight's custody pass recognises the two-path dirt and the runner repairs; kill between commit and push → `ahead=1` recognised, repaired; **a third dirty path or a foreign ahead-commit still fail-closes.**
 - **RD1 regressions:** an app-cap `max_acceleration` candidate **passes** the evidence gate and reaches the reviewer; a `has_lidar:false` with a three-component absence rationale **passes**; the same with silence **parks**; a `null`-source `max_speed` parks without a review turn.
 - **RD10:** provenance append is idempotent per printer id; ledger + provenance land in one commit; a simulated crash between them is repaired by stage-0 reconciliation; `git status` is clean afterwards (preflight green — the C1 proof).
-- Migration proven against the **real** K2 SE (from the tag; never mutated in place until the migration commit), asserting it lands in `research-defect`.
+- Migration proven against the **real** K2 SE (from the tag; never mutated in place until the migration commit), asserting it lands in `decision-required`.
 - Per-gate: implement → hostile sub-agent review → patch → QA → commit → ledger tick. Codex review gates the impl plan.
 
 ## 8. Success criteria
 
-1. **K2 SE is the end-to-end acceptance test.** Under v2.1 it either ships with a `notes[]` citation + per-field sources in `docs/printer-provenance.json`, or parks for a **different, better** reason. *Re-parking for the identical unexamined reason is a failure of this spec.*
+1. **K2 SE is the end-to-end acceptance test after the owner explicitly authorises a re-attempt.** Under v2.1 it either ships with a `notes[]` citation + per-field sources in `docs/printer-provenance.json`, or parks for a **different, better** reason. *Re-parking for the identical unexamined reason is a failure of this spec.* Without that owner instruction, K2 SE correctly remains `decision-required` after migration and is not an automatic acceptance run.
 2. **A `judgment-on-evidence` candidate without a canonically-novel, substantiated source consumes zero review turns** — provable from the report (review-invocation count = 0).
 3. **No path exists from any NO-GO verdict to a review turn**, except new RD3-satisfying external evidence or an explicit owner instruction — unit-enforced over the taxonomy graph, migration included.
 4. **No park reason lacks a class**; the catch-all is gone; unsuffixed legacy reasons fail closed.
@@ -281,7 +304,7 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
 |---|---|
 | **Fabricated excerpt satisfies RD3** | Canonical novelty + substantiation + RD4's source verification. **Mitigated, not eliminated — two LLM judgments do not close this (Codex).** Residual accepted; over-flagging beats bypass |
 | **A ratchet re-appears somewhere new** | **Three drafts reintroduced it in three different places.** Per-lane rules demonstrably do not hold. The single NO-GO-taint invariant + the taxonomy-graph reachability test (criterion 3) is the structural guard; every draft would have failed it |
-| **The LIVE contract still carries the ratchet** | Build-order constraint: taxonomy + contract fail-closed patch is gate R0, before anything can write a v3 sidecar. **Interim live risk (K2 SE weekly retry due 2026-07-17) is an owner decision — §14** |
+| **The LIVE contract once carried the ratchet** | Resolved by `ai-operating-model` contract v1.1 (`c99d1ed`): `review-no-go` is event-only and the old catch-all is deleted. Gate R0 now covers the v2.1 taxonomy config + validator only, before anything can write a v2.1 sidecar (§14). |
 | RD10's custody pass relaxes a safety predicate | Exactly-recognised (two paths, one subject pattern), crash-injection tested, everything else still fail-closed |
 | Evidence gate deadlocks legitimate candidates | app-cap lane + absence-rationale evidence type (both by the runbook's own definitions); ship/park ratio measured before tightening |
 | `judgment-on-evidence` parks accumulate | RD9: 14 days → `decision-required` + one notify |
@@ -304,7 +327,7 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
 ## 11. Review record — hostile sub-agent (GO-WITH-PATCHES, 14 findings, all applied)
 
 5 HIGH: **F1** §2's ratchet argument was motivated reasoning (retries re-run research; `diffSha` near-vacuous); **F2** RD3's "deterministic" semantic check is an LLM trust boundary; **F3** RD1 broke the ratified app-cap lane; **F4** the field set dropped 5 runbook fields and demanded slots the Scout doesn't emit; **F5** the provenance success criterion was unachievable (→ RD10); **F6** the preserved branch dies on the next *daily* run, not the weekly retry date.
-MEDIUM: **F7** *(later shown WRONG by Codex — see §12 #1/#2)* move `evidence-incomplete` to the timed lane; **F8** free-text context injection is an influence vector; **F9** the spec violated its own "no new ledger"; **F10** the S4 `--apply` reuse claim was empty; **F11** the taxonomy missed real reasons.
+MEDIUM: **F7** *(applied in draft 2, then shown WRONG and reversed by Codex — see §12 #1/#2)* move `evidence-incomplete` to the timed lane; **F8** free-text context injection is an influence vector; **F9** the spec violated its own "no new ledger"; **F10** the S4 `--apply` reuse claim was empty; **F11** the taxonomy missed real reasons.
 LOW: **F12** "blocked candidates are rare" vs a 100%-park sample; **F13** RD4 order-independence; **F14** an unfalsifiable success criterion.
 
 ## 12. Review record — Codex cross-model (**NO-GO**, 9 findings, all applied)
@@ -314,7 +337,7 @@ Transcript: [`codex/intake-autonomy-v2.1-review/bridge-2026-07-10-154723-685395.
 **must-fix**
 1. **RD3 failure reclassified a corroborated NO-GO into a weekly retry lane** — the ratchet, reintroduced by the anti-ratchet rule. → RD3 failures park as `review-no-go-unresolved`, staying `judgment-on-evidence`; **no timed lane is reachable from a NO-GO** (unit-enforced, criterion 3).
 2. **`evidence-incomplete` on a weekly timer contradicts the spec's own principle** — "fresh research may find what the last one missed" is a research-stage re-roll, not a changed input. → Split into `research-defect` (ONE bounded repair; must clear a *deterministic* gate) and `world-absent` (weekly, only after a recorded complete source sweep). §2 sharpened: *the hazard is repeated attempts at a **stochastic** gate.*
-3. **RD3's novelty check is trivially bypassed on the real K2 SE park** (its `evidence[]` is empty ⇒ every source is "novel"; cheapest bypass = cite any new-looking URL). → Canonical source identity + mandatory `excerpt` + `claim` per objection; K2 SE migrates as `research-defect`.
+3. **RD3's novelty check is trivially bypassed on the real K2 SE park** (its `evidence[]` is empty ⇒ every source is "novel"; cheapest bypass = cite any new-looking URL). → Canonical source identity + mandatory `excerpt` + `claim` per objection; K2 SE initially moved toward `research-defect`, then Codex pass #2 refuted that migration and §13 supersedes it with `decision-required`.
 4. **The `needs-source-resolution:missing/conflicting` subtypes don't exist in the producers** (runbook `:199`, runner `:116` emit it unsuffixed). → Unsuffixed = fail-closed `decision-required`; subtypes only after an explicit producer-contract change.
 5. **RD10 recreates the v2 CRITICAL-C1 dirty-tree deadlock** (`docs/**` is asset-ignored, which does not solve git dirt). → ONE atomic custody commit (ledger + provenance) pushed before watermark advance; stage-0 repairs disagreement.
 
@@ -341,16 +364,39 @@ Transcript: [`codex/intake-autonomy-v2.1-review/bridge-2026-07-10-155809-076395.
 
 **Codex's own summary of the residue:** *"RD3's canonical source + excerpt + claim does raise bypass cost for the normal judgment lane. The cheaper bypass is now the K2/research-defect migration, not RD3 itself."* — i.e. the core mechanism held; the remaining hole was in the migration, and is now closed by the taint invariant.
 
-## 14. Live-system decision required (before 2026-07-17)
+## 14. Live-system decision resolved (2026-07-10)
 
-The **running** pipeline still executes runner contract v1: `review-no-go → weekly ×4`. K2 SE was parked `review-no-go` on 2026-07-10, so its first timed retry falls due **2026-07-17** — a real re-roll of a real candidate through re-research + re-review. v2.1 will not be built by then.
+The live-system defect was removed before this plan. Option (a) was executed in
+`ai-operating-model` commit `c99d1ed`: runner contract **v1.1** makes
+`review-no-go` event-only, never timer-retried, never time-expired, and deletes
+the old `others → weekly ×4` catch-all. K2 SE now sits parked until v2.1 migration
+or an explicit owner instruction.
 
-| Option | Effect | Cost |
-|---|---|---|
-| **(a) Patch the contract line now** *(recommended)* | Make `review-no-go` event-only in `intake-pipeline-runner.md` + fail-closed on unknown reasons. The ratchet stops immediately; K2 SE sits until v2.1 or an owner instruction. | ~2 min, **docs/contract only, no code**. Becomes gate R0 of the plan. |
-| (b) Freeze the pipeline | `scripts/.intake-autonomy-freeze` halts all runs until v2.1 lands. | Blocks legitimate new requests. |
-| (c) Do nothing | The 07-17 run re-rolls K2 SE through research + review. | Accepts one live ratchet firing. |
+**Gate R0 after this resolution:** implement the v2.1 taxonomy config + validator
+in the web repo. Do **not** re-patch the already-live contract in R0; only update
+runner contract wording later if the new taxonomy file changes the contract text.
 
-**Recommendation: (a).** It is the minimal intervention that removes a known live safety defect, it is a contract edit rather than code, and it is required as gate R0 regardless.
+**Next gate:** gated impl plan (R0 = taxonomy config + fail-closed validator) →
+hostile + cross-model review of the plan → build.
 
-**Next gate:** owner picks §14 → gated impl plan (R0 = taxonomy + contract fail-closed) → hostile + Codex review of the plan → build.
+## 15. Review record — Claude cross-model hostile review, pass #3 (GO-AFTER-PATCHES)
+
+Transcript: [`codex/intake-autonomy-v2.1-review/bridge-2026-07-10-175146-639772.md`](../../../codex/intake-autonomy-v2.1-review/bridge-2026-07-10-175146-639772.md).
+
+**must-fix**
+1. **The K2 SE migration test still asserted `research-defect`.** → Corrected to `decision-required`; §12 #3 now records that Codex pass #2 superseded the earlier `research-defect` direction.
+2. **The live-system warning was stale after contract v1.1 shipped.** → §14 closed; gate R0 now starts with taxonomy config + validator, not a repeat patch to the already-live runner contract.
+3. **The reviewer output contract had no schema.** → RD4 now defines the structured reviewer result and objection shape that RD3 consumes.
+
+**should-fix**
+4. **`world-absent` assignment authority was undefined.** → Validator-owned classification only, after typed absence rationale + complete source sweep.
+5. **The one-repair bound had no stored counter.** → `repairAttempts` added to sidecar schema and retry-sweep entry semantics.
+6. **K2 SE acceptance required an undeclared owner action.** → Success criterion now states the explicit owner re-attempt precondition.
+7. **`needs-source-resolution:conflicting` was listed as current despite producer incompatibility.** → Marked future-only and omitted from taxonomy config until producer contracts emit it.
+
+**optional**
+8. Hostile F7 now says "applied, then reversed" instead of merely "all applied."
+9. `absenceRationale.checkedSources[].canonicalSource` uses the RD3 canonical normalizer.
+10. "Five non-trivial runs" excludes empty queue runs.
+
+**Disposition:** all findings applied. Claude's verdict: a small-gate implementation plan can be written after these patches.
