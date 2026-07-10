@@ -17,6 +17,7 @@
 - Every gate ends with: implementation tests green, relevant project validators green, hostile review, patch findings, cross-model check, then commit.
 - Cross-model command when Codex is driving: `bridge --mode claude-only "<focused gate review prompt>" --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200`.
 - Cross-model command when Claude is driving: `bridge --mode codex-only "<focused gate review prompt>" --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200`.
+- Before any gate review, set `BRIDGE_MODE=claude-only` when Codex is driving or `BRIDGE_MODE=codex-only` when Claude is driving; all gate commands below use that variable.
 - If a reviewer NO-GOs a gate, patch and re-review that gate before opening the next gate.
 - One accepted review finding = one commit. Do not batch unrelated fixes.
 - Do not dispatch TestFlight. iOS mirror work, if any future data row ships, stays local under the iOS push gate unless owner explicitly enters a ship train.
@@ -220,7 +221,7 @@ Expected: tests pass and CLI prints `[intake-park-taxonomy] ok=true`.
 
 - [ ] **Step 6: Gate review**
 
-Run: `bridge --mode claude-only "Review R0 taxonomy config and graph test for Intake Autonomy v2.1. Verify no NO-GO taint can reach automatic review, and unknown reasons fail closed. Files: scripts/intake-park-taxonomy.json scripts/intake-park-taxonomy.js scripts/intake-park-taxonomy.test.js" --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200`
+Run: `bridge --mode "$BRIDGE_MODE" "Review R0 taxonomy config and graph test for Intake Autonomy v2.1. Verify no NO-GO taint can reach automatic review, and unknown reasons fail closed. Files: scripts/intake-park-taxonomy.json scripts/intake-park-taxonomy.js scripts/intake-park-taxonomy.test.js" --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200`
 
 Expected: GO or GO-WITH-PATCHES. Apply accepted findings before commit.
 
@@ -425,7 +426,7 @@ Expected: all tests exit 0.
 Run bridge with prompt:
 
 ```bash
-bridge --mode claude-only "Review R1 evidence slots and candidate evidence gate for Intake Autonomy v2.1. Focus on source provenance, absence-rationale deadlocks, and whether a researcher can self-select world-absent. Files: scripts/printer-intake-scout.js scripts/printer-intake-scout.test.js scripts/validate-candidate-evidence.js scripts/validate-candidate-evidence.test.js scripts/lib/intake-source-normalizer.js scripts/lib/intake-source-normalizer.test.js" --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
+bridge --mode "$BRIDGE_MODE" "Review R1 evidence slots and candidate evidence gate for Intake Autonomy v2.1. Focus on source provenance, absence-rationale deadlocks, and whether a researcher can self-select world-absent. Files: scripts/printer-intake-scout.js scripts/printer-intake-scout.test.js scripts/validate-candidate-evidence.js scripts/validate-candidate-evidence.test.js scripts/lib/intake-source-normalizer.js scripts/lib/intake-source-normalizer.test.js" --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
 git add scripts/printer-intake-scout.js scripts/printer-intake-scout.test.js scripts/validate-candidate-evidence.js scripts/validate-candidate-evidence.test.js scripts/lib/intake-source-normalizer.js scripts/lib/intake-source-normalizer.test.js docs/planning/INTAKE-AUTONOMY-V2-GATE-LEDGER.md
 git commit -m "feat(intake): validate v2.1 candidate evidence"
 ```
@@ -516,7 +517,7 @@ Expected: all tests pass.
 - [ ] **Step 5: Gate review and commit**
 
 ```bash
-bridge --mode claude-only "Review R2 reviewer-output contract for v2.1. Verify malformed output cannot silently pass and NO-GO objections are structured enough for RD3." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
+bridge --mode "$BRIDGE_MODE" "Review R2 reviewer-output contract for v2.1. Verify malformed output cannot silently pass and NO-GO objections are structured enough for RD3." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
 git add scripts/validate-reviewer-output.js scripts/validate-reviewer-output.test.js scripts/intake-run-kickoff.md docs/runbooks/printer-addition-protocol.md docs/planning/INTAKE-AUTONOMY-V2-GATE-LEDGER.md
 git commit -m "feat(intake): validate reviewer objection output"
 ```
@@ -622,7 +623,7 @@ Expected: tests pass.
 - [ ] **Step 4: Gate review and commit**
 
 ```bash
-bridge --mode claude-only "Review R3 parked-store v2 and K2 SE migration. Verify tainted review-no-go cannot become research-defect/world-absent/availability-blocked and repairAttempts is enforced." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
+bridge --mode "$BRIDGE_MODE" "Review R3 parked-store v2 and K2 SE migration. Verify tainted review-no-go cannot become research-defect/world-absent/availability-blocked and repairAttempts is enforced." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
 git add scripts/intake-parked-store.js scripts/intake-parked-store.test.js scripts/fixtures/k2-se-parked-v1.json docs/planning/INTAKE-AUTONOMY-V2-GATE-LEDGER.md
 git commit -m "feat(intake): add v2.1 parked-store migration"
 ```
@@ -707,7 +708,7 @@ Expected: tests pass.
 - [ ] **Step 4: Gate review and commit**
 
 ```bash
-bridge --mode claude-only "Review R4 RD3 retry gate. Verify bare URLs, same canonical sources, unchanged diffs, and missing excerpts consume zero review turns." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
+bridge --mode "$BRIDGE_MODE" "Review R4 RD3 retry gate. Verify bare URLs, same canonical sources, unchanged diffs, and missing excerpts consume zero review turns." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
 git add scripts/intake-retry-gate.js scripts/intake-retry-gate.test.js docs/planning/INTAKE-AUTONOMY-V2-GATE-LEDGER.md
 git commit -m "feat(intake): gate judgment retries on new evidence"
 ```
@@ -822,7 +823,7 @@ Expected: both exit 0.
 - [ ] **Step 6: Gate review and commit**
 
 ```bash
-bridge --mode claude-only "Review R5 provenance store and preflight custody relaxation. Verify only the two custody paths and custody-subject ahead commits are tolerated, and everything else fail-closes." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
+bridge --mode "$BRIDGE_MODE" "Review R5 provenance store and preflight custody relaxation. Verify only the two custody paths and custody-subject ahead commits are tolerated, and everything else fail-closes." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
 git add docs/printer-provenance.json scripts/intake-provenance-store.js scripts/intake-provenance-store.test.js scripts/intake-run-preflight.sh scripts/intake-run-preflight.test.sh docs/planning/INTAKE-AUTONOMY-V2-GATE-LEDGER.md
 git commit -m "feat(intake): add provenance custody path"
 ```
@@ -895,7 +896,7 @@ Expected: all exit 0.
 - [ ] **Step 5: Gate review and commit**
 
 ```bash
-bridge --mode claude-only "Review R6 runner/runbook integration for Intake Autonomy v2.1. Verify stage order and cross-repo contract wording cannot create a sidecar before R0 taxonomy or spend a review turn before evidence validation." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
+bridge --mode "$BRIDGE_MODE" "Review R6 runner/runbook integration for Intake Autonomy v2.1. Verify stage order and cross-repo contract wording cannot create a sidecar before R0 taxonomy or spend a review turn before evidence validation." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
 git add scripts/intake-run-kickoff.md docs/runbooks/printer-addition-protocol.md docs/planning/INTAKE-AUTONOMY-V2-GATE-LEDGER.md
 git commit -m "docs(intake): integrate v2.1 runner contract"
 ```
@@ -957,7 +958,7 @@ R7 proves migration only. A real K2 SE re-attempt requires explicit owner instru
 - [ ] **Step 4: Gate review and commit**
 
 ```bash
-bridge --mode claude-only "Review R7 K2 SE migration drill. Verify it proves decision-required migration only and does not authorize an automatic K2 SE reattempt." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
+bridge --mode "$BRIDGE_MODE" "Review R7 K2 SE migration drill. Verify it proves decision-required migration only and does not authorize an automatic K2 SE reattempt." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
 git add scripts/fixtures/k2-se-parked-v1.json scripts/intake-parked-store.test.js docs/planning/INTAKE-AUTONOMY-V2-GATE-LEDGER.md
 git commit -m "test(intake): prove k2 se v2.1 migration"
 ```
@@ -1008,7 +1009,7 @@ Expected: all exit 0.
 - [ ] **Step 3: Run final cross-model review**
 
 ```bash
-bridge --mode claude-only "Final review Intake Autonomy v2.1 implementation after R0-R7. Verify the NO-GO taint invariant, evidence provenance before review, reviewer-output schema, parked-store migration, retry gate, provenance custody, and runner/runbook ordering. Return GO/NO-GO with must-fix findings only." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
+bridge --mode "$BRIDGE_MODE" "Final review Intake Autonomy v2.1 implementation after R0-R7. Verify the NO-GO taint invariant, evidence provenance before review, reviewer-output schema, parked-store migration, retry gate, provenance custody, and runner/runbook ordering. Return GO/NO-GO with must-fix findings only." --out-dir codex/intake-autonomy-v2.1-review --turn-timeout-seconds 1200
 ```
 
 Expected: GO. If GO-WITH-PATCHES, apply and rerun the affected local tests plus this final review.
