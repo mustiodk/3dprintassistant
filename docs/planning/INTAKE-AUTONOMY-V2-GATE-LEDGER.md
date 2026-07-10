@@ -8,7 +8,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 |---|---|---|
 | B0 launchd environment probe | ✅ 2026-07-10 | 4/4 PASS on a real launchd run (`ppid=1`); see B0 row below |
 | B1 republish-overlay.js | ✅ 2026-07-10 | `c3abe4e` — 21/21 TDD, hostile GO-WITH-PATCHES ×8 applied, live-overlay no-op sanity clean; see B1 row |
-| B2 live verification probes | ⬜ | |
+| B2 live verification probes | ✅ 2026-07-10 | `cc9ba95`+`d1f84cd`+`bcdf510` — 25/25 probe tests, both probes green on real prod, refactor byte-for-byte; see B2 row |
 | B3 preflight + lock/freeze + KV hygiene + notifier | ⬜ | |
 | B4 contracts + PD7 + plist + dry-run | ⬜ | |
 | B5 latency + rollback drill + enablement | ⬜ | |
@@ -16,6 +16,14 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 ---
 
 ## Rows (newest first)
+
+### B2 — live verification probes ✅ (2026-07-10, `cc9ba95` + `d1f84cd` + `bcdf510`)
+
+**Refactor first (`cc9ba95`):** `scripts/lib/engine-bootstrap.js` extracted from `picker-dry-run.js` (loader + init-chatter capture + picker assertions); behavior-preserving proven **byte-for-byte** (picker-dry-run.test.js 7/7, output diff empty vs pre-refactor baseline).
+**`verify-live-overlay.js` (`d1f84cd`):** FULL-envelope compare incl. `enabled` + `min_app_version` + hash **recomputed from the fetched body** (Codex MF-1 pinned by test: live `enabled:false` with matching version+hash FAILS ship-path verify); `--expect-disabled` PD8 mode; `--measure` machine line `MEASURE elapsed_seconds=… attempts=… version=…` (**runner contract note: grep for `MEASURE `, the CLI prefixes lines**); retries default 10×30s until B5 calibrates config (**`--retries N` = N TOTAL attempts**).
+**`verify-live-picker.js` (`bcdf510`):** downloads live engine.js + all 9 init files into a temp root → shared bootstrap → same assertions as the local dry-run against PRODUCTION data. Exit contract both scripts: 0 ok / 2 mismatch / 3 fetch-or-init / 1 usage.
+**Hostile review: GO-WITH-PATCHES ×9, all applied** — HIGH: garbage-200 engine.js crashed into exit 1 (usage collision) + leaked temp root → try/catch → exit 3 + IIFE .catch (empirically re-tested via HTML-200 fixture); HIGH: last-attempt-wins classification let a trailing network blip mask a REAL mismatch as exit 3 (runner would skip rollback) → deterministic any-observed-mismatch-wins + interleave test; MEDIUM ×3: committed-file self-consistency assert (hand-edited payload could false-PASS vs a stale live server), REQUIRED_FILES set-equality both directions (stale extra entry = false rollback), overlay test suite synthesized fixture (was built from the real catalog file — would red-out during a genuine PD8 emergency); LOW ×3 + OBSERVATION (MEASURE-prefix note above).
+**QA:** 25/25 probe tests; real read-only prod runs green (overlay `OK attempts=1 elapsed=0.138s`; picker `GREEN sparkx_i7 under creality / i Series` on live data); full web suite 82/82.
 
 ### B1 — republish-overlay.js ✅ (2026-07-10, `c3abe4e`)
 
