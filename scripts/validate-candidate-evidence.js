@@ -165,7 +165,9 @@ function validateCandidateEvidence(candidate) {
   for (const name of fields) {
     const field = row[name];
     if (name === 'notes') {
-      if (!notesCarryManufacturerCitation(field)) {
+      if (!fieldPasses('notes', field)) {
+        errors.push('notes require confirmed manufacturer evidence metadata');
+      } else if (!notesCarryManufacturerCitation(field)) {
         errors.push('notes must include a manufacturer citation URL');
       }
       continue;

@@ -151,6 +151,15 @@ test('notes must contain a manufacturer citation that survives into the row', ()
   assert.equal(result.reviewRequests, 0);
 });
 
+test('notes with missing evidence metadata report metadata rather than citation text', () => {
+  const candidate = baseCandidate();
+  candidate.printersJsonRow.notes.source = null;
+  const result = validateCandidateEvidence(candidate);
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /notes.*metadata/i);
+  assert.equal(result.reviewRequests, 0);
+});
+
 test('notes citation must match the recorded manufacturer source', () => {
   const candidate = baseCandidate();
   candidate.printersJsonRow.notes.value = ['Manufacturer source: https://example.com/specs'];
