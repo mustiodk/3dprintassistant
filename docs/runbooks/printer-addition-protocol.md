@@ -453,6 +453,14 @@ the wrap-up is blocked.
 
 ### Risk-triggered reviewer dispatch
 
+Every autonomous reviewer emits this v2.1 structured result before prose:
+`{ reviewer, verdict:"GO"|"NO-GO", objections:[{field,question,raisedAt}] }`.
+The reviewer id is a stable token; `raisedAt` is explicit ISO-8601. Validate the
+result with `scripts/validate-reviewer-output.js`. `NO-GO` requires at least one
+structured objection; `GO` requires none. Malformed output becomes
+`review-unavailable` and parks without a merge decision — never infer a verdict
+or reconstruct objections from prose.
+
 Escalate to `superpowers:requesting-code-review` against the printer-add diff
 when **any** of these fire:
 
