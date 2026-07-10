@@ -27,9 +27,20 @@ function canRetryJudgment(sidecar, regenerated) {
   const objections = Array.isArray(parked.objections) ? parked.objections : [];
   const resolved = Array.isArray(attempt.objections) ? attempt.objections : [];
   if (objections.length === 0) errors.push('parked objections are required');
+  if (resolved.length !== objections.length) {
+    errors.push('regenerated objection count must match parked objection count');
+  }
 
   for (let i = 0; i < objections.length; i += 1) {
-    const resolution = resolved[i] && resolved[i].resolvedBy;
+    const regeneratedObjection = resolved[i];
+    const identityFields = ['reviewer', 'field', 'question', 'raisedAt'];
+    if (!regeneratedObjection || identityFields.some(
+      (field) => regeneratedObjection[field] !== objections[i]?.[field]
+    )) {
+      errors.push(`objection ${i} identity or order changed`);
+    }
+
+    const resolution = regeneratedObjection && regeneratedObjection.resolvedBy;
     if (!resolution || typeof resolution !== 'object') {
       errors.push(`objection ${i} has no resolvedBy`);
       continue;

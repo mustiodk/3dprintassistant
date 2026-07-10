@@ -29,7 +29,12 @@ function resolution(overrides = {}) {
 function retry(overrides = {}) {
   return {
     diffSha: 'new',
-    objections: [{ resolvedBy: resolution() }],
+    objections: [{
+      field: 'max_speed',
+      question: 'source 500',
+      raisedAt: '2026-07-10T00:00:00Z',
+      resolvedBy: resolution(),
+    }],
     ...overrides,
   };
 }
@@ -77,6 +82,50 @@ test('every recorded objection requires its own resolution', () => {
   assert.equal(r.reviewRequests, 0);
 });
 
+test('reordered objections cannot attach evidence to the wrong question', () => {
+  const parked = sidecar();
+  parked.objections.push({
+    field: 'multi_color_systems',
+    question: 'source CFS',
+    raisedAt: '2026-07-10T00:05:00Z',
+  });
+  const r = canRetryJudgment(parked, retry({
+    objections: [
+      {
+        ...parked.objections[1],
+        resolvedBy: resolution({
+          source: 'https://support.creality.com/cfs',
+          excerpt: 'Supports CFS',
+          claim: 'multi_color_systems=["cfs"]',
+        }),
+      },
+      { ...parked.objections[0], resolvedBy: resolution() },
+    ],
+  }));
+
+  assert.equal(r.ok, false);
+  assert.match(r.errors.join('\n'), /identity|order/i);
+  assert.equal(r.reviewRequests, 0);
+});
+
+test('extra regenerated objections fail closed', () => {
+  const r = canRetryJudgment(sidecar(), retry({
+    objections: [
+      {
+        field: 'taxonomy',
+        question: 'unrelated',
+        raisedAt: '2026-07-10T00:10:00Z',
+        resolvedBy: resolution({ source: 'https://support.creality.com/unrelated' }),
+      },
+      retry().objections[0],
+    ],
+  }));
+
+  assert.equal(r.ok, false);
+  assert.match(r.errors.join('\n'), /count/i);
+  assert.equal(r.reviewRequests, 0);
+});
+
 for (const [field, value] of [
   ['source', ''],
   ['excerpt', ''],
@@ -117,4 +166,3 @@ test('malformed inputs fail closed without throwing or review turns', () => {
     assert.equal(r.reviewRequests, 0);
   }
 });
-
