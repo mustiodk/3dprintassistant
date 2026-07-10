@@ -8,6 +8,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 | Gate | Status | Evidence |
 |---|---|---|
+| R3 parked store v2 + K2 SE migration | ✅ 2026-07-10 | RED missing module → 14/14 tests; direct hostile review NO-GO ×2, both findings applied one-per-commit; focused re-review GO; K2 SE fixture migrates only, no re-attempt; see R3 row |
 | R2 structured reviewer-output contract | ✅ 2026-07-10 | RED missing module → 12/12 tests; direct hostile review NO-GO ×3, all findings applied one-per-commit; focused re-review GO; see R2 row |
 | R1 evidence slots + candidate evidence gate | ✅ 2026-07-10 | RED-first source/evidence modules + Scout skeleton; final 3/3 normalizer, 15/15 evidence, full Scout green; Claude GO-WITH-PATCHES findings applied one-per-commit; final direct fallback re-review GO after Claude spend-limit outage; see R1 row |
 | R0 taxonomy + NO-GO taint graph | ✅ 2026-07-10 | RED missing module → 11/11 tests + CLI `ok=true`; hostile review NO-GO then GO-WITH-PATCHES, 5 accepted findings landed one-per-commit; final Claude re-review GO; see R0 row |
@@ -21,6 +22,14 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 ---
 
 ## Rows (newest first)
+
+### R3 — parked store v2 + K2 SE migration ✅ (2026-07-10; `318fd90` + `868c950` + `1d96535`)
+
+**TDD:** `node scripts/intake-parked-store.test.js` first failed on the missing module. Final **14/14** coverage proves the real-like K2 SE v1 fixture migrates to `intake-parked@2` as `decision-required`, remains tainted, synthesizes a durable NO-GO verdict reference, starts with `repairAttempts:0`, and leaves the fixture byte-unchanged. Tainted sidecars are refused from every class except `judgment-on-evidence` and `decision-required`. An untainted `research-defect` receives exactly one repair pass; the next entry and any malformed/negative/fractional counter fail closed to `decision-required` + owner trigger.
+
+**Review chain:** Claude remained unavailable under the confirmed monthly spend limit, so the canonical direct read-only `gpt-5.4` fallback reviewed R3. Initial verdict **NO-GO ×2** ([record](../../codex/intake-autonomy-v2.1-review/direct-codex-2026-07-10-r3.md)): an update could strip persisted NO-GO history and launder the candidate into a repair lane; malformed repair counters could buy another pass. The findings landed one-per-commit. Focused re-review in session `019f4d8a-1618-7850-90f1-55ea3d3b7dad` returned **GO**.
+
+**Contract proven:** `writeParked()` preserves prior NO-GO verdict references and monotone taint from an existing v1/v2 file before validating the next class. Migration and repair entry accept only non-negative integer counters and never grant a pass on malformed state. K2 SE was **not re-run**: R3 reads the committed fixture and proves migration only; a real re-attempt remains owner-gated for R7/RD2. Engine, shipped printer data, overlays, web UI, iOS, and Android plan are untouched, so no app/data utilization change is needed at this gate.
 
 ### R2 — structured reviewer-output contract ✅ (2026-07-10; `868904e` + `b6bdb6e` + `96ff8fd`)
 
