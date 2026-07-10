@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const { canonicalSource } = require('./lib/intake-source-normalizer.js');
+const { isIso8601Timestamp } = require('./validate-reviewer-output.js');
 
 function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
@@ -50,6 +51,10 @@ function canRetryJudgment(sidecar, regenerated) {
       if (!isNonEmptyString(resolution[field])) {
         errors.push(`objection ${i} lacks ${field}`);
       }
+    }
+    if (isNonEmptyString(resolution.resolvedAt)
+      && !isIso8601Timestamp(resolution.resolvedAt)) {
+      errors.push(`objection ${i} resolvedAt must be ISO-8601`);
     }
 
     if (isNonEmptyString(resolution.source)) {

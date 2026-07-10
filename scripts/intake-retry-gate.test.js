@@ -141,6 +141,22 @@ for (const [field, value] of [
   });
 }
 
+for (const invalidTimestamp of ['not-a-timestamp', '2026-02-30T12:00:00Z']) {
+  test(`resolvedAt rejects invalid timestamp ${invalidTimestamp}`, () => {
+    const parked = sidecar();
+    const r = canRetryJudgment(parked, retry({
+      objections: [{
+        ...parked.objections[0],
+        resolvedBy: resolution({ resolvedAt: invalidTimestamp }),
+      }],
+    }));
+
+    assert.equal(r.ok, false);
+    assert.match(r.errors.join('\n'), /resolvedAt.*ISO-8601/i);
+    assert.equal(r.reviewRequests, 0);
+  });
+}
+
 test('invalid source fails closed without throwing', () => {
   const r = canRetryJudgment(sidecar(), retry({
     objections: [{ resolvedBy: resolution({ source: 'not a URL' }) }],
