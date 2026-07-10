@@ -3,3 +3,4 @@
 {"candidateKey":"creator_5_pro","runId":"2026-06-20-autonomous-branch-test","scoutOutcome":"needs-research","ownerResolution":"was-unresolved-brand","correctiveSignal":"brandTokens:flashforge"}
 {"candidateKey":["req:1783180532841:1a92a914"],"runId":"2026-07-04T15:55:32.841Z","scoutOutcome":"needs-research","ownerResolution":"shipped","correctiveSignal":"none"}
 {"candidateKey":["req:1783615951531:a03e6e7e"],"runId":"2026-07-10T10:02:33Z","scoutOutcome":"needs-research","ownerResolution":"auto-parked:review-no-go","correctiveSignal":"none","ledgeredAt":"2026-07-10T10:16:47Z"}
+{"candidateKey":["req:1783615951531:a03e6e7e"],"runId":"2026-07-10T22:15:29Z","scoutOutcome":"needs-research","ownerResolution":"shipped","correctiveSignal":"none","ledgeredAt":"2026-07-10T22:15:29Z","resolutionNote":"owner-approved RD2: max_acceleration=20000 despite Creality support-page 2000 conflict; web+overlay ship path, iOS mirror local-only"}
