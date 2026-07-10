@@ -875,28 +875,68 @@ module.exports = { upsertPrinterProvenance };
 
 - [ ] **Step 3: Write RED preflight custody tests**
 
-`scripts/intake-run-preflight.test.sh` should create a temporary git repo, simulate:
-
 ```bash
-# dirty allowed custody paths
-printf '{}\n' > docs/printer-provenance.json
-printf '{}\n' > scripts/printer-intake-outcomes.jsonl
+#!/usr/bin/env bash
+set -euo pipefail
 
-# dirty disallowed path
-printf bad > data/printers.json
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
 
-# ahead commit with subject "chore(intake): custody ..."
-# ahead commit with subject "feat(other): ..."
-```
+copy_preflight() {
+  mkdir -p "$TMP/scripts" "$TMP/docs" "$TMP/data"
+  cp "$ROOT/scripts/intake-run-preflight.sh" "$TMP/scripts/intake-run-preflight.sh"
+  chmod +x "$TMP/scripts/intake-run-preflight.sh"
+}
 
-Expected assertions:
+init_repo() {
+  rm -rf "$TMP/repo"
+  mkdir -p "$TMP/repo"
+  cd "$TMP/repo"
+  git init -q
+  git config user.email test@example.invalid
+  git config user.name "intake test"
+  mkdir -p scripts docs data
+  printf '[]\n' > scripts/printer-intake-outcomes.jsonl
+  printf '{"schema":"printer-provenance@1","printers":{}}\n' > docs/printer-provenance.json
+  printf '{"printers":[]}\n' > data/printers.json
+  git add .
+  git commit -qm init
+  copy_preflight
+}
 
-```bash
-./scripts/intake-run-preflight.sh --repo "$tmp" --dry-run
-# dirty custody only -> ok
-# dirty third path -> non-zero
-# ahead custody-only subject -> ok
-# ahead foreign subject -> non-zero
+expect_ok() {
+  "$TMP/repo/scripts/intake-run-preflight.sh" --repo "$TMP/repo" --dry-run >/tmp/intake-preflight-test.out
+}
+
+expect_fail() {
+  if "$TMP/repo/scripts/intake-run-preflight.sh" --repo "$TMP/repo" --dry-run >/tmp/intake-preflight-test.out 2>&1; then
+    echo "expected failure but preflight passed" >&2
+    exit 1
+  fi
+}
+
+init_repo
+printf '{}\n' > "$TMP/repo/docs/printer-provenance.json"
+printf '{"candidateKey":"k"}\n' >> "$TMP/repo/scripts/printer-intake-outcomes.jsonl"
+expect_ok
+
+init_repo
+printf bad > "$TMP/repo/data/printers.json"
+expect_fail
+
+init_repo
+printf '{}\n' > "$TMP/repo/docs/printer-provenance.json"
+printf '{"candidateKey":"k"}\n' >> "$TMP/repo/scripts/printer-intake-outcomes.jsonl"
+git -C "$TMP/repo" add docs/printer-provenance.json scripts/printer-intake-outcomes.jsonl
+git -C "$TMP/repo" commit -qm "chore(intake): custody k2_se provenance"
+expect_ok
+
+init_repo
+printf bad > "$TMP/repo/data/printers.json"
+git -C "$TMP/repo" add data/printers.json
+git -C "$TMP/repo" commit -qm "feat(other): mutate data"
+expect_fail
 ```
 
 - [ ] **Step 4: Patch preflight**
