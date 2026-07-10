@@ -327,7 +327,7 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
 ## 11. Review record — hostile sub-agent (GO-WITH-PATCHES, 14 findings, all applied)
 
 5 HIGH: **F1** §2's ratchet argument was motivated reasoning (retries re-run research; `diffSha` near-vacuous); **F2** RD3's "deterministic" semantic check is an LLM trust boundary; **F3** RD1 broke the ratified app-cap lane; **F4** the field set dropped 5 runbook fields and demanded slots the Scout doesn't emit; **F5** the provenance success criterion was unachievable (→ RD10); **F6** the preserved branch dies on the next *daily* run, not the weekly retry date.
-MEDIUM: **F7** *(later shown WRONG by Codex — see §12 #1/#2)* move `evidence-incomplete` to the timed lane; **F8** free-text context injection is an influence vector; **F9** the spec violated its own "no new ledger"; **F10** the S4 `--apply` reuse claim was empty; **F11** the taxonomy missed real reasons.
+MEDIUM: **F7** *(applied in draft 2, then shown WRONG and reversed by Codex — see §12 #1/#2)* move `evidence-incomplete` to the timed lane; **F8** free-text context injection is an influence vector; **F9** the spec violated its own "no new ledger"; **F10** the S4 `--apply` reuse claim was empty; **F11** the taxonomy missed real reasons.
 LOW: **F12** "blocked candidates are rare" vs a 100%-park sample; **F13** RD4 order-independence; **F14** an unfalsifiable success criterion.
 
 ## 12. Review record — Codex cross-model (**NO-GO**, 9 findings, all applied)
