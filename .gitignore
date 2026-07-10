@@ -9,6 +9,9 @@ scripts/.printer-intake.local.json
 scripts/.printer-intake.watermark.json
 scripts/.printer-intake-retrospective.watermark.json
 scripts/.printer-intake-out/
+# republish-overlay.js validate-then-swap temp (a crash between write and
+# rename must not dirty the tree — the runner preflight fail-closes on dirt).
+catalog/*.republish-tmp
 
 # Personal scratch — owner keeps these locally; not part of the public repo.
 bambu configs/
