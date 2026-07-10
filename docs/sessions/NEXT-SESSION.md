@@ -1,7 +1,7 @@
 # 3dpa — Next Session Kickoff
 
 **Purpose:** copy-paste kickoff prompt for the next fresh 3dpa session.
-**Last updated:** 2026-07-10 (Trigger A close after v2.1 cross-model review + patched small-gate plan PR).
+**Last updated:** 2026-07-10 (Trigger A close after v2.1 cross-model review + patched small-gate plan PR #6 merged).
 **Locked next entry point:** **Execute Intake Autonomy v2.1 plan R-1/R0 first.** Do not redesign the plan unless fresh evidence shows a blocker.
 
 ---
@@ -11,7 +11,7 @@
 - **The live pipeline is safe.** Runner contract **v1.1** (ai-om `c99d1ed`): `review-no-go` is event-only, the `others → weekly ×4` catch-all is deleted, unrecognised reasons → `decision-required`. Daily 12:00 schedule runs; preflight is fail-closed.
 - **K2 SE is parked, tainted, and stationary.** It will not be retried on any timer. Its branch is preserved as tag **`intake-k2se-first-run-evidence`** (diff hash `b88ae6df048d75c6`; stage 2b deleted the branch ref itself). Any re-attempt requires explicit owner instruction.
 - **v2.1 spec is patched to v5.** Spec path: `docs/superpowers/specs/2026-07-10-intake-autonomy-v2.1-evidence-retry-retrospective-design.md`. Review trail: Codex NO-GO #1, Codex NO-GO #2, Claude hostile review; all findings applied.
-- **v2.1 plan is ready.** Plan path: `docs/superpowers/plans/2026-07-10-intake-autonomy-v2.1-small-gates-plan.md`. It is R-1/R0–R8, and its own hostile plan review found 5 must-fix + 8 should-fix + 3 optional; all patched.
+- **v2.1 plan is ready and merged.** Plan path: `docs/superpowers/plans/2026-07-10-intake-autonomy-v2.1-small-gates-plan.md`. It is R-1/R0–R8, and its own hostile plan review found 5 must-fix + 8 should-fix + 3 optional; all patched. Planning PR #6 merged.
 - **Nothing has been built for v2.1 yet.** The next session starts execution, not implementation catch-up.
 
 Copy everything between the markers into a new session.
