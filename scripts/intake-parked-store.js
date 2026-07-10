@@ -5,6 +5,14 @@ const { classifyParkReason } = require('./intake-park-taxonomy.js');
 
 const TAINTED_CLASSES = new Set(['judgment-on-evidence', 'decision-required']);
 
+function parseRepairAttempts(value) {
+  if (value === undefined) return { valid: true, value: 0 };
+  if (typeof value === 'number' && Number.isInteger(value) && value >= 0) {
+    return { valid: true, value };
+  }
+  return { valid: false, value: 1 };
+}
+
 function isTainted(sidecar = {}) {
   return sidecar.tainted === true
     || (Array.isArray(sidecar.verdictRefs)
@@ -30,14 +38,19 @@ function migrateParkedV1(v1 = {}) {
     }] : []);
   const tainted = isTainted({ ...v1, verdictRefs });
   const classified = classifyParkReason(v1.reason, { tainted });
+  const repairCounter = parseRepairAttempts(v1.repairAttempts);
+  const malformedResearchCounter = classified.className === 'research-defect' && !repairCounter.valid;
   const migrated = {
     schema: 'intake-parked@2',
     ...v1,
-    class: legacyReviewNoGo ? 'decision-required' : classified.className,
-    repairAttempts: Number(v1.repairAttempts || 0),
+    class: legacyReviewNoGo || malformedResearchCounter
+      ? 'decision-required'
+      : classified.className,
+    repairAttempts: repairCounter.value,
     verdictRefs,
     tainted,
     evidence: Array.isArray(v1.evidence) ? v1.evidence : [],
+    ...(malformedResearchCounter ? { nextEligibleTrigger: 'owner' } : {}),
   };
 
   assertWritableClass(migrated);
@@ -48,11 +61,16 @@ function enterResearchRepair(sidecar) {
   assertWritableClass(sidecar);
   if (sidecar.class !== 'research-defect') return sidecar;
 
-  const repairAttempts = Number(sidecar.repairAttempts || 0);
-  if (repairAttempts >= 1) {
-    return { ...sidecar, class: 'decision-required', nextEligibleTrigger: 'owner' };
+  const repairCounter = parseRepairAttempts(sidecar.repairAttempts);
+  if (!repairCounter.valid || repairCounter.value >= 1) {
+    return {
+      ...sidecar,
+      class: 'decision-required',
+      nextEligibleTrigger: 'owner',
+      repairAttempts: repairCounter.value,
+    };
   }
-  return { ...sidecar, repairAttempts: repairAttempts + 1 };
+  return { ...sidecar, repairAttempts: repairCounter.value + 1 };
 }
 
 function normalizeParkedV2(sidecar) {

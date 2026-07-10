@@ -54,6 +54,31 @@ test('research-defect gets one repair attempt only', () => {
   assert.equal(second.repairAttempts, 1);
 });
 
+for (const malformed of ['banana', -1, 1.5]) {
+  test(`malformed repair counter ${JSON.stringify(malformed)} fails closed`, () => {
+    const result = enterResearchRepair({
+      class: 'research-defect',
+      tainted: false,
+      repairAttempts: malformed,
+    });
+
+    assert.equal(result.class, 'decision-required');
+    assert.equal(result.nextEligibleTrigger, 'owner');
+    assert.equal(result.repairAttempts, 1);
+  });
+}
+
+test('migration cannot turn a malformed repair counter into a fresh repair pass', () => {
+  const migrated = migrateParkedV1({
+    reason: 'research-defect',
+    repairAttempts: 'banana',
+  });
+
+  assert.equal(migrated.class, 'decision-required');
+  assert.equal(migrated.nextEligibleTrigger, 'owner');
+  assert.equal(migrated.repairAttempts, 1);
+});
+
 test('tainted research-defect cannot enter the repair lane', () => {
   assert.throws(() => enterResearchRepair({
     class: 'research-defect',
