@@ -378,3 +378,25 @@ runner contract wording later if the new taxonomy file changes the contract text
 
 **Next gate:** gated impl plan (R0 = taxonomy config + fail-closed validator) →
 hostile + cross-model review of the plan → build.
+
+## 15. Review record — Claude cross-model hostile review, pass #3 (GO-AFTER-PATCHES)
+
+Transcript: [`codex/intake-autonomy-v2.1-review/bridge-2026-07-10-175146-639772.md`](../../../codex/intake-autonomy-v2.1-review/bridge-2026-07-10-175146-639772.md).
+
+**must-fix**
+1. **The K2 SE migration test still asserted `research-defect`.** → Corrected to `decision-required`; §12 #3 now records that Codex pass #2 superseded the earlier `research-defect` direction.
+2. **The live-system warning was stale after contract v1.1 shipped.** → §14 closed; gate R0 now starts with taxonomy config + validator, not a repeat patch to the already-live runner contract.
+3. **The reviewer output contract had no schema.** → RD4 now defines the structured reviewer result and objection shape that RD3 consumes.
+
+**should-fix**
+4. **`world-absent` assignment authority was undefined.** → Validator-owned classification only, after typed absence rationale + complete source sweep.
+5. **The one-repair bound had no stored counter.** → `repairAttempts` added to sidecar schema and retry-sweep entry semantics.
+6. **K2 SE acceptance required an undeclared owner action.** → Success criterion now states the explicit owner re-attempt precondition.
+7. **`needs-source-resolution:conflicting` was listed as current despite producer incompatibility.** → Marked future-only and omitted from taxonomy config until producer contracts emit it.
+
+**optional**
+8. Hostile F7 now says "applied, then reversed" instead of merely "all applied."
+9. `absenceRationale.checkedSources[].canonicalSource` uses the RD3 canonical normalizer.
+10. "Five non-trivial runs" excludes empty queue runs.
+
+**Disposition:** all findings applied. Claude's verdict: a small-gate implementation plan can be written after these patches.
