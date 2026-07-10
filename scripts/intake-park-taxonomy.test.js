@@ -37,13 +37,15 @@ test('NO-GO taint has no automatic path to a review turn', () => {
   assert.equal(result.ok, true);
 });
 
-test('graph validation rejects a tainted class with automatic review entry', () => {
-  const t = structuredClone(loadTaxonomy());
-  t.classes['research-defect'].taintedAllowed = true;
-  const result = validateTaxonomyGraph(t);
-  assert.equal(result.ok, false);
-  assert.match(result.violations.join('\n'), /research-defect.*automatic review entry/i);
-});
+for (const className of ['availability-blocked', 'research-defect', 'world-absent']) {
+  test(`graph validation rejects taint on automatic review class ${className}`, () => {
+    const t = structuredClone(loadTaxonomy());
+    t.classes[className].taintedAllowed = true;
+    const result = validateTaxonomyGraph(t);
+    assert.equal(result.ok, false);
+    assert.match(result.violations.join('\n'), new RegExp(`${className}.*automatic review entry`, 'i'));
+  });
+}
 
 test('graph validation rejects unsanctioned tainted review edges', () => {
   const t = structuredClone(loadTaxonomy());
