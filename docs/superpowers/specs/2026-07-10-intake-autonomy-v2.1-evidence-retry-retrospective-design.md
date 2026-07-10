@@ -147,6 +147,22 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
 
   On a **retry**, both reviewers additionally verify each `resolvedBy.excerpt` against its source (RD3c).
 
+  **Reviewer output contract (precondition for RD3).** Each reviewer turn emits a
+  structured result before any prose summary:
+  ```
+  { reviewer: "<stable reviewer id>",
+    verdict: "GO" | "NO-GO",
+    objections: [
+      { field: "<printer field or 'taxonomy'/'evidence'/'process'>",
+        question: "<the exact objection the next attempt must answer>",
+        raisedAt: "<ISO-8601 timestamp>" }
+    ] }
+  ```
+  `verdict:"NO-GO"` requires at least one objection. `verdict:"GO"` requires an
+  empty `objections[]`. The shipping agent may copy these objections into the
+  sidecar but may not edit their `field` or `question`; malformed reviewer output
+  parks as `review-unavailable` without consuming the merge decision.
+
   **Cost, stated without motivated minimisation (Codex #2, should-fix 5).** Both reviewers run on **every** candidate that reaches the gate — that is the rule, not "the second runs only on a NO-GO." v2 already ran both whenever the first GOed (both GOs are required to ship), so the *incremental* cost over v2's fail-fast is one extra turn **on NO-GO paths**. Draft 3's risk table said "second reviewer only on a NO-GO," which contradicted the rule; it is corrected. **Park frequency is unknown (N=1, which parked 1/1) and will be measured** — draft 1's "blocked candidates are rare" was reasoning from the desired conclusion.
 
   *(Note the demonstration: the hostile sub-agent's F7 — "move `evidence-incomplete` to the timed lane" — is precisely what created Codex must-fix #1 and #2. Two reviewers, opposite conclusions, and the second was right. RD4's thesis, proven on the spec that proposes RD4.)*
