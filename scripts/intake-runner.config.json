@@ -1,10 +1,10 @@
 {
   "_doc": "Intake Autonomy v2 runner config (spec §3, plan B3.1b). liveVerify is CONSERVATIVE until B5.1 measures real Cloudflare deploy latency and flips calibrated:true. retries = TOTAL attempts including the first. schedule is metadata for humans + the runner contract; the authoritative trigger is the launchd plist StartCalendarInterval.",
   "liveVerify": {
-    "retries": 13,
+    "retries": 14,
     "intervalSeconds": 15,
     "calibrated": true,
-    "_measured": "B5.1 2026-07-10: push->live 55.5s / 30.3s / 60.4s (+ drill 50.4s); budget = ceil(p95x3) ~ 181s -> 13 attempts x 15s = 195s coverage"
+    "_measured": "B5.1 2026-07-10: push->live 55.5s / 30.3s / 60.4s (+ drill 50.4s); budget = ceil(p95x3) = 182s; attempt 1 is immediate so 14 attempts = 13 intervals = 195s coverage >= 182s"
   },
   "maxCandidatesPerRun": 3,
   "schedule": "daily 12:00"

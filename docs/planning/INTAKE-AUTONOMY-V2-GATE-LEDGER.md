@@ -11,11 +11,20 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 | B2 live verification probes | ✅ 2026-07-10 | `cc9ba95`+`d1f84cd`+`bcdf510` — 25/25 probe tests, both probes green on real prod, refactor byte-for-byte; see B2 row |
 | B3 preflight + lock/freeze + KV hygiene + notifier | ✅ 2026-07-10 | `b90dad0`→`461daf8` — 26 unit tests, real preflight `ok=true`, live KV dry-run deletes=0 kept=3; see B3 row |
 | B4 contracts + PD7 + plist + dry-run | ✅ 2026-07-10 | web `04477ad`→`d766f6d` + ai-om `f38d270`+`58eadda` — K2 SE dry-run caught the reserialize hazard; hostile ×14 applied; see B4 row |
-| B5 latency + rollback drill + enablement | ⬜ | |
+| B5 latency + rollback drill + enablement | 🟡 B5.0–B5.3 ✅ / **B5.4 BLOCKED on the owner webhook** | drill green on prod (`2026071003`→rollback `2026071004`); calibrated 14×15s; plist NOT loaded; see B5 row |
 
 ---
 
 ## Rows (newest first)
+
+### B5 — latency + rollback drill + exit checklist 🟡 (2026-07-10; B5.0–B5.3 complete, **B5.4 deliberately NOT executed**)
+
+**B5.0 snapshot:** `scripts/.intake-runner-state/pre-b5-latency-known-good.json` at `2026070401`. **Path deviation (necessary, not just safe):** the plan's literal `.printer-intake-out/` target is rmSync-wiped by the Scout test suite, which the B5.3 exit checklist itself runs — the drill's rollback target would have been destroyed mid-gate. Plan annotated.
+**B5.1 deploy-latency (served-asset bumps only, payload byte-identical):** three `--bump-version` publishes `2026071001/02/03`, each pathspec-committed + pushed + measured: **push→live 55.5s / 30.3s / 60.4s** (drill re-measure: 50.4s). Budget `ceil(p95×3)` = 182s → config calibrated `retries:14 × 15s` (attempt 1 immediate ⇒ 13 intervals = 195s ≥ 182s; the first-cut 13×15 undershot at 180s — B5.5 review catch, fixed). `calibrated:true`.
+**B5.2 self-run rollback drill (REAL, on production):** bad = `2026071003` → `--rollback-to <snapshot> --bad-version 2026071003` → live-verified **`2026071004` = max(bad, snapshot)+1** (the PD6 CRITICAL rule proven live, not just in unit tests), payload hash == snapshot at every step, verify OK in 50.4s, notify fired (local report; nothing shipped → no freeze; correct). Post-drill `verify-live-picker` GREEN on prod. iOS monotonicity held end-to-end (2026070401→…→04, payload identical throughout — zero user-visible exposure; independently re-verified by the B5.5 reviewer via live curl). **Known limitation (accepted):** the payload-identical drill proves the version chain live; payload-restore correctness rests on B1's byte-identical round-trip unit tests — the first real rollback closes that residual.
+**B5.3 exit checklist:** component suites **82/82** + retrospective ALL PASS ✅ · B0 probe 4/4 under launchd ✅ · drill ✅ · preflight `ok=true` before AND AGAIN AFTER the drill (plan C1 no-dirt proof) ✅ · B4.6 dry-run ✅ · **webhook configured + test POST — ✗ NOT SATISFIABLE: the owner has not supplied the Discord webhook URL. This is the Codex SF-3 HARD enablement gate.**
+**B5.4 NOT executed (correct stop, owner boundary + SF-3):** the daily plist is NOT loaded (`launchctl print` → not found, reviewer-verified). **The pipeline is one owner input from live: add `discordWebhookUrl` to `scripts/.printer-intake.local.json` → one test POST green → `launchctl bootstrap` per `scripts/launchd/README.md` → first scheduled run (12:00) processes the staged K2 SE end-to-end.**
+**B5.5 hostile review: GO-WITH-PATCHES ×5, all applied** — HIGH: this evidence row was missing (fixed by this row, committed before session end); MEDIUM: calibration off-by-one-interval (fixed retries 14 + corrected note); LOW ×3: drill-limitation note (above), drill report's fabricated identical timestamps (ad-hoc invocation artifact — **runner note: stamp `startedAt` at run entry**, the contract's timings requirement), plan snapshot-path annotation (done).
 
 ### B4 — contracts + PD7 + plist + K2 SE dry-run ✅ (2026-07-10; web `04477ad` `08561fd` `42cc19d` `78b118f` `d766f6d` + ai-om `f38d270` `58eadda`)
 
