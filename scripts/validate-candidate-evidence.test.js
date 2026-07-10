@@ -169,6 +169,16 @@ test('app-cap requires its value and unpublished-source rationale in notes', () 
   assert.equal(result.reviewRequests, 0);
 });
 
+test('app-cap notes accept equivalent manufacturer-not-published wording', () => {
+  const candidate = baseCandidate();
+  candidate.printersJsonRow.notes.value = [
+    `Manufacturer source: ${SOURCE}`,
+    `Manufacturer has not published a maximum; max_acceleration 20000 mm/s² uses a conservative app-side cap — ${SOURCE}`,
+  ];
+  const result = validateCandidateEvidence(candidate);
+  assert.equal(result.ok, true);
+});
+
 test('optional critical fields are validated when proposed', () => {
   const candidate = baseCandidate();
   candidate.printersJsonRow.max_chamber_temp = {

@@ -141,10 +141,16 @@ function notesCarryAppCapProvenance(acceleration, notes) {
   if (!acceleration || acceleration.evidenceType !== 'app-cap') return true;
   if (!notes || !Array.isArray(notes.value)) return false;
   const value = String(acceleration.value);
-  return notes.value.some((line) => nonEmptyString(line)
-    && /app-side cap/i.test(line)
-    && /no manufacturer maximum.*publish/i.test(line)
-    && line.includes(value));
+  return notes.value.some((line) => {
+    if (!nonEmptyString(line)) return false;
+    const statesManufacturerDidNotPublish =
+      /(?:no|without)\s+manufacturer[^.!;]{0,80}publish/i.test(line)
+      || /manufacturer[^.!;]{0,80}(?:not|never)\s+publish/i.test(line)
+      || /unpublished[^.!;]{0,40}manufacturer/i.test(line);
+    return /app-side cap/i.test(line)
+      && statesManufacturerDidNotPublish
+      && line.includes(value);
+  });
 }
 
 function validateCandidateEvidence(candidate) {
