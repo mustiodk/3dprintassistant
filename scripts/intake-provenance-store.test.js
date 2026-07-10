@@ -28,6 +28,7 @@ test('upsert is idempotent by printer id', () => {
 });
 
 test('upsert preserves other printers and does not mutate the input document', () => {
+  const p = provenance();
   const doc = {
     schema: 'printer-provenance@1',
     printers: {
@@ -35,10 +36,12 @@ test('upsert preserves other printers and does not mutate the input document', (
     },
   };
   const before = JSON.parse(JSON.stringify(doc));
+  const provenanceBefore = JSON.parse(JSON.stringify(p));
 
-  const next = upsertPrinterProvenance(doc, 'k2_se', provenance());
+  const next = upsertPrinterProvenance(doc, 'k2_se', p);
 
   assert.deepEqual(doc, before);
+  assert.deepEqual(p, provenanceBefore);
   assert.deepEqual(next.printers.aries, before.printers.aries);
-  assert.deepEqual(next.printers.k2_se, provenance());
+  assert.deepEqual(next.printers.k2_se, provenanceBefore);
 });
