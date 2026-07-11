@@ -1,0 +1,718 @@
+# My 3DPA — optional accounts, cloud sync, Workshop, exports, and filament inventory
+
+**Date:** 2026-07-12  
+**Status:** independent Codex proposal — review pending  
+**Audience:** owner / future implementation sessions  
+**Scope:** product architecture and implementation-grade contracts; no product code in this session  
+**Independence cutoff:** product/session context was read from web commit `0e8e405` (the first parent of Claude PR #16). The Claude accounts-platform session log, spec, plan, and review artifacts were deliberately not read while producing this design.
+
+---
+
+## 1. Decision summary
+
+Build **My 3DPA** as an optional personal workspace layered on top of the existing local-first apps.
+
+1. **The configurator, troubleshooter, Workshop, native export, local backup, and Mine tuning remain usable without an account and remain free.** Login never becomes an app-launch wall.
+2. **An account initially buys convenience, not permission:** automatic backup and cross-device sync of Workshop/profile data. The local JSON backup remains supported forever as an escape hatch.
+3. **Use Firebase Authentication only for identity** and verify Firebase ID tokens in the existing Cloudflare Worker. Store 3dpa domain data in a new **EU-jurisdiction Cloudflare D1** database. Do not put Workshop/inventory data in Firebase.
+4. **Introduce one Portable Data Model v2 (PDM2)** across web, iOS, Android, and later macOS. Existing `3dpa_workshop_v1` data migrates locally before sync is enabled.
+5. **Sync append-only facts as operations, not mutable totals.** Outcomes, tuning, and filament usage are op-log/event entities. Mutable objects use optimistic concurrency and produce a visible conflict copy instead of silent data loss.
+6. **Inventory is the first major new My 3DPA module.** Reuse bambuinventory's domain lessons, import pipeline, AMS concepts, and UX patterns; do not reuse its current unauthenticated single-user PHP API as a multi-user backend.
+7. **Monetization remains the already-ratified phased model:** tips first; no subscriptions or retro-paywalls. Basic account sync is free. A later one-time Pro unlock is anchored on advanced inventory, while current features remain free forever.
+8. **Do not block Android v1 on accounts.** Android v1 keeps its already-planned local-first scope. My 3DPA sync becomes a v1.1 train unless the owner explicitly reopens Android Gate AG0. Native macOS inherits the same PDM2/sync client when that target exists.
+
+This design deliberately avoids becoming a slicer, remote printer-control cloud, social network, or file-hosting service. 3dpa's differentiator stays: **configure → export → print → learn → remember**, now across devices.
+
+## 2. Product positioning
+
+### 2.1 The product sentence
+
+> My 3DPA is the private, cross-platform memory for a maker's printers, proven settings, print outcomes, exports, and filament — while the core configurator remains fast, free, and account-optional.
+
+### 2.2 Market boundary
+
+The adjacent market is already crowded at remote control, webcams, cloud slicing, and print-farm operations:
+
+- SimplyPrint combines printer control, cloud slicing, filament management, print history, teams, and paid tiers; its free tier includes two printers and basic filament management, while its standalone Filament Manager is subscription-priced. [Official pricing](https://simplyprint.io/pricing) and [print-history feature](https://simplyprint.io/features/print-history).
+- Obico sells remote access, video, AI failure detection, and cloud G-code storage, with a one-printer free tier and recurring premium plan. [Official pricing](https://app.obico.io/ent_pub/pricing/).
+- Spoolman is a self-hosted inventory service with a REST API and community filament database. [Official repository](https://github.com/Donkie/Spoolman).
+
+3dpa should not chase those products into cameras, remote motion/control, cloud slicing, or farm/team administration. Its cheaper and more coherent wedge is **settings intelligence plus personal memory**. Remote-printer integrations may later enrich inventory/print history, but they are adapters into My 3DPA, not the core platform.
+
+## 3. As-is audit
+
+| Surface | Ground truth | Consequence |
+|---|---|---|
+| Web app state | `state-codec.js` owns a versioned state schema used by local persistence, share URLs, and Workshop profiles. | Keep this single-codec principle; PDM2 wraps it rather than replacing engine state. |
+| Web Workshop | `workshop-store.js` stores `v:1`, profiles, journals, tuning accepts/dismissals, and supports atomic import plus op-union tuning merge. | This is a strong local source and migration input, but profiles/journals need explicit entity IDs/revisions for online sync. |
+| iOS persistence | `AppStatePersistence.swift` stores the web-shaped state in Application Support. | Preserve offline boot; cloud sync must never be required for engine startup. |
+| iOS Workshop | `WorkshopStore.swift` emits a byte-compatible web envelope and preserves unknown additive top-level keys. UI exposes shelf + backup, but not the full web journal/harvest experience. | PDM2 fixtures can extend an already-proven cross-platform contract. iOS journal parity remains a separate product gap. |
+| Export | Bambu, Orca, and Prusa native exporters are deterministic engine outputs. | Sync export **recipes/presets and history metadata**, not generated files by default. Regenerate files locally from the recorded engine/data version. |
+| Web backend | `worker.js` routes only feedback, analytics, and analytics-query. `wrangler.toml` binds Analytics Engine and intake KV. | Add explicit `/api/v1/*` routes and D1 binding; do not mix account APIs into feedback handlers. |
+| Identity | No accounts or auth client exist. Analytics intentionally has no user/session/device identifiers. | Account telemetry must remain separate from anonymous product analytics; do not retrofit identity into existing events. |
+| Android | Native Kotlin/Compose v1 is planned, local-first, with accounts/sync explicitly out of scope. | Consume PDM2 in Android v1.1 unless AG0 is reopened; do not silently expand the v1 release. |
+| macOS | Current recommendation is iOS-on-Apple-silicon as stopgap, later native SwiftUI target after Android/iOS architecture work. | The future target reuses iOS auth/sync/domain packages; no standalone macOS backend. |
+| bambuinventory | Single-user PHP/MySQL app with Gmail intake, AMS/MQTT state, humidity probes, spool CRUD, and explicit-match UX. MySQL is truth. | Reuse domain vocabulary and import/adaptor logic. Its wildcard CORS and unauthenticated UI writes are unacceptable for multi-user reuse. |
+
+### 3.1 Existing assets to preserve
+
+- Web/iOS state-shape parity.
+- Stable UUID-like profile, outcome, and tuning-op identifiers.
+- Versioned JSON backup with additive top-level sections.
+- Atomic local file writes on iOS and one-write localStorage import on web.
+- Tuning op-union semantics and pair-key safety.
+- Engine/data remain local and byte-mirrored; server never generates profiles.
+- Local backup/import remains a supported portability path even after cloud sync ships.
+
+### 3.2 Existing gaps the platform must solve
+
+- No account lifecycle, authenticated API, server database, or deletion/export workflow.
+- Web and iOS profile collision behavior is whole-object/imported-wins; that is unsafe for concurrent devices.
+- Journal entries are nested under profiles, making independent merge/deletion difficult.
+- Inventory has no 3dpa domain contract.
+- Export actions are ephemeral; there is no personal export library/history.
+- The current anonymous analytics schema cannot answer account adoption, and it must not be identity-linked to do so.
+
+## 4. Experience architecture
+
+### 4.1 Navigation and naming
+
+Add a top-level personal destination named **My 3DPA**. “Profile” is reserved for account identity; it is too narrow for inventory and print history.
+
+My 3DPA contains:
+
+1. **Overview** — local/cloud status, recent profiles, inventory alerts, recent print outcomes.
+2. **Workshop** — saved configurations, print journal, accepted Mine tuning, custom materials.
+3. **Filament** — inventory, spool details, locations, remaining amount, drying/usage history.
+4. **Printers** — saved/favorite printers and optional device/integration status; not remote control.
+5. **Exports** — pinned export recipes and recent export metadata; regenerate/download locally.
+6. **Sync & Backup** — last sync, pending/conflicts, devices, JSON export/import.
+7. **Account & Privacy** — linked sign-in methods, data export, account deletion, privacy explanation.
+
+### 4.2 Signed-out mode
+
+My 3DPA remains useful while signed out:
+
+- Header state: **On this device**.
+- All existing local Workshop features work.
+- Inventory can begin locally before an account exists.
+- Backup export/import stays prominent.
+- “Sync across devices” is an explicit action, not an interrupting prompt.
+
+Do not prompt for login on first launch or first profile. The best account conversion moment is when a user explicitly chooses sync/backup or has meaningful local data and opens My 3DPA.
+
+### 4.3 First sign-in with local data
+
+Before upload, create a local JSON safety backup and show a preview:
+
+- local profiles/outcomes/tuning/custom materials/spools count;
+- cloud item counts;
+- default action: **Merge safely**;
+- alternative: keep cloud and export local backup (never destructive without a backup);
+- conflicts create named copies or explicit choices; no silent overwrite.
+
+### 4.4 Sync visibility
+
+Use a quiet status model:
+
+- `On this device`
+- `Syncing…`
+- `Synced just now`
+- `Offline — N changes waiting`
+- `Needs attention — N conflicts`
+
+Sync state belongs in My 3DPA and a small account/status affordance, not in the configurator's step flow.
+
+## 5. Non-goals and boundaries
+
+Not in the accounts/sync program:
+
+- mandatory login;
+- cloud-side profile generation or engine execution;
+- STL/3MF/G-code hosting;
+- remote printer movement, cameras, or print control;
+- public profiles, follower graph, comments, messaging, or community marketplace;
+- team/farm permissions;
+- importing Gmail credentials into 3dpa cloud;
+- storing printer LAN/cloud credentials in D1;
+- syncing anonymous analytics identifiers to an account;
+- subscription monetization;
+- rewriting `engine.js` or porting it to server code;
+- blocking Android v1 or the macOS availability check.
+
+Public sharing/community contributions require a later privacy/moderation spec. Device integrations require a separate local-bridge security spec.
+
+## 6. Architecture decision
+
+### 6.1 Options evaluated
+
+| Option | Strength | Cost / risk | Verdict |
+|---|---|---|---|
+| Supabase Auth + Postgres + Storage | Integrated auth/RLS/database; Swift and Kotlin clients. | Production Pro starts at $25/month; direct-client RLS adds a second backend style; free projects pause after inactivity. [Official pricing](https://supabase.com/pricing), [Auth architecture](https://supabase.com/docs/guides/auth/architecture). | Good fallback, not the default for a cost-cover hobby project. |
+| Custom auth + Cloudflare D1 | Single vendor and full control. | Password/OAuth recovery, abuse, provider linking, security updates, native SDK work, and account support become owner responsibilities. | Reject. Identity is not 3dpa's differentiator. |
+| Firebase Auth + Cloudflare Worker/D1 | Mature web/iOS/Android SDKs, Apple+Google providers, custom-backend ID-token verification; keeps current deployment and scale-to-zero D1. | Two vendors; Firebase Auth is US-only; Worker must verify/cache JWT keys and implement domain authorization. | **Recommended.** Smallest reliable cross-platform identity layer while domain data remains in 3dpa infrastructure. |
+
+Firebase documents iOS, Android, and web auth SDKs and custom-backend ID tokens. Its non-phone auth tier covers substantial early usage without a fixed monthly production fee. [Firebase Auth](https://firebase.google.com/docs/auth), [pricing](https://firebase.google.com/pricing), and [ID-token verification](https://firebase.google.com/docs/auth/admin/verify-id-tokens).
+
+### 6.2 Target topology
+
+```text
+Web / iOS / Android / later macOS
+  ├─ local engine + local PDM2 store (always works signed out)
+  ├─ Firebase Auth SDK (identity only)
+  └─ HTTPS Bearer Firebase ID token
+          ↓
+Cloudflare Worker: /api/v1/*
+  ├─ JWT verification + active-account authorization
+  ├─ sync validation/conflict rules
+  ├─ account export/deletion
+  └─ entitlement validation endpoints (later)
+          ↓
+EU-jurisdiction D1: 3dpa-account-v1
+  ├─ users/devices
+  ├─ sync_entities
+  ├─ sync_ops/idempotency
+  ├─ user_revision counters
+  └─ entitlements/purchase events (later)
+```
+
+The D1 database must be created with `--jurisdiction=eu`; Cloudflare states that this constrains where the database runs and stores data. [D1 data location](https://developers.cloudflare.com/d1/configuration/data-location/).
+
+### 6.3 Cost posture
+
+D1's current free allowance is 5M rows read/day, 100k rows written/day, and 5 GB storage; it scales to zero and has no D1 egress fee. [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/). This is ample for a bounded JSON sync service at hobby scale.
+
+R2 is not required in the first account release. Add it only for scheduled DB exports, large account-export archives, or future user files. R2's current Standard free tier includes 10 GB-month, 1M writes, 10M reads, and free egress. [R2 pricing](https://developers.cloudflare.com/r2/pricing/).
+
+## 7. Identity and account lifecycle
+
+### 7.1 Principles
+
+- Identity provider UID, not email, is the D1 primary user key.
+- D1 stores no email in v1. Display name is optional and user-supplied.
+- Firebase keeps provider identity/email. 3dpa remains the GDPR controller; Firebase/Google is a processor. Firebase Auth currently processes in US data centers, which must be disclosed. [Firebase privacy](https://firebase.google.com/support/privacy).
+- Account is optional; signed-out mode remains first-class.
+
+### 7.2 Providers
+
+Launch with **Sign in with Apple** and **Google Sign-In** on every platform where each is supported; Firebase supports Apple on iOS, web, and Android. Use the same provider when moving devices. Add email auth only if real demand appears.
+
+The provider-linking screen lets a signed-in user link the other provider. Never auto-merge accounts only because emails match; Apple private relay makes email identity especially unreliable. Firebase supports multiple linked providers under one UID but documents conflict cases that require an explicit data merge. [Provider linking](https://firebase.google.com/docs/auth/web/account-linking/).
+
+Apple requires apps using third-party/social login for a primary account to provide an equivalent privacy-preserving option, and apps with account creation must provide in-app deletion. [App Review Guidelines 4.8 and 5.1.1(v)](https://developer.apple.com/app-store/review/guidelines/).
+
+### 7.3 API authorization
+
+Every `/api/v1/*` request:
+
+1. requires HTTPS `Authorization: Bearer <Firebase ID token>`;
+2. verifies RS256 signature, `kid`, `aud`, `iss`, `exp`, `iat`, and non-empty `sub` using cached Google public keys;
+3. derives `user_id` only from verified `sub`;
+4. checks D1 `users.status='active'` before any domain action;
+5. applies per-user and per-IP rate limits;
+6. ignores any client-supplied user ID.
+
+The active-user D1 check makes account deletion effective immediately even if a short-lived Firebase token still exists.
+
+### 7.4 Account creation
+
+First authenticated request creates:
+
+- an active D1 user row;
+- a random device row supplied by the client installation;
+- PDM version `2`;
+- zero domain data until the user confirms first upload.
+
+Do not create anonymous Firebase accounts for every install. That would turn every local user into server state and weaken the no-account promise.
+
+### 7.5 Account export and deletion
+
+Account & Privacy must provide:
+
+- **Export my data:** machine-readable PDM2 JSON, including active entities, tombstones still retained, devices, entitlement state, and a schema/version manifest. Auth provider secrets/tokens are never included.
+- **Delete account:** reauthentication, impact summary, local-backup offer, typed/explicit confirmation, immediate D1 status lock, hard-delete domain rows and Firebase identity, then sign out locally. Local data is kept only if the user explicitly chooses it; default is local sign-out without local deletion.
+- **Web deletion route:** `/account/delete`, available to users without reinstalling an app.
+
+Google Play requires both an in-app path and a web deletion resource when account creation exists. [Official requirement](https://support.google.com/googleplay/android-developer/answer/13327111). GDPR rights include access, correction, erasure, and portability. [European Commission](https://commission.europa.eu/law/law-topic/data-protection/information-individuals_en).
+
+D1 Time Travel can retain recoverable database history up to 30 days on Workers Paid or 7 days on Free. Privacy copy must state the backup-aging window; deleted accounts must remain API-inaccessible immediately. [D1 Time Travel](https://developers.cloudflare.com/d1/reference/time-travel/).
+
+## 8. Portable Data Model v2 (PDM2)
+
+### 8.1 Envelope
+
+```json
+{
+  "format": "3dpa-portable-data",
+  "version": 2,
+  "exportedAt": "2026-07-12T00:00:00.000Z",
+  "entities": [],
+  "manifest": {
+    "engineVersion": "git-sha-or-app-version",
+    "dataVersion": "git-sha-or-catalog-version",
+    "sourcePlatform": "web|ios|android|macos"
+  }
+}
+```
+
+Each entity:
+
+```json
+{
+  "kind": "profile",
+  "id": "uuid",
+  "schemaVersion": 1,
+  "version": 7,
+  "createdAt": "...",
+  "updatedAt": "...",
+  "deletedAt": null,
+  "payload": {}
+}
+```
+
+`version` is server-controlled after sync. Signed-out local entities use `version:0` until first upload.
+
+### 8.2 Entity kinds
+
+| Kind | Merge class | Payload summary |
+|---|---|---|
+| `profile` | Mutable / conflict-copy | name, web-shaped app state, notes, created engine/data version |
+| `outcome` | Append-only | profileId, worked/failed, symptom IDs, note, timestamp |
+| `tuning_op` | Append-only | pairKey, offsetKey, accept/revert step, clamps, symptomId, timestamp |
+| `tuning_dismissal` | Latest-per-key | suggestion key, dismissedAt |
+| `custom_material` | Mutable / conflict-copy | namespaced id, canonical template id, validated overrides |
+| `printer` | Mutable | favorite/name/model id, optional integration metadata excluding secrets |
+| `spool` | Mutable metadata | product/material/color, initial quantity, location, purchase/source metadata |
+| `inventory_event` | Append-only | spoolId, acquire/consume/adjust/move/assign/dry/retire, delta and reason |
+| `export_preset` | Mutable / conflict-copy | profile snapshot reference, slicer, favorite name, last engine/data version |
+| `preference` | Latest-per-key | account-level language/display/sync preferences only |
+
+Journal entries move out of nested profile arrays during migration. Remaining filament is derived from `spool.initialQuantity + sum(inventory_event.delta)`, clamped to an honest range with explicit adjustment events. Never sync only a mutable percentage when two devices can consume the same spool.
+
+### 8.3 IDs and timestamps
+
+- UUID v4 identifiers generated locally.
+- RFC 3339 UTC display timestamps.
+- Ordering/causality uses server revisions, not client wall clocks.
+- Client timestamps are informational and bounded/validated.
+- IDs are opaque; no email, printer serial, or provider ID embedded.
+
+### 8.4 Tombstones
+
+Deletes create tombstones so offline devices learn the deletion. Retain normal entity tombstones for 30 days, then compact. Account deletion bypasses normal tombstone retention and hard-deletes domain rows after immediate account lock.
+
+## 9. Sync contract
+
+### 9.1 Server tables
+
+```text
+users(user_id PK, status, pdm_version, next_revision, created_at, deleted_at)
+devices(user_id, device_id, platform, app_version, label, last_seen_at, revoked_at)
+sync_entities(user_id, kind, entity_id, entity_version, user_revision,
+              schema_version, payload_json, payload_hash, deleted_at, updated_at,
+              PK(user_id, kind, entity_id))
+sync_ops(user_id, op_id, device_id, kind, entity_id, base_version,
+         applied_version, user_revision, result, created_at,
+         UNIQUE(user_id, op_id))
+entitlements(user_id, product_key, status, source, source_tx_id_hash,
+             granted_at, revoked_at)  -- later monetization gate
+```
+
+Indexes: `(user_id,user_revision)`, `(user_id,kind,deleted_at)`, `(user_id,device_id)`. Payloads are bounded JSON; the Worker has a per-kind allowlist and schema validator.
+
+### 9.2 API
+
+```text
+GET  /api/v1/account
+POST /api/v1/account/export
+POST /api/v1/account/delete
+GET  /api/v1/devices
+POST /api/v1/devices/{id}/revoke
+POST /api/v1/sync/push
+GET  /api/v1/sync/pull?after=<revision>&limit=<n>
+POST /api/v1/sync/bootstrap
+GET  /api/v1/entitlements              (later)
+POST /api/v1/purchases/apple/verify    (later)
+POST /api/v1/purchases/google/verify   (later)
+```
+
+Limits for v1: 100 ops/push, 500 entities/pull page, 64 KB/entity, 5 MB active payload/account, and rate limits sized from measured traffic. Exceeding a limit returns a structured, non-destructive error.
+
+### 9.3 Push semantics
+
+Every local mutation gets a random `opId`, `deviceId`, kind/entity ID, `baseVersion`, schema version, and payload/tombstone.
+
+- Duplicate `opId`: return the original result; never apply twice.
+- Append-only kinds: union by entity ID; duplicate IDs are idempotent.
+- Mutable kinds with current `baseVersion`: apply and increment entity + user revision atomically.
+- Stale mutable base: return `409 conflict` plus current server entity; do not overwrite.
+- Invalid schema/size/reference: reject only that op with a typed error; other valid ops may apply in a D1 batch only if dependency ordering remains safe.
+- A user can never reference another user's entity; foreign IDs resolve as not found.
+
+### 9.4 Conflict UX
+
+- Profile/custom material/export preset: preserve both by creating a local **Conflict copy — <device/date>**, then let the user choose/merge.
+- Preference: newest server revision wins; no modal.
+- Outcomes/tuning/inventory events: op-union; no conflict modal.
+- Spool metadata: field-level merge is deliberately rejected for v1; return a conflict copy/choice to avoid invented combinations.
+- Stale edit after a deletion: deletion remains; offer “Restore as a new copy” locally.
+
+### 9.5 Pull and cursor
+
+Server assigns a monotonic per-user `user_revision` to every accepted entity change. Client persists `lastPulledRevision`, pages until caught up, applies all changes in one local transaction/write boundary, then advances the cursor. Cursor advances only after durable local apply.
+
+### 9.6 Sync triggers
+
+- foreground/app-open after auth;
+- 1–3 second debounce after local mutation;
+- network-restored;
+- manual “Sync now”.
+
+No mandatory background task in v1. Backoff with jitter on failure. Local mutations never block on network.
+
+## 10. Module design
+
+### 10.1 Workshop
+
+- Migrate `3dpa_workshop_v1` into separate profile/outcome/tuning entities.
+- Preserve original IDs and timestamps.
+- Store a migration marker and original v1 backup until at least one PDM2 export succeeds.
+- Continue emitting/importing v1 backups during a transition window; PDM2 becomes the preferred full-account export.
+- Engine personal tuning is injected from locally derived tuning ops exactly as today. Server data never bypasses local engine clamps.
+
+### 10.2 Exports
+
+Do not upload generated slicer files initially. Store:
+
+- source profile/entity snapshot or immutable snapshot hash;
+- slicer and export type;
+- engine/data/catalog version;
+- export timestamp;
+- optional user label/favorite.
+
+Regenerate locally. If a historical engine version cannot reproduce a file, label it honestly and offer current-engine regeneration. Actual file storage is a later R2-backed feature only if demand proves it.
+
+### 10.3 Filament inventory
+
+Inventory v1 includes:
+
+- spool/product/material/color;
+- initial and derived remaining grams/percent;
+- active/empty/retired status;
+- location and assigned printer/AMS slot labels;
+- purchase source/date/price optional;
+- drying history, notes, and explicit adjustments;
+- manual add, JSON/CSV import/export.
+
+Reuse from bambuinventory:
+
+- material/color/product vocabulary and grouping;
+- “explicit confirm beats fuzzy auto-enroll” for RFID/AMS matching;
+- ambiguity gate: never fabricate identity from color proximity;
+- Gmail order parser as an **owner-side import adapter**, not a cloud credential flow;
+- tray/slot event concepts and remaining-amount UI;
+- optional sensors/local MQTT as later adapters.
+
+Do not reuse:
+
+- PHP endpoints, shared action keys, wildcard CORS, unauthenticated writes;
+- Simply.com MySQL as account truth;
+- hard-coded user id `1`;
+- Bambu LAN/cloud access codes or Gmail OAuth tokens in D1.
+
+Migration adapter sequence:
+
+1. add a read-only, authenticated bambuinventory JSON export or local CLI exporter;
+2. map rows to `spool` + initial `inventory_event` entities;
+3. dry-run report with skipped/ambiguous rows;
+4. user-confirmed import with idempotent source IDs;
+5. keep bambuinventory read-only until parity is accepted; no big-bang cutover.
+
+Spoolman interoperability is a later adapter using its documented REST API; it is not the internal data model.
+
+### 10.4 Printers
+
+Saved printers are preference/context entities, not remote-control credentials. A printer can have:
+
+- canonical catalog model ID;
+- user label;
+- nozzle/default material/location;
+- links to inventory assignments;
+- future integration capability flags.
+
+Serials and cloud credentials are excluded from account sync until an integration-specific threat model exists.
+
+### 10.5 Future community contribution
+
+W5-style contribution remains opt-in per submission. It exports a minimized review packet, not the user's account/entity graph. Notes, provider UID, device ID, inventory, and timestamps are excluded. This requires its own consent and moderation spec.
+
+## 11. Platform rollout and UI
+
+### 11.1 Web
+
+- Add My 3DPA nav destination without removing Workshop deep links.
+- Local PDM2 store can use IndexedDB; keep small boot/config state in localStorage.
+- Firebase Web Auth loaded only when account UI opens, avoiding weight on the core configurator path.
+- Service-worker/offline caching is optional and not required for first sync; current offline behavior remains local storage plus loaded assets.
+
+### 11.2 iOS
+
+- Add Account/My 3DPA surface in SwiftUI, with Sign in with Apple and Google.
+- Auth token/session stays in Firebase SDK/keychain-managed storage.
+- PDM2 local store uses atomic files or SQLite; do not perform cloud calls inside `EngineService`.
+- Bring journal/outcome UI to parity before calling Workshop sync “complete”.
+- Account deletion is in-app and links to the web deletion resource.
+- Ship as its own release train under the existing iOS push/TestFlight gate.
+
+### 11.3 Android
+
+- Do not modify current native v1 gates silently; accounts/sync remains post-v1 by default.
+- Android v1.1 adds Firebase Auth + PDM2 local store + sync client after the local Workshop contract exists.
+- If the owner reopens AG0 before code starts, add only architectural seams to v1; do not add the full account program to the launch critical path without re-reviewing schedule and Play testing.
+- Google Play deletion/Data Safety requirements become release blockers once account creation exists.
+
+### 11.4 macOS
+
+- “Designed for iPad” inherits iOS account functionality when Apple allows the app on Mac.
+- Later native SwiftUI target shares iOS domain/auth/sync packages and adapts only navigation/windowing.
+- No macOS-only account backend or schema.
+
+## 12. Monetization packaging
+
+### 12.1 Permanent free promise
+
+Free forever, signed in or out:
+
+- configurator and all current profile modes;
+- troubleshooter;
+- Workshop local profiles/journal/Mine tuning;
+- Bambu/Orca/Prusa export;
+- JSON backup/import;
+- basic account and Workshop sync;
+- manual inventory starter tier.
+
+This respects the ratified MD0 decision and avoids using data portability as coercion.
+
+### 12.2 Phase 1 remains tips
+
+The existing Ko-fi web track and iOS consumable tips stay independent. A tip never changes entitlement. Account creation is not required to tip.
+
+### 12.3 Later one-time Pro
+
+Pro is specified only after inventory v1 has real usage. Recommended initial boundary:
+
+- Free: up to **50 active spools**, manual add/edit, core remaining/location, JSON/CSV import/export, Workshop sync.
+- Pro lifetime (target **99 DKK local price point**, revalidated at implementation): unlimited active spools, advanced inventory search/views, QR/label workflows, purchase/order import helpers, drying/usage analytics, multi-location, and future automation adapters.
+
+Do not meter past/empty spool history in a way that forces deletion. The 50-spool limit applies to active inventory only.
+
+Entitlement is account-level and cross-platform. Apple allows multiplatform services to expose features bought elsewhere when those features are also available as IAP in the app. [App Review Guideline 3.1.3(b)](https://developer.apple.com/app-store/review/guidelines/). Therefore:
+
+- iOS offers the non-consumable via StoreKit;
+- Android offers it via Play Billing;
+- Worker validates store transactions and writes an entitlement;
+- web checkout remains deferred; if added, the same Pro feature must also remain purchasable in-app;
+- no client-supplied “isPro” flag is trusted.
+
+### 12.4 Subscription reconsideration trigger
+
+Do not add a subscription merely because accounts exist. Reopen only if measured recurring per-user costs or a genuinely recurring service (large cloud files, compute, monitoring) cannot be funded by tips/lifetime Pro. Record the cost threshold and owner decision then.
+
+## 13. Privacy, security, and abuse controls
+
+### 13.1 Data minimization
+
+- No email in D1.
+- No public profile/name required.
+- No device fingerprint; device ID is random and account-scoped.
+- No printer credentials, Gmail tokens, raw G-code, or model files.
+- Notes sync because the user explicitly enables account sync; disclose this clearly.
+- Anonymous analytics remains anonymous and separate.
+
+GDPR principles include purpose limitation, minimization, storage limitation, integrity/confidentiality, and accountability. [European Commission summary](https://commission.europa.eu/law/law-topic/data-protection/reform/what-does-general-data-protection-regulation-gdpr-govern_en) and [EDPB privacy by design](https://www.edpb.europa.eu/topics/ai-and-technology/privacy-by-design-and-by-default_en).
+
+### 13.2 API defenses
+
+- strict origins for browser account endpoints; native clients use bearer auth, not CORS as authentication;
+- content-type, method, size, count, and schema validation;
+- per-kind payload key allowlists;
+- prepared D1 statements only;
+- rate limits per verified user and source IP;
+- idempotency via `op_id`;
+- structured audit counters without payload/notes;
+- secrets only in Worker secrets/Firebase configuration appropriate to platform;
+- development/staging Firebase project + separate D1 database;
+- dependency/SBOM review for auth SDKs and JWT library;
+- no Firebase Admin service-account key shipped to clients.
+
+### 13.3 Threat cases that must be tested
+
+- forged/expired/wrong-audience JWT;
+- user A requesting user B entity/device/export;
+- replayed op/purchase;
+- oversized entity/batch and decompression/JSON bombs;
+- stale edit after delete;
+- account disabled while token remains valid;
+- provider-link collision and failed merge rollback;
+- local corruption during bootstrap apply;
+- deleted device continuing to push;
+- malicious custom-material values trying to bypass engine clamps;
+- inventory delta overflow/underflow;
+- export formula injection in CSV fields;
+- account deletion partial failure.
+
+## 14. Operations and observability
+
+### 14.1 Environments
+
+- Firebase: development and production projects.
+- D1: local, preview/staging, production EU-jurisdiction DBs.
+- Worker feature flags: account API, web auth UI, sync per platform, inventory beta.
+
+### 14.2 Metrics (no content)
+
+- auth success/failure by provider/platform;
+- active synced accounts (aggregate only);
+- push/pull latency and error counts;
+- ops applied/duplicate/conflict/rejected by kind;
+- payload bytes and D1 row metrics;
+- deletion/export completion/failure;
+- entitlement verification outcomes later.
+
+Do not send entity names, notes, printer selections, filament colors, or provider UIDs into Analytics Engine.
+
+### 14.3 Backup and recovery
+
+- D1 Time Travel is the short recovery layer.
+- Schedule a periodic encrypted D1 export to private R2 only when real account data exists; define retention before enabling.
+- Quarterly restore rehearsal against staging.
+- User PDM2 export is always available and tested across platforms.
+
+### 14.4 Kill switches
+
+- disable new signups;
+- put sync writes read-only while preserving pull/export/delete;
+- disable one entity kind;
+- revoke a device;
+- disable store verification/Pro grants without breaking free features.
+
+The configurator/engine must remain available during every backend incident.
+
+## 15. Migration and compatibility
+
+### 15.1 Local v1 → PDM2
+
+1. Detect `3dpa_workshop_v1` / iOS `workshop.json` v1.
+2. Parse with existing tolerant readers.
+3. Convert profiles, journals, tuning accepts/dismissals into PDM2 entities in memory.
+4. Validate references and produce a migration report.
+5. Atomically write PDM2 plus `migrationSourceHash`.
+6. Export/retain the untouched v1 backup.
+7. Run round-trip fixture tests web↔Swift↔Kotlin before enabling upload.
+
+Migration is idempotent; rerunning the same source hash creates no duplicate entities.
+
+### 15.2 Account bootstrap
+
+- Pull cloud snapshot/cursor first.
+- Merge local entities with cloud in a staging transaction.
+- Present conflict summary.
+- Commit locally.
+- Push remaining local ops.
+- Mark sync enabled only after a pull verifies server round-trip.
+
+Failure leaves local v1/PDM2 data usable and sync disabled.
+
+### 15.3 Compatibility window
+
+- Keep v1 Workshop backup import/export for at least two stable app release trains after PDM2 ships on every active platform.
+- PDM2 readers ignore unknown additive entity kinds/fields by schema rule, but reject unsupported major versions.
+- Engine state continues to serialize through `StateCodec` / `AppStateWebCodec`; PDM2 does not fork that vocabulary.
+
+## 16. Acceptance criteria
+
+The platform design is implemented only when:
+
+1. Signed-out configurator, Workshop, Mine, backup, and export behave byte/value-identically to baseline.
+2. A web-created PDM2 account export imports on iOS and later Android with fixture equality for every supported entity.
+3. Offline mutations survive app restarts and sync exactly once when network returns.
+4. Concurrent append-only ops union without loss.
+5. Concurrent mutable edits never silently overwrite; conflict copy/choice is visible.
+6. Deletions reach offline devices via tombstones and stale edits cannot silently resurrect data.
+7. First sign-in with local data creates a backup and can roll back from every failure injection point.
+8. Cross-user access tests fail closed.
+9. In-app and web account deletion remove access immediately and complete domain/auth deletion with recorded status.
+10. Anonymous analytics remains free of user/session/device identity.
+11. Account/sync outage cannot prevent local engine initialization or profile generation.
+12. Inventory remaining amount is event-derived and bambuinventory import is idempotent with an ambiguity report.
+13. Store entitlements, when built, are server-verified and cross-platform without trusting clients.
+14. Every gate ships in an independently revertible PR with its named review and QA evidence.
+
+## 17. Data/logic-change evaluation
+
+This design introduces account/domain/sync logic but does **not** change engine profile logic or canonical `data/` in the first program.
+
+| Change | Web impact | iOS impact | Android impact | Engine/data mirror |
+|---|---|---|---|---|
+| PDM2/local migration | IndexedDB/local adapter + My 3DPA UI | local store adapter + migration | v1.1 adapter | None |
+| Auth/account | Firebase Web UI + account routes | Firebase SDK + Apple/Google UI | post-v1 SDK/UI | None |
+| Sync | Worker API + web client | iOS sync client | post-v1 client | None |
+| Workshop entity split | UI reads derived local repository | journal parity + repository | post-v1 | Engine tuning injection unchanged |
+| Inventory | new local/account module | later native module | later native module | Custom-material engine hook remains its own reviewed W4 train |
+| Export library | local metadata/history UI | same | same | Export generation remains local/current engine |
+
+If custom materials, new tuning fields, or printer-integration data later alter `engine.js`/canonical data, the normal web-master → byte-mirror → walkthrough/XCTest/Android fixture gate applies in a separate PR train.
+
+## 18. Backlog additions and ordering
+
+### Now — account foundation program
+
+- PDM2 schema + migration fixtures.
+- Firebase Auth spike and decision confirmation.
+- D1 EU database + authenticated account API.
+- Account export/deletion and privacy-policy/App Privacy/Data Safety updates.
+- Workshop-only sync beta on web, then iOS.
+- My 3DPA overview/status UI.
+
+### Next — inventory program
+
+- local inventory foundation and PDM2 entities;
+- bambuinventory read-only export/import adapter;
+- inventory sync;
+- iOS inventory surface;
+- usage/drying history;
+- one-time Pro entitlement design/verification.
+
+### Later
+
+- Android v1.1 My 3DPA sync;
+- native macOS shared sync package;
+- QR/label workflows;
+- Spoolman import/export adapter;
+- optional local printer bridge for automatic consumption/history;
+- custom materials W4 completion;
+- explicit community contribution W5;
+- export file storage only if demand proves it;
+- public sharing/community features only under a new moderation/privacy spec.
+
+### Explicitly not backlog candidates
+
+- mandatory accounts;
+- remote control/camera cloud;
+- cloud slicer;
+- model/G-code library;
+- subscription by default;
+- team/farm administration before a distinct business case.
+
+## 19. Owner decision gates
+
+These decisions must be explicit before implementation mutates external services:
+
+1. Confirm Firebase Auth + Cloudflare D1 as the provider split.
+2. Confirm Apple + Google only for initial providers (no email/password in v1).
+3. Confirm basic Workshop sync is free and account-optional.
+4. Confirm Android v1 remains unblocked/account-free; sync is v1.1 by default.
+5. Confirm inventory free boundary only when inventory product detail is specified; 50 active spools / 99 DKK lifetime is a recommendation, not a silently locked price.
+6. Approve creation of Firebase projects, D1 databases, and updated privacy/data-safety disclosures.
+
+No owner decision is needed to continue local docs/planning/review work in this session.
