@@ -91,7 +91,7 @@ Single-user PHP + MySQL app on Simply.com (`api.php`, `app.js` ~2.3k LoC) with G
 - **APD7 — "My 3dpa" profile hub.** Web: a new in-app view following the Workshop surface pattern (not a separate static page — keeps SPA state + i18n machinery). iOS: new screen reachable from Settings + tab-bar-adjacent entry point (final placement is a UI-session decision). Contents v1: account identity (provider, display name optional), sync status per doc (last synced, version), Workshop summary (counts), inventory summary (spool counts by material), **data export (single JSON download of everything)**, **delete account (in-app, immediate, cascades all server data)**, sign out. Pro status placeholder appears only in Phase 2.
 - **APD8 — Privacy & GDPR posture.** Store the minimum: provider subject id, email (needed for account identity + dedupe across providers), optional display name, timestamps. No IP retention beyond Cloudflare's default logs; no analytics linkage (account ids never sent to Analytics Engine — existing anonymity rule is unchanged); no marketing use of email. GDPR self-serve: export (APD7) + deletion (APD7, hard delete of D1 rows). Privacy policy gets an accounts section (web + iOS App Privacy label update — iOS's first label change: "Email address" AND "User ID", both linked to identity, for app functionality). D1 primary location hint WEUR (Cloudflare is the processor; owner accepts standard DPA).
 - **APD9 — Rollout order: web first (feature-flagged), then iOS as its own release train, then Android/macOS inherit.** Web ships dark (endpoints live, UI behind a flag) → owner smoke-tests → flag on for all. iOS account train follows after 1.0.7 (and 1.0.8 tip jar, unless owner re-sequences) — suggested version **1.1.0** (feature-tier bump; owner picks final number at train start). The Android AG-plan gets one seed line (account client + Play Billing entitlement room), no gated-bundle rework.
-- **APD10 — Entitlements table exists from day 1, empty.** `entitlements(user_id, product, source, granted_at)` — written by nothing in v1. Phase-2 Pro (MD2) will decide App Store receipt validation vs manual grants; that design is explicitly out of scope here but the schema slot prevents a migration later. Tips (Phase-1 monetization) remain account-less consumables — no linkage.
+- **APD10 — Entitlements are Phase-2's design, not v1 schema.** v1 creates **no** entitlements table (a half-designed slot lacking revocation/status/transaction-identity would not actually prevent a later migration — the migration system from AP1 makes adding it cheap when Phase-2 Pro specs it properly). What v1 guarantees Phase 2: stable `user_id`s, the migration rail, and the APD13 decision record. Tips (Phase-1 monetization) remain account-less consumables — no linkage.
 - **APD11 — Supersession is bounded and staged.** MD3 ("no accounts / no backend") is superseded by this spec **when the owner ratifies APD0–APD12**; `docs/3dpa-context.md`'s "User accounts NOT in scope" + "no cross-device sync" non-goals are updated **only when the first account code merges** (G1 in the plan), so context files never lead reality. The monetization plan itself is not edited — its MD3 line gets one cross-reference note in the same G1 PR.
 - **APD12 — API surface, abuse posture.** All new endpoints under `/api/v1/` (existing feedback/analytics endpoints are untouched; they stay unversioned). CORS locked to `https://3dprintassistant.com` + app origins; native clients authenticate purely via Bearer tokens (no cookies). Rate limits via Cloudflare rules (auth endpoints tight, sync endpoints per-user). Turnstile on the web OAuth-start endpoint is **deferred** unless abuse appears (OAuth providers are the bot barrier in v1). Payload caps: sync docs 256 KB, inventory 128 KB, request bodies rejected above cap with a clear client-side "your data exceeds sync size" surface (local data untouched).
 - **APD13 — Monetization Phase-2 anchor: explicit owner decision required (AP0 blocker).** MD2 (ratified 2026-07-11) anchors the "3dpa Pro" one-time unlock on **filament inventory** and lists **cloud sync** as a Pro candidate. This spec ships inventory (free, local-first) and cloud sync — and MD0 forbids retro-paywalling anything once shipped free. Shipping both free would silently gut Phase 2's entire monetizable surface, irreversibly. The owner must pick ONE before any build:
@@ -135,7 +135,7 @@ CREATE TABLE users (
 CREATE TABLE oauth_identities (
   provider TEXT NOT NULL CHECK (provider IN ('apple','google')),
   subject TEXT NOT NULL,            -- provider 'sub'
-  user_id TEXT NOT NULL REFERENCES users(id),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   email TEXT,                       -- as asserted by provider at link time
   email_verified INTEGER NOT NULL DEFAULT 0,
   provider_refresh_token TEXT,      -- Apple only; encrypted (Worker secret); needed for /auth/revoke on deletion
@@ -144,14 +144,16 @@ CREATE TABLE oauth_identities (
 );
 CREATE TABLE auth_codes (           -- one-time intermediate codes for native clients (see §4.3)
   id TEXT PRIMARY KEY,              -- random 128-bit, stored hashed
-  user_id TEXT NOT NULL REFERENCES users(id),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   client TEXT NOT NULL CHECK (client IN ('ios','android','macos')),
+  pkce_challenge TEXT NOT NULL,     -- S256 challenge from the app (RFC 8252)
+  redirect_target TEXT NOT NULL,    -- bound custom-scheme redirect
   expires_at INTEGER NOT NULL,      -- now + 120s
   consumed_at INTEGER
 );
 CREATE TABLE refresh_tokens (
   id TEXT PRIMARY KEY,              -- token id (jti); token value never stored raw
-  user_id TEXT NOT NULL REFERENCES users(id),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   token_hash TEXT NOT NULL,         -- SHA-256
   family_id TEXT NOT NULL,          -- rotation family for reuse detection
   expires_at INTEGER NOT NULL,
@@ -168,20 +170,17 @@ CREATE TABLE devices (              -- tombstone-compaction acks (see §4.4); NO
   PRIMARY KEY (user_id, device_id, doc_type)
 );
 CREATE TABLE sync_docs (
-  user_id TEXT NOT NULL REFERENCES users(id),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   doc_type TEXT NOT NULL CHECK (doc_type IN ('workshop','inventory')),  -- additive: future doc types (e.g. settings) need their own decision + cap
   version INTEGER NOT NULL DEFAULT 0,
   body TEXT NOT NULL,               -- JSON, schema-validated at write
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (user_id, doc_type)
 );
-CREATE TABLE entitlements (
-  user_id TEXT NOT NULL REFERENCES users(id),
-  product TEXT NOT NULL,
-  source TEXT NOT NULL,
-  granted_at INTEGER NOT NULL,
-  PRIMARY KEY (user_id, product)
-);
+-- entitlements: DELIBERATELY NOT CREATED in v1. Phase-2 Pro owns that design
+-- (revocation/status, transaction identity, source uniqueness) and ships it as
+-- its own numbered migration. Reserving a half-designed table here would not
+-- prevent a migration and would pretend a design that doesn't exist yet.
 ```
 
 ### 4.3 Auth flows
@@ -190,9 +189,9 @@ CREATE TABLE entitlements (
 - **Identity linking:** identities link to an existing user by email **only when the provider asserts the email is verified** (`email_verified` claim); otherwise a distinct user is created (unverified-email auto-linking is an account-takeover vector). Apple private-relay emails create distinct users by design; the profile page shows which provider is linked.
 - **Apple web prerequisites (real owner + impl work, in AP0/AP2):** Services ID, domain verification file, and an **ES256 client-secret JWT minted per code-exchange from the `.p8` key** (key in Worker secrets). The Apple code exchange returns an Apple `refresh_token` — **stored (encrypted with a Worker secret) on the identity row** because account deletion must call Apple's `/auth/revoke` (mandatory for SiwA apps offering account deletion; also resets Apple's email-release behavior so a returning user counts as a first authorization).
 - **Apple email caveat:** Apple returns email **only on first authorization** → `users.email` is nullable; account identity falls back to per-identity data. All email-based dedupe is skipped when the token carries no verified email.
-- **Native (iOS, later Android):** Apple = native `ASAuthorizationController` (token audience = **bundle id**). Google = `ASWebAuthenticationSession` against the same web `/start` endpoint with `client=ios` — Google forbids custom-scheme redirects on web clients, so the Worker callback completes the Google exchange itself, then mints a **one-time intermediate code** (row in `auth_codes`: id, user_id, client, expires_at 120s, consumed_at) and 302s to the app's custom scheme; the app exchanges it at `POST /api/v1/auth/token` → JWT + refresh token (Keychain). The callback is therefore **dual-mode**: `client=web` → cookies + redirect; `client=ios` → intermediate-code redirect. `POST /api/v1/auth/token` also accepts native Apple `id_token`s and must validate **both Apple audiences** (bundle id for native, Services ID for web).
-- **Refresh:** `POST /api/v1/auth/refresh` rotates; reuse of a rotated token revokes the family. `POST /api/v1/auth/logout` revokes.
-- **Deletion:** `DELETE /api/v1/account` (authenticated) → revoke Apple tokens via Apple REST `/auth/revoke` (when an Apple identity exists) → immediate cascade delete of all rows for the user (identities, tokens, auth_codes, docs, entitlements, `users` row — hard delete; simpler = safer, GDPR-cleaner). iOS surfaces this per 5.1.1(v).
+- **Native (iOS, later Android):** Apple = native `ASAuthorizationController` (token audience = **bundle id**; requires the Services ID to be associated with the primary App ID). The app sends **both** the `id_token` AND Apple's `authorizationCode` to `POST /api/v1/auth/token`; the server **exchanges the authorization code** (client id = bundle id for native, Services ID for web) to obtain the Apple `refresh_token` — without this exchange the revoke-on-deletion flow has nothing to revoke. Google = `ASWebAuthenticationSession` against the same web `/start` endpoint with `client=ios` — Google forbids custom-scheme redirects on web clients, so the Worker callback completes the Google exchange itself, then mints a **one-time intermediate code** and 302s to the app's custom scheme; the app exchanges it at `POST /api/v1/auth/token`. **Intermediate codes are PKCE-bound per RFC 8252** (`auth_codes` stores the app-generated S256 challenge + client + redirect target; the exchange requires the matching verifier), so an intercepted code is useless. The callback is therefore **dual-mode**: `client=web` → cookies + redirect; `client=ios` → intermediate-code redirect. `POST /api/v1/auth/token` validates **both Apple audiences** (bundle id native, Services ID web).
+- **Refresh:** `POST /api/v1/auth/refresh` rotates with a **30-second reuse-grace window**: within the grace, replaying the immediately-prior token idempotently returns the same successor (two tabs / a retried request must not nuke the session); reuse outside the grace, or of any older-generation token, revokes the family. Web tabs coordinate refreshes single-flight (Web Locks with a localStorage-lock fallback). Cookies are `__Host-`-prefixed (`Path=/`, no `Domain`, Secure). **Keys:** JWT signing and provider-token encryption use **separate versioned keyrings** (Worker secrets, `kid`-selected; old keys retained for verify/decrypt until rotation completes); provider refresh tokens are AEAD-encrypted (AES-256-GCM, random nonce per value). `POST /api/v1/auth/logout` revokes.
+- **Deletion:** `DELETE /api/v1/account` (authenticated) → best-effort revoke Apple tokens via Apple REST `/auth/revoke` (when an Apple identity exists; a provider-side failure is logged and does NOT block the local cascade — the operation is **idempotent and re-runnable**) → one **atomic child-first D1 batch** deleting identities, refresh tokens, auth_codes, devices, sync docs, entitlements, then the `users` row (all FKs also declare `ON DELETE CASCADE` as belt-and-braces — D1 enforces foreign keys, so child-first ordering is mandatory, not stylistic). `requireAuth` treats a JWT whose user row no longer exists as unauthenticated. iOS surfaces deletion per 5.1.1(v). **Kill-switch carve-out:** `ACCOUNTS_API_ENABLED=false` disables sign-up/sign-in/sync but `DELETE /api/v1/account`, `GET /api/v1/account/export`, and `logout` stay reachable — GDPR rights survive the kill switch.
 
 ### 4.4 Sync protocol (per doc_type)
 
