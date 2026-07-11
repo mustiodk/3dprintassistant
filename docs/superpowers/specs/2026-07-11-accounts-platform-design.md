@@ -104,6 +104,7 @@ Single-user PHP + MySQL app on Simply.com (`api.php`, `app.js` ~2.3k LoC) with G
   | (d) Free tier + caps | Sync/inventory free up to N profiles/spools; Pro lifts caps | Meterable but adds permanent complexity (cap enforcement on both platforms) and community-goodwill risk |
 
   Recommendation: **(b)**. Whatever the pick, it is recorded as an MD2 amendment note in the monetization plan in the same PR that ratifies it. Until the owner decides, gates AP4+ (everything sync-dependent) are design-final but build-blocked; AP1–AP3 and AP7 (inventory local) are unaffected under every option.
+- **APD14 — Local-data policy at sign-in / sign-out / account-switch (shared devices).** Sync must never silently absorb another person's device-local data. Rules: (1) **first sign-in on a device with non-empty local Workshop/inventory data** shows a one-time explicit choice: "Merge this device's data into your account" vs "Keep this device's data separate (local only — do not sync existing records)"; separate-kept records are marked `local_only` and excluded from the sync payload until the user opts them in. (2) **Sign-out** keeps local data and stops syncing (nothing is wiped; the device returns to today's local-only behavior). (3) **Switching accounts** on a device re-runs rule 1 against whatever local data exists and never carries tombstones across accounts (the deletion ledger is namespaced per account id + a `local` namespace). This closes the family-iPad data-bleed and cross-account tombstone-deletion scenarios.
 
 ---
 
@@ -126,17 +127,26 @@ Cloudflare Workers  /api/v1/auth/*  /api/v1/sync/:doc  /api/v1/account/*
 ```sql
 CREATE TABLE users (
   id TEXT PRIMARY KEY,              -- uuid v4
-  email TEXT NOT NULL UNIQUE,       -- normalized lowercase
+  email TEXT UNIQUE,                -- normalized lowercase; NULLABLE (Apple returns email only on first auth); SQLite UNIQUE permits multiple NULLs
   display_name TEXT,
-  created_at INTEGER NOT NULL,
-  deleted_at INTEGER                -- soft-delete tombstone; hard purge job optional later
+  created_at INTEGER NOT NULL
 );
 CREATE TABLE oauth_identities (
   provider TEXT NOT NULL CHECK (provider IN ('apple','google')),
   subject TEXT NOT NULL,            -- provider 'sub'
   user_id TEXT NOT NULL REFERENCES users(id),
+  email TEXT,                       -- as asserted by provider at link time
+  email_verified INTEGER NOT NULL DEFAULT 0,
+  provider_refresh_token TEXT,      -- Apple only; encrypted (Worker secret); needed for /auth/revoke on deletion
   created_at INTEGER NOT NULL,
   PRIMARY KEY (provider, subject)
+);
+CREATE TABLE auth_codes (           -- one-time intermediate codes for native clients (see §4.3)
+  id TEXT PRIMARY KEY,              -- random 128-bit, stored hashed
+  user_id TEXT NOT NULL REFERENCES users(id),
+  client TEXT NOT NULL CHECK (client IN ('ios','android','macos')),
+  expires_at INTEGER NOT NULL,      -- now + 120s
+  consumed_at INTEGER
 );
 CREATE TABLE refresh_tokens (
   id TEXT PRIMARY KEY,              -- token id (jti); token value never stored raw
@@ -167,10 +177,13 @@ CREATE TABLE entitlements (
 
 ### 4.3 Auth flows
 
-- **Web:** `GET /api/v1/auth/:provider/start` → provider consent → `GET /api/v1/auth/:provider/callback` (PKCE for Google; form_post for Apple) → upsert `oauth_identities`/`users` (dedupe by verified email: same email across providers = same user; Apple private-relay emails create distinct users by design and the profile page shows which provider is linked) → set cookies → redirect back. State + nonce validated; Apple `id_token` verified against Apple JWKS, Google against Google JWKS.
-- **iOS:** native `ASAuthorizationController` (Apple) / Google Sign-In SDK **decision: avoid the Google SDK dependency — use ASWebAuthenticationSession against the same web OAuth endpoints with a custom-scheme redirect**, exchange `code` at `POST /api/v1/auth/token` → JWT + refresh token (Keychain).
+- **Web:** `GET /api/v1/auth/:provider/start` sets a short-lived pre-auth cookie (`__Host-3dpa_preauth`, httpOnly, Secure, **SameSite=None**, Max-Age 600 — None is required because Apple's `form_post` callback is a cross-site POST that would drop a Lax cookie) carrying `state` + hashed `nonce` (+ PKCE verifier for Google) → provider consent → callback (`GET` Google / `POST` Apple) validates `state` against the pre-auth cookie, verifies the `id_token` against the provider JWKS (cached by `kid`), upserts `oauth_identities`/`users` → sets session cookies (httpOnly, Secure, **SameSite=Lax** — session cookies stay Lax; only the pre-auth cookie is None) → redirects to a **fixed same-origin path** (`/#account`; no caller-supplied return URL — closes the open-redirect class).
+- **Identity linking:** identities link to an existing user by email **only when the provider asserts the email is verified** (`email_verified` claim); otherwise a distinct user is created (unverified-email auto-linking is an account-takeover vector). Apple private-relay emails create distinct users by design; the profile page shows which provider is linked.
+- **Apple web prerequisites (real owner + impl work, in AP0/AP2):** Services ID, domain verification file, and an **ES256 client-secret JWT minted per code-exchange from the `.p8` key** (key in Worker secrets). The Apple code exchange returns an Apple `refresh_token` — **stored (encrypted with a Worker secret) on the identity row** because account deletion must call Apple's `/auth/revoke` (mandatory for SiwA apps offering account deletion; also resets Apple's email-release behavior so a returning user counts as a first authorization).
+- **Apple email caveat:** Apple returns email **only on first authorization** → `users.email` is nullable; account identity falls back to per-identity data. All email-based dedupe is skipped when the token carries no verified email.
+- **Native (iOS, later Android):** Apple = native `ASAuthorizationController` (token audience = **bundle id**). Google = `ASWebAuthenticationSession` against the same web `/start` endpoint with `client=ios` — Google forbids custom-scheme redirects on web clients, so the Worker callback completes the Google exchange itself, then mints a **one-time intermediate code** (row in `auth_codes`: id, user_id, client, expires_at 120s, consumed_at) and 302s to the app's custom scheme; the app exchanges it at `POST /api/v1/auth/token` → JWT + refresh token (Keychain). The callback is therefore **dual-mode**: `client=web` → cookies + redirect; `client=ios` → intermediate-code redirect. `POST /api/v1/auth/token` also accepts native Apple `id_token`s and must validate **both Apple audiences** (bundle id for native, Services ID for web).
 - **Refresh:** `POST /api/v1/auth/refresh` rotates; reuse of a rotated token revokes the family. `POST /api/v1/auth/logout` revokes.
-- **Deletion:** `DELETE /api/v1/account` (authenticated) → immediate cascade delete of all rows for the user (identities, tokens, docs, entitlements) + `users` row hard-deleted after cascade (soft-delete window not needed for v1 hobby scale; simpler = safer). iOS surfaces this per 5.1.1(v).
+- **Deletion:** `DELETE /api/v1/account` (authenticated) → revoke Apple tokens via Apple REST `/auth/revoke` (when an Apple identity exists) → immediate cascade delete of all rows for the user (identities, tokens, auth_codes, docs, entitlements, `users` row — hard delete; simpler = safer, GDPR-cleaner). iOS surfaces this per 5.1.1(v).
 
 ### 4.4 Sync protocol (per doc_type)
 
