@@ -62,18 +62,18 @@
 
 - `#exportGroup` badge deleted; site-header badge untouched (1 `.beta-badge` remains in DOM, verified in preview). Real gate = this branch's merge boundary (Step 8.3).
 
-### T7 — iOS mirror train ⏳ UNVERIFIED (3 LOCAL commits, push gate intact)
+### T7 — iOS mirror train ✅ VERIFIED (3 LOCAL commits, push gate intact)
 
-- Per-delta commits (plan Step 7.4): `5fcc935` (engine@web-T1 + retraction test), `662c3c1` (engine@web-T2 + dual-variant test), `7221258` (engine@web-T3 + inherits test).
+- Current-main recovery commits on mac-mini (2026-07-11): `7288862` (engine@web-T1 + retraction test), `5e78c4a` (engine@web-T2 + dual-variant test), `17d7936` (engine@web-T3 + inherits test). The iOS push gate remains intact; local `main` is not pushed.
 - Final `diff -q` web branch tip ↔ iOS engine.js: **byte-identical** ✓.
-- **`UNVERIFIED: XCTest pending mac-mini run`** — the MacBook Air has NO Xcode (verified 2026-07-09: `xcode-select` = CommandLineTools, no Xcode.app in /Applications or Spotlight; the earlier "Air is iOS-build-capable" memory is stale). TDD-RED demo on the retraction test also pending that run. **This blocks Step 8.3 (merge) per plan.**
+- mac-mini full unit suite: **138 tests, 0 failures** on the available `iPhone 17 Pro` / iOS 26.5 simulator (`xcodebuild ... -only-testing:3DPrintAssistantTests`, 2026-07-11). RED was observed before each engine delta: text retraction `0.6` vs resolved `0.4`; all seven dual-array counts `1` vs `2`; P2S inherited X1C instead of P2S. Each targeted test then passed after its matching engine delta.
 
-### T8 — exit gate ⏳ (artifacts staged; owner steps pending)
+### T8 — exit gate ⏳ (implementation gates complete; PR/merge/live verify pending)
 
 - Step 8.1 ✅ (rev. 2026-07-09, owner ask): artifacts retargeted to the owner's **P1S** with sentinel names/values (zz-importtest precedent) — `_owner-verify/p2-p1s-process.json` + `p2-p1s-filament.json`. The earlier `p2-x1c-*`/`p2-a1-*` files were removed. **Class coverage note:** P1S is a single-variant machine, i.e. exactly the residual-risk class from review finding 4 (A1 was its stand-in); the X1C dual-variant class is anchored by BS's own golden (`["v","v"]` written by BS 2.5 itself), so a P1S PASS covers the open class question.
 - **Sentinels (encoded in preset names):** process `ZZ P2 TEST PROC OWS123 BRIM8` — the 7 dual keys carry spottable pairs: outer wall speed **123**, inner wall **124**, top surface **122**, gap infill **125**, initial layer **21**, outer wall accel **1260**, initial layer accel **1270**; brim width **8**. Filament `ZZ P2 TEST FIL N201 R0.77` — nozzle **201**, first-layer **202**, retraction **0.77**. Process inherits `0.20mm Standard @BBL X1C` (P1S is verified-null → cross-printer parent, the form the owner's own preset already proved).
-- Step 8.2 ⏳ OWNER: import both files in Bambu Studio 2.5 on the P1S; PASS = both accepted, and each sentinel shows as ONE sane value (outer wall 123 — not doubled/garbled), nozzle 201/202, retraction 0.77. Record verbatim below.
-- Step 8.3 blocked until: OWNER-VERIFY PASS + iOS XCTest green on mac-mini + byte-identical diff (already ✓) + web gates green on tip (✓ as of `89a848d`+UI commits).
+- Step 8.2 ✅ OWNER-VERIFY PASS recorded below: both files imported in Bambu Studio 2.5 on the P1S; sentinel values remained sane and intact.
+- Step 8.3 ✅ implementation gates complete: OWNER-VERIFY PASS + iOS XCTest green on mac-mini + byte-identical engine diff + current-main web gates green. Recovery PR/merge/live verification remains.
 
 ## OWNER-VERIFY (Step 8.2 — owner import test, recorded verbatim)
 
@@ -87,7 +87,7 @@
 - Filament retraction **0.77 mm CONFIRMED** (5th screenshot, Setting Overrides → Length = 0.77 mm, Retraction Speed 45) — the full sentinel set is now green.
 - Not separately inspected (same emission mechanism as the verified keys, not treated as blocking): top surface 122, gap infill 125, accels 1260/1270.
 
-**Step 8.3 remaining blocker: iOS XCTest on the mac-mini (T7 UNVERIFIED).**
+**Step 8.3 complete on 2026-07-11. Next: merge the current-main recovery PR and live-verify the production marker.**
 
 ## Merge / rollback commands (from plan Task 8)
 
