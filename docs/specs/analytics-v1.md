@@ -31,7 +31,7 @@ All events use this envelope:
 }
 ```
 
-Only the five events below are accepted. (`troubleshoot_used` and `export_clicked` were added to the Worker schema 2026-07-10 — the web app had been sending them since Phase 2, but the Worker rejected them as `invalid_event`.)
+Only the nine events below are accepted. (`troubleshoot_used` and `export_clicked` were added to the Worker schema 2026-07-10 — the web app had been sending them since Phase 2, but the Worker rejected them as `invalid_event`.)
 
 ### `app_opened`
 
@@ -121,6 +121,22 @@ Allowed properties:
 | `nozzle` | `std_0.4` | Nozzle id. |
 | `material` | `pla_basic` | Material id. |
 
+### Workshop events
+
+The native app emits these events only after the corresponding operation
+succeeds. They reuse the common platform/channel/version/build/locale fields.
+
+| Event | Meaning | Extra allowed property |
+|---|---|---|
+| `workshop_saved` | A profile was saved successfully. | None. |
+| `workshop_loaded` | A saved profile initiated output navigation. | None. |
+| `workshop_exported` | A backup file was written successfully. | `type`: `all` or `single`. |
+| `workshop_imported` | A backup file was imported successfully. | None. |
+
+Profile names, profile ids, file URLs, file contents, and generated settings
+are forbidden. `workshop_exported.type` uses the existing shared event-detail
+column (`blob19`); the 20-blob order is unchanged.
+
 ## Worker Storage Mapping
 
 Workers Analytics Engine stores ordered arrays, so the field order is fixed:
@@ -152,7 +168,7 @@ Workers Analytics Engine stores ordered arrays, so the field order is fixed:
 
 Queries must use `_sample_interval` when summing counts.
 
-**`blob19` — shared event-detail column.** Analytics Engine caps a data point at 20 blobs and all 20 positions are assigned, so per-event detail values share position 19: `feedback_opened` writes `feedbackCategory`, `troubleshoot_used` writes `symptom`, `export_clicked` writes `type`. This is unambiguous because every dashboard query filters on `blob2` (event) first, and it is backward compatible: before 2026-07-10 only `feedback_opened` ever populated this position.
+**`blob19` — shared event-detail column.** Analytics Engine caps a data point at 20 blobs and all 20 positions are assigned, so per-event detail values share position 19: `feedback_opened` writes `feedbackCategory`, `troubleshoot_used` writes `symptom`, and `export_clicked` / `workshop_exported` write `type`. This is unambiguous because dashboard queries include or filter on `blob2` (event), and it is backward compatible: before 2026-07-10 only `feedback_opened` ever populated this position.
 
 ## Privacy Boundary
 

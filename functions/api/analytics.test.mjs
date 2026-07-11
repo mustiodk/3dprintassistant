@@ -210,6 +210,49 @@ test("validatePayload still rejects detail keys on the wrong event", () => {
   assert.equal(crossed2.error, "invalid_property_type");
 });
 
+for (const [event, properties, detail] of [
+  ["workshop_saved", { platform: "ios" }, ""],
+  ["workshop_loaded", { platform: "ios" }, ""],
+  ["workshop_exported", { platform: "ios", type: "single" }, "single"],
+  ["workshop_imported", { platform: "ios" }, ""],
+]) {
+  test(`validatePayload accepts ${event}`, () => {
+    const result = __test.validatePayload({ event, properties });
+    assert.equal(result.ok, true);
+    const point = __test.toDataPoint(result.event, result.props);
+    assert.equal(point.blobs[1], event);
+    assert.equal(point.blobs[18], detail);
+  });
+}
+
+test("Workshop events reject unrelated detail and identity keys", () => {
+  assert.equal(__test.validatePayload({
+    event: "workshop_saved",
+    properties: { platform: "ios", profileName: "private" },
+  }).error, "invalid_property_profileName");
+  assert.equal(__test.validatePayload({
+    event: "workshop_exported",
+    properties: { platform: "ios", type: "all", sessionId: "nope" },
+  }).error, "invalid_property_sessionId");
+});
+
+test("export_clicked accepts the iOS action payload on the existing contract", () => {
+  for (const type of ["bambu_bundle", "text_share"]) {
+    const result = __test.validatePayload({
+      event: "export_clicked",
+      properties: {
+        platform: "ios",
+        type,
+        printerModel: "x1c",
+        material: "pla_basic",
+        nozzle: "std_0.4",
+      },
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.props.type, type);
+  }
+});
+
 test("onRequestPost accepts valid Android HMAC requests", async () => {
   const secret = "test-secret";
   const timestamp = String(Math.floor(Date.now() / 1000));

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   onRequestPost,
   __test,
@@ -82,6 +83,28 @@ test("buildQuery exports reads the event-detail blob as export_type plus selecti
   assert.match(sql, /blob11 AS material/);
   assert.match(sql, /blob13 AS nozzle/);
   assert.match(sql, /AND blob2 = 'export_clicked'/);
+});
+
+test("buildQuery features combines export, Workshop, and troubleshooter events", () => {
+  const sql = __test.buildQuery("features", { days: 7, limit: 25 });
+  assert.match(sql, /blob19 AS detail/);
+  assert.match(sql, /'export_clicked'/);
+  assert.match(sql, /'workshop_saved'/);
+  assert.match(sql, /'workshop_loaded'/);
+  assert.match(sql, /'workshop_exported'/);
+  assert.match(sql, /'workshop_imported'/);
+  assert.match(sql, /'troubleshoot_used'/);
+  assert.match(sql, /SUM\(_sample_interval \* double1\) AS uses/);
+});
+
+test("owner dashboard registers and renders combined feature usage", () => {
+  const html = readFileSync(new URL("../../analytics.html", import.meta.url), "utf8");
+  assert.match(html, /id="featureUsage"/);
+  assert.match(html, /id: "features"/);
+  assert.match(html, /workshop_saved: "Profile saved"/);
+  assert.match(html, /workshop_imported: "Backup imported"/);
+  assert.match(html, /renderPlatformBarList\("featureUsage"/);
+  assert.match(html, /function featureRows\(/);
 });
 
 test("optionsFromPayload clamps days and limit", () => {

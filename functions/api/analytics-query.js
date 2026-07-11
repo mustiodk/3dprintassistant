@@ -208,6 +208,21 @@ ORDER BY clicks DESC
 LIMIT ${limit}
 FORMAT JSON`,
 
+  features: ({ days, limit }) => `
+SELECT
+  blob2 AS event,
+  blob3 AS platform,
+  blob5 AS app_version,
+  blob19 AS detail,
+  SUM(_sample_interval * double1) AS uses
+FROM ${DATASET_TABLE}
+WHERE timestamp > ${interval(days)}
+  AND blob2 IN ('export_clicked', 'workshop_saved', 'workshop_loaded', 'workshop_exported', 'workshop_imported', 'troubleshoot_used')
+GROUP BY event, platform, app_version, detail
+ORDER BY uses DESC
+LIMIT ${limit}
+FORMAT JSON`,
+
   feedback: ({ days, limit }) => `
 SELECT
   blob3 AS platform,
