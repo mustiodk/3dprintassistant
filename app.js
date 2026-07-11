@@ -1366,15 +1366,28 @@ function bindControls() {
     });
   });
 
+  function _nativeJSONExport() {
+    const slicer = state.printer ? Engine.getSlicerForPrinter(state.printer) : null;
+    if (slicer === 'bambu_studio') return { slicer, result: Engine.exportBambuStudioJSON(state) };
+    if (slicer === 'orcaslicer')   return { slicer, result: Engine.exportOrcaJSON(state) };
+    return { slicer, result: null };
+  }
+
+  function _nativeJSONFilename(kind, slicer) {
+    const prefix = slicer === 'orcaslicer' ? 'orca_' : '';
+    return `3DPA_${prefix}${kind}_${state.printer}_${state.material}.json`;
+  }
+
   // Process export button
   document.getElementById('exportProcessBtn').addEventListener('click', () => {
     if (!state.printer || !state.nozzle || !state.material) return;
     const T = Engine.t;
     const btn = document.getElementById('exportProcessBtn');
     track('export_clicked', { type: 'process', printerModel: state.printer, nozzle: state.nozzle, material: state.material });
-    const result = Engine.exportBambuStudioJSON(state);
+    const native = _nativeJSONExport();
+    const result = native.result;
     if (result?.process) {
-      _downloadJSON(result.process, `3DPA_process_${state.material}.json`);
+      _downloadJSON(result.process, _nativeJSONFilename('process', native.slicer));
       _flashBtn(btn, '↓ Done');
     }
   });
@@ -1385,9 +1398,10 @@ function bindControls() {
     const T = Engine.t;
     const btn = document.getElementById('exportFilamentBtn');
     track('export_clicked', { type: 'filament', printerModel: state.printer, nozzle: state.nozzle, material: state.material });
-    const result = Engine.exportBambuStudioJSON(state);
+    const native = _nativeJSONExport();
+    const result = native.result;
     if (result?.filament) {
-      _downloadJSON(result.filament, `3DPA_filament_${state.material}.json`);
+      _downloadJSON(result.filament, _nativeJSONFilename('filament', native.slicer));
       _flashBtn(btn, '↓ Done');
     }
   });
@@ -1563,17 +1577,26 @@ function render() {
   const hasMin = state.printer && state.nozzle && state.material;
   if (hasMin && state.printer) {
     const slicer = Engine.getSlicerForPrinter(state.printer);
-    if (slicer === 'bambu_studio') {
+    const nativeResult = slicer === 'bambu_studio' ? Engine.exportBambuStudioJSON(state)
+                       : slicer === 'orcaslicer'   ? Engine.exportOrcaJSON(state)
+                       :                            null;
+    if (nativeResult) {
       exportGroup.style.display  = 'flex';
       exportCopyBtn.style.display = 'none';
-      exportHint.textContent = T('exportHintBambu');
+      const isOrca = slicer === 'orcaslicer';
+      const processBtn = document.getElementById('exportProcessBtn');
+      const filamentBtn = document.getElementById('exportFilamentBtn');
+      processBtn.textContent = isOrca ? '↓ Orca Process' : '↓ Process';
+      filamentBtn.textContent = isOrca ? '↓ Orca Filament' : '↓ Filament';
+      processBtn.title = isOrca
+        ? 'Download process profile (print settings) for OrcaSlicer'
+        : 'Download process profile (print settings) for Bambu Studio';
+      exportHint.textContent = T(isOrca ? 'exportHintOrca' : 'exportHintBambu');
       exportHint.style.display = '';
       // Grey out filament button if no filament export available
-      const result = Engine.exportBambuStudioJSON(state);
-      const filamentBtn = document.getElementById('exportFilamentBtn');
-      filamentBtn.disabled = !result?.filament;
-      filamentBtn.title = result?.filament
-        ? 'Download filament profile (temperatures, cooling, PA) for Bambu Studio'
+      filamentBtn.disabled = !nativeResult.filament;
+      filamentBtn.title = nativeResult.filament
+        ? `Download filament profile (temperatures, cooling, PA) for ${isOrca ? 'OrcaSlicer' : 'Bambu Studio'}`
         : 'Filament export not available for this material/printer combination';
     } else {
       exportGroup.style.display  = 'none';
