@@ -2,7 +2,7 @@
 
 **Status:** DRAFT (pending sub-agent + QA + cross-model review; execution gated on owner AP0 ratification).
 **Design source:** [`../specs/2026-07-11-accounts-platform-design.md`](../specs/2026-07-11-accounts-platform-design.md) (APD0–APD12).
-**Shape:** small gates, one branch + one PR per gate, review gate before every merge. Each web gate is independently shippable and flag-safe (`ACCOUNTS_ENABLED` off = today's behavior). iOS is one release train with internal sub-gates under the push gate.
+**Shape:** small gates, one branch + one PR per gate, review gate before every merge. Each web gate is independently shippable and flag-safe (`ACCOUNTS_API_ENABLED` + `ACCOUNTS_UI_ENABLED` both off = today's behavior; export/delete/logout carve-out per spec §4.3). iOS is one release train with internal sub-gates under the push gate.
 
 **Standing-rule evaluation (mandatory):** Gates AP1–AP9 touch **no `engine.js` and no `data/*.json`** — every web PR must include walkthrough-harness + golden-snapshot proof of zero engine/data diff. Web/iOS impact: both platforms gain app-layer UI (auth, profile hub, inventory, sync); no byte-mirror implications until AP10 copies nothing (engine untouched) — AP10 mirrors only the shared JSON schema fixtures. The first engine-adjacent inventory feature (cost-per-print) is backlog, not this plan.
 
@@ -19,7 +19,7 @@
 | AP4 | Sync endpoints | web | PR-d | sub-agent + cross-model (protocol) |
 | AP5 | Web sync client + NEW merge layer | web | PR-e | sub-agent + cross-model (merge/data-loss) |
 | AP6 | My 3dpa view shell | web | PR-f | sub-agent |
-| AP7 | Inventory v1 (local-first) | web | PR-g | sub-agent |
+| AP7 | Inventory v1 (local-first; independent — only needs AP0) | web | PR-g | sub-agent |
 | AP8 | Inventory sync + journal spool refs | web | PR-h | sub-agent |
 | AP9 | Export/delete + privacy + flag ON + live verify | web | PR-i | sub-agent + cross-model (privacy/deletion) |
 | AP10 | iOS account train (sub-gates I1–I6) | iOS | one push at TestFlight-ready | per-sub-gate sub-agent + cross-model before push |
@@ -46,13 +46,16 @@ Estimated envelope: AP1–AP9 ≈ 8–11 focused sessions (AP5 alone = 2: the me
 Branch `accounts/ap1-foundation`. Files:
 
 - `wrangler.toml`: `[[d1_databases]]` binding `ACCOUNTS_DB`; `ACCOUNTS_API_ENABLED` + `ACCOUNTS_UI_ENABLED` vars (both default `"false"`); explicit `/api/v1/` route branch in `worker.js` (no prefix-matching per its own comment).
-- `functions/api/v1/_lib/db.js` — D1 helpers + migration runner (idempotent `CREATE TABLE IF NOT EXISTS`, schema from spec §4.2; **additive-only migrations rule** recorded at top of file).
+- `migrations/0001_accounts_init.sql` — checked-in numbered migration (schema from spec §4.2), applied with `wrangler d1 migrations apply` to local/preview/prod; **deploy-order gate: migration applies before dependent code deploys**; runtime code never mutates schema. `functions/api/v1/_lib/db.js` — D1 query helpers only. D1 database created `--jurisdiction=eu`.
+- `functions/api/v1/_lib/router.js` — exact method+path route table dispatched from an explicit `/api/v1/` branch in `worker.js`; JSON 404/405 for unknown `/api/v1/` paths (no Assets fall-through); later gates register routes here.
+- Local-D1 test harness (wrangler/miniflare) — NEW (existing Worker tests are plain mocks); endpoint tests exercise `worker.fetch` end-to-end.
+- Rate-limit bindings in `wrangler.toml` (per-IP pre-auth, per-user authed) — consumed from AP2 on.
 - `functions/api/v1/_lib/tokens.js` — JWT (WebCrypto HS256 v1, `kid` support), refresh-token hash/rotation helpers.
 - `functions/api/v1/_lib/guard.js` — `requireEnabled` (503 when flag off), `requireAuth` (Bearer/cookie → user), rate-limit headers passthrough.
 - Tests `functions/api/v1/foundation.test.mjs` following the existing `functions/api/*.test.mjs` pattern (run: `node --test functions/api/v1/*.test.mjs`): token round-trip, rotation-reuse revokes family, flag-off returns 503, migration idempotency (miniflare/`better-sqlite3` in-memory stand-in consistent with existing test approach — match whatever `analytics.test.mjs` uses).
 - `docs/3dpa-context.md`: update the two non-goal lines per APD11 (accounts now optional-by-design; cloud sync exists as optional; engine purity unchanged) + one cross-ref note added to the monetization plan MD3 line.
 
-**Gates before merge:** tests green; `node scripts/walkthrough-harness.js` clean; golden snapshot NO DRIFT; `wrangler deploy` dry-run/preview OK; sub-agent review; **live verify after merge:** `curl https://3dprintassistant.com/api/v1/auth/status` → 503 (flag off) — proves dark.
+**Gates before merge:** tests green (incl. worker.fetch route tests: unknown `/api/v1/x` → JSON 404, wrong method → 405); `node scripts/walkthrough-harness.js` clean; golden snapshot NO DRIFT; migration applied to preview D1 before deploy; sub-agent review; **live verify after merge:** `curl https://3dprintassistant.com/api/v1/auth/status` → 503 (flag off) — proves dark.
 **Rollback:** revert PR (no data yet).
 
 ## AP2 — OAuth endpoints
@@ -63,7 +66,8 @@ Branch `accounts/ap2-oauth`. Files: `functions/api/v1/auth/[provider]/start.js`,
 - User upsert per spec §4.3: linking only on provider-asserted `email_verified`; `users.email` nullable (Apple first-auth-only email); Apple private-relay → distinct user.
 - Cookies: session cookies httpOnly Secure SameSite=Lax; pre-auth `__Host-3dpa_preauth` cookie **SameSite=None** Max-Age 600 (Apple form_post is cross-site POST); post-login redirect pinned to fixed same-origin path.
 - **Native support:** `auth_codes` one-time intermediate codes (hashed, 120s TTL, single-use) + dual-mode callback (`client=web` → cookies; `client=ios` → custom-scheme redirect with code) + `POST /api/v1/auth/token` accepting both Apple audiences (bundle id + Services ID).
-- Tests: state mismatch → 400; missing/expired pre-auth cookie → 400; JWKS `kid` rotation; verified-email dedupe (google then apple with same verified email → one user); unverified email → distinct user; relay email → distinct user; nullable-email Apple re-auth; refresh reuse → family revoked; logout revokes; auth_code single-use + expiry; dual-audience validation.
+- Tests: state mismatch → 400; missing/expired pre-auth cookie → 400; JWKS `kid` rotation; verified-email dedupe (google then apple with same verified email → one user); unverified email → distinct user; relay email → distinct user; nullable-email Apple re-auth; refresh reuse inside 30s grace → same successor, outside grace → family revoked; logout revokes; auth_code single-use + expiry + **PKCE verifier mismatch → 400**; native Apple `authorizationCode` exchange stores the refresh token; dual-audience validation; rate-limit 429 paths.
+- **Exit step (dark launch):** after merge, flip `ACCOUNTS_API_ENABLED="true"` in prod with UI off — API live dark from AP2 on (this is what AP9 later relies on).
 
 **Gates:** tests green; sub-agent review; **cross-model review (security lens) — patch until no P0–P2**; walkthrough/golden clean; merge; still dark (flag off).
 **Rollback:** revert PR; D1 rows additive only.
@@ -82,17 +86,17 @@ Branch `accounts/ap3-web-auth-ui`. Files: `auth.js` (new module, Workshop-module
 
 Branch `accounts/ap4-sync-api`. Files: `functions/api/v1/sync/[doc].js` (GET/PUT), `functions/api/v1/_lib/sync-schema.js` (envelope validation: doc_type allowlist, size caps 256 KB/128 KB, JSON shape check — **no Workshop semantics server-side**).
 
-- PUT requires `If-Match` integer version; mismatch → 409 + current doc; success → version+1 returned.
-- Tests: happy path, 409 flow, cap rejection (413), auth required (401), flag off (503), per-user isolation (user A cannot read B).
+- PUT requires `If-Match` integer version; the check is one atomic conditional `UPDATE ... WHERE version=?` (spec §4.4) — mismatch → 409 + current doc; success → version+1 returned. Device-ack registry rows updated on GET/PUT (tombstone compaction input).
+- Tests: happy path, 409 flow, **two genuinely concurrent PUTs → exactly one 200 + one 409**, cap rejection (413), auth required (401), flag off (503), per-user isolation (user A cannot read B), device-ack row upsert.
 
 **Gates:** tests; sub-agent review; **cross-model (protocol lens) until no P0–P2**; merge (dark).
 
 ## AP5 — Web sync client + NEW merge layer (largest client gate — allow 2 sessions)
 
-Branch `accounts/ap5-sync-client`. Files: `sync.js` (transport: debounced push 5s after local mutation, pull on load/sign-in, 409 → merge → re-push loop bounded at 3 attempts then "sync conflict — will retry") + `merge.js` (**new merge layer per spec APD4 — the shipped Workshop import merge is NOT sufficient**: per-record `updated`-LWW for saved profiles, journal-record union by entry id within a profile, tuning op-union (the one reused piece), deletion-ledger tombstone application) + workshop-store additive **local deletion ledger** (`{id, kind, deleted_at}` on every remove path, 90-day compaction, namespaced per account per APD14). Envelope `{format: '3dpa-sync-v1', payload: <backup format unchanged>, deletions: [...]}` (byte-compat assertion pins the payload against a real fixture backup).
+Branch `accounts/ap5-sync-client`. Files: `sync.js` (transport: debounced push 5s after local mutation, pull on load/sign-in, 409 → merge → re-push loop bounded at 3 attempts then "sync conflict — will retry") + `merge.js` (**new merge layer per spec APD4 — the shipped Workshop import merge is NOT sufficient**: per-record deterministic `rev={counter,device_id}` ordering (no wall-clock LWW), journal-record union by entry id within a profile, tuning op-union (the one reused piece), deletion-ledger tombstone application, lossless unknown-field preservation) + workshop-store additive **local deletion ledger** (`{id, kind, deleted_at, rev}` on every remove path; compaction is server-ack-based per spec §4.4) + **replica-namespace storage partitioning per APD14**. Envelope `{format: '3dpa-sync-v1', schema_version, min_reader, payload: <backup format unchanged>, deletions: [...]}` (byte-compat assertion pins the payload against a real fixture backup); single-flight coordinator with dirty generations.
 
-- APD14 UI: first-sign-in merge/keep-separate prompt + `local_only` marking; sign-out keeps data + stops sync.
-- Tests (Node, shared JSON fixtures that AP10-I2 will re-run on iOS): profile-rename vs journal-append conflict converges losslessly; per-record LWW; journal union; deletion does not resurrect; cross-account ledger namespacing; tuning op-union preserved; envelope fixture byte-pin; cap-exceeded → local-only badge state.
+- APD14 UI: first-sign-in merge/start-clean prompt (namespace move `local`→account); sign-out keeps the account namespace active + stops sync; different-account sign-in hides prior namespaces; account-deletion local keep/remove question.
+- Tests (Node, shared JSON fixtures that AP10-I2 will re-run on iOS): profile-rename vs journal-append conflict converges losslessly; clock-skew immunity; equal-rev tiebreak; merge(A,B)==merge(B,A); associativity; idempotence; deletion does not resurrect; A→B→A namespace isolation; delete→reauth empty account; unknown-field round-trip; min_reader pause; tuning op-union preserved; envelope fixture byte-pin; dirty-generation edit-during-push; cap-exceeded → local-only badge state.
 
 **Gates:** tests; sub-agent review; **cross-model (merge/data-loss lens) until no P0–P2**; walkthrough/golden clean; merge (dark).
 
@@ -106,7 +110,9 @@ Contents: identity, per-doc sync status ("last synced HH:MM · v12"), Workshop c
 
 Branch `accounts/ap7-inventory-local`. Files: `inventory.js` (store + CRUD + rendering), `index.html` nav entry, `style.css` (spool-card pattern adapted from bambuinventory: swatch circle, material/vendor/remaining), locales EN+DA.
 
-- Local store `3dpa_inventory_v1` (try-catch localStorage per project rule). Schema per spec APD5 incl. `updated_at` + tombstone-ready `id`s (uuid).
+- **Independence note:** AP7 depends only on AP0 — it can run before or parallel to AP1–AP6 (local-first, no accounts machinery).
+- Local store `3dpa_inventory_v1` (try-catch localStorage per project rule). Schema per spec APD5 incl. `rev` + tombstone-ready `id`s (uuid).
+- `workshop-store.js` change: `addOutcome` accepts an optional `spool_id` and **persists it** (today it reconstructs a fixed record and drops unknown fields) + round-trip test; journal UI shows "(deleted spool)" fallback when the referenced spool is gone.
 - Quick-add presets derived from the material vocabulary **read via existing engine data accessors at runtime** (no new engine API, no data file edits).
 - Configurator integration: "in stock" badge in material picker (app-layer lookup by material family), journal entry optional `spool_id` selector.
 - Tests: store CRUD + archive/empty transitions; badge logic; schema fixture for iOS mirroring.
@@ -121,7 +127,7 @@ Tests: inventory two-device convergence; spool deletion tombstone; journal ref s
 
 ## AP9 — Export / delete / privacy / launch / live verify
 
-Branch `accounts/ap9-launch`. Files: `functions/api/v1/account/export.js` (single JSON: user + all docs), `functions/api/v1/account/index.js` (DELETE: Apple `/auth/revoke` when an Apple identity exists → full cascade per spec §4.3), profile-page export/delete UI (typed confirmation for delete), privacy policy + ToS-light section update (EN+DA, incl. 13+ age line + export-retention disclosure), analytics-anonymity assertion test (grep-level test that no account module imports/touches the analytics sender + runtime payload assertion), flags per spec §4.5: `ACCOUNTS_API_ENABLED` already on (dark since AP2), now `ACCOUNTS_UI_ENABLED="true"`.
+Branch `accounts/ap9-launch`. Files: `functions/api/v1/account/export.js` (cloud-account export: user row + identities sans tokens + all sync docs — labeled per spec APD7; local backup export remains the full-device path), `functions/api/v1/account/index.js` (DELETE: best-effort Apple `/auth/revoke` → atomic child-first cascade → `deletion_log` append, idempotent per spec §4.3; reachable even with the kill switch on), profile-page export/delete UI (typed confirmation for delete), **privacy policy rewrite** (`privacy.html` today asserts name/email/User ID are NOT collected — those collection sections and the GDPR notice are rewritten, not appended to; + ToS-light section, 13+ age line, export/deletion_log retention disclosures, EN+DA), analytics-anonymity assertion test (grep-level test that no account module imports/touches the analytics sender + runtime payload assertion), flags per spec §4.5: `ACCOUNTS_API_ENABLED` already on (dark since AP2), now `ACCOUNTS_UI_ENABLED="true"`.
 
 **APD13 conditionality:** if the owner picked (b)/(c)/(d), "UI flag ON for everyone" is replaced by the Pro-gated rollout defined in the Phase-2 monetization spec (which must then exist before AP9 completes); under (a) AP9 launches sync free as written.
 
