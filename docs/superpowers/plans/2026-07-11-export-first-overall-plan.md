@@ -106,6 +106,8 @@ Expected: data validation clean, walkthrough clean, export audit `0 FAIL / 0 war
 
 - [ ] **Step 5: Mirror to iOS and run XCTest locally on mac-mini**
 
+Air→mini transfer evidence (2026-07-11): `origin/codex/export-phase2-ios-sync-20260711` carries the three existing P2 mirror-test commits (`4210b3c` HIGH-2 retraction, `906e783` dual arrays, `04eec71` inherits). Treat that branch as the source for XCTest hunks and the pending RED breadcrumb, **not** as the final engine snapshot: recover Phase 2 onto current web main first, byte-copy that final engine, then reuse/cherry-pick only the test changes or recreate the assertions. Do not fast-forward iOS blindly if it would replace newer engine/data state.
+
 ```bash
 cd ~/dev/Claude/Projects
 cp 3dprintassistant/engine.js 3dprintassistant-ios/3DPrintAssistant/Engine/engine.js

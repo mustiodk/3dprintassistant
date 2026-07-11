@@ -1,7 +1,7 @@
 # 3dpa — Next Session Kickoff
 
 **Purpose:** copy-paste kickoff prompt for the next fresh 3dpa session.
-**Last updated:** 2026-07-11 (export-first pivot wrap).
+**Last updated:** 2026-07-11 (Air → mac-mini Export Phase 2 handoff; current-main recovery remains locked).
 **Locked next entry point:** **Printer export remaining phases first.** Start by recovering/finishing Export Phase 2 on current `main`; then Phase 3 Orca; then Phase 4 Prusa. The already-reviewed iOS 1.0.7 issue-fix plan comes immediately after the export sequence.
 
 ---
@@ -48,6 +48,7 @@ Today's primary task:
    - Evidence verified 2026-07-11: `origin/export-phase2-20260709` contains completed Bambu Phase 2 work and owner-verify PASS, but it is stale versus current `origin/main`.
    - Do **not** merge `origin/export-phase2-20260709` directly. Its raw diff versus current `origin/main` includes unrelated deletions of newer intake/K2/analytics work.
    - Follow Task 1 in `docs/superpowers/plans/2026-07-11-export-first-overall-plan.md`.
+   - The three existing iOS P2 mirror-test commits are transferable at `origin/codex/export-phase2-ios-sync-20260711` (`4210b3c` / `906e783` / `04eec71`). Use them for XCTest hunks/RED evidence only after recovering current web main and byte-copying its final engine; do not fast-forward the old engine snapshot blindly.
    - Exit gate: current-main-safe PR diff is export-only; web gates green; iOS engine byte-identical + XCTest green on mac-mini; PR merged; production `engine.js` live-verified.
 
 2. **Then Phase 3: OrcaSlicer native export.**
