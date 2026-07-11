@@ -1,8 +1,6 @@
 # Export Phase 3 — OrcaSlicer Gate Ledger
 
-> Status: **OWNER-VERIFY PENDING**. The implementation is intentionally not
-> marked stable or live until OrcaSlicer accepts the staged process and
-> filament files.
+> Status: **OWNER-VERIFY PASS 2026-07-11; PR merge/live verification pending**.
 
 ## Scope and source truth
 
@@ -25,20 +23,24 @@
 - iOS local mirror: engine bytes equal the web branch and the full suite passes
   **139 tests / 0 failures** on iPhone 17 Pro simulator. iOS UI remains hidden.
 
-## OWNER-VERIFY — required Orca import test
+## OWNER-VERIFY — PASS 2026-07-11
 
 Import both files using **OrcaSlicer → File → Import → Import Configs**:
 
-1. `scripts/fixtures/slicer-golden/_owner-verify/orca-ender3-v3-se-process.json`
-2. `scripts/fixtures/slicer-golden/_owner-verify/orca-ender3-v3-se-filament.json`
+1. `scripts/fixtures/slicer-golden/_owner-verify/zz-orca-p3-importtest-process.json`
+2. `scripts/fixtures/slicer-golden/_owner-verify/zz-orca-p3-importtest-filament.json`
 
-PASS requires both files to be accepted for **Creality Ender-3 V3 SE 0.4** and
-the imported presets to show these spot checks:
+**PASS recorded from the owner:** both presets are visible under OrcaSlicer's
+official **Creality Ender-3 V3 SE 0.4 nozzle** profile and every sentinel value
+matches:
 
-- Process: layer height **0.2**, wall loops **3**, outer wall speed **80**,
-  inner wall speed **150**.
-- Filament: first/other-layer nozzle **225/220**, retraction **0.6**.
+- Process `ZZ ORCA P3 TEST LH019 W4 O83 I147 BR7`: layer height **0.19**,
+  wall loops **4**, outer/inner wall speed **83/147**, brim width **7**.
+- Filament `ZZ ORCA P3 TEST N223-217 R073 F097`: first/other-layer nozzle
+  **223/217**, retraction **0.73**, flow ratio **0.97**, and first/other-layer
+  hot/textured plate **57/53**.
 
-Record PASS/FAIL plus the exact Orca error if either file is rejected. A FAIL
-keeps Copy fallback as the shipping behavior while the parent/schema mismatch
-is corrected and re-tested.
+Diagnostic note: Orca initially hid both presets under a custom duplicate
+`Creality Creality Ender-3 V3 SE 0.4 nozzle` profile. Its log showed the process
+parent could not be resolved. Selecting Orca's official single-`Creality`
+profile loaded both user presets; the full value check then passed.
