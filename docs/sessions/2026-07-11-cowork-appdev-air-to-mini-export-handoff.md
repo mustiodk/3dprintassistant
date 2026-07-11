@@ -24,7 +24,7 @@
 ## Commits
 
 - iOS transfer branch `codex/export-phase2-ios-sync-20260711`: `4210b3c`, `906e783`, `04eec71` (pushed; iOS `main` not pushed).
-- Web wrap documentation lands as one scoped docs commit on current `main`; no product code is included.
+- Web wrap documentation: `5f39968` plus one small NEXT read-map follow-up; no product code is included.
 
 ## Open questions / Follow-up
 

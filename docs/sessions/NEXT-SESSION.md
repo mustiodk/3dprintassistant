@@ -22,12 +22,13 @@ Read in order:
 6. `3dprintassistant/docs/superpowers/plans/2026-07-11-export-first-overall-plan.md`
 7. `3dprintassistant/docs/sessions/INDEX.md`
 8. Recent export logs:
+   - `3dprintassistant/docs/sessions/2026-07-11-cowork-appdev-air-to-mini-export-handoff.md`
    - `3dprintassistant/docs/sessions/2026-07-11-cowork-appdev-export-pivot-wrap.md`
    - Export Phase 2 branch-only log, read with:
      ```bash
      git -C 3dprintassistant show origin/export-phase2-20260709:docs/sessions/2026-07-09-cowork-appdev-export-phase2.md | sed -n '1,260p'
      ```
-   - `3dprintassistant/docs/sessions/2026-07-06-cowork-appdev-learns-export.md`
+   - `3dprintassistant/docs/sessions/2026-07-06-cowork-appdev-learns-export.md` (task-specific Phase 0+1 background)
 
 Then verify local state:
 
