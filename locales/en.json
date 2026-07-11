@@ -99,6 +99,7 @@
   "exportDownloaded":          "✓ Downloaded",
   "exportHintBambu":           "Import in Bambu Studio 2.5+: File → Import → Import Configs… — the presets appear under your User presets for this printer/nozzle.",
   "exportHintOrca":            "Import in OrcaSlicer: File → Import → Import Configs… — the presets appear under your User presets for this printer/nozzle.",
+  "exportHintPrusa":           "Import in PrusaSlicer 2.9.4+: File → Import → Import Config Bundle… — adds the 3DPA print and filament presets for CORE One L with a standard 0.4 mm nozzle.",
   "exportCopied":              "✓ Copied to clipboard",
   "exportSaved":               "✓ Saved",
   "shareBtn":                  "⤴ Share",
