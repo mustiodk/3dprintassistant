@@ -98,6 +98,7 @@
   "exportCopy":                "↓ Copy Profile",
   "exportDownloaded":          "✓ Downloaded",
   "exportHintBambu":           "Import in Bambu Studio 2.5+: File → Import → Import Configs… — the presets appear under your User presets for this printer/nozzle.",
+  "exportHintOrca":            "Import in OrcaSlicer: File → Import → Import Configs… — the presets appear under your User presets for this printer/nozzle.",
   "exportCopied":              "✓ Copied to clipboard",
   "exportSaved":               "✓ Saved",
   "shareBtn":                  "⤴ Share",

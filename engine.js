@@ -3493,23 +3493,15 @@ const Engine = (() => {
     return { process, filament };
   }
 
-  // ── Bambu Studio JSON export — IMPL-043 P1 passthrough pipeline ─────────────
+  // ── Bambu/Orca JSON export — shared IMPL-043 passthrough pipeline ───────────
   // Params carry canonical slicer values as _slicer_value sidecars (attached in
-  // resolveProfile); export passes them through. Display text is parsed ONLY
-  // for numeric fields via _numericValue. The legacy regex pipeline above is
-  // kept verbatim behind USE_LEGACY_EXPORT as the instant fallback (the
-  // deliberate duplication dies with the legacy path after the owner's
-  // recorded import test).
-  function exportBambuStudioJSON(state) {
-    if (USE_LEGACY_EXPORT) return _exportBambuStudioJSONLegacy(state);
-
+  // resolveProfile); both JSON serializers pass them through this one pipeline.
+  // Display text is parsed ONLY for numeric fields via _numericValue.
+  function _exportBambuLikeJSON(state, config) {
     const printer  = getPrinter(state.printer);
     const material = getMaterial(state.material);
     const nozzle   = getNozzle(state.nozzle);
     if (!printer || !material || !nozzle) return null;
-
-    const slicer = getSlicerForPrinter(state.printer);
-    if (slicer !== 'bambu_studio') return null;  // Bambu printers only
 
     const exportState = Object.assign({}, state, {
       surface:     state.surface     || 'standard',
@@ -3524,12 +3516,12 @@ const Engine = (() => {
     const pa      = _resolvePA(bs, nozzle);
 
     // ── Process profile ───────────────────────────────────────────────────────
-    const printerName = BAMBU_PRINTER_NAMES[state.printer] || printer.name;
+    const printerName = config.printerName;
     const nozzleStr   = String(nozzle.size);
 
     const layerHeight = profile.layer_height ? parseFloat(String(profile.layer_height.value).match(/[\d.]+/)?.[0] || '0.20') : 0.20;
-    const processParent = _findProcessParent(state.printer, layerHeight);
-    const filamentParent = _findFilamentParent(state.material, material.group, state.printer);
+    const processParent = config.findProcessParent(layerHeight, profile);
+    const filamentParent = config.findFilamentParent(material);
     if (!processParent) return null;
 
     const processName = `3DPA ${material.name} ${layerHeight}mm @${printerName}`;
@@ -3539,7 +3531,7 @@ const Engine = (() => {
       inherits: processParent,
       name: processName,
       print_settings_id: processName,
-      version: BAMBU_PROCESS_VERSION,
+      version: config.processVersion,
     };
 
     Object.entries(BAMBU_PROCESS_MAP).forEach(([engineKey, bsKey]) => {
@@ -3552,7 +3544,7 @@ const Engine = (() => {
         val = _numericValue(param.value ?? param);    // numeric-only, no guessing
         if (val == null) return;
       }
-      process[bsKey] = BAMBU_DUAL_VARIANT_PROCESS_FIELDS.has(bsKey) ? [val, val]
+      process[bsKey] = config.dualVariantFields.has(bsKey) ? [val, val]
                      : BAMBU_ARRAY_FIELDS.has(bsKey)                ? [val]
                      :                                                val;
     });
@@ -3567,22 +3559,24 @@ const Engine = (() => {
     }
 
     // ── Filament profile ──────────────────────────────────────────────────────
-    const filamentName = `3DPA ${material.name}`;
-    const printerBase = BAMBU_COMPATIBLE_PRINTER_BASE[state.printer];
-    const compatiblePrinters = printerBase
-      ? [`${printerBase} ${nozzleStr} nozzle`]
-      : null;
-    const filament = {
-      from: 'User',
-      inherits: filamentParent || '',
-      name: filamentName,
-      filament_settings_id: [filamentName],
-      filament_type: [material.group || 'PLA'],
-      version: BAMBU_FILAMENT_VERSION,
-      ...(compatiblePrinters ? { compatible_printers: compatiblePrinters } : {}),
-    };
+    let filament = null;
+    if (filamentParent) {
+      const filamentName = `3DPA ${material.name}`;
+      const compatiblePrinters = config.compatiblePrinter
+        ? [config.compatiblePrinter]
+        : null;
+      filament = {
+        from: 'User',
+        inherits: filamentParent,
+        name: filamentName,
+        filament_settings_id: [filamentName],
+        filament_type: [material.group || 'PLA'],
+        version: config.filamentVersion,
+        ...(compatiblePrinters ? { compatible_printers: compatiblePrinters } : {}),
+      };
+    }
 
-    if (adv) {
+    if (filament && adv) {
       const nzInit  = String(parseInt(adv.initial_layer_temp) || '');
       const nzOther = String(parseInt(adv.other_layers_temp) || '');
       const bdInit  = String(parseInt(adv.initial_layer_bed_temp) || '');
@@ -3597,32 +3591,144 @@ const Engine = (() => {
       filament.cool_plate_temp_initial_layer     = [String(Math.max(0, parseInt(bdInit) - 20))];
     }
 
-    if (bs.flow_ratio != null)          filament.filament_flow_ratio        = [String(bs.flow_ratio)];
-    if (pa != null)                     filament.pressure_advance           = [String(pa)];
-    // HIGH-001 FIX: export the engine's SCALED retraction (nozzle/Bowden-aware
-    // _slicer_value from resolveProfile), never the raw material base.
-    const retractionSv = profile.retraction_distance && profile.retraction_distance._slicer_value;
-    if (retractionSv != null)           filament.filament_retraction_length = [retractionSv];
-    else if (bs.retraction_distance != null) filament.filament_retraction_length = [String(bs.retraction_distance)];
-    if (bs.retraction_speed != null)    filament.filament_retraction_speed  = [String(bs.retraction_speed)];
+    if (filament) {
+      if (bs.flow_ratio != null)          filament.filament_flow_ratio        = [String(bs.flow_ratio)];
+      if (pa != null)                     filament.pressure_advance           = [String(pa)];
+      // HIGH-001 FIX: export the engine's SCALED retraction (nozzle/Bowden-aware
+      // _slicer_value from resolveProfile), never the raw material base.
+      const retractionSv = profile.retraction_distance && profile.retraction_distance._slicer_value;
+      if (retractionSv != null)           filament.filament_retraction_length = [retractionSv];
+      else if (bs.retraction_distance != null) filament.filament_retraction_length = [String(bs.retraction_distance)];
+      if (bs.retraction_speed != null)    filament.filament_retraction_speed  = [String(bs.retraction_speed)];
 
-    const mvsVal = bs.max_mvs?.[String(nozzle.size)];
-    if (mvsVal) filament.filament_max_volumetric_speed = [String(parseFloat(mvsVal))];
+      const mvsVal = bs.max_mvs?.[String(nozzle.size)];
+      if (mvsVal) filament.filament_max_volumetric_speed = [String(parseFloat(mvsVal))];
 
-    if (adv.fan_min_speed != null) {
-      filament.fan_min_speed = [String(parseInt(adv.fan_min_speed.value, 10) || 0)];
-    }
-    if (adv.fan_max_speed != null) {
-      filament.fan_max_speed = [String(parseInt(adv.fan_max_speed.value, 10) || 100)];
-    }
-    if (adv.cooling_fan_overhang != null) {
-      filament.overhang_fan_speed = [String(parseInt(adv.cooling_fan_overhang) || 0)];
-    }
-    if (bs.slow_layer_time != null) {
-      filament.slow_down_layer_time = [String(parseInt(bs.slow_layer_time) || 0)];
+      if (adv.fan_min_speed != null) {
+        filament.fan_min_speed = [String(parseInt(adv.fan_min_speed.value, 10) || 0)];
+      }
+      if (adv.fan_max_speed != null) {
+        filament.fan_max_speed = [String(parseInt(adv.fan_max_speed.value, 10) || 100)];
+      }
+      if (adv.cooling_fan_overhang != null) {
+        filament.overhang_fan_speed = [String(parseInt(adv.cooling_fan_overhang) || 0)];
+      }
+      if (bs.slow_layer_time != null) {
+        filament.slow_down_layer_time = [String(parseInt(bs.slow_layer_time) || 0)];
+      }
     }
 
     return { process, filament };
+  }
+
+  // Bambu wrapper keeps the frozen legacy path as the emergency fallback.
+  function exportBambuStudioJSON(state) {
+    if (USE_LEGACY_EXPORT) return _exportBambuStudioJSONLegacy(state);
+    if (getSlicerForPrinter(state.printer) !== 'bambu_studio') return null;
+    const nozzle = getNozzle(state.nozzle);
+    const printerBase = BAMBU_COMPATIBLE_PRINTER_BASE[state.printer];
+    return _exportBambuLikeJSON(state, {
+      printerName: BAMBU_PRINTER_NAMES[state.printer] || getPrinter(state.printer)?.name,
+      processVersion: BAMBU_PROCESS_VERSION,
+      filamentVersion: BAMBU_FILAMENT_VERSION,
+      dualVariantFields: BAMBU_DUAL_VARIANT_PROCESS_FIELDS,
+      compatiblePrinter: printerBase && nozzle ? `${printerBase} ${nozzle.size} nozzle` : null,
+      findProcessParent: layerHeight => _findProcessParent(state.printer, layerHeight),
+      findFilamentParent: material => _findFilamentParent(state.material, material.group, state.printer),
+    });
+  }
+
+  // Orca fixture schema is owner-captured X1C (2026-07-06). Non-Bambu live
+  // support is deliberately allowlisted to exact vendor-parent names verified
+  // against OrcaSlicer/OrcaSlicer registry commit 4b7182b (2026-07-11).
+  // Unknown printer/nozzle combinations return null so the web keeps Copy.
+  const ORCA_VERSION = '2.1.0.18';
+  const ORCA_SINGLE_VARIANT_FIELDS = new Set();
+  const ORCA_VERIFIED_PROFILES = {
+    ender3_v3: {
+      printerName: 'Creality Ender-3 V3',
+      compatiblePrinter: 'Creality Ender-3 V3 0.4 nozzle',
+      processParents: {
+        '0.12': '0.12mm Fine @Creality Ender-3 V3',
+        '0.16': '0.16mm Optimal @Creality Ender-3 V3',
+        '0.20': '0.20mm Standard @Creality Ender-3 V3',
+        '0.24': '0.24mm Draft @Creality Ender-3 V3',
+      },
+      filamentParents: { PLA: 'Creality Generic PLA @Ender-3V3-all' },
+    },
+    ender3_v3_ke: {
+      printerName: 'Creality Ender-3 V3 KE',
+      compatiblePrinter: 'Creality Ender-3 V3 KE 0.4 nozzle',
+      processParents: {
+        '0.12': '0.12mm Fine @Creality Ender3V3KE',
+        '0.16': '0.16mm Optimal @Creality Ender3V3KE',
+        '0.20': '0.20mm Standard @Creality Ender3V3KE',
+        '0.24': '0.24mm Draft @Creality Ender3V3KE',
+      },
+      filamentParents: { PLA: 'Creality Generic PLA @Ender-3V3-all' },
+    },
+    ender3_v3_plus: {
+      printerName: 'Creality Ender-3 V3 Plus',
+      compatiblePrinter: 'Creality Ender-3 V3 Plus 0.4 nozzle',
+      processParents: {
+        '0.12': '0.12mm Fine @Creality Ender-3 V3 Plus',
+        '0.16': '0.16mm Optimal @Creality Ender-3 V3 Plus',
+        '0.20': '0.20mm Standard @Creality Ender-3 V3 Plus',
+        '0.24': '0.24mm Draft @Creality Ender-3 V3 Plus',
+      },
+      filamentParents: { PLA: 'Creality Generic PLA @Ender-3V3-all' },
+    },
+    ender3_v3_se: {
+      printerName: 'Creality Ender-3 V3 SE',
+      compatiblePrinter: 'Creality Ender-3 V3 SE 0.4 nozzle',
+      processParents: {
+        '0.12': '0.12mm Fine @Creality Ender3V3SE 0.4',
+        '0.16': '0.16mm Optimal @Creality Ender3V3SE 0.4',
+        '0.20': '0.20mm Standard @Creality Ender3V3SE 0.4',
+        '0.24': '0.24mm Draft @Creality Ender3V3SE 0.4',
+      },
+      filamentParents: { PLA: 'Creality Generic PLA @Ender-3V3-all' },
+    },
+  };
+
+  function _closestParent(parents, layerHeight) {
+    const keys = Object.keys(parents);
+    if (!keys.length) return null;
+    const target = Number(layerHeight);
+    let closest = keys[0];
+    keys.forEach(key => {
+      if (Math.abs(Number(key) - target) < Math.abs(Number(closest) - target)) closest = key;
+    });
+    return parents[closest];
+  }
+
+  function exportOrcaJSON(state) {
+    const nozzle = getNozzle(state.nozzle);
+    let verified = ORCA_VERIFIED_PROFILES[state.printer];
+
+    // Owner X1C fixtures are the schema/version truth, but X1C still routes to
+    // Bambu Studio in the UI. This explicit-only row exists for audit/import
+    // fixture regeneration; it never changes web routing.
+    if (state.printer === 'x1c' && nozzle && String(nozzle.size) === '0.4'
+        && state.strength === 'strong') {
+      verified = {
+        printerName: 'Bambu Lab X1 Carbon',
+        compatiblePrinter: 'Bambu Lab X1 Carbon 0.4 nozzle',
+        processParents: { '0.20': '0.20mm Strength @BBL X1C' },
+        filamentParents: { PLA: 'Bambu PLA Basic @BBL X1C' },
+      };
+    }
+
+    if (!verified || !nozzle || String(nozzle.size) !== '0.4') return null;
+    return _exportBambuLikeJSON(state, {
+      printerName: verified.printerName,
+      processVersion: ORCA_VERSION,
+      filamentVersion: ORCA_VERSION,
+      dualVariantFields: ORCA_SINGLE_VARIANT_FIELDS,
+      compatiblePrinter: verified.compatiblePrinter,
+      findProcessParent: layerHeight => _closestParent(verified.processParents, layerHeight),
+      findFilamentParent: material => verified.filamentParents[material.group] || null,
+    });
   }
 
   // ── Format profile as shareable text ────────────────────────────────────────
@@ -3973,6 +4079,7 @@ const Engine = (() => {
     getTroubleshootingTips,
     exportProfile,
     exportBambuStudioJSON,
+    exportOrcaJSON,
     formatProfileAsText,
     calcPurgeVolumes,
     calcPrintTime,
