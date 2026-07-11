@@ -1,7 +1,8 @@
 # Export Phase 4 — PrusaSlicer Gate Ledger
 
-> Status: **OWNER-VERIFY PENDING**. Do not mark stable or merge until the
-> staged `.ini` bundle imports and its sentinel values are visible.
+> Status: **OWNER-VERIFY PASS (2026-07-11)**. The owner imported the staged
+> `.ini` bundle and confirmed that both sentinel profiles and their odd values
+> are visible in PrusaSlicer.
 
 ## Verified scope
 
@@ -30,7 +31,7 @@
   passed after a compile-time RED, and the full suite passes **140/140** on the
   iPhone 17 Pro simulator. iOS UI remains hidden and the push gate remains active.
 
-## OWNER-VERIFY — required PrusaSlicer import test
+## OWNER-VERIFY — PASS (owner-run 2026-07-11)
 
 Import:
 
@@ -45,5 +46,6 @@ not an HF0.4 profile — then confirm both user presets appear:
   **223/217**, retraction **0.73**, extrusion multiplier **0.97**, and
   first/other-layer bed **57/53**.
 
-Record PASS/FAIL and the exact PrusaSlicer message if either preset is rejected
-or hidden. A FAIL leaves Copy fallback as the shipping behavior.
+Result: **PASS** for both profiles. The owner confirmed that the print preset
+and filament preset import successfully and expose the deliberately odd values.
+This closes the manual Phase 4 round-trip gate.
