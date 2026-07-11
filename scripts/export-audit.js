@@ -241,6 +241,93 @@ async function main() {
   INFO('support_style on decorative+tree (5-option map lands in A-P1)',
     exp4 ? `exports "${exp4.process.support_style}"` : 'export null');
 
+  // ═══ OrcaSlicer (Phase 3) ═══════════════════════════════════════════════
+  const orcaGoldenProcess = JSON.parse(fs.readFileSync(path.join(GOLDEN, 'orca-x1c-process-ref.json'), 'utf8'));
+  const orcaGoldenFilament = JSON.parse(fs.readFileSync(path.join(GOLDEN, 'orca-x1c-filament-ref.json'), 'utf8'));
+
+  console.log('\n# Export audit — OrcaSlicer (owner X1C fixtures + verified Ender-3 V3 registry parents)\n');
+
+  const hasOrcaExport = typeof Engine.exportOrcaJSON === 'function';
+  checkFail('exportOrcaJSON public API exists', hasOrcaExport);
+
+  const orcaX1cState = stateFor('x1c', 'pla_basic', 'std_0.4', { strength: 'strong' });
+  const orcaX1c = hasOrcaExport ? Engine.exportOrcaJSON(orcaX1cState) : null;
+  checkFail('X1C owner-fixture export returns process + filament',
+    !!(orcaX1c && orcaX1c.process && orcaX1c.filament));
+  if (orcaX1c) {
+    checkFail('Orca process version matches owner fixture',
+      orcaX1c.process.version === orcaGoldenProcess.version,
+      `app ${orcaX1c.process.version} vs golden ${orcaGoldenProcess.version}`);
+    checkFail('Orca filament version matches owner fixture',
+      orcaX1c.filament.version === orcaGoldenFilament.version,
+      `app ${orcaX1c.filament.version} vs golden ${orcaGoldenFilament.version}`);
+    checkFail('Orca X1C process inherits owner-fixture system preset',
+      orcaX1c.process.inherits === orcaGoldenProcess.inherits,
+      `app "${orcaX1c.process.inherits}" vs golden "${orcaGoldenProcess.inherits}"`);
+    checkFail('Orca X1C filament inherits owner-fixture system preset',
+      orcaX1c.filament.inherits === orcaGoldenFilament.inherits,
+      `app "${orcaX1c.filament.inherits}" vs golden "${orcaGoldenFilament.inherits}"`);
+  }
+
+  // Registry facts pinned from OrcaSlicer/OrcaSlicer main on 2026-07-11.
+  // Exact source paths are recorded in slicer-golden/versions.md. The fixture
+  // set is X1C-only, so native web export stays allowlisted to verified vendor
+  // parents; unverified Orca-routed printers keep the existing Copy fallback.
+  const orcaEnderState = stateFor('ender3_v3_se', 'pla_basic', 'std_0.4');
+  const orcaEnder = hasOrcaExport ? Engine.exportOrcaJSON(orcaEnderState) : null;
+  checkFail('verified Ender-3 V3 SE export returns process + filament',
+    !!(orcaEnder && orcaEnder.process && orcaEnder.filament));
+  if (orcaEnder) {
+    checkFail('Ender-3 V3 SE process uses exact Orca vendor parent (not Bambu table)',
+      orcaEnder.process.inherits === '0.20mm Standard @Creality Ender3V3SE 0.4',
+      orcaEnder.process.inherits);
+    checkFail('Ender-3 V3 SE filament uses exact Orca vendor parent',
+      orcaEnder.filament.inherits === 'Creality Generic PLA @Ender-3V3-all',
+      orcaEnder.filament.inherits);
+    checkFail('Ender-3 V3 SE compatible_printers uses exact Orca machine variant',
+      Array.isArray(orcaEnder.filament.compatible_printers)
+        && orcaEnder.filament.compatible_printers[0] === 'Creality Ender-3 V3 SE 0.4 nozzle',
+      JSON.stringify(orcaEnder.filament.compatible_printers));
+    const enderProfile = Engine.resolveProfile(orcaEnderState);
+    const exportedPattern = Array.isArray(orcaEnder.process.internal_solid_infill_pattern)
+      ? orcaEnder.process.internal_solid_infill_pattern[0]
+      : orcaEnder.process.internal_solid_infill_pattern;
+    checkFail('Orca _slicer_value passthrough: internal_solid_infill_pattern',
+      exportedPattern === enderProfile.internal_solid_infill_pattern._slicer_value,
+      `exported ${exportedPattern} vs resolved ${enderProfile.internal_solid_infill_pattern._slicer_value}`);
+  }
+
+  [
+    ['ender3_v3',      '0.20mm Standard @Creality Ender-3 V3',      'Creality Ender-3 V3 0.4 nozzle'],
+    ['ender3_v3_ke',   '0.20mm Standard @Creality Ender3V3KE',      'Creality Ender-3 V3 KE 0.4 nozzle'],
+    ['ender3_v3_plus', '0.20mm Standard @Creality Ender-3 V3 Plus', 'Creality Ender-3 V3 Plus 0.4 nozzle'],
+  ].forEach(([printerId, parent, compatible]) => {
+    const candidate = hasOrcaExport
+      ? Engine.exportOrcaJSON(stateFor(printerId, 'pla_basic', 'std_0.4')) : null;
+    checkFail(`${printerId} exact verified process parent`,
+      candidate?.process?.inherits === parent,
+      candidate?.process?.inherits || 'null');
+    checkFail(`${printerId} exact compatible_printers`,
+      candidate?.filament?.compatible_printers?.[0] === compatible,
+      JSON.stringify(candidate?.filament?.compatible_printers));
+  });
+
+  const orcaUnsupportedNozzle = hasOrcaExport
+    ? Engine.exportOrcaJSON(stateFor('ender3_v3_se', 'pla_basic', 'std_0.6')) : null;
+  checkFail('unverified Orca nozzle returns null (Copy fallback stays active)',
+    orcaUnsupportedNozzle === null, JSON.stringify(orcaUnsupportedNozzle));
+
+  const orcaProcessOnly = hasOrcaExport
+    ? Engine.exportOrcaJSON(stateFor('ender3_v3_se', 'petg_basic', 'std_0.4')) : null;
+  checkFail('verified printer + unverified filament parent keeps process-only export',
+    !!orcaProcessOnly?.process && orcaProcessOnly.filament === null,
+    JSON.stringify(orcaProcessOnly));
+
+  const orcaUnverified = hasOrcaExport
+    ? Engine.exportOrcaJSON(stateFor('k2_se', 'pla_basic', 'std_0.4')) : null;
+  checkFail('unverified Orca printer returns null (Copy fallback stays active)',
+    orcaUnverified === null, JSON.stringify(orcaUnverified));
+
   // ═══ PrusaSlicer (fixture validation only — .ini export is Phase 4) ═════
   console.log('\n# Export audit — PrusaSlicer (fixture parse + inventory; serializer is Phase 4)\n');
   const ini = fs.readFileSync(path.join(GOLDEN, 'prusa-coreone-config.ini'), 'utf8');
