@@ -1,18 +1,10 @@
 # 3dpa — Next Session Kickoff
 
 **Purpose:** copy-paste kickoff prompt for the next fresh 3dpa session.
-**Last updated:** 2026-07-10 (R8 close after Intake Autonomy v2.1 implementation + final review GO).
-**Locked next entry point:** **Publish/PR Intake Autonomy v2.1 only if the owner explicitly authorizes push/PR/merge.** Do not restart R0–R8.
+**Last updated:** 2026-07-11 (export-first pivot wrap).
+**Locked next entry point:** **Printer export remaining phases first.** Start by recovering/finishing Export Phase 2 on current `main`; then Phase 3 Orca; then Phase 4 Prusa. The already-reviewed iOS 1.0.7 issue-fix plan comes immediately after the export sequence.
 
 ---
-
-## State of play (read before anything)
-
-- **v2.1 implementation is complete locally, not pushed/PR/merged.** Web branch: `codex/intake-v21-impl`; final web close commit is the R8 docs commit from the prior session. Cross-repo ai-om commits are local on `ai-operating-model/main`: `9bc6e0c` (v2.1 runner contract integration) + `a118bd5` (split-review routing fix).
-- **R0–R8 are closed and reviewed.** R8 full local suite passed: all intake unit/shell tests, `validate-data`, `validate-ios-printer-overlay`, and `git diff --check`. Final direct cross-model review first returned NO-GO on split verdict routing, then GO after `a118bd5`.
-- **No external state change was performed at R8 close.** No push, no PR, no merge. Keep that boundary unless the owner explicitly says to proceed with publishing.
-- **K2 SE remains parked, tainted, and stationary.** No timer retry. No Scout rerun. No PD5 re-entry unless the owner explicitly instructs RD2 re-attempt or supplies new external evidence for supervised `judgment-on-evidence`.
-- **Live v2 baseline remains safe.** The daily 12:00 schedule exists, but the v2.1 implementation is not live until the branch/contract commits are published and merged.
 
 Copy everything between the markers into a new session.
 
@@ -20,35 +12,71 @@ Copy everything between the markers into a new session.
 
 3dpa cold start.
 
-Read in order: `~/dev/Claude/Projects/CLAUDE.md` → `3dprintassistant/CLAUDE.md` → `3dprintassistant/docs/3dpa-context.md` → `3dprintassistant/docs/planning/ROADMAP.md` (banner + Active Work Queue) → `docs/planning/INTAKE-AUTONOMY-V2-GATE-LEDGER.md` (R8 row) → this file.
+Read in order:
+
+1. `~/dev/Claude/Projects/CLAUDE.md`
+2. `3dprintassistant/CLAUDE.md`
+3. `3dprintassistant/docs/3dpa-context.md`
+4. `3dprintassistant/docs/planning/ROADMAP.md`
+5. `3dprintassistant/docs/specs/IMPL-043-slicer-export-activation.md`
+6. `3dprintassistant/docs/superpowers/plans/2026-07-11-export-first-overall-plan.md`
+7. `3dprintassistant/docs/sessions/INDEX.md`
+8. Recent export logs:
+   - `3dprintassistant/docs/sessions/2026-07-11-cowork-appdev-export-pivot-wrap.md`
+   - Export Phase 2 branch-only log, read with:
+     ```bash
+     git -C 3dprintassistant show origin/export-phase2-20260709:docs/sessions/2026-07-09-cowork-appdev-export-phase2.md | sed -n '1,260p'
+     ```
+   - `3dprintassistant/docs/sessions/2026-07-06-cowork-appdev-learns-export.md`
 
 Then verify local state:
 
 ```bash
-cd ~/dev/Claude/Projects/3dprintassistant
-git status --short --branch
-git log --oneline -5
-git -C ../ai-operating-model status --short --branch
-git -C ../ai-operating-model log --oneline -3
+cd ~/dev/Claude/Projects
+~/.claude/claude-sync.sh verify-parents
+~/.claude/claude-sync.sh push-children --dry
+git -C 3dprintassistant fetch --all --prune
+git -C 3dprintassistant status --short --branch
+git -C 3dprintassistant-ios status --short --branch
 ```
 
-Expected: web branch `codex/intake-v21-impl` contains R0–R8, and ai-om `main` is ahead with the v2.1 contract commits.
+Expected known warnings: `3dprintassistant` may be on a planning branch with no upstream until this wrap PR is merged; `3dprintassistant-ios` may be ahead locally under the iOS push gate; Android checkout may be missing/health-only.
 
-If the owner explicitly authorizes push/PR/merge:
+Today's primary task:
 
-1. Re-run the R8 smoke set (`node scripts/validate-reviewer-output.test.js`, `node scripts/validate-data.js`, `node scripts/validate-ios-printer-overlay.js`, `git diff --check`; run the full R8 suite if anything changed).
-2. Push the ai-om commits and the web branch.
-3. Open the web PR using the v2.1 summary from `docs/superpowers/plans/2026-07-10-intake-autonomy-v2.1-small-gates-plan.md` Step 5, updated with the R8 final-review/fix evidence.
-4. Watch checks. Merge only when checks are green and review status is clear.
-5. After merge, fast-forward local `main`; do **not** reattempt K2 SE unless separately instructed.
+1. **Recover and merge Export Phase 2 onto current `main`.**
+   - Evidence verified 2026-07-11: `origin/export-phase2-20260709` contains completed Bambu Phase 2 work and owner-verify PASS, but it is stale versus current `origin/main`.
+   - Do **not** merge `origin/export-phase2-20260709` directly. Its raw diff versus current `origin/main` includes unrelated deletions of newer intake/K2/analytics work.
+   - Follow Task 1 in `docs/superpowers/plans/2026-07-11-export-first-overall-plan.md`.
+   - Exit gate: current-main-safe PR diff is export-only; web gates green; iOS engine byte-identical + XCTest green on mac-mini; PR merged; production `engine.js` live-verified.
+
+2. **Then Phase 3: OrcaSlicer native export.**
+   - Current verified state: no `exportOrcaJSON` exists; `app.js` shows native export only for `bambu_studio`; Orca users get copy-text fallback.
+   - Orca golden fixtures were captured 2026-07-06 at `scripts/fixtures/slicer-golden/orca-x1c-*-ref.json`.
+   - Follow Task 2 in the export-first plan.
+
+3. **Then Phase 4: PrusaSlicer `.ini` export.**
+   - Current verified state: no `exportPrusaINI` exists; Prusa users get copy-text fallback.
+   - Prusa fixture parsing/key inventory is documented in IMPL-043 §1.4b F10.
+   - Follow Task 3 in the export-first plan.
+
+4. **After export phases: resume iOS 1.0.7 issue-fix release.**
+   - Existing artifacts remain valid but are now sequenced after export:
+     - `docs/superpowers/specs/2026-07-11-ios-1.0.7-issue-fix-release-design.md`
+     - `docs/superpowers/plans/2026-07-11-ios-1.0.7-issue-fix-release-plan.md`
+     - `docs/reviews/2026-07-11-ios-1.0.7-plan-review.md`
+   - Do not push iOS until the whole TestFlight-ready train is complete and owner-ready.
+   - Finish with clean-state audit across every touched repo.
 
 Rules for this work:
 
-- Do not restart R0–R8; they are already closed.
-- One accepted review finding = one commit.
-- No iOS push. Printer additions remain web data + remote overlay; TestFlight is not part of this workflow.
-- K2 SE re-entry is owner-explicit only.
-- If not authorized to publish, stop after reporting clean local readiness.
+- Progress bar on multi-step turns.
+- ROADMAP is truth; update it when phase state changes.
+- Web is master; mirror engine/data byte-identically to iOS when touched.
+- One finding = one commit.
+- No direct merge of stale export branch.
+- Native Orca/Prusa export is not live until the new implementation phases land and pass recorded import gates.
+- iOS push gate remains active.
 
 >>> END <<<
 
