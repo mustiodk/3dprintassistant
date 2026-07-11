@@ -31,7 +31,7 @@ Estimated envelope: AP1–AP9 ≈ 8–11 focused sessions (AP5 alone = 2: the me
 
 ## AP0 — Owner gate (no code)
 
-1. Ratify APD0–APD15 (reply GO or override per decision). **APD13 (Phase-2 Pro anchor: option a/b/c/d) is a hard blocker for AP4+** — AP1–AP3 + AP7 may proceed under any option. Also approve the ToS-light draft (APD15).
+1. Ratify APD0–APD15 (reply GO or override per decision). **APD13 (Phase-2 Pro anchor: option a/b/c/d) is a hard blocker for AP4+** — AP1–AP3 may proceed under any option; AP7 under (a)/(b). **This plan is executable end-to-end only under option (a); picking (b)/(c)/(d) makes a reviewed Phase-2 Pro companion plan (entitlements, IAP rail, sync guard, launch reorder) a prerequisite before AP4 starts.** Also approve the ToS-light draft (APD15).
 2. Registrations (owner, ~1–2h total, days of lead time for Apple):
    - Apple Developer: create a **Services ID** for web Sign in with Apple + key (`.p8`) — store in Worker secrets, never in repo (md-hygiene checklist already guards `AuthKey*`). Includes **domain verification** for 3dprintassistant.com; AP2 mints the ES256 client-secret JWT from the `.p8` per exchange.
    - Google Cloud Console: **one** web-application OAuth client + authorized redirect `https://3dprintassistant.com/api/v1/auth/google/callback` (native iOS reuses it via `ASWebAuthenticationSession` → Worker-minted intermediate code; no second client).
@@ -53,7 +53,7 @@ Branch `accounts/ap1-foundation`. Files:
 - Rate-limit bindings in `wrangler.toml` (per-IP pre-auth, per-user authed) — consumed from AP2 on.
 - `functions/api/v1/_lib/tokens.js` — JWT (WebCrypto HS256 v1, `kid` support), refresh-token hash/rotation helpers.
 - `functions/api/v1/_lib/guard.js` — `requireEnabled` (503 when flag off), `requireAuth` (Bearer/cookie → user), rate-limit headers passthrough.
-- Tests `functions/api/v1/foundation.test.mjs` following the existing `functions/api/*.test.mjs` pattern (run: `node --test functions/api/v1/*.test.mjs`): token round-trip, rotation-reuse revokes family, flag-off returns 503, migration idempotency (miniflare/`better-sqlite3` in-memory stand-in consistent with existing test approach — match whatever `analytics.test.mjs` uses).
+- Tests `functions/api/v1/foundation.test.mjs` (run: `node --test functions/api/v1/*.test.mjs`): token round-trip, rotation-reuse revokes family, grace-window successor replay, flag-off returns 503 (with GDPR carve-out list exempted), migration apply. **Integration tests run against the real local D1 binding (wrangler/miniflare harness) through `worker.fetch`** — plain SQLite stand-ins are allowed only for isolated pure-logic unit tests, never as the integration layer (D1 batch/binding/migration semantics differ).
 - `docs/3dpa-context.md`: update the two non-goal lines per APD11 (accounts now optional-by-design; cloud sync exists as optional; engine purity unchanged) + one cross-ref note added to the monetization plan MD3 line.
 
 **Gates before merge:** tests green (incl. worker.fetch route tests: unknown `/api/v1/x` → JSON 404, wrong method → 405); `node scripts/walkthrough-harness.js` clean; golden snapshot NO DRIFT; migration applied to preview D1 before deploy; sub-agent review; **live verify after merge:** `curl https://3dprintassistant.com/api/v1/auth/status` → 503 (flag off) — proves dark.
@@ -70,8 +70,8 @@ Branch `accounts/ap2-oauth`. Files: `functions/api/v1/auth/[provider]/start.js`,
 - Tests: state mismatch → 400; missing/expired pre-auth cookie → 400; JWKS `kid` rotation; verified-email dedupe (google then apple with same verified email → one user); unverified email → distinct user; relay email → distinct user; nullable-email Apple re-auth; refresh reuse inside 30s grace → same successor, outside grace → family revoked; logout revokes; auth_code single-use + expiry + **PKCE verifier mismatch → 400**; native Apple `authorizationCode` exchange stores the refresh token; dual-audience validation; rate-limit 429 paths.
 - **Exit step (dark launch):** after merge, flip `ACCOUNTS_API_ENABLED="true"` in prod with UI off — API live dark from AP2 on (this is what AP9 later relies on).
 
-**Gates:** tests green; sub-agent review; **cross-model review (security lens) — patch until no P0–P2**; walkthrough/golden clean; merge; still dark (flag off).
-**Rollback:** revert PR; D1 rows additive only.
+**Gates:** tests green; sub-agent review; **cross-model review (security lens) — patch until no P0–P2**; walkthrough/golden clean; merge → apply prod migration → **flip `ACCOUNTS_API_ENABLED="true"` (UI stays off) = dark-live** (matches the exit step above; "dark" always means API-on/UI-off from here on).
+**Rollback:** kill switch off; revert PR; D1 rows additive only.
 
 ## AP3 — Web auth UI (flag-gated)
 
