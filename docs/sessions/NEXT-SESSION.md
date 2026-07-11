@@ -1,7 +1,7 @@
 # 3dpa — Next Session Kickoff
 
 **Purpose:** copy-paste kickoff prompt for the next fresh 3dpa session.
-**Last updated:** 2026-07-11 (Air → mac-mini Export Phase 2 handoff; current-main recovery remains locked).
+**Last updated:** 2026-07-11 (Air → mac-mini Export Phase 2 handoff; current-main recovery remains locked). **2026-07-11 (parallel Claude session, surgical add):** monetization Phase 1 (tip jar) was APPROVED and planned — see `docs/superpowers/plans/2026-07-11-monetization-phase1-tip-jar-plan.md` + the new ROADMAP queue row. It does NOT change the locked entry point below: web Ko-fi track is independent (owner: create Ko-fi account); iOS tip jar is its own 1.0.8 train strictly AFTER 1.0.7 (owner: ASC Paid Applications agreement + banking/tax forms + Small Business Program — start early, days of lead time). NOTE: the export-sequence state described below is one wrap behind — ROADMAP shows Phase 2 merged+live and Phase 3 owner-verify PASS/PR-pending; trust ROADMAP.
 **Locked next entry point:** **Printer export remaining phases first.** Start by recovering/finishing Export Phase 2 on current `main`; then Phase 3 Orca; then Phase 4 Prusa. The already-reviewed iOS 1.0.7 issue-fix plan comes immediately after the export sequence.
 
 ---
