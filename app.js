@@ -1613,19 +1613,19 @@ function render() {
         processBtn.style.display = '';
         filamentBtn.style.display = '';
         prusaBtn.style.display = 'none';
-      const isOrca = slicer === 'orcaslicer';
-      processBtn.textContent = isOrca ? '↓ Orca Process' : '↓ Process';
-      filamentBtn.textContent = isOrca ? '↓ Orca Filament' : '↓ Filament';
-      processBtn.title = isOrca
-        ? 'Download process profile (print settings) for OrcaSlicer'
-        : 'Download process profile (print settings) for Bambu Studio';
-      exportHint.textContent = T(isOrca ? 'exportHintOrca' : 'exportHintBambu');
-      exportHint.style.display = '';
-      // Grey out filament button if no filament export available
-      filamentBtn.disabled = !nativeResult.filament;
-      filamentBtn.title = nativeResult.filament
-        ? `Download filament profile (temperatures, cooling, PA) for ${isOrca ? 'OrcaSlicer' : 'Bambu Studio'}`
-        : 'Filament export not available for this material/printer combination';
+        const isOrca = slicer === 'orcaslicer';
+        processBtn.textContent = isOrca ? '↓ Orca Process' : '↓ Process';
+        filamentBtn.textContent = isOrca ? '↓ Orca Filament' : '↓ Filament';
+        processBtn.title = isOrca
+          ? 'Download process profile (print settings) for OrcaSlicer'
+          : 'Download process profile (print settings) for Bambu Studio';
+        exportHint.textContent = T(isOrca ? 'exportHintOrca' : 'exportHintBambu');
+        exportHint.style.display = '';
+        // Grey out filament button if no filament export available
+        filamentBtn.disabled = !nativeResult.filament;
+        filamentBtn.title = nativeResult.filament
+          ? `Download filament profile (temperatures, cooling, PA) for ${isOrca ? 'OrcaSlicer' : 'Bambu Studio'}`
+          : 'Filament export not available for this material/printer combination';
       }
     } else {
       exportGroup.style.display  = 'none';
