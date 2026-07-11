@@ -25,7 +25,7 @@
 | AP10 | iOS account train (sub-gates I1–I6) | iOS | one push at TestFlight-ready | per-sub-gate sub-agent + cross-model before push |
 | AP11 | Docs/ROADMAP/Android-seed closeout | web | PR-j | sub-agent (light) |
 
-Estimated envelope: AP1–AP9 ≈ 8–11 focused sessions (AP5 alone = 2: the merge layer is new cross-platform code, not reuse); AP10 ≈ 5–7 sessions (mac-mini; I2 = 2); AP11 ≈ half session. One gate per session by default.
+Estimated envelope: AP1–AP9 ≈ 8–11 focused sessions (AP5 alone = 2: the merge layer is new cross-platform code, not reuse); AP10 ≥ 7 sessions (mac-mini; I2 = 2; checkpoints on a remote feature branch); AP11 ≈ half session. One gate per session by default.
 
 ---
 
@@ -34,7 +34,8 @@ Estimated envelope: AP1–AP9 ≈ 8–11 focused sessions (AP5 alone = 2: the me
 1. Ratify APD0–APD15 (reply GO or override per decision). **APD13 (Phase-2 Pro anchor: option a/b/c/d) is a hard blocker for AP4+** — AP1–AP3 + AP7 may proceed under any option. Also approve the ToS-light draft (APD15).
 2. Registrations (owner, ~1–2h total, days of lead time for Apple):
    - Apple Developer: create a **Services ID** for web Sign in with Apple + key (`.p8`) — store in Worker secrets, never in repo (md-hygiene checklist already guards `AuthKey*`). Includes **domain verification** for 3dprintassistant.com; AP2 mints the ES256 client-secret JWT from the `.p8` per exchange.
-   - Google Cloud Console: OAuth client (web) + authorized redirect `https://3dprintassistant.com/api/v1/auth/google/callback`; a second client for iOS custom-scheme flow if needed.
+   - Google Cloud Console: **one** web-application OAuth client + authorized redirect `https://3dprintassistant.com/api/v1/auth/google/callback` (native iOS reuses it via `ASWebAuthenticationSession` → Worker-minted intermediate code; no second client).
+   - Apple Developer (native prerequisites): enable the **Sign in with Apple capability on the primary App ID** and **associate the Services ID with it** — without this the native flow cannot ship (AP10-I1 consumes it).
    - Confirm D1 availability on the Cloudflare account; owner runs nothing — AP1 creates the DB via wrangler, but billing plan visibility is owner's.
 3. Approve the privacy-policy delta draft (AP9 publishes it).
 4. Sequencing decision: confirm AP10 runs after the 1.0.7 and 1.0.8 trains, and pick the AP10 version number (suggest 1.1.0).
@@ -111,7 +112,7 @@ Contents: identity, per-doc sync status ("last synced HH:MM · v12"), Workshop c
 Branch `accounts/ap7-inventory-local`. Files: `inventory.js` (store + CRUD + rendering), `index.html` nav entry, `style.css` (spool-card pattern adapted from bambuinventory: swatch circle, material/vendor/remaining), locales EN+DA.
 
 - **Independence note:** AP7 depends only on AP0 — it can run before or parallel to AP1–AP6 (local-first, no accounts machinery).
-- Local store `3dpa_inventory_v1` (try-catch localStorage per project rule). Schema per spec APD5 incl. `rev` + tombstone-ready `id`s (uuid).
+- Local store `3dpa_inventory_v1` (try-catch localStorage per project rule). Schema per spec APD5 (full ported field set; `material_id` = stable materials.json id) incl. per-field `revs` + tombstone-ready `id`s (uuid); **schema validated against a fixture exported from the owner's real bambuinventory `api.php`** (proves the port against actual data).
 - `workshop-store.js` change: `addOutcome` accepts an optional `spool_id` and **persists it** (today it reconstructs a fixed record and drops unknown fields) + round-trip test; journal UI shows "(deleted spool)" fallback when the referenced spool is gone.
 - Quick-add presets derived from the material vocabulary **read via existing engine data accessors at runtime** (no new engine API, no data file edits).
 - Configurator integration: "in stock" badge in material picker (app-layer lookup by material family), journal entry optional `spool_id` selector.
@@ -137,14 +138,14 @@ Branch `accounts/ap9-launch`. Files: `functions/api/v1/account/export.js` (cloud
 
 ## AP10 — iOS account train (own release, after 1.0.7 + 1.0.8 trains)
 
-One train, local commits per sub-gate, **single push when TestFlight-ready** (push gate). Suggested `MARKETING_VERSION=1.1.0` (owner confirms at AP0.4). Sub-gates:
+One train. **Checkpoint safety:** sub-gate commits push to a non-deploying remote feature branch `codex/accounts-train` after each sub-gate (precedent: the 2026-07-11 export transfer branch — the iOS push gate governs `main` + TestFlight dispatch, not feature branches; a 7+-session train held only on one machine is a machine-loss risk). `main` is pushed **once**, when TestFlight-ready. Suggested `MARKETING_VERSION=1.1.0` (owner confirms at AP0.4). Estimate ≥7 focused sessions. Sub-gates:
 
-- **I1** `AccountService` (SiwA native via `ASAuthorizationController`; Google via `ASWebAuthenticationSession` to the web endpoints; Keychain token storage; refresh rotation) + XCTest (mocked network).
+- **I1** `AccountService` (SiwA native via `ASAuthorizationController` sending `id_token` + `authorizationCode`; Google via `ASWebAuthenticationSession` to the web endpoints with PKCE; Keychain token storage; refresh rotation) + **project mutations**: SiwA entitlement/capability in `project.yml` (+ regenerated pbxproj) and the fixed custom callback URL scheme in Info.plist — neither exists today + XCTest (mocked network).
 - **I2** `SyncService` + the **new Swift merge layer mirroring AP5's `merge.js`** (per-record LWW, journal union, tuning op-union, deletion ledger on `WorkshopStore` delete paths, APD14 prompt) — re-runs AP5's shared JSON merge fixtures as XCTests + the byte-compat fixture pin. Largest I-sub-gate; allow 2 sessions.
 - **I3** `InventoryStore` + inventory screens (schema fixture shared with web; spool cards per iOS design system) + XCTest.
 - **I4** My 3dpa screen (account, sync status, summaries, **export + in-app account deletion — Apple 5.1.1(v)**) + XCTest.
-- **I5** App Privacy label update (email, linked to identity, app functionality) + policy link + copy EN/DA parity.
-- **I6** Release gates: full XCTest suite green, walkthrough parity items, MARKETING_VERSION bump, TestFlight dispatch (owner), on-device acceptance incl. account create/sync/delete, App Store submission.
+- **I5** App Privacy label update — **all four new types: Name, Email address, User ID, Other User Content** (synced Workshop/inventory docs), linked to identity, app functionality, no tracking — merged with the existing declared diagnostics/usage disclosures in `docs/app-store-privacy-labels.md` (which today explicitly denies all four) + policy link + copy EN/DA parity.
+- **I6** Release gates: full XCTest suite green, walkthrough parity items, MARKETING_VERSION bump, **ASC App Privacy answers verified against I5 as an explicit exit item**, TestFlight dispatch (owner), on-device acceptance incl. account create/sync/delete, App Store submission.
 
 **Per-sub-gate:** hostile sub-agent review + QA; **cross-model review once before the push** (release lens). Engine/data: byte-identical check even though untouched (`diff -q`).
 **Rollback:** don't push; or ship next train with account UI behind iOS-side flag reading `auth/status`.
