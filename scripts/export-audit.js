@@ -353,6 +353,48 @@ async function main() {
     (kv.filament_settings_id || '').includes('Generic ABS'), kv.filament_settings_id);
   INFO('prusa key inventory captured for the Phase 4 key map', `${Object.keys(kv).length} keys, e.g. retract_length=${kv.retract_length}, temperature=${kv.temperature}, first_layer_temperature=${kv.first_layer_temperature}`);
 
+  const hasPrusaExport = typeof Engine.exportPrusaINI === 'function';
+  checkFail('exportPrusaINI public API exists', hasPrusaExport);
+  const prusaState = stateFor('core_one_l', 'pla_basic', 'std_0.4');
+  const prusaExport = hasPrusaExport ? Engine.exportPrusaINI(prusaState) : null;
+  checkFail('verified CORE One L 0.4 + PLA emits a config bundle string',
+    typeof prusaExport === 'string' && prusaExport.length > 100,
+    JSON.stringify(prusaExport));
+  if (prusaExport) {
+    checkFail('Prusa bundle emits named print + filament sections',
+      prusaExport.includes('[print:3DPA PLA Basic 0.2mm @COREONEL 0.4]')
+        && prusaExport.includes('[filament:3DPA PLA Basic @COREONE]'));
+    checkFail('Prusa bundle inherits exact verified 2.9.4 parents',
+      prusaExport.includes('inherits = 0.20mm SPEED @COREONEL 0.4')
+        && prusaExport.includes('inherits = Generic PLA @COREONE'));
+    checkFail('Prusa process maps canonical values',
+      prusaExport.includes('layer_height = 0.2')
+        && prusaExport.includes('perimeters = 3')
+        && prusaExport.includes('fill_density = 15%')
+        && prusaExport.includes('external_perimeter_speed = 100')
+        && prusaExport.includes('perimeter_speed = 200'));
+    checkFail('Prusa filament maps temps + valid retraction override',
+      prusaExport.includes('temperature = 220')
+        && prusaExport.includes('first_layer_temperature = 225')
+        && prusaExport.includes('filament_retract_length = 0.6')
+        && prusaExport.includes('filament_retract_speed = 45'));
+    checkFail('Prusa bundle pins verified COREONEL standard-0.4 compatibility',
+      prusaExport.includes('printer_model=~/(COREONEL|COREONELMMU3)/')
+        && prusaExport.includes('nozzle_diameter[0]==0.4')
+        && prusaExport.includes('! nozzle_high_flow[0]'));
+    checkFail('Prusa export is transparent about omitted unsupported settings',
+      prusaExport.includes('; Unmapped canonical settings are omitted'));
+    checkFail('Prusa export never serializes JavaScript placeholders',
+      !prusaExport.includes('[object Object]') && !prusaExport.includes('undefined'));
+  }
+
+  checkFail('unverified Prusa nozzle keeps Copy fallback',
+    !hasPrusaExport || Engine.exportPrusaINI(stateFor('core_one_l', 'pla_basic', 'std_0.6')) === null);
+  checkFail('unverified Prusa printer keeps Copy fallback',
+    !hasPrusaExport || Engine.exportPrusaINI(stateFor('mk4s', 'pla_basic', 'std_0.4')) === null);
+  checkFail('unverified Prusa material parent keeps Copy fallback',
+    !hasPrusaExport || Engine.exportPrusaINI(stateFor('core_one_l', 'petg_basic', 'std_0.4')) === null);
+
   finish();
 }
 
