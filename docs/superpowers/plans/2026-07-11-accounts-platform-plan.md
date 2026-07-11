@@ -133,6 +133,8 @@ Branch `accounts/ap9-launch`. Files: `functions/api/v1/account/export.js` (cloud
 
 **APD13 conditionality:** if the owner picked (b)/(c)/(d), "UI flag ON for everyone" is replaced by the Pro-gated rollout defined in the Phase-2 monetization spec (which must then exist before AP9 completes); under (a) AP9 launches sync free as written.
 
+Also in AP9: `docs/runbooks/accounts-recovery.md` + a scripted restore-replay tool (`scripts/accounts-restore-replay.js`: reads the KV deletion log, re-deletes matching users) — **exit gate includes one restore rehearsal against a preview D1: restore → replay → deleted users provably absent before traffic resumes**; privacy policy discloses the ≤30-day revocation-outbox credential retention alongside the deletion-log + export retentions; kill-switch rights test (export/delete usable after access-token expiry with `ACCOUNTS_API_ENABLED=false`).
+
 **Launch sequence (in-PR checklist):** merge → deploy → owner creates a real account (both providers) → sync smoke on two browsers → export → delete → re-auth shows empty account → flag stays on.
 **Gates:** sub-agent review; **cross-model (privacy/deletion lens) until no P0–P2**; owner smoke = exit gate; ROADMAP row flip.
 **Rollback:** flag off (kill switch) — documented one-liner in the PR.
