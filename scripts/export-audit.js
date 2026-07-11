@@ -395,6 +395,15 @@ async function main() {
   checkFail('unverified Prusa material parent keeps Copy fallback',
     !hasPrusaExport || Engine.exportPrusaINI(stateFor('core_one_l', 'petg_basic', 'std_0.4')) === null);
 
+  const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
+  const indexSource = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  checkFail('web UI has a dedicated Prusa INI download control',
+    indexSource.includes('id="exportPrusaBtn"'));
+  checkFail('web UI routes verified Prusa states to exportPrusaINI + .ini filename',
+    appSource.includes('Engine.exportPrusaINI(state)')
+      && appSource.includes('3DPA_prusa_')
+      && appSource.includes("'text/plain'"));
+
   finish();
 }
 

@@ -1406,6 +1406,18 @@ function bindControls() {
     }
   });
 
+  // PrusaSlicer config-bundle export button
+  document.getElementById('exportPrusaBtn').addEventListener('click', () => {
+    if (!state.printer || !state.nozzle || !state.material) return;
+    const btn = document.getElementById('exportPrusaBtn');
+    const ini = Engine.exportPrusaINI(state);
+    track('export_clicked', { type: 'prusa_ini', printerModel: state.printer, nozzle: state.nozzle, material: state.material });
+    if (ini) {
+      _downloadText(ini, `3DPA_prusa_${state.printer}_${state.material}.ini`, 'text/plain');
+      _flashBtn(btn, '↓ Done');
+    }
+  });
+
   // Copy fallback for non-Bambu printers
   document.getElementById('exportCopyBtn').addEventListener('click', () => {
     if (!state.printer || !state.nozzle || !state.material) return;
@@ -1423,7 +1435,11 @@ function bindControls() {
   }
 
   function _downloadJSONText(text, filename) {
-    const blob = new Blob([text], { type: 'application/json' });
+    _downloadText(text, filename, 'application/json');
+  }
+
+  function _downloadText(text, filename, mimeType) {
+    const blob = new Blob([text], { type: mimeType });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href = url; a.download = filename;
@@ -1574,18 +1590,30 @@ function render() {
   const exportGroup  = document.getElementById('exportGroup');
   const exportCopyBtn = document.getElementById('exportCopyBtn');
   const exportHint   = document.getElementById('exportHint');
+  const processBtn = document.getElementById('exportProcessBtn');
+  const filamentBtn = document.getElementById('exportFilamentBtn');
+  const prusaBtn = document.getElementById('exportPrusaBtn');
   const hasMin = state.printer && state.nozzle && state.material;
   if (hasMin && state.printer) {
     const slicer = Engine.getSlicerForPrinter(state.printer);
     const nativeResult = slicer === 'bambu_studio' ? Engine.exportBambuStudioJSON(state)
                        : slicer === 'orcaslicer'   ? Engine.exportOrcaJSON(state)
                        :                            null;
-    if (nativeResult) {
+    const prusaResult = slicer === 'prusaslicer' ? Engine.exportPrusaINI(state) : null;
+    if (nativeResult || prusaResult) {
       exportGroup.style.display  = 'flex';
       exportCopyBtn.style.display = 'none';
+      if (prusaResult) {
+        processBtn.style.display = 'none';
+        filamentBtn.style.display = 'none';
+        prusaBtn.style.display = '';
+        exportHint.textContent = T('exportHintPrusa');
+        exportHint.style.display = '';
+      } else {
+        processBtn.style.display = '';
+        filamentBtn.style.display = '';
+        prusaBtn.style.display = 'none';
       const isOrca = slicer === 'orcaslicer';
-      const processBtn = document.getElementById('exportProcessBtn');
-      const filamentBtn = document.getElementById('exportFilamentBtn');
       processBtn.textContent = isOrca ? '↓ Orca Process' : '↓ Process';
       filamentBtn.textContent = isOrca ? '↓ Orca Filament' : '↓ Filament';
       processBtn.title = isOrca
@@ -1598,6 +1626,7 @@ function render() {
       filamentBtn.title = nativeResult.filament
         ? `Download filament profile (temperatures, cooling, PA) for ${isOrca ? 'OrcaSlicer' : 'Bambu Studio'}`
         : 'Filament export not available for this material/printer combination';
+      }
     } else {
       exportGroup.style.display  = 'none';
       exportCopyBtn.style.display = 'block';

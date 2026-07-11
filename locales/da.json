@@ -99,6 +99,7 @@
   "exportDownloaded":          "✓ Downloadet",
   "exportHintBambu":           "Importér i Bambu Studio 2.5+: File → Import → Import Configs… — profilerne dukker op under dine User-presets for denne printer/dyse.",
   "exportHintOrca":            "Importér i OrcaSlicer: File → Import → Import Configs… — profilerne dukker op under dine User-presets for denne printer/dyse.",
+  "exportHintPrusa":           "Importér i PrusaSlicer 2.9.4+: File → Import → Import Config Bundle… — tilføjer 3DPA print- og filamentprofilerne til CORE One L med en standard 0,4 mm dyse.",
   "exportCopied":              "✓ Kopieret til udklipsholder",
   "exportSaved":               "✓ Gemt",
   "shareBtn":                  "⤴ Del",
