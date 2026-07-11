@@ -64,7 +64,7 @@ Single-user PHP + MySQL app on Simply.com (`api.php`, `app.js` ~2.3k LoC) with G
 - G-B: **Cloud sync** of Workshop data (saved profiles, journal, accepted tuning) across devices/platforms.
 - G-C: **Filament inventory** as a first-class 3dpa feature (local-first, synced when signed in), integrated with the configurator (in-stock hints) and journal (spool references).
 - G-D: **"My 3dpa" profile page** — account, sync status, Workshop/inventory summaries, data export, account deletion.
-- G-E: **Foundation for Phase-2 "3dpa Pro"** (entitlements table + account plumbing) and for Android/macOS to join the same account later.
+- G-E: **Foundation for Phase-2 "3dpa Pro"** (stable user ids + migration rail + the APD13 decision record — no entitlement schema in v1 per APD10) and for Android/macOS to join the same account later.
 
 **Non-goals (v1):**
 
@@ -120,7 +120,7 @@ Browser (app.js + auth.js + sync.js + inventory.js)      iOS (AccountService + S
 Cloudflare Workers  /api/v1/auth/*  /api/v1/sync/:doc  /api/v1/account/*
         │
         ▼
-      D1 (users, oauth_identities, refresh_tokens, sync_docs, entitlements)
+      D1 (users, oauth_identities, refresh_tokens, auth_codes, devices, sync_docs, revocation_outbox)  +  KV (deletion log)
 ```
 
 ### 4.2 D1 schema (v1)
@@ -158,11 +158,20 @@ CREATE TABLE refresh_tokens (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   token_hash TEXT NOT NULL,         -- SHA-256
   family_id TEXT NOT NULL,          -- rotation family for reuse detection
+  replaced_by TEXT,                 -- successor jti (grace-window idempotency)
+  grace_response TEXT,              -- AEAD-sealed successor response, purged after the 30s grace (a hash cannot be replayed back to the client)
   expires_at INTEGER NOT NULL,
   rotated_at INTEGER,
   revoked_at INTEGER,
   client TEXT NOT NULL CHECK (client IN ('web','ios','android','macos'))
 );
+CREATE TABLE revocation_outbox (    -- provider revocations that must survive account deletion (see §4.3)
+  id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  encrypted_token TEXT NOT NULL,    -- AEAD; the only surviving copy after the cascade
+  created_at INTEGER NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0
+);                                  -- retried opportunistically; >30 days old -> owner runbook manual fallback
 CREATE TABLE devices (              -- tombstone-compaction acks (see §4.4); NOT a tracking surface
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   device_id TEXT NOT NULL,          -- client-generated uuid; no hardware identifiers
@@ -179,10 +188,9 @@ CREATE TABLE sync_docs (
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (user_id, doc_type)
 );
-CREATE TABLE deletion_log (         -- restore-correctness only (see §4.5): replayed after any Time-Travel restore
-  user_hash TEXT NOT NULL,          -- SHA-256 of user id; no PII
-  deleted_at INTEGER NOT NULL
-);                                  -- rows purged after 90 days; disclosed in the privacy policy
+-- deletion log: lives in KV, NOT in D1 (a D1 Time-Travel restore would overwrite
+-- the very journal needed to replay deletions). KV key `del:<sha256(user_id)>`,
+-- value = deleted_at, TTL 90 days; disclosed in the privacy policy.
 -- entitlements: DELIBERATELY NOT CREATED in v1. Phase-2 Pro owns that design
 -- (revocation/status, transaction identity, source uniqueness) and ships it as
 -- its own numbered migration. Reserving a half-designed table here would not
@@ -197,7 +205,7 @@ CREATE TABLE deletion_log (         -- restore-correctness only (see §4.5): rep
 - **Apple email caveat:** Apple returns email **only on first authorization** → `users.email` is nullable; account identity falls back to per-identity data. All email-based dedupe is skipped when the token carries no verified email.
 - **Native (iOS, later Android):** Apple = native `ASAuthorizationController` (token audience = **bundle id**; requires the Services ID to be associated with the primary App ID). The app sends **both** the `id_token` AND Apple's `authorizationCode` to `POST /api/v1/auth/token`; the server **exchanges the authorization code** (client id = bundle id for native, Services ID for web) to obtain the Apple `refresh_token` — without this exchange the revoke-on-deletion flow has nothing to revoke. Google = `ASWebAuthenticationSession` against the same web `/start` endpoint with `client=ios` — Google forbids custom-scheme redirects on web clients, so the Worker callback completes the Google exchange itself, then mints a **one-time intermediate code** and 302s to the app's custom scheme; the app exchanges it at `POST /api/v1/auth/token`. **Intermediate codes are PKCE-bound per RFC 8252** (`auth_codes` stores the app-generated S256 challenge + client + redirect target; the exchange requires the matching verifier), so an intercepted code is useless. The callback is therefore **dual-mode**: `client=web` → cookies + redirect; `client=ios` → intermediate-code redirect. `POST /api/v1/auth/token` validates **both Apple audiences** (bundle id native, Services ID web).
 - **Refresh:** `POST /api/v1/auth/refresh` rotates with a **30-second reuse-grace window**: within the grace, replaying the immediately-prior token idempotently returns the same successor (two tabs / a retried request must not nuke the session); reuse outside the grace, or of any older-generation token, revokes the family. Web tabs coordinate refreshes single-flight (Web Locks with a localStorage-lock fallback). Cookies are `__Host-`-prefixed (`Path=/`, no `Domain`, Secure). **Keys:** JWT signing and provider-token encryption use **separate versioned keyrings** (Worker secrets, `kid`-selected; old keys retained for verify/decrypt until rotation completes); provider refresh tokens are AEAD-encrypted (AES-256-GCM, random nonce per value). `POST /api/v1/auth/logout` revokes.
-- **Deletion:** `DELETE /api/v1/account` (authenticated) → best-effort revoke Apple tokens via Apple REST `/auth/revoke` (when an Apple identity exists; a provider-side failure is logged and does NOT block the local cascade — the operation is **idempotent and re-runnable**) → one **atomic child-first D1 batch** deleting identities, refresh tokens, auth_codes, devices, sync docs, entitlements, then the `users` row (all FKs also declare `ON DELETE CASCADE` as belt-and-braces — D1 enforces foreign keys, so child-first ordering is mandatory, not stylistic). `requireAuth` treats a JWT whose user row no longer exists as unauthenticated. iOS surfaces deletion per 5.1.1(v). **Kill-switch carve-out:** `ACCOUNTS_API_ENABLED=false` disables sign-up/sign-in/sync but `DELETE /api/v1/account`, `GET /api/v1/account/export`, and `logout` stay reachable — GDPR rights survive the kill switch.
+- **Deletion:** `DELETE /api/v1/account` (authenticated) runs one **atomic child-first D1 batch**: (1) copy the encrypted Apple refresh token into `revocation_outbox` (when an Apple identity exists — the cascade would otherwise destroy the only credential the mandatory revoke needs), (2) delete identities, refresh tokens, auth_codes, devices, sync docs, then the `users` row (all FKs also declare `ON DELETE CASCADE` as belt-and-braces — D1 enforces foreign keys, so child-first ordering is mandatory, not stylistic), (3) append the KV deletion log entry. Apple `/auth/revoke` is then attempted from the outbox — success deletes the outbox row; failure leaves it for opportunistic retry (piggybacked on later requests) with a 30-day owner-runbook manual fallback. The user-facing deletion is complete at the batch; revocation is an independent, retryable follow-through. `requireAuth` treats a JWT whose user row no longer exists as unauthenticated. iOS surfaces deletion per 5.1.1(v). **Kill-switch carve-out:** `ACCOUNTS_API_ENABLED=false` disables sign-up/sign-in/sync but `DELETE /api/v1/account`, `GET /api/v1/account/export`, and `logout` stay reachable — GDPR rights survive the kill switch.
 
 ### 4.4 Sync protocol (per doc_type)
 
@@ -215,7 +223,7 @@ CREATE TABLE deletion_log (         -- restore-correctness only (see §4.5): rep
 
 - Any 5xx/timeout on sync → local-only mode, retry with backoff, badge on profile page. No data loss possible (server never authoritative).
 - **Two flags** (one flag cannot express the dark launch): `ACCOUNTS_API_ENABLED` (Worker env; off ⇒ all `/api/v1` endpoints return 503 — this is the **kill switch**) and `ACCOUNTS_UI_ENABLED` (Worker env, surfaced to clients via `GET /api/v1/auth/status` → `{api, ui}`; off ⇒ clients hide all account UI). Dark launch = API on, UI off. Both off = today's behavior, byte-for-byte.
-- D1 outage: same degrade. Recovery: **D1 Time Travel** point-in-time restore is primary — **7 days on Workers Free, 30 on Paid; AP0 records which plan the account is on** and the runbook states the actual window. **Restore procedure must re-apply deletions**: account deletions append to a minimal `deletion_log(user_hash, deleted_at)` (hashed id only, retained 90 days, disclosed in the policy) and any Time-Travel restore replays deletions logged after the restore point before traffic resumes. A quarterly `wrangler d1 export` (encrypted at rest, 90-day retention, disclosed) is belt-and-braces.
+- D1 outage: same degrade. Recovery: **D1 Time Travel** point-in-time restore is primary — **7 days on Workers Free, 30 on Paid; AP0 records which plan the account is on** and the runbook states the actual window. **Restore procedure must re-apply deletions**: account deletions append a **KV** deletion-log entry (`del:<sha256(user_id)>` → deleted_at, 90-day TTL, hashed id only, disclosed in the policy — KV specifically because a D1 Time-Travel restore overwrites D1 in place and would erase a D1-resident journal) and any restore replays deletions logged after the restore point before traffic resumes. A quarterly `wrangler d1 export` (encrypted at rest, 90-day retention, disclosed) is belt-and-braces.
 
 ---
 
@@ -250,7 +258,7 @@ P4 is deliberately sequenced so inventory lands as a **free local feature first*
 | Risk | Severity | Mitigation |
 |---|---|---|
 | Solo-dev operational burden (auth is a liability surface) | HIGH | No passwords; two OAuth providers only; managed platform (CF); kill switch; rate limits; small API surface; runbook + monthly D1 export |
-| Scope creep into community/Pro features | MED | Non-goals §2; entitlements table is the only Phase-2 concession |
+| Scope creep into community/Pro features | MED | Non-goals §2; Phase 2 gets only stable user ids + the migration rail (APD10) |
 | Apple review friction (account deletion, SiwA) | MED | APD7 in-app deletion; SiwA first-class; account optional = review-friendly |
 | Sync data corruption / resurrection bugs | MED-HIGH | The merge layer is NEW code — mitigated by deterministic revs, shared cross-platform fixture suite (skew/commutativity/associativity/idempotence/resurrection), ack-based tombstone compaction, atomic versioned writes, server never merges, 256 KB cap |
 | GDPR complaint / data request | LOW-MED | Self-serve export + delete; minimal data; documented processor chain |
