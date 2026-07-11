@@ -64,6 +64,19 @@ const EVENT_KEYS = {
     "nozzle",
     "material",
   ]),
+  workshop_saved: new Set([
+    ...COMMON_KEYS,
+  ]),
+  workshop_loaded: new Set([
+    ...COMMON_KEYS,
+  ]),
+  workshop_exported: new Set([
+    ...COMMON_KEYS,
+    "type",
+  ]),
+  workshop_imported: new Set([
+    ...COMMON_KEYS,
+  ]),
 };
 
 const BLOB_FIELDS = [
