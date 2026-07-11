@@ -19,6 +19,10 @@ Recorded 2026-07-06. The export-audit harness (IMPL-043 Phase 0) resolves the co
   - print: `0.20mm SPEED @COREONEL HF0.4`
   - filament: `Generic ABS @COREONE HF0.4`
   - printer: `Prusa CORE One L HF0.4 nozzle`
+- Phase 4 standard-nozzle allowlist verified 2026-07-11 against official tag
+  `version_2.9.4` commit `398a8de69d57d36d8dc6ae5564bbcfe6ad118384`:
+  `0.20mm SPEED @COREONEL 0.4` + `Generic PLA @COREONE`, with compatibility
+  `COREONEL|COREONELMMU3`, diameter 0.4, and `! nozzle_high_flow[0]`.
 
 ## OrcaSlicer — PRESENT, with a deliberate coverage boundary
 - Owner fixtures captured 2026-07-06: `orca-x1c-process-ref.json` +
@@ -34,6 +38,4 @@ Recorded 2026-07-06. The export-audit harness (IMPL-043 Phase 0) resolves the co
   Ender-3 V3, V3 KE, V3 Plus, and V3 SE with a 0.4 mm nozzle. Exact process names come from
   `resources/profiles/Creality/process/0.{12,16,20,24}mm ...`; the PLA filament parent is
   `resources/profiles/Creality/filament/Creality Generic PLA @Ender-3V3-all.json`.
-- Phase 3 exit still requires an owner import of the generated Ender-3 V3 SE process +
-  filament files. Until that PASS is recorded, Orca native export is implementation-complete
-  on the branch but not stable/live.
+- Phase 3 owner import passed and PR #11 merged/live on 2026-07-11.

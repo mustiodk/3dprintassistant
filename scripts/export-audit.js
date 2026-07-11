@@ -404,6 +404,28 @@ async function main() {
       && appSource.includes('3DPA_prusa_')
       && appSource.includes("'text/plain'"));
 
+  const prusaSentinelPath = path.join(GOLDEN, '_owner-verify', 'zz-prusa-p4-importtest.ini');
+  const hasPrusaSentinel = fs.existsSync(prusaSentinelPath);
+  checkFail('Prusa owner-import sentinel bundle exists', hasPrusaSentinel);
+  if (hasPrusaSentinel) {
+    const sentinel = fs.readFileSync(prusaSentinelPath, 'utf8');
+    checkFail('Prusa process sentinel name + odd values are pinned',
+      sentinel.includes('[print:ZZ PRUSA P4 TEST LH019 W4 O83 I147 BR7]')
+        && sentinel.includes('layer_height = 0.19')
+        && sentinel.includes('perimeters = 4')
+        && sentinel.includes('external_perimeter_speed = 83')
+        && sentinel.includes('perimeter_speed = 147')
+        && sentinel.includes('brim_width = 7'));
+    checkFail('Prusa filament sentinel name + odd values are pinned',
+      sentinel.includes('[filament:ZZ PRUSA P4 TEST N223-217 R073 F097]')
+        && sentinel.includes('temperature = 217')
+        && sentinel.includes('first_layer_temperature = 223')
+        && sentinel.includes('bed_temperature = 53')
+        && sentinel.includes('first_layer_bed_temperature = 57')
+        && sentinel.includes('extrusion_multiplier = 0.97')
+        && sentinel.includes('filament_retract_length = 0.73'));
+  }
+
   finish();
 }
 
