@@ -3108,14 +3108,25 @@ const Engine = (() => {
   // These names MUST match installed system profiles exactly. P1S/X1C/X1E share CoreXY process profiles.
   const BAMBU_PROCESS_INHERITS = {
     x1c:    { '0.08': '0.08mm Extra Fine @BBL X1C', '0.12': '0.12mm Fine @BBL X1C', '0.15': '0.16mm Optimal @BBL X1C', '0.20': '0.20mm Standard @BBL X1C', '0.24': '0.24mm Draft @BBL X1C', '0.28': '0.28mm Extra Draft @BBL X1C', '0.30': '0.28mm Extra Draft @BBL X1C' },
-    x1e:    null,  // shares with X1C
-    p1s:    null,  // shares with X1C
-    p2s:    null,  // shares with X1C
+    // Export P2 (CR1-L1): rows below verified 2026-07-09 against BBL.json at BS 2.5
+    // release tag v02.05.03.62 — preset names copied verbatim from the registry
+    // (all instantiation=true), NEVER string-substituted from the x1c row (these
+    // machines use a different quality vocabulary: High Quality/Standard, and
+    // H2D/H2DP use Extra Fine/Fine). Nozzle-suffixed variants ("… 0.2 nozzle" etc.)
+    // exist for all six and are deliberately NOT mapped in v1 (suffix-free base
+    // presets only); ledgered in EXPORT-PHASE2-GATE-LEDGER.md for a later
+    // _findProcessParent nozzle-awareness pass.
+    x1e:    null,  // VERIFIED 2026-07-09 vs BBL.json @v02.05.03.62: no @BBL X1E process presets in BS 2.5; X1C parents (cross-printer inherits import-tested 2026-07-06)
+    p1s:    null,  // VERIFIED 2026-07-09 vs BBL.json @v02.05.03.62: no @BBL P1S process presets in BS 2.5; X1C parents (cross-printer inherits import-tested 2026-07-06)
+    p2s:    { '0.08': '0.08mm High Quality @BBL P2S', '0.12': '0.12mm High Quality @BBL P2S', '0.15': '0.16mm Standard @BBL P2S', '0.20': '0.20mm Standard @BBL P2S', '0.24': '0.24mm Standard @BBL P2S', '0.28': '0.24mm Standard @BBL P2S', '0.30': '0.24mm Standard @BBL P2S' },
     p1p:    { '0.08': '0.08mm Extra Fine @BBL P1P', '0.12': '0.12mm Fine @BBL P1P', '0.15': '0.16mm Optimal @BBL P1P', '0.20': '0.20mm Standard @BBL P1P', '0.24': '0.24mm Draft @BBL P1P', '0.28': '0.28mm Extra Draft @BBL P1P', '0.30': '0.28mm Extra Draft @BBL P1P' },
     a1:     { '0.08': '0.08mm Extra Fine @BBL A1', '0.12': '0.12mm Fine @BBL A1', '0.15': '0.16mm Optimal @BBL A1', '0.20': '0.20mm Standard @BBL A1', '0.24': '0.24mm Draft @BBL A1', '0.28': '0.28mm Extra Draft @BBL A1', '0.30': '0.28mm Extra Draft @BBL A1' },
     a1mini: { '0.08': '0.08mm Extra Fine @BBL A1M', '0.12': '0.12mm Fine @BBL A1M', '0.15': '0.16mm Optimal @BBL A1M', '0.20': '0.20mm Standard @BBL A1M', '0.24': '0.24mm Draft @BBL A1M', '0.28': '0.28mm Extra Draft @BBL A1M', '0.30': '0.28mm Extra Draft @BBL A1M' },
-    x2d:    null,  // shares with X1C until exact X2D process presets are verified
-    h2d_pro: null,  // shares with X1C until exact H2D Pro process presets are verified
+    x2d:    { '0.08': '0.08mm High Quality @BBL X2D', '0.12': '0.12mm High Quality @BBL X2D', '0.15': '0.16mm Standard @BBL X2D', '0.20': '0.20mm Standard @BBL X2D', '0.24': '0.24mm Standard @BBL X2D', '0.28': '0.24mm Standard @BBL X2D', '0.30': '0.24mm Standard @BBL X2D' },
+    h2c:    { '0.08': '0.08mm High Quality @BBL H2C', '0.12': '0.12mm High Quality @BBL H2C', '0.15': '0.16mm Standard @BBL H2C', '0.20': '0.20mm Standard @BBL H2C', '0.24': '0.24mm Standard @BBL H2C', '0.28': '0.24mm Standard @BBL H2C', '0.30': '0.24mm Standard @BBL H2C' },
+    h2d:    { '0.08': '0.08mm Extra Fine @BBL H2D', '0.12': '0.12mm Fine @BBL H2D', '0.15': '0.16mm Standard @BBL H2D', '0.20': '0.20mm Standard @BBL H2D', '0.24': '0.24mm Standard @BBL H2D', '0.28': '0.24mm Standard @BBL H2D', '0.30': '0.24mm Standard @BBL H2D' },
+    h2d_pro: { '0.08': '0.08mm Extra Fine @BBL H2DP', '0.12': '0.12mm Fine @BBL H2DP', '0.15': '0.16mm Standard @BBL H2DP', '0.20': '0.20mm Standard @BBL H2DP', '0.24': '0.24mm Standard @BBL H2DP', '0.28': '0.24mm Standard @BBL H2DP', '0.30': '0.24mm Standard @BBL H2DP' },
+    h2s:    { '0.08': '0.08mm High Quality @BBL H2S', '0.12': '0.12mm High Quality @BBL H2S', '0.15': '0.16mm Standard @BBL H2S', '0.20': '0.20mm Standard @BBL H2S', '0.24': '0.24mm Standard @BBL H2S', '0.28': '0.24mm Standard @BBL H2S', '0.30': '0.24mm Standard @BBL H2S' },
   };
 
   // Bambu Studio filament profile inheritance: material_id → exact system profile name
@@ -3225,6 +3236,17 @@ const Engine = (() => {
   // updates (LOW-007 hoisted the literals here).
   const BAMBU_PROCESS_VERSION  = '2.5.0.14';
   const BAMBU_FILAMENT_VERSION = '2.5.0.18';
+
+  // BS 2.5 dual-extruder-variant schema: these keys are written as 2-element
+  // per-variant arrays by BS 2.5 itself (golden X1C fixtures). We duplicate the
+  // single resolved value into both positions — identical values make variant
+  // position irrelevant, and the golden proved 1-element also imports, so this
+  // is robustness for future multi-variant machines (H2D), not a bug fix.
+  const BAMBU_DUAL_VARIANT_PROCESS_FIELDS = new Set([
+    'outer_wall_speed', 'inner_wall_speed', 'initial_layer_speed',
+    'top_surface_speed', 'gap_infill_speed',
+    'outer_wall_acceleration', 'initial_layer_acceleration',
+  ]);
 
   // Numeric-only extraction for the passthrough pipeline: units/ranges are
   // mechanical ("0.2 mm" → "0.2", "5–8 mm" → "5", "15%" → "15%"); anything
@@ -3530,7 +3552,9 @@ const Engine = (() => {
         val = _numericValue(param.value ?? param);    // numeric-only, no guessing
         if (val == null) return;
       }
-      process[bsKey] = BAMBU_ARRAY_FIELDS.has(bsKey) ? [val] : val;
+      process[bsKey] = BAMBU_DUAL_VARIANT_PROCESS_FIELDS.has(bsKey) ? [val, val]
+                     : BAMBU_ARRAY_FIELDS.has(bsKey)                ? [val]
+                     :                                                val;
     });
 
     // IMPL-036 3a/3b: ironing splits into ironing_type (mapped above from
@@ -3701,7 +3725,9 @@ const Engine = (() => {
       lines.push('  EXTRUSION');
       if (adv.pressure_advance !== '—') lines.push(`    Pressure advance:        ${adv.pressure_advance}`);
       if (adv.flow_ratio !== '—')       lines.push(`    Flow ratio:              ${adv.flow_ratio}`);
-      lines.push(`    Retraction length:       ${adv.retraction_distance}`);
+      // HIGH-2 (Export P2): text export reads the resolved scaled/personal value.
+      const _retSv = profile.retraction_distance && profile.retraction_distance._slicer_value;
+      lines.push(`    Retraction length:       ${_retSv != null ? `${_retSv} mm` : adv.retraction_distance}`);
       lines.push(`    Retraction speed:        ${adv.retraction_speed}`);
       lines.push('');
     }
@@ -3774,7 +3800,7 @@ const Engine = (() => {
         bed_temperature_other_layers:    adv?.other_layers_bed_temp  ?? null,
         pressure_advance:                _resolvePA(material.base_settings, nozzle),
         flow_ratio:                      material.base_settings.flow_ratio,
-        retraction_length:               `${material.base_settings.retraction_distance} mm`,
+        retraction_length:               `${(profile.retraction_distance && profile.retraction_distance._slicer_value) ?? material.base_settings.retraction_distance} mm`,
         retraction_speed:                `${material.base_settings.retraction_speed} mm/s`,
       },
       process: flat,

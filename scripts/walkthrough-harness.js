@@ -1583,6 +1583,121 @@ const COMBOS = [
     console.log('[W3 T4] OK retraction delta: post-_scaleRetraction, pre-retraction_max cap (pla 0.6+0.4→1.0; tpu 0.8+0.6→1.4→capped 1.2); _slicer_value sidecar carries the delta’d value; mode gate holds.');
   }
 
+  // ─── Export P2 — HIGH-2: text/reference export retraction honesty ─────────
+  // formatProfileAsText filament "Retraction length" + exportProfile().filament
+  // .retraction_length must equal the resolved _slicer_value (scaled + personal
+  // delta), never the raw material base. Repro family: mine-tier Codex HIGH-2.
+  {
+    // (a) Scaled-differs-from-base combo: 0.2mm nozzle scales retraction down.
+    const st02 = { printer: 'x1c', material: 'pla_basic', nozzle: 'std_0.2',
+      useCase: ['functional'], surface: 'standard', strength: 'standard',
+      speed: 'balanced', environment: 'normal', support: 'none',
+      colors: 'single', userLevel: 'intermediate', special: [] };
+    const prof02 = Engine.resolveProfile(st02);
+    const sv02 = prof02.retraction_distance?._slicer_value;
+    const raw02 = Engine.getMaterial('pla_basic').base_settings.retraction_distance;
+    if (sv02 == null) throw new Error('P2 HIGH-2(a): missing retraction _slicer_value on x1c+pla+0.2');
+    if (String(sv02) === String(raw02)) throw new Error(`P2 HIGH-2(a): combo no longer differs (sv=${sv02} raw=${raw02}) — pick another combo`);
+    const txt02 = Engine.formatProfileAsText(st02);
+    const line02 = txt02.match(/Retraction length:\s*([\d.]+)/);
+    if (!line02) throw new Error('P2 HIGH-2(a): text export missing "Retraction length:" line');
+    if (parseFloat(line02[1]) !== parseFloat(sv02)) {
+      throw new Error(`P2 HIGH-2(a): text export retraction=${line02[1]} must equal resolved ${sv02} (raw base ${raw02})`);
+    }
+    const ref02 = Engine.exportProfile(st02);
+    if (parseFloat(ref02.filament.retraction_length) !== parseFloat(sv02)) {
+      throw new Error(`P2 HIGH-2(a): exportProfile retraction_length=${ref02.filament.retraction_length} must equal resolved ${sv02}`);
+    }
+    // (b) Mine-mode delta must surface too (the original Codex HIGH-2 repro shape).
+    // Payload shape per engine.js setPersonalTuning + harness W3 T4 above: offsets
+    // are {value, unit, date} objects — a bare number is SILENTLY DROPPED
+    // (fail-safe), which would make this test pass vacuously. Hence the svM
+    // absolute-value assertion below (pla scaled 0.6 + 0.4 delta → '1').
+    Engine.setPersonalTuning({ pairKey: 'x1c|pla_basic',
+      offsets: { retraction_distance_delta: { value: 0.4, unit: 'mm', date: '2026-07-09' } } });
+    const stM = Object.assign({}, st02, { nozzle: 'std_0.4', profileMode: 'mine' });
+    const profM = Engine.resolveProfile(stM);
+    const svM = profM.retraction_distance?._slicer_value;
+    if (svM !== '1') throw new Error(`P2 HIGH-2(b): delta must actually apply (expected _slicer_value '1' = 0.6+0.4); got ${svM} — vacuity guard`);
+    const txtM = Engine.formatProfileAsText(stM);
+    const lineM = txtM.match(/Retraction length:\s*([\d.]+)/);
+    if (!lineM || parseFloat(lineM[1]) !== parseFloat(svM)) {
+      throw new Error(`P2 HIGH-2(b): mine-mode text retraction=${lineM && lineM[1]} must equal resolved ${svM}`);
+    }
+    Engine.setPersonalTuning(null);
+    console.log(`[Export P2 HIGH-2] OK retraction honesty: text + reference export read resolved _slicer_value (0.2-nozzle ${sv02} ≠ raw ${raw02}; mine-mode ${svM})`);
+  }
+
+  // ─── Export P2 — dual-extruder-variant arrays ──────────────────────────────
+  // BS 2.5 writes 2-element per-extruder-variant arrays for these keys (golden
+  // X1C: ["v","v"]). We duplicate the value into both positions; identical
+  // values make variant mapping irrelevant. print_extruder_variant itself is
+  // deliberately NOT emitted (machine-inferred).
+  {
+    const stX = { printer: 'x1c', material: 'pla_basic', nozzle: 'std_0.4',
+      useCase: ['functional'], surface: 'standard', strength: 'standard',
+      speed: 'balanced', environment: 'normal', support: 'none',
+      colors: 'single', userLevel: 'intermediate', special: [] };
+    const ex = Engine.exportBambuStudioJSON(stX);
+    const DUAL_PROC = ['outer_wall_speed','inner_wall_speed','initial_layer_speed',
+      'top_surface_speed','gap_infill_speed','outer_wall_acceleration','initial_layer_acceleration'];
+    DUAL_PROC.forEach(k => {
+      const v = ex.process[k];
+      if (!Array.isArray(v) || v.length !== 2 || v[0] !== v[1]) {
+        throw new Error(`P2 dual-variant: process.${k} must be ["v","v"]; got ${JSON.stringify(v)}`);
+      }
+    });
+    // Filament temps stay 1-element (golden second element is "nil", not a value).
+    ['nozzle_temperature','nozzle_temperature_initial_layer'].forEach(k => {
+      const v = ex.filament[k];
+      if (!Array.isArray(v) || v.length !== 1) {
+        throw new Error(`P2 dual-variant: filament.${k} must stay 1-element (golden 2nd elem is "nil"); got ${JSON.stringify(v)}`);
+      }
+    });
+    if ('print_extruder_variant' in ex.process || 'filament_extruder_variant' in ex.filament) {
+      throw new Error('P2 dual-variant: variant-name keys must NOT be emitted');
+    }
+    // Single-element keys stay single (guard against blanket duplication).
+    // inner_wall_acceleration is in BAMBU_PROCESS_MAP + BAMBU_ARRAY_FIELDS but
+    // NOT in the golden dual set (review finding 9: sparse_infill_density is
+    // emitted scalar, so it would be a vacuous sentinel).
+    const iwa = ex.process.inner_wall_acceleration;
+    if (!Array.isArray(iwa) || iwa.length !== 1) {
+      throw new Error(`P2 dual-variant: inner_wall_acceleration must stay 1-element; got ${JSON.stringify(iwa)}`);
+    }
+    console.log('[Export P2 dual-variant] OK 7 process keys emit ["v","v"]; filament temps + inner_wall_acceleration stay 1-element; variant-name keys absent');
+  }
+
+  // ─── Export P2 — BAMBU_PROCESS_INHERITS explicit rows (CR1-L1) ─────────────
+  // Verified 2026-07-09 against BBL.json @ v02.05.03.62 (BS 2.5 release tag):
+  // P2S/X2D/H2C/H2D/H2DP/H2S HAVE own instantiated process presets → own rows;
+  // X1E/P1S have NO own process presets → verified-null (X1C parents correct).
+  // Evidence: docs/planning/EXPORT-PHASE2-GATE-LEDGER.md (T3 block).
+  {
+    const mkB = (p) => ({ printer: p, material: 'pla_basic', nozzle: 'std_0.4',
+      useCase: ['functional'], surface: 'standard', strength: 'standard',
+      speed: 'balanced', environment: 'normal', support: 'none',
+      colors: 'single', userLevel: 'intermediate', special: [] });
+    const EXPECT = {
+      p2s:     '0.20mm Standard @BBL P2S',
+      x2d:     '0.20mm Standard @BBL X2D',
+      h2c:     '0.20mm Standard @BBL H2C',
+      h2d:     '0.20mm Standard @BBL H2D',
+      h2d_pro: '0.20mm Standard @BBL H2DP',   // BS preset suffix is "H2DP", not "H2D Pro"
+      h2s:     '0.20mm Standard @BBL H2S',
+      x1e:     '0.20mm Standard @BBL X1C',    // verified-null: no X1E presets in BS 2.5
+      p1s:     '0.20mm Standard @BBL X1C',    // verified-null: no P1S presets in BS 2.5
+    };
+    Object.entries(EXPECT).forEach(([pid, parent]) => {
+      const ex = Engine.exportBambuStudioJSON(mkB(pid));
+      if (!ex) throw new Error(`P2 inherits: exportBambuStudioJSON returned null for ${pid}`);
+      if (ex.process.inherits !== parent) {
+        throw new Error(`P2 inherits: ${pid} process.inherits must be "${parent}"; got "${ex.process.inherits}"`);
+      }
+    });
+    console.log('[Export P2 inherits] OK explicit parents: p2s/x2d/h2c/h2d/h2d_pro/h2s own presets @0.20; x1e/p1s verified-null → X1C');
+  }
+
   // ─── W3 Mine tier — Task 5: provenance 'personal' on touched params ───────
   // [IMPL-044 §5.3] Every value a personal delta touched carries
   // prov {source:'personal', ref:'workshop tuning: <offsetKey> <±value><unit>
