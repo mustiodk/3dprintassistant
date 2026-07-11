@@ -25,7 +25,7 @@
 | AP10 | iOS account train (sub-gates I1–I6) | iOS | one push at TestFlight-ready | per-sub-gate sub-agent + cross-model before push |
 | AP11 | Docs/ROADMAP/Android-seed closeout | web | PR-j | sub-agent (light) |
 
-Estimated envelope: AP1–AP9 ≈ 8–11 focused sessions (AP5 alone = 2: the merge layer is new cross-platform code, not reuse); AP10 ≥ 7 sessions (mac-mini; I2 = 2; checkpoints on a remote feature branch); AP11 ≈ half session. One gate per session by default.
+Estimated envelope: AP1–AP9 ≈ 10–14 focused sessions (AP2 = 2–3: the full auth surface + security-review loop; AP5 = 2: the merge layer is new cross-platform code, not reuse); AP10 ≥ 7 sessions (mac-mini; I2 = 2; checkpoints on a remote feature branch); AP11 ≈ half session. One gate per session by default.
 
 ---
 
@@ -39,6 +39,7 @@ Estimated envelope: AP1–AP9 ≈ 8–11 focused sessions (AP5 alone = 2: the me
    - Confirm D1 availability on the Cloudflare account; owner runs nothing — AP1 creates the DB via wrangler, but billing plan visibility is owner's.
 3. Approve the privacy-policy delta draft (AP9 publishes it).
 4. Sequencing decision: confirm AP10 runs after the 1.0.7 and 1.0.8 trains, and pick the AP10 version number (suggest 1.1.0).
+5. **Asset-exposure decision:** `functions/**`, `worker.js`, and `wrangler.toml` are publicly fetchable on the live site today (`[assets] directory = "."`; `.assetsignore` doesn't cover them — verified 200s, 2026-07-12). No secrets leak, but AP1 will add auth source + SQL migrations to that tree. Decide: exclude all three via `.assetsignore` (recommended; behavior change on pre-existing exposure) or migrations-only minimum.
 
 **Exit:** written GO in the session log / ROADMAP row.
 
@@ -46,7 +47,11 @@ Estimated envelope: AP1–AP9 ≈ 8–11 focused sessions (AP5 alone = 2: the me
 
 Branch `accounts/ap1-foundation`. Files:
 
-- `wrangler.toml`: `[[d1_databases]]` binding `ACCOUNTS_DB`; `ACCOUNTS_API_ENABLED` + `ACCOUNTS_UI_ENABLED` vars (both default `"false"`); explicit `/api/v1/` route branch in `worker.js` (no prefix-matching per its own comment).
+- `wrangler.toml`: `[[d1_databases]]` binding `ACCOUNTS_DB` + `[[kv_namespaces]]` binding `ACCOUNTS_DEL` (new namespace, created here — the deletion log's home; `PRINTER_INTAKE` is contractually reserved for intake); explicit `/api/v1/` route branch in `worker.js` (no prefix-matching per its own comment).
+- **Flags are Worker SECRETS, not `[vars]`** (`wrangler secret put ACCOUNTS_API_ENABLED` / `ACCOUNTS_UI_ENABLED`): a git-connected deploy re-applies `[vars]` on every merge, which would silently revert a dashboard flag flip — secrets survive deploys, flip in seconds, and need no commit/PR (recorded here as the kill-switch mechanism; every later "flip the flag" step means `wrangler secret put`, latency seconds, exempt from the one-gate-one-PR rule because it is config, not code).
+- `functions/api/v1/auth/status.js` — **minimal stub ships in AP1** (reads the flag secrets, returns `{api:false, ui:false, rights:false}` shape) so AP1's exit gate is checkable; AP2 extends it.
+- `.assetsignore`: add `migrations/**` (new SQL must not be publicly served). **Owner decision surfaced at AP0: also exclude `functions/**`, `worker.js`, `wrangler.toml` — all three are publicly fetchable on the live site TODAY (verified 200s); pre-existing exposure, no secrets, but auth source + schema should not join it.**
+- **Rate-limit binding verification first:** confirm the Workers rate-limit binding is available on this account/plan AND testable in the local harness before building on it; fallback = a simple KV/D1 counter, recorded as a gate note.
 - `migrations/0001_accounts_init.sql` — checked-in numbered migration (schema from spec §4.2), applied with `wrangler d1 migrations apply` to local/preview/prod; **deploy-order gate: migration applies before dependent code deploys**; runtime code never mutates schema. `functions/api/v1/_lib/db.js` — D1 query helpers only. D1 database created `--jurisdiction=eu`.
 - `functions/api/v1/_lib/router.js` — exact method+path route table dispatched from an explicit `/api/v1/` branch in `worker.js`; JSON 404/405 for unknown `/api/v1/` paths (no Assets fall-through); later gates register routes here.
 - Local-D1 test harness (wrangler/miniflare) — NEW (existing Worker tests are plain mocks); endpoint tests exercise `worker.fetch` end-to-end.
@@ -56,8 +61,8 @@ Branch `accounts/ap1-foundation`. Files:
 - Tests `functions/api/v1/foundation.test.mjs` (run: `node --test functions/api/v1/*.test.mjs`): token round-trip, rotation-reuse revokes family, grace-window successor replay (AEAD-sealed `grace_response` decrypts to the identical successor), **keyring rotation** (new `kid` signs, old `kid` still verifies/decrypts until retired), flag-off returns 503 (with GDPR carve-out list exempted), migration apply. **Integration tests run against the real local D1 binding (wrangler/miniflare harness) through `worker.fetch`** — plain SQLite stand-ins are allowed only for isolated pure-logic unit tests, never as the integration layer (D1 batch/binding/migration semantics differ).
 - `docs/3dpa-context.md`: update the two non-goal lines per APD11 (accounts now optional-by-design; cloud sync exists as optional; engine purity unchanged) + one cross-ref note added to the monetization plan MD3 line.
 
-**Gates before merge:** tests green (incl. worker.fetch route tests: unknown `/api/v1/x` → JSON 404, wrong method → 405); `node scripts/walkthrough-harness.js` clean; golden snapshot NO DRIFT; migration applied to preview D1 before deploy; sub-agent review; **live verify after merge:** `curl https://3dprintassistant.com/api/v1/auth/status` → 503 (flag off) — proves dark.
-**Rollback:** revert PR (no data yet).
+**Gates before merge:** tests green (incl. worker.fetch route tests: unknown `/api/v1/x` → JSON 404, wrong method → 405); walkthrough + golden proof (see rule 3's pass criterion); migration applied to preview D1 before merge; sub-agent review. **Post-merge steps:** apply migration 0001 to prod D1 (`wrangler d1 migrations apply --remote`) — the deploy-order rule operationally means **migrations apply before the flag that activates dependent code flips**, since a git-connected merge auto-deploys code immediately (safe: flags off); backfill the AP0 GO row into the freshly created gate ledger. **Live verify:** `curl https://3dprintassistant.com/api/v1/auth/status` → JSON `{api:false,...}` + `curl .../api/v1/nope` → JSON 404 (router live, no Assets fall-through) + `curl .../migrations/0001_accounts_init.sql` → NOT publicly served.
+**Rollback:** revert PR (no data yet); flags were never on.
 
 ## AP2 — OAuth endpoints
 
@@ -68,7 +73,8 @@ Branch `accounts/ap2-oauth`. Files: `functions/api/v1/auth/[provider]/start.js`,
 - Cookies: session cookies httpOnly Secure SameSite=Lax; pre-auth `__Host-3dpa_preauth` cookie **SameSite=None** Max-Age 600 (Apple form_post is cross-site POST); post-login redirect pinned to fixed same-origin path.
 - **Native support:** `auth_codes` one-time intermediate codes (hashed, 120s TTL, single-use) + dual-mode callback (`client=web` → cookies; `client=ios` → custom-scheme redirect with code) + `POST /api/v1/auth/token` accepting both Apple audiences (bundle id + Services ID).
 - Tests: state mismatch → 400; missing/expired pre-auth cookie → 400; JWKS `kid` rotation; **same-verified-email two-provider isolation (two distinct users — email never links)**; explicit-link attach + linked-identity sign-in resolves to the same user; relay email → distinct user; nullable-email Apple re-auth; refresh reuse inside 30s grace → same successor, outside grace → family revoked; logout revokes; auth_code single-use + expiry + **PKCE verifier mismatch → 400**; native Apple `authorizationCode` exchange stores the per-client grant; dual-audience validation; **cookie-attribute assertions** (session: `__Host-`, `Path=/`, no `Domain`, Secure, httpOnly, SameSite=Lax; pre-auth: SameSite=None, Max-Age 600); rate-limit 429 paths.
-- **Exit step (dark launch):** after merge, flip `ACCOUNTS_API_ENABLED="true"` in prod with UI off — API live dark from AP2 on (this is what AP9 later relies on).
+- **Exit step (dark launch):** after merge, flip the `ACCOUNTS_API_ENABLED` **secret** to `"true"` (`wrangler secret put` — seconds, no commit) with UI off — API live dark from AP2 on (this is what AP9 later relies on).
+- **Estimate honesty:** AP2 is 2–3 sessions (two providers, ES256 minting, JWKS caching, dual-mode callback, intermediate codes, the two-phase link protocol, rotation-with-grace, ~25-case test matrix, plus the cross-model security loop). Executor may split into AP2a (core sign-in) / AP2b (native + link protocol) as two PRs if a session boundary demands it.
 
 **Gates:** tests green; sub-agent review; **cross-model review (security lens) — patch until no P0–P2**; walkthrough/golden clean; merge → apply prod migration → **flip `ACCOUNTS_API_ENABLED="true"` (UI stays off) = dark-live** (matches the exit step above; "dark" always means API-on/UI-off from here on).
 **Rollback:** kill switch off; revert PR; D1 rows additive only.
@@ -79,9 +85,11 @@ Branch `accounts/ap3-web-auth-ui`. Files: `auth.js` (new module, Workshop-module
 
 - Client flag: bootstrap `GET /api/v1/auth/status` → `{api, ui, rights}`; `ui:false` ⇒ hide sign-in/sync UI (no layout shift), **but `rights:true` + an existing session ⇒ render the minimal account-rights section (export / delete / sign out)** per spec §4.5 — the kill switch must leave GDPR rights reachable in the UI, not only at the endpoint.
 - Sign-in modal: Apple + Google buttons, privacy sentence, policy link. Signed-in: header initial + menu (My 3dpa placeholder, Sign out).
-- Tests: Node UI-logic tests where the project pattern allows; manual browser smoke on preview; walkthrough/golden clean.
+- **Analytics-anonymity grep assertion ships HERE** (test asserting no account module imports/touches the analytics sender) — it must exist before rule 6 requires it in every PR; AP9 adds the runtime-payload half.
+- Tests: Node UI-logic tests where the project pattern allows; manual browser smoke on preview; walkthrough/golden per rule 3.
 
-**Gates:** sub-agent review; merge. Flag stays off in prod (owner can smoke-test with a local flag override query param — dev-only, documented in the PR).
+**Gates:** sub-agent review; merge. UI flag stays off in prod. The owner smoke-test override is **hostname-restricted (localhost + preview deployments only)** — a bare query param in public `app.js` would let anyone enable the hidden UI against the live dark API.
+**Rollback:** UI flag is already off; revert PR.
 
 ## AP4 — Sync endpoints
 
@@ -97,7 +105,9 @@ Branch `accounts/ap4-sync-api`. Files: `functions/api/v1/sync/[doc].js` (GET/PUT
 
 Branch `accounts/ap5-sync-client`. Files: `sync.js` (transport: debounced push 5s after local mutation, pull on load/sign-in, 409 → merge → re-push loop bounded at 3 attempts then "sync conflict — will retry") + `merge.js` (**new merge layer per spec APD4 — the shipped Workshop import merge is NOT sufficient**: **per-field** deterministic rev maps `revs:{field:{counter,device_id}}` (no wall-clock LWW, no whole-record resolution — disjoint concurrent field edits both survive), journal-record union by entry id within a profile, tuning op-union (the one reused piece), deletion-ledger tombstone application, lossless unknown-field preservation) + workshop-store additive **local deletion ledger** (`{id, kind, deleted_at, rev}` on every remove path; compaction is server-ack-based per spec §4.4) + **replica-namespace storage partitioning per APD14**. Envelope `{format: '3dpa-sync-v1', schema_version, min_reader, payload: <backup format unchanged>, deletions: [...]}` (byte-compat assertion pins the payload against a real fixture backup); single-flight coordinator with dirty generations.
 
+- **Namespace ↔ existing-storage mapping (recorded decision):** the `local` namespace **≡ today's storage keys unchanged** (`3dpa_state_v1`, Workshop store, `3dpa_inventory_v1` stay byte-identical — that is what keeps the flags-off promise true); account namespaces are NEW prefixed keys (`3dpa_ns_<user_id>_...`); the inventory store gains namespacing in **AP8 step 1** (not AP5); any session existing at AP5 deploy is treated as a first sign-in (APD14 rule 2 prompt) on its next auth check. **Rollback:** reverting AP5 leaves old code reading the untouched original keys — account-namespace keys are orphaned but inert.
 - APD14 UI: first-sign-in merge/start-clean prompt (namespace move `local`→account); **sign-out switches the active namespace to `local` immediately** (account namespace stored but hidden — spec APD14 rule 3) + stops sync; different-account sign-in hides prior namespaces; account-deletion local keep/remove question.
+- **Shared fixture home + mirror rule:** merge fixtures live at web `scripts/fixtures/sync-merge/*.json` (web is master, like `engine.js`); AP10-I2 byte-copies them into the iOS test bundle (`3DPrintAssistantTests/Fixtures/sync-merge/`); I6 runs `diff -q` on the set.
 - Tests (Node, shared JSON fixtures that AP10-I2 will re-run on iOS): profile-rename vs journal-append conflict converges losslessly; **disjoint-field concurrent edits both survive**; clock-skew immunity; equal-rev tiebreak; merge(A,B)==merge(B,A); associativity; idempotence; deletion does not resurrect; A→B→A namespace isolation; **signed-out UI shows only `local`-namespace data**; delete→reauth empty account; unknown-field round-trip; min_reader pause; tuning op-union preserved; envelope fixture byte-pin; dirty-generation edit-during-push; cap-exceeded → local-only badge state.
 
 **Gates:** tests; sub-agent review; **cross-model (merge/data-loss lens) until no P0–P2**; walkthrough/golden clean; merge (dark).
@@ -162,11 +172,12 @@ ROADMAP: flip platform rows, promote backlog seeds (spec §9) into Backlog table
 
 ## Cross-cutting rules for every gate
 
-1. One gate = one branch = one PR; review gate BEFORE merge; merged PR = gate closed in the ledger.
-2. Gate ledger: `docs/planning/ACCOUNTS-PLATFORM-GATE-LEDGER.md` created at AP1 (per-gate evidence rows, same pattern as EXPORT/MINE ledgers).
-3. Every web PR: `node --test functions/api/**/*.test.mjs` (or project test runner) + `node scripts/walkthrough-harness.js` + golden snapshot NO-DRIFT proof pasted in PR body.
+1. One gate = one branch = one PR; review gate BEFORE merge; merged PR = gate closed in the ledger. (Flag flips are `wrangler secret put` config actions, not code — exempt.)
+2. Gate ledger: `docs/planning/ACCOUNTS-PLATFORM-GATE-LEDGER.md` created at AP1 (per-gate evidence rows, same pattern as EXPORT/MINE ledgers); AP1 backfills the AP0 GO row.
+3. Every web PR **that could touch runtime behavior**: `node --test functions/api/**/*.test.mjs` (or project test runner) + engine-untouched proof = `node scripts/engine-golden-snapshot.js --check` exits 0 (the machine gate) **and** the regenerated walkthrough report diffs empty against the committed baseline — both pasted in the PR body. Docs-only PRs (e.g. AP11) are exempt.
 4. No secrets in repo: Apple `.p8`, Google client secret, JWT signing key → `wrangler secret put` only.
 5. D1 migrations additive-only; destructive changes need a new owner gate.
-6. Analytics anonymity assertion runs from AP3 onward in every PR.
-7. Sequencing vs in-flight work: AP1–AP9 (web) can interleave with other web work but not with another session editing `functions/api/` the same day; AP10 strictly after 1.0.7 + 1.0.8 trains; Android untouched until AG0.
+6. Analytics anonymity: the grep-level assertion ships in AP3 and runs in every PR from AP3 onward; the runtime-payload assertion is added in AP9.
+7. Sequencing vs in-flight work: AP1–AP9 (web) can interleave with other web work but not with another session editing `functions/api/` the same day, **and no two account gates that both edit `app.js`/`index.html`/`style.css`/`locales/*` may run in parallel** (AP3/AP6/AP7 all touch them — "AP7 is independent" means it may run EARLY in the sequence, not concurrently); AP10 strictly after 1.0.7 + 1.0.8 trains; Android untouched until AG0.
 8. Findings from reviews: one finding = one commit.
+9. Rollback default for AP3–AP8: flags cover behavior; revert the PR. Gate-specific rollback notes override (AP5 namespace note; AP7: revert leaves `3dpa_inventory_v1` orphaned in localStorage — harmless, documented).
