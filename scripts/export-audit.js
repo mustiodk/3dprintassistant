@@ -275,9 +275,18 @@ async function main() {
   // parents; unverified Orca-routed printers keep the existing Copy fallback.
   const orcaEnderState = stateFor('ender3_v3_se', 'pla_basic', 'std_0.4');
   const orcaEnder = hasOrcaExport ? Engine.exportOrcaJSON(orcaEnderState) : null;
+  const ownerVerifyDir = path.join(GOLDEN, '_owner-verify');
+  const ownerOrcaProcess = JSON.parse(fs.readFileSync(
+    path.join(ownerVerifyDir, 'orca-ender3-v3-se-process.json'), 'utf8'));
+  const ownerOrcaFilament = JSON.parse(fs.readFileSync(
+    path.join(ownerVerifyDir, 'orca-ender3-v3-se-filament.json'), 'utf8'));
   checkFail('verified Ender-3 V3 SE export returns process + filament',
     !!(orcaEnder && orcaEnder.process && orcaEnder.filament));
   if (orcaEnder) {
+    checkFail('owner-verify Orca process artifact matches current serializer',
+      JSON.stringify(ownerOrcaProcess) === JSON.stringify(orcaEnder.process));
+    checkFail('owner-verify Orca filament artifact matches current serializer',
+      JSON.stringify(ownerOrcaFilament) === JSON.stringify(orcaEnder.filament));
     checkFail('Ender-3 V3 SE process uses exact Orca vendor parent (not Bambu table)',
       orcaEnder.process.inherits === '0.20mm Standard @Creality Ender3V3SE 0.4',
       orcaEnder.process.inherits);
