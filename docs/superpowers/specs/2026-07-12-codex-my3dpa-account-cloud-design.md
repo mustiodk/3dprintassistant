@@ -222,6 +222,7 @@ Every `/api/v1/*` request except the closed list below:
 
 Closed authentication exceptions—adding one requires a security-review PR:
 
+- `POST /api/v1/devices/register`: still requires a fully verified Firebase token with recent `auth_time`, but may atomically create the missing active user/device under §7.4; exact schema/size/rate limits apply and it is the only authenticated route exempt from a pre-existing user/device row.
 - `GET/HEAD /api/v1/schema/versions`: public read-only static manifest, no credentials/cookies, `Access-Control-Allow-Origin: *`, 60 requests/IP/minute and CDN cache; all other methods fail.
 - `GET /api/v1/account/deletion/{requestId}`: requires `Authorization: Capability <base64url-256-bit-value>`, constant-time hash verification, no Firebase identity, credential-free CORS disabled, 30 requests/requestId and IP/minute. The capability is never accepted in query strings, URLs, cookies, or request bodies.
 - future Apple/Google purchase notification callbacks: require the provider-signed payload/OIDC contract in §12.3, exact method/path/content type, provider-specific replay protection and rate limits; they never accept a user bearer token as callback authorization.
@@ -234,12 +235,13 @@ The active-user D1 check makes account deletion effective immediately even if a 
 
 ### 7.4 Account creation
 
-First authenticated request creates:
+`POST /api/v1/devices/register` is the sole account-creation trigger. After the client generates its P-256 key and supplies recent provider authentication, one D1 transaction:
 
-- an active D1 user row;
-- a server-registered device row and device signing public key after recent provider reauthentication;
-- PDM version `2`;
-- zero domain data until the user confirms first upload.
+- creates the active D1 user row with PDM version `2` and zero domain data if none exists;
+- creates the unique device row/public key, or returns the existing idempotent registration;
+- returns the account/device contract needed for signed requests.
+
+No other endpoint auto-creates a user or device. An authenticated request without an active registered device returns `403 device_not_registered` (except the exact registration route and closed non-device exceptions in §7.3). An existing user with zero active devices can recover by recent reauthentication plus registration; the client never needs `GET /account` before key generation/registration. User-row and device-row creation roll back together on any failure.
 
 The client generates a P-256 signing key in Keychain/Secure Enclave, Android Keystore, or non-exportable Web Crypto storage; D1 stores only the public key. Sync calls include device ID, strictly increasing request counter, timestamp, canonical body hash, and ECDSA signature over method/path/body hash/device ID/counter/timestamp. In the same D1 transaction as the request, the Worker verifies the public key and advances `last_request_counter`. A retry at the current counter returns the cached result only when its request hash matches; lower counters or same-counter/different-hash requests are replay errors. Registering or rotating a key requires a Firebase token with recent `auth_time`, so a revoked installation cannot simply invent a new device ID using a background refresh token.
 
