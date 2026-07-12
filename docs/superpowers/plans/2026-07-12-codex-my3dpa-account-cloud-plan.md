@@ -561,7 +561,7 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 
 **Rollout/rollback:** owner beta → invite beta; `inventorySync=false` preserves local inventory and pull/export/delete. No Pro enforcement.
 
-**Exit:** 14-day beta with reconciled balance totals and no projection/source divergence.
+**Exit:** 14-day beta with reconciled balance totals, zero projection/source divergence, per-account operation/storage distributions, D1/R2/Queue usage and projected free/paid cost at 1×/10×/100× adoption recorded in the ledger.
 
 ---
 
@@ -584,7 +584,7 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 ### E0 — one-time Pro entitlement and inventory-boundary program
 
 **Repos:** E0a web/backend contract, E0b iOS StoreKit, then E0c Android Play after D0; each is a separate PR.
-**Depends on:** F2 usage/cost evidence + F3 architecture; fresh owner pricing/legal GO.  
+**Depends on:** F2's named 14-day usage/cost exit evidence; fresh owner pricing/legal GO. F3 architecture acceptance is an additional dependency of E0b, not E0a.
 **Goal:** server-authoritative lifetime Pro only when inventory proves value.
 
 **Owner gate:** confirm 50 active-spool definition, target 99 DKK localized price, seven-day offline grace, refund/chargeback/statutory retention, web checkout decision, and no subscription.
@@ -659,8 +659,8 @@ This matrix overrides broader program-heading wording. Each row is one merge/rev
 | F1b | F1a | `node --test scripts/inventory-bambu-import.test.mjs scripts/inventory-reconcile.test.mjs` | dry-run first | backup pre-sync; compensation post-sync |
 | F2 | F1b,R0 | `node --test scripts/inventory-sync.test.mjs scripts/inventory-lifecycle.test.mjs scripts/inventory-projection.test.mjs` | owner beta; `inventorySync=false` | local/events/export survive disable |
 | F3 | F2,I1c | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/InventoryTests` | local iOS commits | remote flag; local export retained |
-| E0a | F2 + owner price/legal GO | `node --test scripts/entitlement-server.test.mjs scripts/purchase-retention.test.mjs` | grants/checkout off | stop grants; retain validated rights |
-| E0b | E0a,F3 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/StoreKitEntitlementTests` | StoreKit sandbox, local commits | checkout off; read/export retained |
+| E0a | F2 named 14-day usage/cost evidence + owner price/legal GO | `node --test scripts/entitlement-server.test.mjs scripts/purchase-retention.test.mjs` | grants/checkout off | stop grants; retain validated rights |
+| E0b | E0a,F3 architecture acceptance,F3 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/StoreKitEntitlementTests` | StoreKit sandbox, local commits | checkout off; read/export retained |
 | D0 | Android v1,C0,A1c,S0d,AG0 | `./gradlew test connectedCheck` on mac-mini | Android sync flag off | local Android v1 behavior |
 | E0c | E0a,D0 | `./gradlew test --tests '*PlayEntitlement*'` on mac-mini | Play sandbox/grants off | checkout off; rights retained |
 | M0 | I1c + extraction GO | default iOS/macOS build/test commands with macOS destination | unreleased target | iOS-on-Mac remains |
