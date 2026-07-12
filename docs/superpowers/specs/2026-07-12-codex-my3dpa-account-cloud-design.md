@@ -182,7 +182,11 @@ The D1 database must be created with `--jurisdiction=eu`; Cloudflare states that
 
 ### 6.3 Cost posture
 
-D1's current free allowance is 5M rows read/day, 100k rows written/day, and 5 GB storage; it scales to zero and has no D1 egress fee. [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/). This is ample for a bounded JSON sync service at hobby scale.
+D1's current free allowance is 5M rows read/day, 100k rows written/day, and 5 GB storage; it scales to zero and has no D1 egress fee. [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/). Treat that as a measured launch envelope, not an “ample” assumption.
+
+Initial capacity model: 500 daily synced accounts × 10 mutations gives 5,000 ops/day; budget three D1 writes/op (entity, revision, idempotency) = 15,000 writes/day. Six pulls/account/day × 20 changed rows budgets 60,000 row reads/day, plus 10× overhead for user/device/schema queries remains below 1M reads. A stress case of 2,000 daily accounts × 20 mutations × three writes reaches 120,000 writes/day and requires Workers/D1 Paid or batching redesign. The 5 MB active-payload cap reaches the 5 GB storage tier at roughly 1,000 maximally filled accounts, so observed p50/p95 bytes per account matters more than account count alone.
+
+Production alerts fire at 50% and 75% of daily read/write/storage allowance, at p95 sync latency/error thresholds, and on export/conflict amplification. The launch gate replays baseline and 4× load against staging, records rows/op and bytes/account, and sets the paid-plan/optimization threshold before enabling signups.
 
 R2 is not required in the first account release. Add it only for scheduled DB exports, large account-export archives, or future user files. R2's current Standard free tier includes 10 GB-month, 1M writes, 10M reads, and free egress. [R2 pricing](https://developers.cloudflare.com/r2/pricing/).
 
