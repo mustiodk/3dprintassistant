@@ -445,7 +445,7 @@ After a client durably records/handles a contiguous run of terminal results, its
 - Mutable kinds with current `baseVersion`: apply and increment entity + user revision atomically.
 - Mutable updates merge only the validated field mask. A full replacement from a client below the stored entity schema version returns `409 schema_write_unsupported` instead of dropping unknown fields.
 - Stale mutable base: return `409 conflict` plus current server entity; do not overwrite.
-- Absent entity with `baseVersion > 0`, or any create reusing an ID in `deletion_graveyard`: return `409 deleted_entity`; restoration requires a new entity ID.
+- Absent entity with `baseVersion > 0`, or any create whose keyed ID hash is present in `deletion_graveyard_buckets`: return `409 deleted_entity`; restoration requires a new entity ID.
 - Invalid schema/size/reference: reject that op with a typed error. Every later/transitive op naming it in `dependsOnOpIds` is rejected as `dependency_failed`; independent valid ops may still apply. Cycles, missing dependency IDs, a same-entity sequence without the required dependency, or an in-batch reference without dependency on its create reject the whole malformed batch before mutation.
 - A user can never reference another user's entity; foreign IDs resolve as not found.
 
