@@ -1,6 +1,6 @@
 # 2026-07-12 — My 3DPA merged decision set (Claude × Codex synthesis)
 
-**Status:** DRAFT — synthesized from the two review-hardened candidates per the owner comparison gate; pending owner ratification (MG0) + one fresh hostile/cross-model review round (SYN-17).
+**Status:** DRAFT — synthesized from the two review-hardened candidates per the owner comparison gate. Internal hostile review complete: 3 rounds (architecture + QA lanes), converged 26 → 12 → 2 findings, all patched — ledger: `../../reviews/2026-07-12-my3dpa-merged-plan-review.md`. Pending: owner ratification (MG0) + the Codex cross-model round (SYN-17).
 **Sources (both remain normative for adopted mechanics; THIS document governs every conflict):**
 - Claude candidate: `2026-07-11-accounts-platform-design.md` (APD0–APD15) + `../plans/2026-07-11-accounts-platform-plan.md`.
 - Codex candidate: `2026-07-12-codex-my3dpa-account-cloud-design.md` + `../plans/2026-07-12-codex-my3dpa-account-cloud-plan.md`.
