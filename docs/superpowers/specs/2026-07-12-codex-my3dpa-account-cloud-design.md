@@ -299,14 +299,17 @@ Journal entries move out of nested profile arrays during migration. Remaining fi
 
 ### 8.4 Tombstones
 
-Deletes create tombstones so offline devices learn the deletion. Retain normal entity tombstones for 30 days, then compact. Account deletion bypasses normal tombstone retention and hard-deletes domain rows after immediate account lock.
+Deletes create tombstones so offline devices learn the deletion. Retain full tombstone payloads for 30 days, then compact them into a permanent per-account graveyard containing only `(kind, entityId, deletedRevision, deletedAt)`. A graveyard row is removed only with the account, never by normal sync compaction. Account deletion bypasses normal tombstone retention and hard-deletes domain rows after immediate account lock.
+
+Compacting the ordered change stream advances `users.min_available_revision`. A pull using an older cursor returns `410 cursor_expired` with `minAvailableRevision` and requires an authoritative bootstrap/reconciliation. Bootstrap stages the server snapshot and graveyard against the local store, preserves unsynced local operations, rejects stale recreation of graveyard IDs, and exposes any legitimate local resurrection as an explicit **Restore as new copy** action with a new ID. The server rejects a push for an absent entity when `baseVersion > 0`; it also rejects any create whose ID is in the graveyard.
 
 ## 9. Sync contract
 
 ### 9.1 Server tables
 
 ```text
-users(user_id PK, status, pdm_version, next_revision, created_at, deleted_at)
+users(user_id PK, status, pdm_version, next_revision, min_available_revision,
+      created_at, deleted_at)
 devices(user_id, device_id, platform, app_version, label, last_seen_at, revoked_at)
 sync_entities(user_id, kind, entity_id, entity_version, user_revision,
               schema_version, payload_json, payload_hash, deleted_at, updated_at,
@@ -314,6 +317,8 @@ sync_entities(user_id, kind, entity_id, entity_version, user_revision,
 sync_ops(user_id, op_id, device_id, kind, entity_id, base_version,
          applied_version, user_revision, result, created_at,
          UNIQUE(user_id, op_id))
+deletion_graveyard(user_id, kind, entity_id, deleted_revision, deleted_at,
+                   PK(user_id, kind, entity_id))
 entitlements(user_id, product_key, status, source, source_tx_id_hash,
              granted_at, revoked_at)  -- later monetization gate
 ```
@@ -346,6 +351,7 @@ Every local mutation gets a random `opId`, `deviceId`, kind/entity ID, `baseVers
 - Append-only kinds: union by entity ID; duplicate IDs are idempotent.
 - Mutable kinds with current `baseVersion`: apply and increment entity + user revision atomically.
 - Stale mutable base: return `409 conflict` plus current server entity; do not overwrite.
+- Absent entity with `baseVersion > 0`, or any create reusing an ID in `deletion_graveyard`: return `409 deleted_entity`; restoration requires a new entity ID.
 - Invalid schema/size/reference: reject only that op with a typed error; other valid ops may apply in a D1 batch only if dependency ordering remains safe.
 - A user can never reference another user's entity; foreign IDs resolve as not found.
 
@@ -359,7 +365,7 @@ Every local mutation gets a random `opId`, `deviceId`, kind/entity ID, `baseVers
 
 ### 9.5 Pull and cursor
 
-Server assigns a monotonic per-user `user_revision` to every accepted entity change. Client persists `lastPulledRevision`, pages until caught up, applies all changes in one local transaction/write boundary, then advances the cursor. Cursor advances only after durable local apply.
+Server assigns a monotonic per-user `user_revision` to every accepted entity change. Client persists `lastPulledRevision`, pages until caught up, applies all changes in one local transaction/write boundary, then advances the cursor. Cursor advances only after durable local apply. Every pull response includes `currentRevision` and `minAvailableRevision`; `after < minAvailableRevision` returns typed `410 cursor_expired` and cannot be treated as an empty delta. The client then runs the non-destructive bootstrap/reconciliation defined in §8.4.
 
 ### 9.6 Sync triggers
 
