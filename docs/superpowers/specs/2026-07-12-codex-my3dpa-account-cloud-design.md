@@ -225,13 +225,13 @@ The active-user D1 check makes account deletion effective immediately even if a 
 First authenticated request creates:
 
 - an active D1 user row;
-- a server-registered device row and one-time device secret after recent provider reauthentication;
+- a server-registered device row and device signing public key after recent provider reauthentication;
 - PDM version `2`;
 - zero domain data until the user confirms first upload.
 
-The device secret is stored in Keychain/Keystore or browser Web Crypto non-exportable storage where available; D1 stores only its hash. Sync calls include device ID, nonce, timestamp, and an HMAC over method/path/body hash. The Worker rejects replayed nonces, revoked devices, invalid proofs, and proofs outside a short clock window. Registering or rotating a device requires a Firebase token with recent `auth_time`, so a revoked installation cannot simply invent a new device ID using a background refresh token.
+The client generates a P-256 signing key in Keychain/Secure Enclave, Android Keystore, or non-exportable Web Crypto storage; D1 stores only the public key. Sync calls include device ID, strictly increasing request counter, timestamp, canonical body hash, and ECDSA signature over method/path/body hash/device ID/counter/timestamp. In the same D1 transaction as the request, the Worker verifies the public key and advances `last_request_counter`. A retry at the current counter returns the cached result only when its request hash matches; lower counters or same-counter/different-hash requests are replay errors. Registering or rotating a key requires a Firebase token with recent `auth_time`, so a revoked installation cannot simply invent a new device ID using a background refresh token.
 
-Device removal therefore revokes sync capability for that installation. The lost-device flow additionally calls Firebase refresh-token revocation for the account, locks all device secrets, and requires fresh provider sign-in before trusted devices are re-registered. The UI states clearly that account-wide sign-out is required for a suspected stolen credential.
+Device removal therefore revokes sync capability for that installation. The lost-device flow additionally calls Firebase refresh-token revocation for the account, revokes all device public keys, and requires fresh provider sign-in before trusted devices are re-registered. The UI states clearly that account-wide sign-out is required for a suspected stolen credential.
 
 Do not create anonymous Firebase accounts for every install. That would turn every local user into server state and weaken the no-account promise.
 
@@ -359,8 +359,9 @@ Compacting the ordered change stream advances `users.min_available_revision`. A 
 ```text
 users(user_id PK, status, pdm_version, next_revision, min_available_revision,
       created_at, deleted_at)
-devices(user_id, device_id, device_secret_hash, platform, app_version, label,
-        last_seen_at, revoked_at)
+devices(user_id, device_id, signing_public_key, last_request_counter,
+        last_request_hash, last_request_result, platform, app_version, label,
+        last_seen_at, revoked_at, PK(user_id, device_id))
 sync_entities(user_id, kind, entity_id, entity_version, user_revision,
               schema_version, payload_json, payload_hash, deleted_at, updated_at,
               PK(user_id, kind, entity_id))
@@ -401,7 +402,7 @@ Day-1 conservative limits are enforced before traffic data exists: per verified 
 
 ### 9.3 Push semantics
 
-Every local mutation gets `opId = <registeredDeviceId>:<uuidV4>`, registered `deviceId`, kind/entity ID, `baseVersion`, schema version, explicit `dependsOnOpIds[]`, field mask plus changed values (or complete payload for a create), and payload/tombstone. The Worker verifies the prefix matches the authenticated device. This makes cross-device collisions structurally impossible while request-hash checks still catch reuse on one device. The request also proves possession of that device's secret as defined in §7.4. Clients topologically order a batch: sequential mutations of one entity depend on the prior mutation; an event/reference to an entity created in the batch depends on that create.
+Every local mutation gets `opId = <registeredDeviceId>:<uuidV4>`, registered `deviceId`, kind/entity ID, `baseVersion`, schema version, explicit `dependsOnOpIds[]`, field mask plus changed values (or complete payload for a create), and payload/tombstone. The Worker verifies the prefix matches the authenticated device. This makes cross-device collisions structurally impossible while request-hash checks still catch reuse on one device. The signed request proves possession of that device's private key as defined in §7.4. Clients topologically order a batch: sequential mutations of one entity depend on the prior mutation; an event/reference to an entity created in the batch depends on that create.
 
 - Duplicate `opId` with the same canonical request hash: return the recorded result; never apply twice. The same `opId` with different bytes returns `409 idempotency_mismatch`.
 - Append-only kinds: union by entity ID. An existing ID with the same canonical payload hash is a duplicate; different bytes return `409 immutable_id_conflict` and neither version is changed.
