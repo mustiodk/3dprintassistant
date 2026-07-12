@@ -327,9 +327,9 @@ The same reviewed B1 run sheet provisions Firebase staging before A0: create the
 - CSP/header configuration, privacy copy
 - auth/device/JWKS/CSP tests
 
-**Tasks:** configure dev/staging Firebase; lazy signed-out loading; P-256 non-exportable keys; signed request counters/retries; device recovery/lost-device flow; provider-link collision safe-stop; reject Firebase anonymous users; generate and persist a stable account UUID suitable for later `appAccountToken`; accountEnabled marker; strict CSP.
+**Tasks:** configure dev/staging Firebase; lazy signed-out loading; P-256 non-exportable keys; signed request counters/retries; device recovery/lost-device flow; provider-link collision safe-stop; reject Firebase anonymous users; use the verified Firebase token `sub` unchanged as D1 `user_id`, then atomically generate a separate random UUID in `users.app_account_token` and return it from the account API without logging or portable export; accountEnabled marker; strict CSP.
 
-**Tests:** JWT confusion/rotation/outage, registration races, replay/counter, key loss with pending outbox, revocation, no-Web-Crypto degraded UX, Apple/Google popup+redirect CSP, signed-out no-auth load, anonymous-Firebase-token rejection, same-email/different-provider collision without silent linking, and stable UUID generation/retry.
+**Tests:** JWT confusion/rotation/outage, registration races, replay/counter, key loss with pending outbox, revocation, no-Web-Crypto degraded UX, Apple/Google popup+redirect CSP, signed-out no-auth load, anonymous-Firebase-token rejection, same-email/different-provider collision without silent linking, exact Firebase-`sub` D1-key equality, and independent stable `app_account_token` creation/retry/non-log/non-export behavior.
 
 **Rollout:** dev/staging only, then one owner staging account. Public signup and production auth UI remain disabled until O1 and R0; production sync writes remain disabled.
 
