@@ -431,7 +431,7 @@ No mandatory background task in v1. Backoff with jitter on failure. Local mutati
 ### 10.1 Workshop
 
 - Migrate `3dpa_workshop_v1` into separate profile/outcome/tuning entities.
-- Preserve original IDs and timestamps.
+- Preserve original logical identity and timestamps through the deterministic legacy-ID map in §15.1.
 - Store a migration marker and original v1 backup until at least one PDM2 export succeeds.
 - Continue emitting/importing v1 backups during a transition window; PDM2 becomes the preferred full-account export.
 - Engine personal tuning is injected from locally derived tuning ops exactly as today. Server data never bypasses local engine clamps.
@@ -676,10 +676,11 @@ The configurator/engine must remain available during every backend incident.
 1. Detect `3dpa_workshop_v1` / iOS `workshop.json` v1.
 2. Parse with existing tolerant readers.
 3. Convert profiles, journals, tuning accepts/dismissals into PDM2 entities in memory.
-4. Validate references and produce a migration report.
-5. Atomically write PDM2 plus `migrationSourceHash`.
-6. Export/retain the untouched v1 backup.
-7. Run round-trip fixture tests web↔Swift↔Kotlin before enabling upload.
+4. For every valid UUID v4 source ID, retain it. For legacy fallback IDs such as `p_<timestamp>_<random>`, derive UUID v5 from the fixed 3dpa legacy namespace plus `kind + sourceId`; rewrite every reference through the same map and record source→target IDs in the migration report. Reject malformed/oversized IDs instead of guessing.
+5. Validate rewritten references and prove the mapping is collision-free in the source set.
+6. Atomically write PDM2 plus `migrationSourceHash`.
+7. Export/retain the untouched v1 backup.
+8. Run round-trip fixtures for UUID and fallback IDs web↔Swift↔Kotlin before enabling upload.
 
 Migration is idempotent; rerunning the same source hash creates no duplicate entities.
 
