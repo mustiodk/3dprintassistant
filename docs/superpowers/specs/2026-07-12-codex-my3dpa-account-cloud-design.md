@@ -220,6 +220,8 @@ Every `/api/v1/*` request:
 5. applies per-user and per-IP rate limits;
 6. ignores any client-supplied user ID.
 
+JWKS handling is fail-closed and bounded: accept only `alg=RS256`; cache Google's successfully validated key set for `min(Cache-Control max-age, 60 minutes)` and refresh single-flight at 80% of lifetime. An unknown `kid` triggers one rate-limited immediate refresh and a five-minute negative cache; it never falls back to another key. If refresh fails, still-valid cached keys may be used until their deadline, then auth returns retryable `503 auth_keys_unavailable` rather than accepting stale/unverified tokens. Metrics/alerts cover refresh failure, unknown kids, cache age, and auth-key outages without logging tokens.
+
 The active-user D1 check makes account deletion effective immediately even if a short-lived Firebase token still exists.
 
 ### 7.4 Account creation
