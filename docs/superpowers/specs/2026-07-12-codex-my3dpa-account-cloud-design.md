@@ -734,11 +734,21 @@ Migration is idempotent; rerunning the same source hash creates no duplicate ent
 - Present conflict summary.
 - Commit staged PDM2 locally while retaining the original store and backup.
 - Push remaining local ops.
-- Mark sync enabled only after a pull verifies server round-trip; only then schedule transition-backup cleanup under §15.3.
+- Mark sync enabled only after a pull verifies server round-trip; only then schedule transition-backup cleanup under §15.4.
 
 Failure injection is tested after backup write, readback, migration, cloud pull, staged merge, local commit, every partial push result, and verification pull. Before local commit, discard staging. After local commit, restore the verified backup/source store atomically and leave the failed PDM2 store quarantined for diagnostics. Every failure leaves local v1/PDM2 data usable and sync disabled.
 
-### 15.3 Compatibility window
+### 15.3 Import modes and server versions
+
+Serialized `entity.version`/`baseVersion` is never trusted as authorization state:
+
+- **Signed-out/portable import:** validate content, reset every imported entity to local `version:0`, and create new outbox ops only after future sync opt-in. If an ID collides with different local content, derive a deterministic UUID v5 from `import + manifestHash + kind + sourceId` and rewrite all references; identical canonical content deduplicates.
+- **New/different account import:** apply the same reset. Bootstrap checks server active IDs and graveyard membership; collisions are deterministically remapped as above, never sent as `baseVersion > 0` creates.
+- **Same-account restore:** permitted only from a server-signed account export whose opaque account-scope claim verifies for the currently reauthenticated UID. Pull current server state first and reconcile by ID/content; serialized versions are hints for conflict reporting, while current D1 versions control mutations.
+
+The import report names resets, deduplications, remaps, and rewritten references. Fixtures cover signed-out backup, cross-account portability, same-account restore, graveyard collision, and malicious forged high versions.
+
+### 15.4 Compatibility window
 
 - Keep v1 Workshop backup import/export for at least two stable app release trains after PDM2 ships on every active platform.
 - PDM2 readers preserve unknown additive fields losslessly and ignore unknown entity kinds for presentation, but reject unsupported major versions. Writers use field-mask mutations and never serialize a lossy full replacement over a newer entity schema.
