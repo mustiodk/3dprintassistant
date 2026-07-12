@@ -43,7 +43,7 @@ Hard constraints:
 ## 2. Dependency graph and release gates
 
 ```text
-G0 → O0 → C0
+G0 + O0 → C0 candidate → IC0 Swift parity PASS → C0 merge
 C0 → W0
 C0 → I0
 C0 → B0 → B1 → A0 → A1a → A1b → A1c → S0a → S0b → S0c → S0d
@@ -53,7 +53,8 @@ S1 → S1G (signed soak PASS)
 O1 + S1G → R0a (owner account canary) → R0b (owner sync canary) → R0c (5% → 25% → 100%)
 S1 → U0
 I0 + S1 + A1c → I1a → I1b
-I1b + R0b → I1c → 7-day TestFlight soak → App Store
+I1b + R0b → I1c → 7-day TestFlight soak
+I1c soak + R0c → App Store account-feature activation
 
 W0 → X0a
 X0a + S1 → X0b
@@ -61,8 +62,8 @@ X0a + I1c → IX0 → IXR
 W0 + C0 → F0 → F1a → F1b
 F1b + R0c → F2
 F2 + I1c → F3 → F3R
-F2 named usage/cost evidence + owner GO → E0a
-E0a + F3 → E0b → E0bR
+F2 named usage/cost evidence + owner GO → E0a → E0p
+E0p + F3R → E0b → E0bR
 
 Android v1 + C0 + A1c + S0d + owner AG0 → D0
 E0a + D0 → E0c
@@ -166,11 +167,13 @@ node scripts/pdm-contract.test.js --verify-full-manifest-hash
 node --test scripts/r2-conditional-capability.test.mjs
 ```
 
-**Review gate:** schema/domain review, security review, Claude cross-model zero P0–P2, owner manifest approval. Cross-repo Swift parity is owned by I0, not this PR.
+**Review gate:** schema/domain review, security review, Claude cross-model zero P0–P2, owner manifest approval. The read-only pre-merge Swift check is IC0 evidence; durable native implementation remains I0.
+
+**Pre-merge IC0 parity gate:** once the web C0 PR has a frozen candidate commit/hash, copy only that candidate's manifest/fixtures into an iOS local review branch, add a read-only Swift fixture verifier, and run the default iOS commands with `-only-testing:3DPrintAssistantTests/PDMContractTests`. Record the candidate web commit, full manifest hash, iOS local commit, test count, and zero-diff result in the C0 ledger row. IC0 creates no app behavior, is never pushed, and must report PASS before the web C0 PR may merge. I0 later owns the durable vendoring/repository/migration implementation.
 
 **Rollback:** contract-only revert; no stored PDM2 data exists yet.
 
-**Exit:** merged manifest is the immutable C0 baseline; all downstream gates pin its hash.
+**Exit:** IC0 PASS exists against the exact candidate commit, then the web-only C0 PR merges and its manifest becomes the immutable baseline; all downstream gates pin its hash.
 
 ---
 
@@ -481,11 +484,11 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 
 **Tests:** shared fixtures; multi-device simulator/API stub; keychain loss; reinstall; backend outage; deletion partial failure; signed-out engine/Workshop/output; UI accessibility/animations. Full XCTest + web walkthrough.
 
-**Release gate:** all local commits green → marketing version/bundle review → owner TestFlight GO → push iOS main once → manual TestFlight workflow → at least seven days of production-backed owner TestFlight soak → App Store phased release. The soak replays account creation/recovery, two-device sync, export/delete/recreation, key loss, backend outage, and signed-out baseline; it must meet S1's zero-tolerance, p95 latency, 5xx, and budget thresholds for the iOS cohort. Any breach disables `iosAccountSync`, blocks App Store release, and starts a new clean seven-day window after the fix. Never use TestFlight as an iteration loop.
+**Release gate:** all local commits green → marketing version/bundle review → owner TestFlight GO → push iOS main once → manual TestFlight workflow → at least seven days of production-backed owner TestFlight soak. The soak replays account creation/recovery, two-device sync, export/delete/recreation, key loss, backend outage, and signed-out baseline; it must meet S1's zero-tolerance, p95 latency, 5xx, and budget thresholds for the iOS cohort. The App Store build may release only after both that soak and R0c PASS; until R0c, `iosAccountSync=false` for every non-owner production account. Any breach disables `iosAccountSync`, blocks App Store release, and starts a new clean seven-day window after the fix. Never use TestFlight as an iteration loop.
 
 **Rollback:** remote iOS sync/auth flags; local store remains authoritative; App Store account deletion stays reachable for created accounts.
 
-**Exit:** seven consecutive green production-backed TestFlight days plus owner walkthrough, then phased App Store release with crash/sync monitoring.
+**Exit:** seven consecutive green production-backed TestFlight days, owner walkthrough, and R0c PASS, then phased App Store release with crash/sync monitoring.
 
 ---
 
@@ -583,18 +586,30 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 ### E0 — one-time Pro entitlement and inventory-boundary program
 
 **Repos:** E0a web/backend contract, E0b iOS StoreKit, then E0c Android Play after D0; each is a separate PR.
-**Depends on:** F2's named 14-day usage/cost exit evidence; fresh owner pricing/legal GO. E0b additionally depends on the merged, reviewed F3 implementation gate; no separate undefined “architecture acceptance” gate exists.
+**Depends on:** F2's named 14-day usage/cost exit evidence; fresh owner pricing/legal GO. E0b additionally depends on E0p PASS and the completed F3R inventory release gate.
 **Goal:** server-authoritative lifetime Pro only when inventory proves value.
 
 **Owner gate:** confirm 50 active-spool definition, target 99 DKK localized price, seven-day offline grace, refund/chargeback/statutory retention, web checkout decision, and no subscription.
 
-**Tasks:** E0a adds purchase event/retention migrations and server truth; E0b adds StoreKit 2 JWS + ASSN v2 using the stable A0 account UUID as `appAccountToken`; E0c adds Play Developer API/RTDN only after D0. All include restore purchases, non-destructive downgrade/over-limit, server reconciliation, and key rotation.
+**Tasks:** E0a activates server truth on the purchase/retention schema already created by B0—no migration; E0b adds StoreKit 2 JWS + ASSN v2 using the stable A0 account UUID as `appAccountToken`; E0c adds Play Developer API/RTDN only after D0. All include restore purchases, non-destructive downgrade/over-limit, server reconciliation, and key rotation.
 
 **Tests:** sandbox/production isolation, replay, refund/revoke, family/ownership, account mismatch, restore on new device, offline grace timestamp, over-limit edits/export/sync, deletion inside/outside retention window.
 
 **Rollback:** disable new grants/checkout, preserve validated existing entitlement/read/export; never delete or hide inventory.
 
 **Exit:** E0a server and E0b local iOS StoreKit implementation are sandbox/security green; E0bR alone performs the iOS push, production-backed TestFlight purchase/restore/refund soak, and App Store release.
+
+---
+
+### E0p — owner-only production entitlement backend canary
+
+**Repo:** web; operational gate after the reviewed E0a merge.
+**Depends on:** E0a + fresh owner StoreKit production-canary GO.
+**Goal:** prove the production validation/reconciliation path before any iOS entitlement build can ship.
+
+**Tasks/evidence:** configure the exact production App Store Server API issuer/key IDs and ASSN v2 URL outside git; verify signed-environment separation and Apple root/key rotation; deploy with checkout and `proGrants=false`; smoke JWS validation, ASSN authentication/replay, `appAccountToken` binding, restore, refund/revoke, Queue/DLQ, and purchase-retention deletion rules. Then allowlist the owner account only, enable grants for that account, and run a 48-hour sandbox-to-production-backend purchase/restore/refund canary with zero cross-account grants, replay acceptance, missed revocation, or secret/token logging.
+
+**Rollback/exit:** stop new owner grants/checkout while keeping ASSN/refund/revoke reconciliation and validated existing rights active; rehearse key disable/restore and Queue replay. E0p PASS is a signed ledger transition with config hashes, notification/reconciliation counts, rollback timestamps, and owner GO; E0b/E0bR remain blocked without it.
 
 ---
 
@@ -633,7 +648,8 @@ This matrix overrides broader program-heading wording. Each implementation row i
 | Gate | Depends on | Exact gate command | Default/rollout | Required rollback proof |
 |---|---|---|---|---|
 | G0 | none | `npm ci && node scripts/verify-toolchain.mjs && node --test scripts/feature-flags.test.mjs scripts/gate-evidence.test.mjs` | all flags false | clean-clone safe defaults |
-| C0 | G0,O0 | `node --test scripts/pdm-contract.test.js scripts/r2-conditional-capability.test.mjs && node scripts/pdm-contract.test.js --verify-full-manifest-hash` | web contract only | revert on empty store |
+| IC0 | frozen C0 candidate commit | default iOS commands + `-only-testing:3DPrintAssistantTests/PDMContractTests` against copied candidate fixtures | read-only local evidence; no push | discard local verifier branch |
+| C0 | G0,O0; merge requires IC0 PASS | `node --test scripts/pdm-contract.test.js scripts/r2-conditional-capability.test.mjs && node scripts/pdm-contract.test.js --verify-full-manifest-hash` | web contract only | revert on empty store |
 | W0 | C0 | `node --test scripts/pdm-store.test.js scripts/pdm-migration.test.js scripts/state-codec.test.js scripts/workshop-store.test.js` | `pdm2Local=false` | validated distinct backup restore |
 | I0 | C0 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/PDMContractTests` and `PDMMigrationTests` | local iOS commits | legacy-file restore; no push |
 | B0 | C0,O0 | `npm ci && npx wrangler d1 migrations apply 3dpa-account-preview --local && node --test scripts/account-schema.test.mjs scripts/account-dr.test.mjs functions/api/*.test.mjs` | local/preview; `accountApi=false` | fresh/upgrade/forward-fix rehearsal |
@@ -655,7 +671,7 @@ This matrix overrides broader program-heading wording. Each implementation row i
 | U0 | S1 | `node --test scripts/my3dpa-ui.test.mjs && node scripts/walkthrough-harness.js` | `my3dpaUi=false` added by this PR | old navigation + direct lifecycle route |
 | I1a | I0,S1,A1c | default iOS commands + `-only-testing:3DPrintAssistantTests/AuthDeviceTests` | reviewed local commits; `iosAccountSync=false` | remove auth UI/dependency; signed-out store intact |
 | I1b | I1a,S0d | default iOS commands + `-only-testing:3DPrintAssistantTests/SyncLifecycleTests` | reviewed local commits; sync off | remote flag; local outbox/export intact |
-| I1c | I1b,R0b | full default iOS suite, UI tests, and `node scripts/walkthrough-harness.js` in web | version bump + owner GO; one push | remote flag; deletion/export remains reachable |
+| I1c | I1b,R0b | full default iOS suite, UI tests, and `node scripts/walkthrough-harness.js` in web | TestFlight after R0b; App Store only after soak + R0c | remote flag; deletion/export remains reachable |
 | X0a | W0 | `node --test scripts/export-library.test.mjs scripts/export-regression.test.mjs` | local only | hide UI; metadata exportable |
 | X0b | X0a,S1 | `node --test scripts/export-library-sync.test.mjs scripts/sync-reference-race.test.mjs` | sync flag off | local library remains authoritative |
 | IX0 | X0a,I1c | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/ExportLibraryTests` | local iOS commits | hide UI; local export retained |
@@ -667,8 +683,9 @@ This matrix overrides broader program-heading wording. Each implementation row i
 | F3 | F2,I1c | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/InventoryTests` | local iOS commits | remote flag; local export retained |
 | F3R | F3 | full default iOS suite + UI tests + web walkthrough; version bump; owner GO; one push; manual TestFlight; seven-day production-backed reconciliation soak | only F3 release path | `iosInventory=false`; prior App Store build remains |
 | E0a | F2 named 14-day usage/cost evidence + owner price/legal GO | `node --test scripts/entitlement-server.test.mjs scripts/purchase-retention.test.mjs` | grants/checkout off | stop grants; retain validated rights |
-| E0b | E0a,F3 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/StoreKitEntitlementTests` | StoreKit sandbox, local commits | checkout off; read/export retained |
-| E0bR | E0b | full default iOS suite + StoreKit sandbox/UI tests + web walkthrough; version bump; owner GO; one push; manual TestFlight; seven-day production-backed purchase/restore/refund soak | only E0b release path | checkout/grants off; validated rights remain |
+| E0p | E0a + owner GO | production App Store Server API/ASSN configuration smoke + owner-only 48-hour purchase/restore/refund canary | signed operational decision; no code PR | stop new grants; reconciliation remains active |
+| E0b | E0p,F3R | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/StoreKitEntitlementTests` | StoreKit sandbox, local commits | checkout off; read/export retained |
+| E0bR | E0b,E0p | full default iOS suite + StoreKit sandbox/UI tests + web walkthrough; version bump; owner GO; one push; manual TestFlight; seven-day production-backed purchase/restore/refund soak | only E0b release path | checkout/grants off; validated rights remain |
 | D0 | Android v1,C0,A1c,S0d,AG0 | `./gradlew test connectedCheck` on mac-mini | Android sync flag off | local Android v1 behavior |
 | E0c | E0a,D0 | `./gradlew test --tests '*PlayEntitlement*'` on mac-mini | Play sandbox/grants off | checkout off; rights retained |
 | M0 | I1c + extraction GO | default iOS/macOS build/test commands with macOS destination | unreleased target | iOS-on-Mac remains |
@@ -678,6 +695,7 @@ Authoritative scope allowlist (tests, the gate review note, ledger row, and ROAD
 | Gate | Allowed production/create paths and migration owner | Explicit boundary |
 |---|---|---|
 | G0 | `package*.json`, `config/feature-flags.json`, `scripts/verify-toolchain.mjs`, ledger validator, canonical ledger | no runtime feature code |
+| IC0 | local iOS read-only contract fixture verifier and C0 ledger evidence | no app behavior, persistence, push, or web mutation |
 | C0 | web `contracts/pdm2/**` plus contract scripts/fixtures/runbook | owns no persistence migration or native-client file |
 | W0 | web `pdm-*.js`, adapters in `workshop-store.js`/`state-codec.js`, IndexedDB migration/backup UI | no Worker/auth/sync route |
 | I0 | iOS `Models/PDM/**`, PDM repository/migration, local Workshop parity views | no auth/network; owns iOS PDM migration |
@@ -712,6 +730,7 @@ Authoritative scope allowlist (tests, the gate review note, ledger row, and ROAD
 | F3 | iOS inventory domain/repository/views | no store purchase code; local commits until release gate |
 | F3R | iOS version/release metadata and release evidence only | no inventory behavior change except reviewed release blocker fix |
 | E0a | web entitlement/purchase callbacks and UI boundary state using B0 purchase/retention schema | no migration or StoreKit/Play client code |
+| E0p | production entitlement config, smoke evidence, and canonical ledger row | no client code or schema change |
 | E0b | iOS StoreKit service/purchase UI/privacy metadata | no Android or backend schema change |
 | E0bR | iOS version/release metadata and release evidence only | no entitlement behavior change except reviewed release blocker fix |
 | D0 | Android PDM/auth/sync/data-safety paths in native Android repo | no entitlement/Play Billing path |
