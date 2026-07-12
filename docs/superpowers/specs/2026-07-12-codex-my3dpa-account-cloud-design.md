@@ -713,6 +713,7 @@ The production record of processing and privacy notice must state the purpose/le
 ### 13.3 Threat cases that must be tested
 
 - forged/expired/wrong-audience JWT;
+- JWT algorithm/key confusion: `alg:none`, HS256 signed with the public key, non-RS256 algorithms, unknown/mismatched `kid`, and JWKS refresh outage/rotation;
 - user A requesting user B entity/device/export;
 - replayed op/purchase;
 - oversized entity/batch and decompression/JSON bombs;
