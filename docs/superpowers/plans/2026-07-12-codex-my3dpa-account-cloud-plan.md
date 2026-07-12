@@ -173,7 +173,7 @@ node --test scripts/r2-conditional-capability.test.mjs
 
 **Rollback:** contract-only revert; no stored PDM2 data exists yet.
 
-**Exit:** IC0 PASS exists against the exact candidate commit, then the web-only C0 PR merges and its manifest becomes the immutable baseline; all downstream gates pin its hash.
+**Exit:** IC0 PASS exists against the exact candidate commit; immediately before merge, CI recomputes the full manifest root and proves every contract byte still matches that IC0-tested commit. Any contract-byte change invalidates IC0 and reruns it. The web-only C0 PR then merges and its manifest becomes the immutable baseline; all downstream gates pin its hash.
 
 ---
 
