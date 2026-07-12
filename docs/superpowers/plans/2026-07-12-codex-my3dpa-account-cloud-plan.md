@@ -43,9 +43,9 @@ Hard constraints:
 ## 2. Dependency graph and release gates
 
 ```text
-O0 owner/provider/legal GO
-  └─ C0 PDM2 contract
-      └─ G0 flags/toolchain/gate ledger
+G0 flags/toolchain/gate ledger
+  └─ O0 owner/provider/legal GO recorded in ledger
+      └─ C0 PDM2 contract
           ├─ W0 web local repository + migration
           ├─ I0 iOS contract adapter + local migration
           └─ B0 backend foundation (local/staging only)
@@ -71,7 +71,7 @@ Android v1 shipped + C0 + A1/S0 soak + owner AG0 ── D0 Android v1.1 sync
 I1 + architecture extraction ── M0 native macOS
 ```
 
-O0 is a decision gate, not a code PR. The IDs in the atomic-gate matrix in §5 are the authoritative one-PR boundaries; headings such as A1, S0, I1, X0, F1, E0 are program groupings only. C0 through R0 deliver the first public account release. X0/F0 may run after W0, but must not compete with the account critical path in the same session.
+G0 is the first docs/tooling PR and creates the canonical ledger before any decision is recorded. O0 is then a decision gate, not a code PR. The IDs in the atomic-gate matrix in §5 are the authoritative one-PR boundaries; headings such as A1, S0, I1, X0, F1, E0 are program groupings only. C0 through R0 deliver the first public account release. X0/F0 may run after W0, but must not compete with the account critical path in the same session.
 
 ## 3. Definition of done for every implementation PR
 
@@ -127,7 +127,7 @@ xcodebuild test-without-building -project 3DPrintAssistant.xcodeproj \
 6. Approve dev/staging resource creation; production remains a separate O1 GO.
 7. Confirm only that the inventory free boundary/price is deferred to the later entitlement gate; 50 active spools / 99 DKK remains a recommendation, not a locked default.
 
-**Evidence:** signed decision block in ROADMAP or gate ledger, DPA/version references, privacy/data-safety change list, cost owner, rollback owner.
+**Evidence:** signed decision block in `docs/planning/MY3DPA-GATE-LEDGER.md`, DPA/version references, privacy/data-safety change list, cost owner, rollback owner. ROADMAP links the decision but is not a second decision record.
 
 **Exit:** all seven explicit GO/NO-GO; any NO-GO sends the spec back to review. No silent default.
 
@@ -136,7 +136,7 @@ xcodebuild test-without-building -project 3DPrintAssistant.xcodeproj \
 ### C0 — canonical PDM2 contract PR
 
 **Repo:** web.  
-**Depends on:** O0 for provider-facing fields; contract work itself may draft before external-resource GO.  
+**Depends on:** G0 + O0; contract work may draft locally before the owner decision, but the C0 PR cannot open or merge first.
 **Goal:** one executable, versioned data/API contract before persistence or clients.
 
 **Create:**
@@ -180,7 +180,7 @@ node --test scripts/r2-conditional-capability.test.mjs
 ### G0 — reproducible tooling, feature flags, and gate ledger
 
 **Repo:** web.
-**Depends on:** C0.
+**Depends on:** none; this gate creates no external resource and enables no runtime path.
 **Goal:** make every later gate independently runnable, safely dark-launchable, and auditable before runtime code starts.
 
 **Create:**
@@ -196,14 +196,14 @@ node --test scripts/r2-conditional-capability.test.mjs
 
 **Rollback:** config/docs/test-only revert; all runtime features remain off.
 
-**Exit:** clean-clone `npm ci` plus ledger/flag tests are green and C0's full manifest root hash is recorded.
+**Exit:** clean-clone `npm ci` plus ledger/flag tests are green; the empty C0 hash slot and all seven O0 decision slots exist and are structurally validated. C0 later fills the hash.
 
 ---
 
 ### W0 — web local PDM2 repository and v1 migration
 
 **Repo:** web.  
-**Depends on:** G0.
+**Depends on:** C0.
 **Goal:** signed-out PDM2 persistence/outbox works locally without auth or network.
 
 **Create/modify:**
@@ -232,7 +232,7 @@ node --test scripts/r2-conditional-capability.test.mjs
 ### I0 — iOS PDM2 adapter, local migration, and Workshop journal parity
 
 **Repo:** iOS, local commits only.  
-**Depends on:** G0; may run parallel to W0 after manifest freeze.
+**Depends on:** C0; may run parallel to W0 after manifest freeze.
 **Goal:** native local store consumes exact contract and reaches Workshop outcome/journal parity before sync.
 
 **Create/modify:**
@@ -257,7 +257,7 @@ node --test scripts/r2-conditional-capability.test.mjs
 ### B0 — backend foundation, migrations, and local/staging runbooks
 
 **Repo:** web.  
-**Depends on:** G0 + O0 dev/staging authorization.
+**Depends on:** C0 + O0 dev/staging authorization.
 **Goal:** testable Worker modules and expand-only D1 schema with no public account UI.
 
 **Create/modify:**
@@ -604,11 +604,11 @@ This matrix overrides broader program-heading wording. Each row is one merge/rev
 
 | Gate | Depends on | Exact gate command | Default/rollout | Required rollback proof |
 |---|---|---|---|---|
-| C0 | O0 | `node --test scripts/pdm-contract.test.js scripts/r2-conditional-capability.test.mjs && node scripts/pdm-contract.test.js --verify-full-manifest-hash` | contract only | revert on empty store |
-| G0 | C0 | `npm ci && node scripts/verify-toolchain.mjs && node --test scripts/feature-flags.test.mjs scripts/gate-evidence.test.mjs` | all flags false | clean-clone safe defaults |
-| W0 | G0 | `node --test scripts/pdm-store.test.js scripts/pdm-migration.test.js scripts/state-codec.test.js scripts/workshop-store.test.js` | `pdm2Local=false` | validated distinct backup restore |
-| I0 | G0 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/PDMContractTests` and `PDMMigrationTests` | local iOS commits | legacy-file restore; no push |
-| B0 | G0,O0 | `npm ci && npx wrangler d1 migrations apply 3dpa-account-preview --local && node --test scripts/account-schema.test.mjs scripts/account-dr.test.mjs functions/api/*.test.mjs` | preview/staging; `accountApi=false` | fresh/upgrade/forward-fix rehearsal |
+| G0 | none | `npm ci && node scripts/verify-toolchain.mjs && node --test scripts/feature-flags.test.mjs scripts/gate-evidence.test.mjs` | all flags false | clean-clone safe defaults |
+| C0 | G0,O0 | `node --test scripts/pdm-contract.test.js scripts/r2-conditional-capability.test.mjs && node scripts/pdm-contract.test.js --verify-full-manifest-hash`, plus the default iOS commands with `-only-testing:3DPrintAssistantTests/PDMContractTests` | contract only; iOS local commit | revert on empty store; no iOS push |
+| W0 | C0 | `node --test scripts/pdm-store.test.js scripts/pdm-migration.test.js scripts/state-codec.test.js scripts/workshop-store.test.js` | `pdm2Local=false` | validated distinct backup restore |
+| I0 | C0 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/PDMContractTests` and `PDMMigrationTests` | local iOS commits | legacy-file restore; no push |
+| B0 | C0,O0 | `npm ci && npx wrangler d1 migrations apply 3dpa-account-preview --local && node --test scripts/account-schema.test.mjs scripts/account-dr.test.mjs functions/api/*.test.mjs` | preview/staging; `accountApi=false` | fresh/upgrade/forward-fix rehearsal |
 | A0 | B0 | `node --test scripts/auth-device.test.mjs scripts/auth-negative.test.mjs scripts/csp.test.mjs` | owner staging only; `authUi=false` | staging account reset; local app intact |
 | A1a | A0 | `node --test scripts/account-export.test.mjs scripts/export-crypto.test.mjs` | staging export only | cancel/expire and 24h purge proof |
 | A1b | A1a | `node --test scripts/account-delete.test.mjs scripts/delete-capability-negative.test.mjs` | staging delete only | reconciler resumes every crash state |
