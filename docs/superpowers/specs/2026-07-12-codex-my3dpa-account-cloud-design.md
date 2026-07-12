@@ -309,8 +309,8 @@ Readers must round-trip unknown envelope and payload fields byte-for-value throu
 | `tuning_dismissal` | Latest-per-key | suggestion key, dismissedAt |
 | `custom_material` | Mutable / conflict-copy | namespaced id, canonical template id, validated overrides |
 | `printer` | Mutable | favorite/name/model id, optional integration metadata excluding secrets |
-| `spool` | Mutable metadata | product/material/color, capacity, location, purchase/source metadata; no mutable remaining total |
-| `inventory_event` | Append-only | spoolId, acquire/consume/adjust/move/assign/dry/retire, delta and reason |
+| `spool` | Mutable metadata | product/material/color, capacity, purchase/source metadata; no mutable remaining/status/location fields |
+| `inventory_event` | Append-only | spoolId, acquire/consume/adjust/move/assign/dry/retire/reactivate, delta and reason |
 | `export_snapshot` | Append-only / content-addressed | immutable canonical app-state snapshot plus engine/data/catalog versions and SHA-256 hash |
 | `export_preset` | Mutable / conflict-copy | exportSnapshotId, slicer/type, favorite name |
 | `preference` | Latest-per-key | account-level language/display/sync preferences only |
@@ -331,7 +331,7 @@ The first schema set must fully define:
 | `tuning_dismissal` | deterministic `suggestionKey`, `dismissedAt` |
 | `custom_material` | namespaced `materialId`, `canonicalTemplateId`, schema-allowlisted `overrides` |
 | `printer` | canonical `modelId`; optional bounded `label`, nozzle/material/location references; no credentials or serials |
-| `spool` | `product`, `materialId`, `capacityMg`, `status: active|empty|retired`; optional color/location/purchase fields |
+| `spool` | `product`, `materialId`, `capacityMg`; optional color/purchase fields; status/location/assignment are event-derived projections |
 | `inventory_event` | `spoolId`, event enum, signed `deltaMg`, `occurredAt`, reason/source; same-user reference required unless importing a tombstoned spool |
 | `export_snapshot` | complete canonical web-shaped `state`, engine/data/catalog versions, and content hash; entity ID is derived from the hash |
 | `export_preset` | same-user `exportSnapshotId`, `slicer: bambu|orca|prusa`, `exportType`; optional label |
@@ -483,11 +483,13 @@ Inventory event invariants are normative:
 - `acquire`: positive `deltaMg`, at most spool capacity;
 - `consume`: negative `deltaMg` and cannot make the derived balance negative;
 - `adjust`: non-zero signed `deltaMg`, mandatory reason, and resulting balance must remain from zero through capacity;
-- `move`, `assign`, `dry`, `retire`: exactly zero `deltaMg` and their own typed metadata;
+- `move`, `assign`, `dry`, `retire`, `reactivate`: exactly zero `deltaMg` and their own typed metadata;
 - capacity changes are explicit spool metadata edits and cannot move capacity below the current derived balance without a preceding adjustment;
 - integer overflow, NaN/fractional internal quantities, negative balance, or over-capacity balance is rejected with a typed error—never silently clamped.
 
 Percent remaining is a presentation derived from `balanceMg / capacityMg`. CSV/import adapters normalize source units to integer milligrams, report rounding, and emit one idempotent `acquire` event per imported spool.
+
+Inventory events are authoritative for remaining amount, status, location, and assignment; the `spool` row holds only descriptive/capacity/purchase metadata. Projections fold events by server `user_revision` (or durable local op sequence before first sync): `move` replaces location, `assign` replaces/clears printer/slot, `retire` sets retired, `acquire`/explicit `reactivate` sets active, and a zero balance projects empty unless a later retire exists. Projection rows are disposable caches updated atomically with event acceptance and always rebuildable from the log. Concurrent moves/retires resolve by accepted server revision and remain visible in history; fixtures cover both arrival orders and offline reconciliation.
 
 CSV export is RFC 4180 encoded and spreadsheet-safe: text cells whose first non-whitespace character is `=`, `+`, `-`, `@`, tab, carriage return, or line feed are prefixed with a visible apostrophe in the CSV representation. JSON export preserves the exact original text. Fixtures cover quoted delimiters/newlines and formula payloads in every user-controlled field; CSV import never evaluates formulas.
 
