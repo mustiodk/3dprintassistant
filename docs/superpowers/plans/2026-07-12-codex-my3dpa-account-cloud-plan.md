@@ -62,8 +62,8 @@ X0a + I1c → IX0 → IXR
 W0 + C0 → F0 → F1a → F1b
 F1b + R0c → F2
 F2 + I1c → F3 → F3R
-F2 named usage/cost evidence + owner GO → E0a → E0p
-E0p + F3R → E0b → E0bR
+F2 named usage/cost evidence + owner GO → E0a
+E0a + F3R → E0b → E0p → E0bR
 
 Android v1 + C0 + A1c + S0d + owner AG0 → D0
 E0a + D0 → E0c
@@ -586,7 +586,7 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 ### E0 — one-time Pro entitlement and inventory-boundary program
 
 **Repos:** E0a web/backend contract, E0b iOS StoreKit, then E0c Android Play after D0; each is a separate PR.
-**Depends on:** F2's named 14-day usage/cost exit evidence; fresh owner pricing/legal GO. E0b additionally depends on E0p PASS and the completed F3R inventory release gate.
+**Depends on:** F2's named 14-day usage/cost exit evidence; fresh owner pricing/legal GO. E0b additionally depends on the completed F3R inventory release gate; E0p follows the reviewed local E0b client.
 **Goal:** server-authoritative lifetime Pro only when inventory proves value.
 
 **Owner gate:** confirm 50 active-spool definition, target 99 DKK localized price, seven-day offline grace, refund/chargeback/statutory retention, web checkout decision, and no subscription.
@@ -604,10 +604,10 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 ### E0p — owner-only production entitlement backend canary
 
 **Repo:** web; operational gate after the reviewed E0a merge.
-**Depends on:** E0a + fresh owner StoreKit production-canary GO.
+**Depends on:** E0a + reviewed local E0b StoreKit client + fresh owner StoreKit production-canary GO.
 **Goal:** prove the production validation/reconciliation path before any iOS entitlement build can ship.
 
-**Tasks/evidence:** configure the exact production App Store Server API issuer/key IDs and ASSN v2 URL outside git; verify signed-environment separation and Apple root/key rotation; deploy with checkout and `proGrants=false`; smoke JWS validation, ASSN authentication/replay, `appAccountToken` binding, restore, refund/revoke, Queue/DLQ, and purchase-retention deletion rules. Then allowlist the owner account only, enable grants for that account, and run a 48-hour sandbox-to-production-backend purchase/restore/refund canary with zero cross-account grants, replay acceptance, missed revocation, or secret/token logging.
+**Tasks/evidence:** configure the exact production App Store Server API issuer/key IDs and ASSN v2 URL outside git; verify signed-environment separation and Apple root/key rotation; deploy with checkout and `proGrants=false`; smoke JWS validation, ASSN authentication/replay, `appAccountToken` binding, restore, refund/revoke, Queue/DLQ, and purchase-retention deletion rules. Then install the reviewed E0b build locally from Xcode without pushing iOS, allowlist the owner account only, enable grants for that account, and run a 48-hour sandbox-to-production-backend purchase/restore/refund canary with zero cross-account grants, replay acceptance, missed revocation, or secret/token logging.
 
 **Rollback/exit:** stop new owner grants/checkout while keeping ASSN/refund/revoke reconciliation and validated existing rights active; rehearse key disable/restore and Queue replay. E0p PASS is a signed ledger transition with config hashes, notification/reconciliation counts, rollback timestamps, and owner GO; E0b/E0bR remain blocked without it.
 
@@ -683,9 +683,9 @@ This matrix overrides broader program-heading wording. Each implementation row i
 | F3 | F2,I1c | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/InventoryTests` | local iOS commits | remote flag; local export retained |
 | F3R | F3 | full default iOS suite + UI tests + web walkthrough; version bump; owner GO; one push; manual TestFlight; seven-day production-backed reconciliation soak | only F3 release path | `iosInventory=false`; prior App Store build remains |
 | E0a | F2 named 14-day usage/cost evidence + owner price/legal GO | `node --test scripts/entitlement-server.test.mjs scripts/purchase-retention.test.mjs` | grants/checkout off | stop grants; retain validated rights |
-| E0p | E0a + owner GO | production App Store Server API/ASSN configuration smoke + owner-only 48-hour purchase/restore/refund canary | signed operational decision; no code PR | stop new grants; reconciliation remains active |
-| E0b | E0p,F3R | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/StoreKitEntitlementTests` | StoreKit sandbox, local commits | checkout off; read/export retained |
-| E0bR | E0b,E0p | full default iOS suite + StoreKit sandbox/UI tests + web walkthrough; version bump; owner GO; one push; manual TestFlight; seven-day production-backed purchase/restore/refund soak | only E0b release path | checkout/grants off; validated rights remain |
+| E0b | E0a,F3R | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/StoreKitEntitlementTests` | StoreKit sandbox, local commits | checkout off; read/export retained |
+| E0p | E0a,E0b + owner GO | production App Store Server API/ASSN smoke + locally installed E0b owner-only 48-hour purchase/restore/refund canary | signed operational decision; no push/PR | stop new grants; reconciliation remains active |
+| E0bR | E0p | full default iOS suite + StoreKit sandbox/UI tests + web walkthrough; version bump; owner GO; one push; manual TestFlight; seven-day production-backed purchase/restore/refund soak | only E0b release path | checkout/grants off; validated rights remain |
 | D0 | Android v1,C0,A1c,S0d,AG0 | `./gradlew test connectedCheck` on mac-mini | Android sync flag off | local Android v1 behavior |
 | E0c | E0a,D0 | `./gradlew test --tests '*PlayEntitlement*'` on mac-mini | Play sandbox/grants off | checkout off; rights retained |
 | M0 | I1c + extraction GO | default iOS/macOS build/test commands with macOS destination | unreleased target | iOS-on-Mac remains |
