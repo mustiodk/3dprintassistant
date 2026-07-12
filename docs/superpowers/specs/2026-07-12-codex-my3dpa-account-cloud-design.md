@@ -641,6 +641,8 @@ GDPR principles include purpose limitation, minimization, storage limitation, in
 - D1: local, preview/staging, production EU-jurisdiction DBs.
 - Worker feature flags: account API, web auth UI, sync per platform, inventory beta.
 
+Deploy schema-affecting gates in expand/backfill/switch/contract order: add nullable tables/columns and dual-read support; deploy the new writer behind a flag; backfill idempotently with counts/hashes; switch reads; observe at least one stable client release window; only then contract obsolete server fields in a later PR. A rollback may disable the new writer and return to dual-read, but never rolls data back by dropping new fields. Each migration has `up`, compatibility verification, and a non-destructive rollback/forward-fix runbook exercised against a production-shaped staging snapshot.
+
 ### 14.2 Metrics (no content)
 
 - auth success/failure by provider/platform;
@@ -704,6 +706,9 @@ Failure injection is tested after backup write, readback, migration, cloud pull,
 - PDM2 readers preserve unknown additive fields losslessly and ignore unknown entity kinds for presentation, but reject unsupported major versions. Writers use field-mask mutations and never serialize a lossy full replacement over a newer entity schema.
 - Shared downgrade fixtures prove that a newer client can add a field, an older client can edit a known field, and the newer field survives unchanged.
 - Engine state continues to serialize through `StateCodec` / `AppStateWebCodec`; PDM2 does not fork that vocabulary.
+- The API publishes `minReadSchema`, `maxReadSchema`, and `minWriteSchema` per entity. It supports the current and previous two released entity schema versions for reads; a client below `minWriteSchema` remains local/read/export capable but receives `426 client_upgrade_required` for that entity kind instead of risking lossy writes.
+- Local migrations are forward-only and retain the verified prior store. Installing an older app never downgrades/destructively rewrites PDM2; downgrade fixtures prove it can preserve or quarantine unknown data and continue the signed-out core safely.
+- A PR is “independently revertible” only when its feature-off path and prior Worker/client versions have passed fixtures against the post-migration database/local store. Feature flags alone are insufficient evidence.
 
 ## 16. Acceptance criteria
 
