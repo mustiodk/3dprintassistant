@@ -756,6 +756,8 @@ Serialized `entity.version`/`baseVersion` is never trusted as authorization stat
 
 The import report names resets, deduplications, remaps, and rewritten references. Fixtures cover signed-out backup, cross-account portability, same-account restore, graveyard collision, and malicious forged high versions.
 
+ID remapping is a graph transaction, not a single-record edit. Build the complete old→new map first; atomically rewrite entity IDs, every schema-declared reference in staged entities, every pending outbox operation's target/reference payload, and any conflict-resolution metadata; then revalidate schemas, hashes, dependency graph, and operation sequence before commit. A reference that cannot be rewritten quarantines the entire connected outbox component with an exportable diagnostic—never silently drops it or uploads a stale ID. Required fixtures include a remapped spool create followed by multiple inventory events and an export preset/snapshot chain.
+
 ### 15.4 Compatibility window
 
 - Keep v1 Workshop backup import/export for at least two stable app release trains after PDM2 ships on every active platform.
