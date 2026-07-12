@@ -401,6 +401,8 @@ One shared fixture corpus contains valid boundary examples, every invalid enum/r
 
 Deletes create content-free tombstones `(kind, entityId, deletedRevision, deletedAt)` immediately; undo content stays only in a local, explicit seven-day undo buffer. After 30 days, server tombstones compact into a keyed-hash graveyard set, bucketed/chunked to bound row overhead while retaining membership checks. A graveyard member is removed only with the account, never by normal sync compaction. At the 2 MB/50,000-ID operational quota, the account stays pull/export/delete capable but cannot create new entity IDs until an explicit capacity/support decision; deletion is never blocked. Account deletion bypasses normal tombstone retention and hard-deletes domain rows after immediate account lock.
 
+Graveyard membership is exactly `HMAC-SHA-256(HMAC-SHA-256(graveyardMasterKey[keyVersion], firebaseUid), UTF8(kind + "\u0000" + entityId))`; store the complete 32-byte locator in the bucket, never a truncation. Each bucket records `keyVersion`; lookup computes against every version used by that account. The versioned master key is a dedicated Worker secret and remains available until all buckets carrying that version are deleted with their accounts. New compaction uses the current version; rotation, membership fixtures, and key-loss recovery are runbook gates.
+
 Entity privacy lifecycle uses a fenced two-system protocol for `delete`, deterministic `neutral_reset`, and content-addressed `reactivate`:
 
 1. a D1 transaction validates `baseVersion`, creates an `entity_lifecycle_reservations` row, reserves the exact next `user_revision`, and blocks other writes to that entity;
