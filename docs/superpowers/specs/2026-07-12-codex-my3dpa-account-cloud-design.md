@@ -467,6 +467,7 @@ Inventory v1 includes:
 
 Inventory event invariants are normative:
 
+- `capacityMg` is an integer from 1 through 50,000,000 (50 kg); `deltaMg` is a safe integer whose absolute value is at most 50,000,000; the Worker computes the running total in a checked 64-bit transaction before accepting the event;
 - `acquire`: positive `deltaMg`, at most spool capacity;
 - `consume`: negative `deltaMg` and cannot make the derived balance negative;
 - `adjust`: non-zero signed `deltaMg`, mandatory reason, and resulting balance must remain from zero through capacity;
