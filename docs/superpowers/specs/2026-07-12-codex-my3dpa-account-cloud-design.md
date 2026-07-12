@@ -211,7 +211,7 @@ Apple requires apps using third-party/social login for a primary account to prov
 
 ### 7.3 API authorization
 
-Every `/api/v1/*` request:
+Every `/api/v1/*` request except the closed list below:
 
 1. requires HTTPS `Authorization: Bearer <Firebase ID token>`;
 2. verifies RS256 signature, `kid`, `aud`, `iss`, `exp`, `iat`, and non-empty `sub` using cached Google public keys;
@@ -219,6 +219,14 @@ Every `/api/v1/*` request:
 4. checks D1 `users.status='active'` before any domain action;
 5. applies per-user and per-IP rate limits;
 6. ignores any client-supplied user ID.
+
+Closed authentication exceptions—adding one requires a security-review PR:
+
+- `GET/HEAD /api/v1/schema/versions`: public read-only static manifest, no credentials/cookies, `Access-Control-Allow-Origin: *`, 60 requests/IP/minute and CDN cache; all other methods fail.
+- `GET /api/v1/account/deletion/{requestId}`: requires the scoped deletion capability, constant-time hash verification, no Firebase identity, credential-free CORS disabled, 30 requests/requestId and IP/minute.
+- future Apple/Google purchase notification callbacks: require the provider-signed payload/OIDC contract in §12.3, exact method/path/content type, provider-specific replay protection and rate limits; they never accept a user bearer token as callback authorization.
+
+No route falls back from failed Firebase auth to an exception mechanism, and exception middleware is path+method exact rather than prefix-based.
 
 JWKS handling is fail-closed and bounded: accept only `alg=RS256`; cache Google's successfully validated key set for `min(Cache-Control max-age, 60 minutes)` and refresh single-flight at 80% of lifetime. An unknown `kid` triggers one rate-limited immediate refresh and a five-minute negative cache; it never falls back to another key. If refresh fails, still-valid cached keys may be used until their deadline, then auth returns retryable `503 auth_keys_unavailable` rather than accepting stale/unverified tokens. Metrics/alerts cover refresh failure, unknown kids, cache age, and auth-key outages without logging tokens.
 
