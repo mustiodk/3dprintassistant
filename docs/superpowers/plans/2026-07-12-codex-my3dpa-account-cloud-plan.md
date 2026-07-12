@@ -156,10 +156,9 @@ xcodebuild test-without-building -project 3DPrintAssistant.xcodeproj \
 1. Encode every normative field, bound, enum, reference, unknown-field, ID, hash, cursor, and typed-error rule.
 2. Add golden UUID/hash/blob/canonical-JSON vectors and valid/invalid boundary fixtures.
 3. Add manifest hashing and a drift test.
-4. Add a minimal Swift fixture reader test in iOS without changing app behavior; record its local commit/hash, do not push iOS.
-5. Run JSON Schema meta-validation and the shared fixture suite.
-6. Hash every path and byte named by `manifest.json`, reject missing/extra contract files, and verify the computed aggregate equals the manifest root hash.
-7. Verify the selected R2 conditional-create primitive with a disposable development probe, including persisted-write/response-timeout and competing-create cases; if semantics are insufficient, freeze a per-op Durable Object coordinator instead.
+4. Run JSON Schema meta-validation and the shared fixture suite.
+5. Hash every path and byte named by `manifest.json`, reject missing/extra contract files, and verify the computed aggregate equals the manifest root hash.
+6. Verify the selected R2 conditional-create primitive with a disposable development probe, including persisted-write/response-timeout and competing-create cases; if semantics are insufficient, freeze a per-op Durable Object coordinator instead.
 
 **Tests:**
 
@@ -170,7 +169,7 @@ node scripts/pdm-contract.test.js --verify-full-manifest-hash
 node --test scripts/r2-conditional-capability.test.mjs
 ```
 
-**Review gate:** schema/domain review, security review, Swift parity QA, Claude cross-model zero P0–P2, owner manifest approval.
+**Review gate:** schema/domain review, security review, Claude cross-model zero P0–P2, owner manifest approval. Cross-repo Swift parity is owned by I0, not this PR.
 
 **Rollback:** contract-only revert; no stored PDM2 data exists yet.
 
@@ -635,7 +634,7 @@ This matrix overrides broader program-heading wording. Each row is one merge/rev
 | Gate | Depends on | Exact gate command | Default/rollout | Required rollback proof |
 |---|---|---|---|---|
 | G0 | none | `npm ci && node scripts/verify-toolchain.mjs && node --test scripts/feature-flags.test.mjs scripts/gate-evidence.test.mjs` | all flags false | clean-clone safe defaults |
-| C0 | G0,O0 | `node --test scripts/pdm-contract.test.js scripts/r2-conditional-capability.test.mjs && node scripts/pdm-contract.test.js --verify-full-manifest-hash`, plus the default iOS commands with `-only-testing:3DPrintAssistantTests/PDMContractTests` | contract only; iOS local commit | revert on empty store; no iOS push |
+| C0 | G0,O0 | `node --test scripts/pdm-contract.test.js scripts/r2-conditional-capability.test.mjs && node scripts/pdm-contract.test.js --verify-full-manifest-hash` | web contract only | revert on empty store |
 | W0 | C0 | `node --test scripts/pdm-store.test.js scripts/pdm-migration.test.js scripts/state-codec.test.js scripts/workshop-store.test.js` | `pdm2Local=false` | validated distinct backup restore |
 | I0 | C0 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/PDMContractTests` and `PDMMigrationTests` | local iOS commits | legacy-file restore; no push |
 | B0 | C0,O0 | `npm ci && npx wrangler d1 migrations apply 3dpa-account-preview --local && node --test scripts/account-schema.test.mjs scripts/account-dr.test.mjs functions/api/*.test.mjs` | local/preview; `accountApi=false` | fresh/upgrade/forward-fix rehearsal |
