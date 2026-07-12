@@ -248,7 +248,7 @@ Deletion is an idempotent cross-vendor saga, not an assumed transaction:
 1. recent reauthentication creates a `deletion_jobs` row and moves the user `active → deleting`; all account/sync APIs then fail closed except deletion status;
 2. delete active domain rows and entitlement/source transaction references, recording `domain_deleted`;
 3. revoke Firebase refresh tokens and delete the Firebase identity, retrying `identity_deletion_pending` with bounded alerts until confirmed or already absent;
-4. compact the job to a content-free deletion receipt (`requestId`, status, timestamps, error class only), irreversibly discard the UID, and retain the receipt for 30 days before deletion.
+4. before discarding the UID, write a restore-independent erasure-ledger record described below; then compact the D1 job to a content-free deletion receipt (`requestId`, status, timestamps, error class only), irreversibly discard the UID from D1, and retain the receipt for 30 days before deletion.
 
 The job table is outside the domain-row cascade, so a crash cannot erase retry state. Every step is idempotent; a reconciler resumes incomplete jobs, and support tooling can see status without seeing user content. If identity deletion remains unavailable, the D1 lock still prevents all data access and the user sees a non-misleading pending status.
 
@@ -256,7 +256,9 @@ Google Play requires both an in-app path and a web deletion resource when accoun
 
 D1 Time Travel can retain recoverable database history up to 30 days on Workers Paid or 7 days on Free. Privacy copy must state the backup-aging window; deleted accounts must remain API-inaccessible immediately. [D1 Time Travel](https://developers.cloudflare.com/d1/reference/time-travel/).
 
-Time Travel and encrypted recovery exports are inaccessible to the application and are used only for disaster recovery, never to recover an individual deleted account. Any restore to a point before one or more deletion receipts must run the idempotent deletion reconciler for every receipt **before** the restored database can receive traffic; promotion is blocked until a reconciliation report proves those users and domain rows absent. Retained disaster-recovery copies age out under the disclosed provider window. Production provisioning requires written confirmation that the Cloudflare DPA and transfer terms cover this residual backup retention and that the privacy/erasure procedure reflects the restore-before-promotion rule.
+Time Travel and encrypted recovery exports are inaccessible to the application and are used only for disaster recovery, never to recover an individual deleted account. A separate write-once erasure ledger lives outside the D1/backup restore boundary (private R2 objects or an equivalently isolated store). It records `requestId`, `HMAC(erasureKey, firebaseUid)`, deletion time/status, and expiry—no raw UID or content—and is retained for the longest recovery window plus 15 days. The HMAC key is a dedicated Worker secret with rotation/runbook controls.
+
+Any restore to a point before deletion must scan each restored UID through the same keyed locator, reconcile every matching external ledger record, and re-run domain/identity deletion **before** the restored database can receive traffic; promotion is blocked until a report proves those users and domain rows absent. The external ledger is not rolled back with D1. Retained disaster-recovery copies and ledger locators age out under their disclosed windows. Production provisioning requires written confirmation that the Cloudflare DPA and transfer terms cover this residual backup retention and that the privacy/erasure procedure reflects the restore-before-promotion rule.
 
 ## 8. Portable Data Model v2 (PDM2)
 
@@ -687,6 +689,7 @@ Do not send entity names, notes, printer selections, filament colors, or provide
 - Schedule a periodic encrypted D1 export to private R2 only when real account data exists; define retention before enabling.
 - Quarterly restore rehearsal against staging.
 - User PDM2 export is always available and tested across platforms.
+- Disaster-recovery rehearsal restores D1 without the live database, reads the external erasure ledger, proves keyed-locator matches are re-erased, and blocks promotion on any unmatched/incomplete record.
 - `sync_ops` rows compact after 30 days to the minimum `(user_id, op_id, request_hash, compact_result)` fingerprint and remain until account deletion. Compaction never drops the proof needed to return the same result or reject mismatched reuse, so an old outbox retry cannot apply twice.
 
 ### 14.4 Kill switches
