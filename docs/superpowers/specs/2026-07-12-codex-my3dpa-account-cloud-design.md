@@ -451,7 +451,8 @@ entity_lifecycle_reservations(user_id, kind, entity_id, op_id, action,
 inventory_projection(user_id, spool_id, through_user_revision, balance_mg,
                      projected_status, location, printer_id, slot_label,
                      updated_at, PK(user_id, spool_id))
-sync_ops(user_id, op_id, op_sequence, request_hash, device_id, kind, entity_id,
+sync_ops(user_id, request_id, op_id, op_sequence, request_hash, device_id,
+         kind, entity_id,
          base_version, applied_version, user_revision, result_status,
          result_json, created_at,
          UNIQUE(user_id, op_id), UNIQUE(user_id, device_id, op_sequence))
@@ -483,7 +484,7 @@ The external account-erasure and entity-lifecycle ledgers are deliberately absen
 
 `inventory_projection` is a non-authoritative, user-scoped cache with foreign-key/cascade semantics to the spool/account. Event acceptance updates it and `through_user_revision` in the same transaction; mismatch or missing rows rebuild from inventory events before serving derived inventory state. It is included in account deletion but not treated as an independent entity in PDM2 export.
 
-Indexes: `(user_id,user_revision)`, `(user_id,kind,deleted_at)`, `(user_id,device_id)`, and `purchase_events(user_id,created_at)`. Payloads are bounded JSON; the Worker has a per-kind allowlist and schema validator.
+Indexes: `(user_id,user_revision)`, `(user_id,kind,deleted_at)`, `(user_id,device_id)`, `sync_ops(user_id,request_id,op_sequence)`, and `purchase_events(user_id,created_at)`. Payloads are bounded JSON; the Worker has a per-kind allowlist and schema validator.
 
 ### 9.2 API
 
@@ -511,6 +512,8 @@ POST /api/v1/purchases/google/verify   (later)
 ```
 
 `GET /api/v1/account` returns the authenticated active account contract `{status, pdmVersion, currentRevision, appAccountToken, devicesSummary, entitlements[]}`; each entitlement is `{productKey, status, source, grantedAt, verifiedAt, revokedAt?}`. The later `GET /api/v1/entitlements` returns the same array. `verifiedAt` changes only after successful server/provider verification and is the sole origin for the seven-day offline window. `appAccountToken` is the server-issued UUID that iOS passes unchanged to StoreKit; it is never client-generated, logged, placed in analytics, or included in portable export. The purchase validator requires the returned transaction token to equal this account field before applying entitlement.
+
+Every `sync_ops.request_id` equals the UUID in the signed push/lifecycle request; one normal batch maps that ID to several rows. `result_status` plus bounded canonical `result_json` persist the exact typed applied/duplicate/conflict/rejected/error data atomically with each op and remain until the device acknowledgement/compaction rule in §14.3. `GET /sync/push/{requestId}` requires the same verified user and registered device, then reconstructs `{requestId, status, results[]}` ordered by `op_sequence`. Normal `/sync/push` results are terminal-only; the single lifecycle row may be `pending_lifecycle` until its saga reaches a terminal status. Unknown/foreign request IDs return not found without leaking ownership. Fixtures lose the response, restart the app, overwrite `last_mutation_result` with another request, and still recover/ack the exact pending and terminal results from `sync_ops`.
 
 Limits for v1: 100 ops/push, 500 entities/pull page, 64 KB/entity, 5 MB active payload/account, and rate limits sized from measured traffic. Exceeding a limit returns a structured, non-destructive error.
 
