@@ -480,11 +480,11 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 
 **Tests:** shared fixtures; multi-device simulator/API stub; keychain loss; reinstall; backend outage; deletion partial failure; signed-out engine/Workshop/output; UI accessibility/animations. Full XCTest + web walkthrough.
 
-**Release gate:** all local commits green → marketing version/bundle review → owner TestFlight GO → push iOS main once → manual TestFlight workflow. Never use TestFlight as iteration.
+**Release gate:** all local commits green → marketing version/bundle review → owner TestFlight GO → push iOS main once → manual TestFlight workflow → at least seven days of production-backed owner TestFlight soak → App Store phased release. The soak replays account creation/recovery, two-device sync, export/delete/recreation, key loss, backend outage, and signed-out baseline; it must meet S1's zero-tolerance, p95 latency, 5xx, and budget thresholds for the iOS cohort. Any breach disables `iosAccountSync`, blocks App Store release, and starts a new clean seven-day window after the fix. Never use TestFlight as an iteration loop.
 
 **Rollback:** remote iOS sync/auth flags; local store remains authoritative; App Store account deletion stays reachable for created accounts.
 
-**Exit:** TestFlight owner walkthrough, then phased App Store release with crash/sync monitoring.
+**Exit:** seven consecutive green production-backed TestFlight days plus owner walkthrough, then phased App Store release with crash/sync monitoring.
 
 ---
 
@@ -502,7 +502,7 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 
 **Rollback:** hide library UI; exporters remain unchanged; retained metadata stays exportable.
 
-**Exit:** no generated files in D1/R2 and existing export output fixtures unchanged.
+**Exit:** no generated files in D1/R2 and existing export output fixtures unchanged. IX0 remains reviewed local iOS commits; IXR is the only gate that may ship it.
 
 ---
 
@@ -575,7 +575,7 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 
 **Rollback/release:** remote inventory flag; local entities remain exportable. Follow iOS push/TestFlight gate exactly.
 
-**Exit:** owner TestFlight reconciliation against the same account/web inventory.
+**Exit:** implementation/XCTest reconciliation is green in local commits; F3R performs the push, TestFlight soak, and App Store release.
 
 ---
 
@@ -593,7 +593,7 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 
 **Rollback:** disable new grants/checkout, preserve validated existing entitlement/read/export; never delete or hide inventory.
 
-**Exit:** store sandbox and hostile security review green, owner purchase/restore/refund walkthrough complete.
+**Exit:** E0a server and E0b local iOS StoreKit implementation are sandbox/security green; E0bR alone performs the iOS push, production-backed TestFlight purchase/restore/refund soak, and App Store release.
 
 ---
 
@@ -655,13 +655,16 @@ This matrix overrides broader program-heading wording. Each row is one merge/rev
 | X0a | W0 | `node --test scripts/export-library.test.mjs scripts/export-regression.test.mjs` | local only | hide UI; metadata exportable |
 | X0b | X0a,S1 | `node --test scripts/export-library-sync.test.mjs scripts/sync-reference-race.test.mjs` | sync flag off | local library remains authoritative |
 | IX0 | X0a,I1c | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/ExportLibraryTests` | local iOS commits | hide UI; local export retained |
+| IXR | IX0 | full default iOS suite + UI tests + web walkthrough; version bump; owner GO; one push; manual TestFlight; seven-day production-backed soak | only IX0 release path | remote flag; prior App Store build remains |
 | F0 | C0,W0 | `node --test scripts/inventory-store.test.mjs scripts/inventory-projection.test.mjs scripts/inventory-import.test.mjs` | `inventoryLocal=false` | hide UI; JSON export retained |
 | F1a | F0 | `python3 -m unittest discover -s tests -p 'test_export*.py'` in bambuinventory | read-only exporter | remove exporter; zero writes |
 | F1b | F1a | `node --test scripts/inventory-bambu-import.test.mjs scripts/inventory-reconcile.test.mjs` | dry-run first | backup pre-sync; compensation post-sync |
 | F2 | F1b,R0 | `node --test scripts/inventory-sync.test.mjs scripts/inventory-lifecycle.test.mjs scripts/inventory-projection.test.mjs` | owner beta; `inventorySync=false` | local/events/export survive disable |
 | F3 | F2,I1c | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/InventoryTests` | local iOS commits | remote flag; local export retained |
+| F3R | F3 | full default iOS suite + UI tests + web walkthrough; version bump; owner GO; one push; manual TestFlight; seven-day production-backed reconciliation soak | only F3 release path | `iosInventory=false`; prior App Store build remains |
 | E0a | F2 named 14-day usage/cost evidence + owner price/legal GO | `node --test scripts/entitlement-server.test.mjs scripts/purchase-retention.test.mjs` | grants/checkout off | stop grants; retain validated rights |
 | E0b | E0a,F3 architecture acceptance,F3 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/StoreKitEntitlementTests` | StoreKit sandbox, local commits | checkout off; read/export retained |
+| E0bR | E0b | full default iOS suite + StoreKit sandbox/UI tests + web walkthrough; version bump; owner GO; one push; manual TestFlight; seven-day production-backed purchase/restore/refund soak | only E0b release path | checkout/grants off; validated rights remain |
 | D0 | Android v1,C0,A1c,S0d,AG0 | `./gradlew test connectedCheck` on mac-mini | Android sync flag off | local Android v1 behavior |
 | E0c | E0a,D0 | `./gradlew test --tests '*PlayEntitlement*'` on mac-mini | Play sandbox/grants off | checkout off; rights retained |
 | M0 | I1c + extraction GO | default iOS/macOS build/test commands with macOS destination | unreleased target | iOS-on-Mac remains |
@@ -694,18 +697,21 @@ Authoritative scope allowlist (tests, the gate review note, ledger row, and ROAD
 | X0a | web export-library repository/UI/adapters | no server migration or iOS file |
 | X0b | export sync adapter, server kind allowlist, export-reference expand migration | no local exporter logic change |
 | IX0 | iOS export repository/Output UI | no web/server path; local commits until an iOS release gate |
+| IXR | iOS version/release metadata and release evidence only | no IX0 behavior change except reviewed release blocker fix |
 | F0 | web inventory store/projection/import/UI/locales consuming C0 | no contract or Worker migration |
 | F1a | bambuinventory `export_inventory.py` and sanitized exporter fixtures | read-only; no API/PHP change |
 | F1b | web bambuinventory importer/reconciliation UI | no source-system write or server sync |
 | F2 | inventory server kind/projection handlers, inventory-only expand migration, My 3DPA cards | no entitlement enforcement |
 | F3 | iOS inventory domain/repository/views | no store purchase code; local commits until release gate |
-| E0a | web entitlement/purchase callbacks, purchase/retention expand migration and UI boundary state | no StoreKit/Play client code |
+| F3R | iOS version/release metadata and release evidence only | no inventory behavior change except reviewed release blocker fix |
+| E0a | web entitlement/purchase callbacks and UI boundary state using B0 purchase/retention schema | no migration or StoreKit/Play client code |
 | E0b | iOS StoreKit service/purchase UI/privacy metadata | no Android or backend schema change |
+| E0bR | iOS version/release metadata and release evidence only | no entitlement behavior change except reviewed release blocker fix |
 | D0 | Android PDM/auth/sync/data-safety paths in native Android repo | no entitlement/Play Billing path |
 | E0c | Android Play Billing/RTDN client integration only | no base Android sync or web migration |
 | M0 | shared Swift-package extraction and macOS target/window/navigation/files | no behavior change to shipped iOS paths without separate proof |
 
-I1a and I1b remain reviewed local commits under the iOS push hold. Only I1c, after the full suite is green, the marketing version is bumped, and the owner gives TestFlight GO, authorizes the single push and manual workflow. S1 also proves cleanup of a synced transition backup through two eligible cleanup cycles separated by an app/browser restart, including the automatic 30-day erasure rule and an auditable user-triggered early cleanup.
+I1a and I1b remain reviewed local commits under the iOS push hold. I1c is the only push gate for the I1 program; later IXR, F3R, and E0bR are the only push gates for their respective iOS feature programs. Each named release gate repeats the full XCTest/UI/web-walkthrough/version-bump/owner-GO/single-push/manual-TestFlight protocol and requires seven clean production-backed TestFlight days before App Store release. S1 also proves cleanup of a synced transition backup through two eligible cleanup cycles separated by an app/browser restart, including the automatic 30-day erasure rule and an auditable user-triggered early cleanup.
 
 O1's command cell is deliberately template-shaped because Cloudflare resource IDs do not exist before owner authorization; it is not permission to improvise. G0 pins the tool version, B0 writes the exact parameterized runbook, and O1 materializes the redacted, copy/paste command list in the ledger before execution. Any command absent from that reviewed run sheet blocks O1.
 
