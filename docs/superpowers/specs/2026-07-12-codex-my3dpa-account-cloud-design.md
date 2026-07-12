@@ -526,6 +526,7 @@ W5-style contribution remains opt-in per submission. It exports a minimized revi
 - Add My 3DPA nav destination without removing Workshop deep links.
 - Local PDM2 store can use IndexedDB; keep small boot/config state in localStorage.
 - A never-signed-in installation loads Firebase Web Auth only when account UI opens, avoiding weight on the core configurator path. After successful sign-in, persist only a non-sensitive `accountEnabled` boot marker. On later boots that marker lazy-imports the lightweight auth/sync path, restores the Firebase session, and runs the foreground/network sync triggers; sign-out/account deletion clears it. The marker grants no access and contains no UID/token.
+- Ship an explicit Content Security Policy allowlist for the production Firebase `authDomain`, Firebase identity/token endpoints, Google provider frame/script endpoints, and Apple authorization endpoint actually observed in staging. Add only the narrow `connect-src`, `frame-src`, `script-src`, and redirect origins required by the pinned SDK/provider flows—never a wildcard or `unsafe-eval` workaround. Automated browser tests run Google and Apple popup/redirect, blocked-origin, and core signed-out flows under the production CSP before rollout.
 - Service-worker/offline caching is optional and not required for first sync; current offline behavior remains local storage plus loaded assets.
 
 ### 11.2 iOS
