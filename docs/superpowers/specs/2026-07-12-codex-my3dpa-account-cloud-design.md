@@ -363,6 +363,8 @@ The first schema set must fully define:
 
 API schemas define every request, success response, per-op result, page cursor, bootstrap manifest, export manifest, deletion status, and error body. Errors use `{code, message, retryable, requestId, details?}` with a closed `code` enum. Push returns one ordered result per submitted op (`applied|duplicate|conflict|rejected`), never an ambiguous batch boolean; dependency rejection names the prerequisite op. Pull returns `{entities, nextRevision, currentRevision, minAvailableRevision, hasMore}`. Canonical payload hashes use RFC 8785 JSON Canonicalization Scheme plus SHA-256.
 
+The cacheable schema endpoint returns `{contractRevision, pdmMajor, kinds: {kind: {minReadSchema, maxReadSchema, minWriteSchema}}}` and an integrity ETag. Clients compare their compiled manifest before enabling sync writes; `426 client_upgrade_required` repeats the affected kind and required versions so a stale cached preflight cannot cause a lossy write.
+
 One shared fixture corpus contains valid boundary examples, every invalid enum/reference/size case, unknown-field round trips, canonical hashes, partial-batch dependency cases, and expected typed errors. JavaScript, Swift, and Kotlin conformance suites must consume the exact same files before their adapters can merge.
 
 ### 8.3 IDs and timestamps
@@ -448,6 +450,7 @@ POST /api/v1/devices/revoke-all            (lost-device incident flow)
 POST /api/v1/sync/push
 GET  /api/v1/sync/pull?after=<revision>&limit=<n>
 POST /api/v1/sync/bootstrap
+GET  /api/v1/schema/versions              (public, cacheable compatibility manifest)
 GET  /api/v1/entitlements              (later)
 POST /api/v1/purchases/apple/verify    (later)
 POST /api/v1/purchases/google/verify   (later)
