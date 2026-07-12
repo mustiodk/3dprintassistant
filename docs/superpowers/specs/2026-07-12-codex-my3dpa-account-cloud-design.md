@@ -190,7 +190,7 @@ Production alerts fire at 50% and 75% of daily read/write/storage allowance, at 
 
 Abuse/cost ceilings are independent of burst rate limits: an account may apply at most 500 domain ops/day and 200/hour, with batch cost charged per op plus payload-size units; active payload is capped at 5 MB and compact operational metadata at 2 MB/50,000 lifetime entity IDs. Delete, export, pull, and account deletion remain available at a quota. A global write breaker makes sync read-only before 70,000 D1 writes/day on Free, preserving pull/export/delete and local-first behavior. Legitimate cap increases require an observed workload and paid-capacity decision, not a client flag.
 
-R2 is not required in the first account release. Add it only for scheduled DB exports, large account-export archives, or future user files. R2's current Standard free tier includes 10 GB-month, 1M writes, 10M reads, and free egress. [R2 pricing](https://developers.cloudflare.com/r2/pricing/).
+R2 is used narrowly in the first account release for short-lived asynchronous account-export artifacts and the restore-independent erasure ledger; normal sync payloads remain in D1. Scheduled DB exports or future user files require their own retention gate. R2's current Standard free tier includes 10 GB-month, 1M writes, 10M reads, and free egress. [R2 pricing](https://developers.cloudflare.com/r2/pricing/).
 
 ## 7. Identity and account lifecycle
 
@@ -245,7 +245,7 @@ Do not create anonymous Firebase accounts for every install. That would turn eve
 
 Account & Privacy must provide:
 
-- **Export my data:** machine-readable PDM2 JSON, including active entities, tombstones still retained, devices, entitlement state, and a schema/version manifest. Auth provider secrets/tokens are never included.
+- **Export my data:** machine-readable PDM2 JSON, including active entities, tombstones still retained, devices, entitlement state, and a schema/version manifest. Auth provider secrets/tokens are never included. Export is an asynchronous, retryable job: start returns `202` + `requestId`; status polling reports progress/failure/expiry and eventually streams the authenticated artifact.
 - **Delete account:** reauthentication, impact summary, local-backup offer, typed/explicit confirmation, immediate D1 status lock, active-domain deletion plus Firebase identity deletion, then sign out locally. Cloud-account deletion does **not** silently erase offline data: the explicit `Delete local data on this device too` control defaults off. Keeping it converts the installation back to signed-out `On this device` mode; selecting it removes local PDM2 data only after a verified export when the user requested one.
 - **Web deletion route:** `/account/delete`, available to users without reinstalling an app.
 
@@ -394,6 +394,7 @@ Indexes: `(user_id,user_revision)`, `(user_id,kind,deleted_at)`, `(user_id,devic
 ```text
 GET  /api/v1/account
 POST /api/v1/account/export
+GET  /api/v1/account/export/{requestId}     (status or authenticated download)
 POST /api/v1/account/delete
 GET  /api/v1/account/deletion/{requestId}   (scoped status capability)
 GET  /api/v1/devices
@@ -409,6 +410,8 @@ POST /api/v1/purchases/google/verify   (later)
 ```
 
 Limits for v1: 100 ops/push, 500 entities/pull page, 64 KB/entity, 5 MB active payload/account, and rate limits sized from measured traffic. Exceeding a limit returns a structured, non-destructive error.
+
+Account export uses `export_jobs` plus a Cloudflare Queue consumer that pages D1, validates counts/hashes, and writes the completed archive to a private, encrypted R2 object. The GET endpoint requires the same active reauthenticated user, returns progress or streams the object; object keys are random and never public. Jobs are idempotent by request ID, retry page checkpoints safely, expose typed terminal errors, and delete artifacts within 24 hours of completion. Account deletion waits for or explicitly cancels an export the user requested. R2/Queue resources are therefore activated at the account-lifecycle gate, not for normal sync payload storage.
 
 Day-1 conservative limits are enforced before traffic data exists: per verified user, 20 pushes/minute, 60 pulls/minute, 2 exports/hour, 5 device registration/revocation attempts/hour, and 3 deletion starts/day; per source IP, 300 authenticated API requests/minute and 30 failed/unauthenticated auth requests/minute, with a higher documented emergency allowance for known provider callbacks. Responses use `429`, typed code, and `Retry-After`. Load tests verify normal foreground/debounce/bootstrap stays below these ceilings. Changes are configuration-reviewed against abuse, NAT/shared-IP impact, D1 cost, and observed p95—not silently relaxed in code.
 
