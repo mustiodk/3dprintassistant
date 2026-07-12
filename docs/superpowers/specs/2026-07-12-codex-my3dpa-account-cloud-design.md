@@ -252,7 +252,7 @@ Account & Privacy must provide:
 Deletion is an idempotent cross-vendor saga, not an assumed transaction:
 
 1. recent reauthentication creates a `deletion_jobs` row and moves the user `active → deleting`; all account/sync APIs then fail closed except deletion status;
-2. delete active domain rows and entitlement/source transaction references, recording `domain_deleted`;
+2. delete every user-scoped row—including active/tombstoned entities, projections, `deletion_graveyard` buckets, `sync_ops`, devices, entitlements, and encrypted purchase/source transaction handles—then record `domain_deleted`; schema migration tests fail if a new user-scoped table is absent from this enumerated cascade/check;
 3. revoke Firebase refresh tokens and delete the Firebase identity, retrying `identity_deletion_pending` with bounded alerts until confirmed or already absent;
 4. before discarding the UID, write a restore-independent erasure-ledger record described below; then compact the D1 job to a content-free deletion receipt (`requestId`, status, timestamps, error class only), irreversibly discard the UID from D1, and retain the receipt for 30 days before deletion.
 
