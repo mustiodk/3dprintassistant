@@ -252,7 +252,7 @@ Account & Privacy must provide:
 Deletion is an idempotent cross-vendor saga, not an assumed transaction:
 
 1. after export preflight, recent reauthentication creates a `deletion_jobs` row, moves the user `active → deleting`, and immediately writes a restore-independent external `pending_erasure` record with keyed UID locator and key version **before any deletion mutation**; all account/sync/export APIs then fail closed except scoped deletion status. If the external write fails, the account remains locked and the reconciler retries—domain deletion does not start;
-2. delete every user-scoped row—including active/tombstoned entities, projections, `deletion_graveyard` buckets, `sync_ops`, devices, entitlements, and encrypted purchase/source transaction handles—then record `domain_deleted`; schema migration tests fail if a new user-scoped table is absent from this enumerated cascade/check;
+2. delete every user-scoped row—including active/tombstoned entities, projections, `deletion_graveyard_buckets`, `sync_ops`, devices, export jobs/items/artifacts, entitlements, and encrypted purchase/source transaction handles—then record `domain_deleted`; schema migration tests fail if a new user-scoped table is absent from this enumerated cascade/check;
 3. revoke Firebase refresh tokens and delete the Firebase identity, retrying `identity_deletion_pending` with bounded alerts until confirmed or already absent;
 4. append completion to the already-durable external erasure record; then compact the D1 job to a content-free deletion receipt (`requestId`, status, timestamps, error class only), irreversibly discard the UID from D1, and retain the receipt for 30 days before deletion.
 
@@ -368,7 +368,7 @@ Compacting the ordered change stream advances `users.min_available_revision`. A 
 
 ```text
 users(user_id PK, status, pdm_version, next_revision, min_available_revision,
-      created_at, deleted_at)
+      export_write_barrier, app_account_token, created_at, deleted_at)
 devices(user_id, device_id, signing_public_key, last_request_counter,
         last_request_hash, last_request_result, last_processed_op_sequence,
         last_acknowledged_op_sequence,
@@ -380,13 +380,26 @@ sync_entities(user_id, kind, entity_id, entity_version, user_revision,
 sync_ops(user_id, op_id, op_sequence, request_hash, device_id, kind, entity_id,
          base_version, applied_version, user_revision, compact_result, created_at,
          UNIQUE(user_id, op_id))
-deletion_graveyard(user_id, kind, entity_id, deleted_revision, deleted_at,
-                   PK(user_id, kind, entity_id))
-deletion_jobs(request_id PK, user_id, status, requested_at, updated_at,
-              retry_after, last_error_class, receipt_expires_at)
+deletion_graveyard_buckets(user_id, bucket_id, key_version, hash_set_blob,
+                           member_count, byte_count, updated_at,
+                           PK(user_id, bucket_id))
+deletion_jobs(request_id PK, user_id, status_capability_hash, status,
+              requested_at, updated_at, retry_after, last_error_class,
+              receipt_expires_at)
+export_jobs(request_id PK, user_id, export_revision, status, next_ordinal,
+            item_count, snapshot_hash, artifact_key_encrypted, artifact_hash,
+            downloaded_verified_at, created_at, expires_at)
+export_job_items(request_id, ordinal, kind, entity_id, canonical_json,
+                 item_hash, PK(request_id, ordinal))
+purchase_events(user_id, provider, provider_event_id, handle_hash,
+                handle_encrypted, key_version, environment, validation_status,
+                entitlement_effect, created_at,
+                PK(provider, provider_event_id))
 entitlements(user_id, product_key, status, source, source_tx_id_hash,
              granted_at, revoked_at)  -- later monetization gate
 ```
+
+The external erasure ledger is deliberately absent from this D1 schema. Its append-only record schema is `(requestId, uidLocator, keyVersion, status, pendingAt, completedAt?, expiresAt)` and its keyed-locator key versions remain available for the full retained-ledger window.
 
 Indexes: `(user_id,user_revision)`, `(user_id,kind,deleted_at)`, `(user_id,device_id)`. Payloads are bounded JSON; the Worker has a per-kind allowlist and schema validator.
 
