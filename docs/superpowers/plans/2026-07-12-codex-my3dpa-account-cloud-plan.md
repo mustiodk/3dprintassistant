@@ -508,7 +508,7 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 **Depends on:** F0.  
 **Goal:** reuse data/domain value without reusing insecure single-user API behavior.
 
-**bambuinventory PR:** add authenticated read-only export or local CLI exporter; no wildcard/new write endpoint; include stable source IDs, units, ambiguity metadata, checksum/version; tests against a sanitized fixture.
+**F1a bambuinventory PR:** add the local CLI `export_inventory.py`; it reads through the existing local configuration/database path and writes a versioned JSON file only to the explicit `--output <path>`. It never adds or calls a web write/export endpoint. The envelope includes stable source IDs, integer gram/milligram units, ambiguity metadata, schema version, row count, and SHA-256; tests use a sanitized fixture and prove no database mutation.
 
 **web PR:** map rows to spool metadata + one acquire event; normalize units; dry-run skipped/ambiguous rows; deterministic import IDs; explicit confirmation; idempotent re-import.
 
