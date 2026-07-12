@@ -358,6 +358,8 @@ Journal entries move out of nested profile arrays during migration. Remaining fi
 
 Before any client implementation, the contract gate publishes versioned JSON Schema 2020-12 files in `contracts/pdm2/entities/` and `contracts/pdm2/api/`. Those checked-in files, not prose or a platform model, are authoritative. They set `additionalProperties: true` for forward-compatible payload fields, while the Worker separately allowlists writable paths per client schema version. All strings are valid UTF-8; IDs and reference fields are bounded to 128 bytes; user labels are 1–80 Unicode scalar values; notes are at most 2,000; timestamps use RFC 3339 UTC; monetary values are integer minor units plus ISO-4217 currency; quantities are finite integer milligrams internally and rendered in user units.
 
+This is implementation **Gate C0 — PDM2 contract**, owned in the web repository because that repository is the canonical engine/data/portable-contract source. “Published” means one contract-only PR is merged to web `main` with `contracts/pdm2/manifest.json` containing contract revision and SHA-256 for every schema/fixture/namespace file. C0 is GO only when JSON Schema meta-validation passes, valid/invalid/golden vectors pass `node --test scripts/pdm-contract.test.js`, canonical hash/UUID vectors match independent JavaScript+Swift test readers, cross-model and QA review report zero P0–P2, and the owner approves the manifest. Worker persistence, web PDM2 migration, iOS client, Android seam, and any external resource creation are blocked until C0. Downstream repos vendor the exact manifest/files and fail CI on hash drift; they do not redefine the contract.
+
 The first schema set must fully define:
 
 | Kind | Required payload contract |
