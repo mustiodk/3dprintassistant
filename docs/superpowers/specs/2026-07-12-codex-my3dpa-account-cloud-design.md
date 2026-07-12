@@ -520,7 +520,7 @@ W5-style contribution remains opt-in per submission. It exports a minimized revi
 
 - Add My 3DPA nav destination without removing Workshop deep links.
 - Local PDM2 store can use IndexedDB; keep small boot/config state in localStorage.
-- Firebase Web Auth loaded only when account UI opens, avoiding weight on the core configurator path.
+- A never-signed-in installation loads Firebase Web Auth only when account UI opens, avoiding weight on the core configurator path. After successful sign-in, persist only a non-sensitive `accountEnabled` boot marker. On later boots that marker lazy-imports the lightweight auth/sync path, restores the Firebase session, and runs the foreground/network sync triggers; sign-out/account deletion clears it. The marker grants no access and contains no UID/token.
 - Service-worker/offline caching is optional and not required for first sync; current offline behavior remains local storage plus loaded assets.
 
 ### 11.2 iOS
