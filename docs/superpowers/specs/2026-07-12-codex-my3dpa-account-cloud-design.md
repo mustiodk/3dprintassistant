@@ -111,6 +111,8 @@ Before upload, create a local JSON safety backup and show a preview:
 - alternative: keep cloud and export local backup (never destructive without a backup);
 - conflicts create named copies or explicit choices; no silent overwrite.
 
+Backup must have a receipt containing schema version, byte count, SHA-256, creation time, and storage class. On web, leave the original v1/local store untouched, stage migration in a separate IndexedDB database, and offer a PDM2 file: use File System Access write+readback verification where available; otherwise require an explicit download/confirmation and retain the untouched original store until cloud round-trip succeeds. On iOS/macOS and Android, atomically write a sibling backup file in Application Support/internal app storage, reopen it, verify its hash, and keep it through the compatibility window. A backup receipt is valid only after readback or after the browser fallback's explicit download confirmation; a same-record overwrite never counts as a backup.
+
 ### 4.4 Sync visibility
 
 Use a quiet status model:
@@ -686,14 +688,15 @@ Migration is idempotent; rerunning the same source hash creates no duplicate ent
 
 ### 15.2 Account bootstrap
 
+- Verify the platform-specific backup and receipt from §4.3; do not mutate the source store before it succeeds.
 - Pull cloud snapshot/cursor first.
-- Merge local entities with cloud in a staging transaction.
+- Merge local entities with cloud in a staging store/transaction.
 - Present conflict summary.
-- Commit locally.
+- Commit staged PDM2 locally while retaining the original store and backup.
 - Push remaining local ops.
-- Mark sync enabled only after a pull verifies server round-trip.
+- Mark sync enabled only after a pull verifies server round-trip; only then schedule transition-backup cleanup under §15.3.
 
-Failure leaves local v1/PDM2 data usable and sync disabled.
+Failure injection is tested after backup write, readback, migration, cloud pull, staged merge, local commit, every partial push result, and verification pull. Before local commit, discard staging. After local commit, restore the verified backup/source store atomically and leave the failed PDM2 store quarantined for diagnostics. Every failure leaves local v1/PDM2 data usable and sync disabled.
 
 ### 15.3 Compatibility window
 
