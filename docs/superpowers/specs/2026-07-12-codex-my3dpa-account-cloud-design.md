@@ -588,6 +588,13 @@ Entitlement is account-level and cross-platform. Apple allows multiplatform serv
 - web checkout remains deferred; if added, the same Pro feature must also remain purchasable in-app;
 - no client-supplied “isPro” flag is trusted.
 
+The later entitlement gate must use a server-authoritative purchase contract:
+
+- Apple: StoreKit 2 supplies the signed transaction JWS and a per-account `appAccountToken`; the Worker/server component validates the Apple certificate chain/signature, bundle ID, product ID, environment, ownership type, signed date, and revocation status, then reconciles against App Store Server API. An App Store Server Notifications v2 endpoint verifies `signedPayload`, deduplicates `notificationUUID`, and applies refund/revocation events.
+- Google: the client sends only the purchase token; the server calls the Google Play Developer API for the exact package/product, validates purchase/acknowledgement/state, and processes verified Real-time Developer Notifications or a scheduled reconciliation for refunds/revocations. Service-account credentials remain server-side.
+- `purchase_events` stores provider transaction/token hashes, immutable event IDs, environment, validation status, and entitlement effect. Replays are idempotent; sandbox never grants production entitlement; account transfer and family/ownership behavior require explicit fixtures.
+- Entitlement is derived from validated purchase events, never written directly by the client or a notification without provider verification.
+
 ### 12.4 Subscription reconsideration trigger
 
 Do not add a subscription merely because accounts exist. Reopen only if measured recurring per-user costs or a genuinely recurring service (large cloud files, compute, monitoring) cannot be funded by tips/lifetime Pro. Record the cost threshold and owner decision then.
