@@ -407,11 +407,11 @@ Graveyard membership is exactly `HMAC-SHA-256(HMAC-SHA-256(graveyardMasterKey[ke
 
 Entity privacy lifecycle uses a fenced two-system protocol for `delete`, deterministic `neutral_reset`, and content-addressed `reactivate`:
 
-1. a D1 transaction validates `baseVersion`, creates an `entity_lifecycle_reservations` row, reserves the exact next `user_revision`, and blocks other writes to that entity;
-2. write an idempotent external `committed_intent` containing op ID, keyed user/entity locators, kind, action, base version, reserved revision, key version, and time. If this write fails, cancel the reservation and make no lifecycle change;
-3. retryably apply the action in D1 at exactly the reserved revision, remove the reservation, then append external `completed` status. Because the intent is written only after a fenced reservation, DR may safely finish a committed intent even if the live D1 completion was interrupted.
+1. a D1 transaction validates `baseVersion`, allocates a monotonic per-user `lifecycle_generation` separate from sync revisions, creates an `entity_lifecycle_reservations` row, and blocks other writes to that entity;
+2. write an idempotent external `committed_intent` containing op ID, keyed user/entity locators, kind, action, base version, lifecycle generation, key version, and time. If this write fails, cancel the reservation and make no lifecycle change;
+3. retryably apply the action in D1 by atomically allocating the then-current next `user_revision`, changing the entity, and removing the reservation; then append external `completed` with that `appliedRevision`. No sync revision is reserved early, so unrelated writes/pulls cannot cross a revision gap. Because the intent is written only after an entity fence, DR may safely finish a committed intent even if live D1 completion was interrupted.
 
-The restore-independent R2 lifecycle ledger is retained for the longest D1/recovery-export window plus 15 days. `delete` and schema-defined neutral reset are content-free. A `reactivate` event also retains the immutable export-snapshot payload encrypted with a dedicated recovery key for that bounded window, so DR can reconstruct rather than merely avoid re-deletion. DR groups by keyed `(user, kind, entity)` locator, orders by reserved revision, and folds the latest committed lifecycle action: delete reapplies tombstone, neutral reset reapplies the schema neutral value, and a later verified reactivation supersedes deletion. Unfenced/pending records never erase data; unresolved reservations or revision forks block promotion. Fixtures cover failed external write, pending→D1 conflict prevention, committed delete before/after restore point, neutral reset, and delete→reactivate across DR.
+The restore-independent R2 lifecycle ledger is retained for the longest D1/recovery-export window plus 15 days. `delete` and schema-defined neutral reset are content-free. A `reactivate` event also retains the immutable export-snapshot payload encrypted with a dedicated recovery key for that bounded window, so DR can reconstruct rather than merely avoid re-deletion. DR groups by keyed `(user, kind, entity)` locator, orders by lifecycle generation, and folds the latest committed lifecycle action: delete reapplies tombstone, neutral reset reapplies the schema neutral value, and a later verified reactivation supersedes deletion. Before promotion it applies folded actions in generation order and assigns fresh contiguous sync revisions above the restored `currentRevision`. Unfenced/pending records never erase data; unresolved reservations or generation forks block promotion. Fixtures cover failed external write, pending→D1 conflict prevention, an unrelated write+pull while lifecycle I/O is in flight, committed delete before/after restore point, neutral reset, and delete→reactivate across DR.
 
 Deterministic-ID kinds have explicit lifecycle exceptions. `preference` and `tuning_dismissal` are never tombstoned: reset is a current-base `neutral_reset` lifecycle update to the schema's neutral/default value (`value:null` or `dismissedAt:null`) at the same logical-key ID. A tombstoned/compacted `export_snapshot` may be reactivated only by `restore_content_addressed` when RFC-8785/SHA-256 recomputes exactly to its entity ID and supplied bytes; the graveyard marker remains as history, but this verified active entity is allowed and receives a new server revision. No mutable/latest-per-key entity can use that exception. Fixtures cover reset and snapshot delete → compact → identical recreate/mismatched rejection.
 
@@ -423,7 +423,7 @@ Compacting the ordered change stream advances `users.min_available_revision`. A 
 
 ```text
 users(user_id PK, status, pdm_version, next_revision, min_available_revision,
-      app_account_token, created_at, deleted_at)
+      next_lifecycle_generation, app_account_token, created_at, deleted_at)
 devices(user_id, device_id, signing_public_key, last_request_counter,
         last_request_hash, last_request_result, last_processed_op_sequence,
         last_acknowledged_op_sequence,
@@ -433,7 +433,7 @@ sync_entities(user_id, kind, entity_id, entity_version, user_revision,
               schema_version, payload_json, payload_hash, deleted_at, updated_at,
               PK(user_id, kind, entity_id))
 entity_lifecycle_reservations(user_id, kind, entity_id, op_id, action,
-                              base_version, reserved_revision, created_at,
+                              base_version, lifecycle_generation, created_at,
                               PK(user_id, kind, entity_id), UNIQUE(user_id, op_id))
 inventory_projection(user_id, spool_id, through_user_revision, balance_mg,
                      projected_status, location, printer_id, slot_label,
@@ -461,7 +461,7 @@ entitlements(user_id, product_key, status, source, source_tx_id_hash,
              PK(user_id, product_key))  -- later gate
 ```
 
-The external account-erasure and entity-lifecycle ledgers are deliberately absent from this D1 schema. Their append-only schemas are `(requestId, uidLocator, keyVersion, status, pendingAt, completedAt?, expiresAt)` and `(opId, uidLocator, kind, entityLocator, action, baseVersion, reservedRevision, keyVersion, status, intentAt, completedAt?, encryptedRecoveryPayload?, expiresAt)`; keyed-locator/recovery key versions remain available for the full retained-ledger window.
+The external account-erasure and entity-lifecycle ledgers are deliberately absent from this D1 schema. Their append-only schemas are `(requestId, uidLocator, keyVersion, status, pendingAt, completedAt?, expiresAt)` and `(opId, uidLocator, kind, entityLocator, action, baseVersion, lifecycleGeneration, appliedRevision?, keyVersion, status, intentAt, completedAt?, encryptedRecoveryPayload?, expiresAt)`; keyed-locator/recovery key versions remain available for the full retained-ledger window.
 
 `inventory_projection` is a non-authoritative, user-scoped cache with foreign-key/cascade semantics to the spool/account. Event acceptance updates it and `through_user_revision` in the same transaction; mismatch or missing rows rebuild from inventory events before serving derived inventory state. It is included in account deletion but not treated as an independent entity in PDM2 export.
 
@@ -797,7 +797,7 @@ Do not send entity names, notes, printer selections, filament colors, or provide
 - Schedule a periodic encrypted D1 export to private R2 only when real account data exists; define retention before enabling.
 - Quarterly restore rehearsal against staging.
 - User PDM2 export is always available and tested across platforms.
-- Disaster-recovery rehearsal restores D1 without the live database, reads the external account-erasure and entity-lifecycle ledgers, re-hashes every restored locator, folds the latest fenced lifecycle action per entity, and proves delete/reset/reactivate results before promotion. Any unresolved reservation, revision fork, unmatched committed intent, or failed decrypt blocks promotion.
+- Disaster-recovery rehearsal restores D1 without the live database, reads the external account-erasure and entity-lifecycle ledgers, re-hashes every restored locator, folds the latest fenced lifecycle action per entity by lifecycle generation, assigns fresh contiguous sync revisions, and proves delete/reset/reactivate results before promotion. Any unresolved reservation, generation fork, unmatched committed intent, or failed decrypt blocks promotion.
 - Keep detailed `sync_ops` results until client acknowledgement and at least 30 days; keep the latest 1,024 acknowledged results/device as diagnostics. Older acknowledged rows compact to `devices.last_acknowledged_op_sequence`; a retry at/below it returns `already_acknowledged_pull_required` and cannot mutate, while unacknowledged terminal sequences return their exact applied/rejected/conflict result. A lost-response-before-compaction fixture proves rejected mutations are never reported as applied or silently cleared.
 
 ### 14.4 Kill switches
