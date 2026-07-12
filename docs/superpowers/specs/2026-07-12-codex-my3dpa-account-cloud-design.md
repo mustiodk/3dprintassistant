@@ -297,12 +297,12 @@ Readers must round-trip unknown envelope and payload fields byte-for-value throu
 | `tuning_dismissal` | Latest-per-key | suggestion key, dismissedAt |
 | `custom_material` | Mutable / conflict-copy | namespaced id, canonical template id, validated overrides |
 | `printer` | Mutable | favorite/name/model id, optional integration metadata excluding secrets |
-| `spool` | Mutable metadata | product/material/color, initial quantity, location, purchase/source metadata |
+| `spool` | Mutable metadata | product/material/color, capacity, location, purchase/source metadata; no mutable remaining total |
 | `inventory_event` | Append-only | spoolId, acquire/consume/adjust/move/assign/dry/retire, delta and reason |
 | `export_preset` | Mutable / conflict-copy | profile snapshot reference, slicer, favorite name, last engine/data version |
 | `preference` | Latest-per-key | account-level language/display/sync preferences only |
 
-Journal entries move out of nested profile arrays during migration. Remaining filament is derived from `spool.initialQuantity + sum(inventory_event.delta)`, clamped to an honest range with explicit adjustment events. Never sync only a mutable percentage when two devices can consume the same spool.
+Journal entries move out of nested profile arrays during migration. Remaining filament is derived only from `sum(inventory_event.deltaMg)`: every new/imported spool begins with an `acquire` event, never both an initial quantity and an event. Never sync a mutable remaining percentage when two devices can consume the same spool.
 
 #### 8.2.1 Normative schema contract
 
@@ -454,6 +454,17 @@ Inventory v1 includes:
 - drying history, notes, and explicit adjustments;
 - manual add, JSON/CSV import/export.
 
+Inventory event invariants are normative:
+
+- `acquire`: positive `deltaMg`, at most spool capacity;
+- `consume`: negative `deltaMg` and cannot make the derived balance negative;
+- `adjust`: non-zero signed `deltaMg`, mandatory reason, and resulting balance must remain from zero through capacity;
+- `move`, `assign`, `dry`, `retire`: exactly zero `deltaMg` and their own typed metadata;
+- capacity changes are explicit spool metadata edits and cannot move capacity below the current derived balance without a preceding adjustment;
+- integer overflow, NaN/fractional internal quantities, negative balance, or over-capacity balance is rejected with a typed error—never silently clamped.
+
+Percent remaining is a presentation derived from `balanceMg / capacityMg`. CSV/import adapters normalize source units to integer milligrams, report rounding, and emit one idempotent `acquire` event per imported spool.
+
 Reuse from bambuinventory:
 
 - material/color/product vocabulary and grouping;
@@ -473,7 +484,7 @@ Do not reuse:
 Migration adapter sequence:
 
 1. add a read-only, authenticated bambuinventory JSON export or local CLI exporter;
-2. map rows to `spool` + initial `inventory_event` entities;
+2. map rows to `spool` metadata + one positive, idempotent `acquire` event representing current quantity;
 3. dry-run report with skipped/ambiguous rows;
 4. user-confirmed import with idempotent source IDs;
 5. keep bambuinventory read-only until parity is accepted; no big-bang cutover.
