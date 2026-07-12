@@ -235,7 +235,7 @@ First authenticated request creates:
 
 The client generates a P-256 signing key in Keychain/Secure Enclave, Android Keystore, or non-exportable Web Crypto storage; D1 stores only the public key. Sync calls include device ID, strictly increasing request counter, timestamp, canonical body hash, and ECDSA signature over method/path/body hash/device ID/counter/timestamp. In the same D1 transaction as the request, the Worker verifies the public key and advances `last_request_counter`. A retry at the current counter returns the cached result only when its request hash matches; lower counters or same-counter/different-hash requests are replay errors. Registering or rotating a key requires a Firebase token with recent `auth_time`, so a revoked installation cannot simply invent a new device ID using a background refresh token.
 
-Web has no cleartext fallback: when required Web Crypto/key persistence is unavailable, sign-in, local use, and manual export remain available but device registration/sync is disabled with a specific browser-support message; private keys never enter localStorage, JSON backup, or logs. If browser storage cleanup removes a previously registered private key, keep local data, require recent provider reauthentication, revoke that single stale device row, generate/register a new key, and bootstrap-merge. Routine storage clearing does not trigger account-wide refresh-token revocation; the separate lost-device flow is reserved for suspected credential theft.
+Web has no cleartext fallback: when required Web Crypto/key persistence is unavailable, sign-in, local use, and manual export remain available but device registration/sync is disabled with a specific browser-support message; private keys never enter localStorage, JSON backup, or logs. If a private key is lost while the local store/outbox remains, keep the same device ID: after recent provider reauthentication, atomically rotate the server public key, immediately invalidate the old key, and preserve request/op counters and terminal watermarks. Pending contiguous ops retain their IDs/dependencies and are re-signed—never rebound or renumbered. If storage cleanup removed both key and outbox, revoke the stale device and bootstrap a new device from server/local surviving data. Fixtures cover key loss with several dependent unsynced ops and lost prior responses. Routine storage clearing does not trigger account-wide refresh-token revocation; the separate lost-device flow is reserved for suspected credential theft.
 
 Device removal therefore revokes sync capability for that installation. The lost-device flow additionally calls Firebase refresh-token revocation for the account, revokes all device public keys, and requires fresh provider sign-in before trusted devices are re-registered. The UI states clearly that account-wide sign-out is required for a suspected stolen credential.
 
@@ -401,6 +401,7 @@ GET  /api/v1/account/deletion/{requestId}   (scoped status capability)
 GET  /api/v1/devices
 POST /api/v1/devices/{id}/revoke
 POST /api/v1/devices/register              (recent reauthentication required)
+POST /api/v1/devices/{id}/rotate-key       (preserves sequence/watermarks)
 POST /api/v1/devices/revoke-all            (lost-device incident flow)
 POST /api/v1/sync/push
 GET  /api/v1/sync/pull?after=<revision>&limit=<n>
