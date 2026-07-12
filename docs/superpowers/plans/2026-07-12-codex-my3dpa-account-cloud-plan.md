@@ -265,7 +265,7 @@ node --test scripts/r2-conditional-capability.test.mjs
 - `scripts/account-schema.test.mjs`, `scripts/account-dr.test.mjs`
 - `docs/runbooks/account-backend.md`, `account-dr-restore.md`, `key-rotation.md`
 
-**Tasks:** implement all normative tables/indexes/constraints; local D1 migration tests; schema manifest endpoint; the C0-selected R2-or-Durable-Object coordination adapter behind local fakes; feature flags/global write breaker; content-free logging; expand/rollback rehearsal.
+**Tasks:** implement every current-spec D1 table/index/constraint in `0001_expand.sql`, including dark export, deletion, lifecycle, sync, projection, inventory, and purchase/retention structures; local migration tests; schema manifest endpoint; the C0-selected R2-or-Durable-Object coordination adapter behind local fakes; feature flags/global write breaker; content-free logging; expand/rollback rehearsal. Later feature gates activate this schema but do not re-own it; a genuinely new column/table requires a separately reviewed additive schema-amendment gate.
 
 **Tests:**
 
