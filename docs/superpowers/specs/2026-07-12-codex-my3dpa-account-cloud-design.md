@@ -197,7 +197,7 @@ R2 is not required in the first account release. Add it only for scheduled DB ex
 
 Launch with **Sign in with Apple** and **Google Sign-In** on every platform where each is supported; Firebase supports Apple on iOS, web, and Android. Use the same provider when moving devices. Add email auth only if real demand appears.
 
-The provider-linking screen lets a signed-in user link the other provider. Never auto-merge accounts only because emails match; Apple private relay makes email identity especially unreliable. Firebase supports multiple linked providers under one UID but documents conflict cases that require an explicit data merge. [Provider linking](https://firebase.google.com/docs/auth/web/account-linking/).
+The provider-linking screen lets a signed-in user link the other provider only when that credential is not already owned by another Firebase UID. Never auto-merge accounts because emails match; Apple private relay makes email identity especially unreliable. If the credential belongs to another account, v1 stops before mutation, keeps both accounts untouched, explains which original provider must be used, and offers data export—not merge. Cross-account provider/data/entitlement merging is deferred until a separate design specifies recent authentication to both accounts, freeze/order, deterministic conflict and entitlement union, rollback, and retirement of the source UID. Firebase supports multiple linked providers under one UID and reports occupied-credential conflicts. [Provider linking](https://firebase.google.com/docs/auth/web/account-linking/).
 
 Apple requires apps using third-party/social login for a primary account to provide an equivalent privacy-preserving option, and apps with account creation must provide in-app deletion. [App Review Guidelines 4.8 and 5.1.1(v)](https://developer.apple.com/app-store/review/guidelines/).
 
@@ -603,7 +603,7 @@ GDPR principles include purpose limitation, minimization, storage limitation, in
 - oversized entity/batch and decompression/JSON bombs;
 - stale edit after delete;
 - account disabled while token remains valid;
-- provider-link collision and failed merge rollback;
+- provider-link collision fails before mutation, preserves both accounts, and offers the safe export path;
 - local corruption during bootstrap apply;
 - deleted device continuing to push;
 - malicious custom-material values trying to bypass engine clamps;
