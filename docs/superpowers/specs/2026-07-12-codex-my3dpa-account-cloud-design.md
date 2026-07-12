@@ -252,6 +252,8 @@ Google Play requires both an in-app path and a web deletion resource when accoun
 
 D1 Time Travel can retain recoverable database history up to 30 days on Workers Paid or 7 days on Free. Privacy copy must state the backup-aging window; deleted accounts must remain API-inaccessible immediately. [D1 Time Travel](https://developers.cloudflare.com/d1/reference/time-travel/).
 
+Time Travel and encrypted recovery exports are inaccessible to the application and are used only for disaster recovery, never to recover an individual deleted account. Any restore to a point before one or more deletion receipts must run the idempotent deletion reconciler for every receipt **before** the restored database can receive traffic; promotion is blocked until a reconciliation report proves those users and domain rows absent. Retained disaster-recovery copies age out under the disclosed provider window. Production provisioning requires written confirmation that the Cloudflare DPA and transfer terms cover this residual backup retention and that the privacy/erasure procedure reflects the restore-before-promotion rule.
+
 ## 8. Portable Data Model v2 (PDM2)
 
 ### 8.1 Envelope
