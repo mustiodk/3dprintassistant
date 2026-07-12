@@ -452,7 +452,8 @@ inventory_projection(user_id, spool_id, through_user_revision, balance_mg,
                      projected_status, location, printer_id, slot_label,
                      updated_at, PK(user_id, spool_id))
 sync_ops(user_id, op_id, op_sequence, request_hash, device_id, kind, entity_id,
-         base_version, applied_version, user_revision, compact_result, created_at,
+         base_version, applied_version, user_revision, result_status,
+         result_json, created_at,
          UNIQUE(user_id, op_id), UNIQUE(user_id, device_id, op_sequence))
 deletion_graveyard_buckets(user_id, bucket_id, key_version, hash_set_blob,
                            member_count, byte_count, updated_at,
@@ -500,6 +501,7 @@ POST /api/v1/devices/{id}/rotate-key       (preserves sequence/watermarks)
 POST /api/v1/devices/revoke-all            (lost-device incident flow)
 POST /api/v1/sync/push
 GET  /api/v1/sync/push/{requestId}          (durable per-op result/status)
+POST /api/v1/sync/lifecycle                 (exactly one async lifecycle op)
 GET  /api/v1/sync/pull?after=<revision>&limit=<n>
 POST /api/v1/sync/bootstrap
 GET  /api/v1/schema/versions              (public, cacheable compatibility manifest)
@@ -526,7 +528,11 @@ Day-1 conservative limits are enforced before traffic data exists: per verified 
 
 Every local mutation gets `opId = <registeredDeviceId>:<monotonicOpSequence>`, registered `deviceId`, kind/entity ID, `baseVersion`, schema version, explicit `dependsOnOpIds[]`, field mask plus changed values (or complete payload for a create), and payload/tombstone. One device uploads its durable outbox in contiguous sequence order; gaps reject before mutation. The server advances `last_processed_op_sequence` for every durably terminal result—applied, duplicate, conflict, or rejected—but retains the exact per-sequence result until the client acknowledges it. The signed request proves possession of that device's private key as defined in §7.4. Clients topologically order a batch: sequential mutations of one entity depend on the prior mutation; an event/reference to an entity created in the batch depends on that create.
 
+`delete`, `neutral_reset`, and `restore_content_addressed` are not normal batch ops. `/sync/push` rejects a batch containing any of them with `400 lifecycle_requires_endpoint` before fence preflight/mutation. `/sync/lifecycle` accepts exactly one signed next-contiguous device op and `requestId`; its first D1 transaction writes `sync_ops.result='pending_lifecycle'` plus the lifecycle reservation but does **not** advance `last_processed_op_sequence`. The saga in §8.4 then updates that same row to one terminal result and advances the device watermark atomically. Retries/lost responses return the same pending/terminal status via `GET /sync/push/{requestId}`. While sequence N is pending, any N+1 operation/dependency returns retryable `409 prior_lifecycle_pending` and cannot mutate; acknowledgement is allowed only after terminal resolution. Internal snapshot GC uses the same saga/state machine with a system device namespace.
+
 One D1 transaction encloses the entire push's lifecycle-fence preflight **and all writes for the accepted ops**. Before applying anything, it checks every submitted op's target and every schema-declared referenced entity for an incompatible active `entity_lifecycle_reservations` row. If any is fenced, roll back/return retryable HTTP `409 lifecycle_in_progress` with no entity/op mutation and no `last_processed_op_sequence` advance; the client retries identical ops under a new signed request counter after backoff. If none is fenced, that same transaction applies the valid dependency-safe ops and their terminal results, so no lifecycle reservation can appear between preflight and write. Only the internal lifecycle apply carrying the matching reservation `op_id` may consume that fence, and it revalidates action-specific preconditions (including zero active preset references before snapshot GC) in its own transaction. Tests run target and reference creation/repoint concurrently with each lifecycle action, especially preset→snapshot during GC, and prove one side retries/cancels without partial batch mutation or dangling reference.
+
+Fixtures cover mixed lifecycle/normal batch rejection, lifecycle crash at every saga step, response loss while pending/terminal, byte-identical retry, cancellation, and a following device sequence blocked then released. No lifecycle action can appear terminal before its D1 entity change is durable.
 
 After a client durably records/handles a contiguous run of terminal results, its next signed request carries `acknowledgedThroughOpSequence`; D1 advances `last_acknowledged_op_sequence` atomically and may compact only results at/below it. A conflict/rejection is acknowledged only after its resolution/quarantine is durable. Lost responses therefore remain queryable and cannot be mislabeled applied. Results above the acknowledgement watermark never compact merely due to age; quota/backpressure stops new mutations before unacknowledged rows become unbounded. Explicit device revocation may close and compact its terminal stream after the user accepts that any unavailable local outbox is abandoned.
 
