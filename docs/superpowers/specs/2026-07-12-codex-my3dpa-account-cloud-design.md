@@ -409,6 +409,8 @@ Every local mutation gets a random `opId`, registered `deviceId`, kind/entity ID
 - Spool metadata: field-level merge is deliberately rejected for v1; return a conflict copy/choice to avoid invented combinations.
 - Stale edit after a deletion: deletion remains; offer “Restore as a new copy” locally.
 
+Conflict creation is retry-safe. The copy ID is deterministic UUID v5 from `conflict + rejectedOpId`; its local `version`/`baseVersion` are zero, and its new create operation has a deterministically persisted resolution op ID. In one local transaction the client writes the copy, writes its outbox op, records the original op as resolved-to-copy, and only then clears the rejected op. A crash/retry derives the same IDs and cannot create duplicate conflict copies. “Restore as a new copy” uses the same rule from the rejected stale-delete op.
+
 ### 9.5 Pull and cursor
 
 Server assigns a monotonic per-user `user_revision` to every accepted entity change. Client persists `lastPulledRevision`, pages until caught up, applies all changes in one local transaction/write boundary, then advances the cursor. Cursor advances only after durable local apply. Every pull response includes `currentRevision` and `minAvailableRevision`; `after < minAvailableRevision` returns typed `410 cursor_expired` and cannot be treated as an empty delta. The client then runs the non-destructive bootstrap/reconciliation defined in §8.4.
