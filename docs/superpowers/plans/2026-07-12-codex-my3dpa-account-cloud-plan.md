@@ -144,7 +144,7 @@ xcodebuild test-without-building -project 3DPrintAssistant.xcodeproj \
 - `contracts/pdm2/manifest.json`
 - `contracts/pdm2/namespaces.json`
 - `contracts/pdm2/common/*.schema.json`
-- `contracts/pdm2/entities/*.schema.json` for every spec entity
+- `contracts/pdm2/entities/*.schema.json` for every spec entity, explicitly including spool, inventory event, inventory projection, location/AMS assignment, export snapshot, preset, printer, profile, outcome, tuning, and custom material
 - `contracts/pdm2/api/*.schema.json` for account/device/sync/export/delete/errors
 - `contracts/pdm2/fixtures/valid/`, `invalid/`, `golden/`
 - `scripts/pdm-contract.test.js`
@@ -187,12 +187,12 @@ node --test scripts/r2-conditional-capability.test.mjs
 
 - `package.json` + `package-lock.json` with an exact Wrangler dev dependency selected and recorded by this gate;
 - `config/feature-flags.json` plus schema/default validation;
-- `scripts/feature-flags.test.mjs` and `scripts/gate-evidence.test.mjs`;
+- `scripts/verify-toolchain.mjs`, `scripts/feature-flags.test.mjs`, and `scripts/gate-evidence.test.mjs`;
 - `docs/planning/MY3DPA-GATE-LEDGER.md` as the only canonical gate/evidence ledger.
 
 **Flag registry:** `pdm2Local`, `accountApi`, `authUi`, `syncWrites`, `webSync`, `my3dpaUi`, `exportLibraryLocal`, `exportLibrarySync`, `inventoryLocal`, `inventorySync`, `iosAccountSync`, `iosInventory`, `proGrants`, and `androidSync`. Every flag defaults false, has an owner, environment scope, dependency, enable/disable command, audit record, and tested safe-off behavior. A server capability response must prevent a stale client flag from enabling an unsupported path.
 
-**Tasks/tests:** use `npm ci` for all Worker/D1 gates; assert `npx wrangler --version` equals the lock-recorded version; validate flag names/defaults/dependencies and unknown-flag rejection; validate every ledger row has dependency hashes, commands, expected result, rollback proof, reviewer evidence, and owner decision where required.
+**Tasks/tests:** use `npm ci` for all Worker/D1 gates; make `node scripts/verify-toolchain.mjs` compare the installed Wrangler version to the exact `package.json`/lock value and fail on drift; validate flag names/defaults/dependencies and unknown-flag rejection; validate every ledger row has dependency hashes, commands, expected result, rollback proof, reviewer evidence, and owner decision where required.
 
 **Rollback:** config/docs/test-only revert; all runtime features remain off.
 
@@ -604,8 +604,8 @@ This matrix overrides broader program-heading wording. Each row is one merge/rev
 
 | Gate | Depends on | Exact gate command | Default/rollout | Required rollback proof |
 |---|---|---|---|---|
-| C0 | O0 | `node --test scripts/pdm-contract.test.js && node scripts/pdm-contract.test.js --verify-full-manifest-hash` | contract only | revert on empty store |
-| G0 | C0 | `npm ci && npx wrangler --version && node --test scripts/feature-flags.test.mjs scripts/gate-evidence.test.mjs` | all flags false | clean-clone safe defaults |
+| C0 | O0 | `node --test scripts/pdm-contract.test.js scripts/r2-conditional-capability.test.mjs && node scripts/pdm-contract.test.js --verify-full-manifest-hash` | contract only | revert on empty store |
+| G0 | C0 | `npm ci && node scripts/verify-toolchain.mjs && node --test scripts/feature-flags.test.mjs scripts/gate-evidence.test.mjs` | all flags false | clean-clone safe defaults |
 | W0 | G0 | `node --test scripts/pdm-store.test.js scripts/pdm-migration.test.js scripts/state-codec.test.js scripts/workshop-store.test.js` | `pdm2Local=false` | validated distinct backup restore |
 | I0 | G0 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/PDMContractTests` and `PDMMigrationTests` | local iOS commits | legacy-file restore; no push |
 | B0 | G0,O0 | `npm ci && npx wrangler d1 migrations apply 3dpa-account-preview --local && node --test scripts/account-schema.test.mjs scripts/account-dr.test.mjs functions/api/*.test.mjs` | preview/staging; `accountApi=false` | fresh/upgrade/forward-fix rehearsal |
