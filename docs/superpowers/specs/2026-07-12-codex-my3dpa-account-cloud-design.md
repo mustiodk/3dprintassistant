@@ -223,7 +223,7 @@ Every `/api/v1/*` request except the closed list below:
 Closed authentication exceptions—adding one requires a security-review PR:
 
 - `GET/HEAD /api/v1/schema/versions`: public read-only static manifest, no credentials/cookies, `Access-Control-Allow-Origin: *`, 60 requests/IP/minute and CDN cache; all other methods fail.
-- `GET /api/v1/account/deletion/{requestId}`: requires the scoped deletion capability, constant-time hash verification, no Firebase identity, credential-free CORS disabled, 30 requests/requestId and IP/minute.
+- `GET /api/v1/account/deletion/{requestId}`: requires `Authorization: Capability <base64url-256-bit-value>`, constant-time hash verification, no Firebase identity, credential-free CORS disabled, 30 requests/requestId and IP/minute. The capability is never accepted in query strings, URLs, cookies, or request bodies.
 - future Apple/Google purchase notification callbacks: require the provider-signed payload/OIDC contract in §12.3, exact method/path/content type, provider-specific replay protection and rate limits; they never accept a user bearer token as callback authorization.
 
 No route falls back from failed Firebase auth to an exception mechanism, and exception middleware is path+method exact rather than prefix-based.
@@ -285,7 +285,7 @@ Deletion is an idempotent cross-vendor saga, not an assumed transaction:
 
 The job table is outside the domain-row cascade, so a crash cannot erase retry state. Every step is idempotent; a reconciler resumes incomplete jobs, and support tooling can see status without seeing user content. If identity deletion remains unavailable, the D1 lock still prevents all data access and the user sees a non-misleading pending status.
 
-The start response returns `requestId` plus a random 256-bit, scoped status capability exactly once; D1 stores only its hash. `GET /api/v1/account/deletion/{requestId}` accepts that capability instead of Firebase identity and returns only `locked|domain_deleted|identity_pending|complete|failed_retrying`, timestamps, and `retryAfter`—never UID or content. Apps keep it in protected local storage until completion/receipt expiry; the web deletion page can resume from the capability. It expires with the 30-day receipt and is never logged or accepted by any other endpoint.
+The start response returns `requestId` plus a random 256-bit, scoped status capability exactly once; D1 stores only its hash. `GET /api/v1/account/deletion/{requestId}` receives it only through the `Authorization: Capability` header defined in §7.3 and returns only `locked|domain_deleted|identity_pending|complete|failed_retrying`, timestamps, and `retryAfter`—never UID or content. Apps keep it in protected local storage until completion/receipt expiry; the web deletion page can resume from the capability. It expires with the 30-day receipt and is never logged or accepted by any other endpoint.
 
 Google Play requires both an in-app path and a web deletion resource when account creation exists. [Official requirement](https://support.google.com/googleplay/android-developer/answer/13327111). GDPR rights include access, correction, erasure, and portability. [European Commission](https://commission.europa.eu/law/law-topic/data-protection/information-individuals_en).
 
