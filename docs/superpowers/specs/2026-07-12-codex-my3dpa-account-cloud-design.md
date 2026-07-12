@@ -188,6 +188,8 @@ Initial capacity model: 500 daily synced accounts × 10 mutations gives 5,000 op
 
 Production alerts fire at 50% and 75% of daily read/write/storage allowance, at p95 sync latency/error thresholds, and on export/conflict amplification. The launch gate replays baseline and 4× load against staging, records rows/op and bytes/account, and sets the paid-plan/optimization threshold before enabling signups.
 
+Abuse/cost ceilings are independent of burst rate limits: an account may apply at most 500 domain ops/day and 200/hour, with batch cost charged per op plus payload-size units; active payload is capped at 5 MB and compact operational metadata at 2 MB/50,000 lifetime entity IDs. Delete, export, pull, and account deletion remain available at a quota. A global write breaker makes sync read-only before 70,000 D1 writes/day on Free, preserving pull/export/delete and local-first behavior. Legitimate cap increases require an observed workload and paid-capacity decision, not a client flag.
+
 R2 is not required in the first account release. Add it only for scheduled DB exports, large account-export archives, or future user files. R2's current Standard free tier includes 10 GB-month, 1M writes, 10M reads, and free egress. [R2 pricing](https://developers.cloudflare.com/r2/pricing/).
 
 ## 7. Identity and account lifecycle
@@ -350,7 +352,7 @@ One shared fixture corpus contains valid boundary examples, every invalid enum/r
 
 ### 8.4 Tombstones
 
-Deletes create tombstones so offline devices learn the deletion. Retain full tombstone payloads for 30 days, then compact them into a permanent per-account graveyard containing only `(kind, entityId, deletedRevision, deletedAt)`. A graveyard row is removed only with the account, never by normal sync compaction. Account deletion bypasses normal tombstone retention and hard-deletes domain rows after immediate account lock.
+Deletes create content-free tombstones `(kind, entityId, deletedRevision, deletedAt)` immediately; undo content stays only in a local, explicit seven-day undo buffer. After 30 days, server tombstones compact into a keyed-hash graveyard set, bucketed/chunked to bound row overhead while retaining membership checks. A graveyard member is removed only with the account, never by normal sync compaction. At the 2 MB/50,000-ID operational quota, the account stays pull/export/delete capable but cannot create new entity IDs until an explicit capacity/support decision; deletion is never blocked. Account deletion bypasses normal tombstone retention and hard-deletes domain rows after immediate account lock.
 
 Compacting the ordered change stream advances `users.min_available_revision`. A pull using an older cursor returns `410 cursor_expired` with `minAvailableRevision` and requires an authoritative bootstrap/reconciliation. Bootstrap stages the server snapshot and graveyard against the local store, preserves unsynced local operations, rejects stale recreation of graveyard IDs, and exposes any legitimate local resurrection as an explicit **Restore as new copy** action with a new ID. The server rejects a push for an absent entity when `baseVersion > 0`; it also rejects any create whose ID is in the graveyard.
 
@@ -362,13 +364,14 @@ Compacting the ordered change stream advances `users.min_available_revision`. A 
 users(user_id PK, status, pdm_version, next_revision, min_available_revision,
       created_at, deleted_at)
 devices(user_id, device_id, signing_public_key, last_request_counter,
-        last_request_hash, last_request_result, platform, app_version, label,
+        last_request_hash, last_request_result, last_applied_op_sequence,
+        platform, app_version, label,
         last_seen_at, revoked_at, PK(user_id, device_id))
 sync_entities(user_id, kind, entity_id, entity_version, user_revision,
               schema_version, payload_json, payload_hash, deleted_at, updated_at,
               PK(user_id, kind, entity_id))
-sync_ops(user_id, op_id, request_hash, device_id, kind, entity_id, base_version,
-         applied_version, user_revision, compact_result, created_at,
+sync_ops(user_id, op_id, op_sequence, request_hash, device_id, kind, entity_id,
+         base_version, applied_version, user_revision, compact_result, created_at,
          UNIQUE(user_id, op_id))
 deletion_graveyard(user_id, kind, entity_id, deleted_revision, deleted_at,
                    PK(user_id, kind, entity_id))
@@ -404,7 +407,7 @@ Day-1 conservative limits are enforced before traffic data exists: per verified 
 
 ### 9.3 Push semantics
 
-Every local mutation gets `opId = <registeredDeviceId>:<uuidV4>`, registered `deviceId`, kind/entity ID, `baseVersion`, schema version, explicit `dependsOnOpIds[]`, field mask plus changed values (or complete payload for a create), and payload/tombstone. The Worker verifies the prefix matches the authenticated device. This makes cross-device collisions structurally impossible while request-hash checks still catch reuse on one device. The signed request proves possession of that device's private key as defined in §7.4. Clients topologically order a batch: sequential mutations of one entity depend on the prior mutation; an event/reference to an entity created in the batch depends on that create.
+Every local mutation gets `opId = <registeredDeviceId>:<monotonicOpSequence>`, registered `deviceId`, kind/entity ID, `baseVersion`, schema version, explicit `dependsOnOpIds[]`, field mask plus changed values (or complete payload for a create), and payload/tombstone. One device uploads its durable outbox in contiguous sequence order; gaps reject before mutation. This makes cross-device collisions impossible and lets the server compact old idempotency rows into a per-device applied-sequence watermark. The signed request proves possession of that device's private key as defined in §7.4. Clients topologically order a batch: sequential mutations of one entity depend on the prior mutation; an event/reference to an entity created in the batch depends on that create.
 
 - Duplicate `opId` with the same canonical request hash: return the recorded result; never apply twice. The same `opId` with different bytes returns `409 idempotency_mismatch`.
 - Append-only kinds: union by entity ID. An existing ID with the same canonical payload hash is a duplicate; different bytes return `409 immutable_id_conflict` and neither version is changed.
@@ -690,7 +693,7 @@ Do not send entity names, notes, printer selections, filament colors, or provide
 - Quarterly restore rehearsal against staging.
 - User PDM2 export is always available and tested across platforms.
 - Disaster-recovery rehearsal restores D1 without the live database, reads the external erasure ledger, proves keyed-locator matches are re-erased, and blocks promotion on any unmatched/incomplete record.
-- `sync_ops` rows compact after 30 days to the minimum `(user_id, op_id, request_hash, compact_result)` fingerprint and remain until account deletion. Compaction never drops the proof needed to return the same result or reject mismatched reuse, so an old outbox retry cannot apply twice.
+- Keep detailed `sync_ops` results for 30 days or the latest 1,024 ops/device, whichever is larger. Older contiguous rows compact to `devices.last_applied_op_sequence`; a retry at/below that watermark returns `already_applied_pull_required` and cannot mutate, while a sequence gap is rejected. Recent same-sequence/different-hash reuse remains a corruption error. This bounds operational rows without weakening at-most-once application.
 
 ### 14.4 Kill switches
 
