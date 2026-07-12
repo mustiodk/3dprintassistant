@@ -348,7 +348,7 @@ Readers must round-trip unknown envelope and payload fields byte-for-value throu
 | `tuning_dismissal` | Latest-per-key | suggestion key, dismissedAt |
 | `custom_material` | Mutable / conflict-copy | namespaced id, canonical template id, validated overrides |
 | `printer` | Mutable | favorite/name/model id, optional integration metadata excluding secrets |
-| `spool` | Mutable metadata | product/material/color, capacity, purchase/source metadata; no mutable remaining/status/location fields |
+| `spool` | Mutable metadata / conflict-copy | product/material/color, capacity, purchase/source metadata; no mutable remaining/status/location fields |
 | `inventory_event` | Append-only | spoolId, acquire/consume/adjust/move/assign/dry/retire/reactivate, delta and reason |
 | `export_snapshot` | Append-only / content-addressed | immutable canonical app-state snapshot plus engine/data/catalog versions and SHA-256 hash |
 | `export_preset` | Mutable / conflict-copy | exportSnapshotId, slicer/type, favorite name |
