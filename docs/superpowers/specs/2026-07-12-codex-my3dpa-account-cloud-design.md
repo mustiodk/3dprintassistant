@@ -329,7 +329,8 @@ One shared fixture corpus contains valid boundary examples, every invalid enum/r
 
 ### 8.3 IDs and timestamps
 
-- UUID v4 identifiers generated locally.
+- New ordinary entities use UUID v4 identifiers generated locally. Validated legacy IDs are namespaced as described in §15.1.
+- Latest-per-key entities use a deterministic UUID v5 from the fixed 3dpa namespace plus `kind + normalizedLogicalKey`: preference keys are a closed account-setting enum; tuning-dismissal keys are the canonical suggestion key. D1 also enforces `UNIQUE(user_id, kind, logical_key)`.
 - RFC 3339 UTC display timestamps.
 - Ordering/causality uses server revisions, not client wall clocks.
 - Client timestamps are informational and bounded/validated.
@@ -392,6 +393,7 @@ Every local mutation gets a random `opId`, registered `deviceId`, kind/entity ID
 
 - Duplicate `opId`: return the original result; never apply twice.
 - Append-only kinds: union by entity ID; duplicate IDs are idempotent.
+- Latest-per-key kinds address the deterministic entity ID/logical key. With the current base version they replace the prior value and receive a new server revision; a stale base returns the current value, after which the client may deliberately reapply. Client timestamps never choose the winner.
 - Mutable kinds with current `baseVersion`: apply and increment entity + user revision atomically.
 - Mutable updates merge only the validated field mask. A full replacement from a client below the stored entity schema version returns `409 schema_write_unsupported` instead of dropping unknown fields.
 - Stale mutable base: return `409 conflict` plus current server entity; do not overwrite.
