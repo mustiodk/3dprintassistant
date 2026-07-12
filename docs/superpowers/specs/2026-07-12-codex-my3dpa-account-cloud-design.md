@@ -395,7 +395,7 @@ Limits for v1: 100 ops/push, 500 entities/pull page, 64 KB/entity, 5 MB active p
 
 ### 9.3 Push semantics
 
-Every local mutation gets a random `opId`, registered `deviceId`, kind/entity ID, `baseVersion`, schema version, field mask plus changed values (or complete payload for a create), and payload/tombstone. The request also proves possession of that device's secret as defined in §7.4.
+Every local mutation gets a random `opId`, registered `deviceId`, kind/entity ID, `baseVersion`, schema version, explicit `dependsOnOpIds[]`, field mask plus changed values (or complete payload for a create), and payload/tombstone. The request also proves possession of that device's secret as defined in §7.4. Clients topologically order a batch: sequential mutations of one entity depend on the prior mutation; an event/reference to an entity created in the batch depends on that create.
 
 - Duplicate `opId` with the same canonical request hash: return the recorded result; never apply twice. The same `opId` with different bytes returns `409 idempotency_mismatch`.
 - Append-only kinds: union by entity ID. An existing ID with the same canonical payload hash is a duplicate; different bytes return `409 immutable_id_conflict` and neither version is changed.
@@ -404,7 +404,7 @@ Every local mutation gets a random `opId`, registered `deviceId`, kind/entity ID
 - Mutable updates merge only the validated field mask. A full replacement from a client below the stored entity schema version returns `409 schema_write_unsupported` instead of dropping unknown fields.
 - Stale mutable base: return `409 conflict` plus current server entity; do not overwrite.
 - Absent entity with `baseVersion > 0`, or any create reusing an ID in `deletion_graveyard`: return `409 deleted_entity`; restoration requires a new entity ID.
-- Invalid schema/size/reference: reject only that op with a typed error; other valid ops may apply in a D1 batch only if dependency ordering remains safe.
+- Invalid schema/size/reference: reject that op with a typed error. Every later/transitive op naming it in `dependsOnOpIds` is rejected as `dependency_failed`; independent valid ops may still apply. Cycles, missing dependency IDs, a same-entity sequence without the required dependency, or an in-batch reference without dependency on its create reject the whole malformed batch before mutation.
 - A user can never reference another user's entity; foreign IDs resolve as not found.
 
 ### 9.4 Conflict UX
