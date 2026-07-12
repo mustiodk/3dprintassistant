@@ -444,7 +444,7 @@ inventory_projection(user_id, spool_id, through_user_revision, balance_mg,
                      updated_at, PK(user_id, spool_id))
 sync_ops(user_id, op_id, op_sequence, request_hash, device_id, kind, entity_id,
          base_version, applied_version, user_revision, compact_result, created_at,
-         UNIQUE(user_id, op_id))
+         UNIQUE(user_id, op_id), UNIQUE(user_id, device_id, op_sequence))
 deletion_graveyard_buckets(user_id, bucket_id, key_version, hash_set_blob,
                            member_count, byte_count, updated_at,
                            PK(user_id, key_version, bucket_id))
