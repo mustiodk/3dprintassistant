@@ -299,7 +299,8 @@ Readers must round-trip unknown envelope and payload fields byte-for-value throu
 | `printer` | Mutable | favorite/name/model id, optional integration metadata excluding secrets |
 | `spool` | Mutable metadata | product/material/color, capacity, location, purchase/source metadata; no mutable remaining total |
 | `inventory_event` | Append-only | spoolId, acquire/consume/adjust/move/assign/dry/retire, delta and reason |
-| `export_preset` | Mutable / conflict-copy | profile snapshot reference, slicer, favorite name, last engine/data version |
+| `export_snapshot` | Append-only / content-addressed | immutable canonical app-state snapshot plus engine/data/catalog versions and SHA-256 hash |
+| `export_preset` | Mutable / conflict-copy | exportSnapshotId, slicer/type, favorite name |
 | `preference` | Latest-per-key | account-level language/display/sync preferences only |
 
 Journal entries move out of nested profile arrays during migration. Remaining filament is derived only from `sum(inventory_event.deltaMg)`: every new/imported spool begins with an `acquire` event, never both an initial quantity and an event. Never sync a mutable remaining percentage when two devices can consume the same spool.
@@ -320,7 +321,8 @@ The first schema set must fully define:
 | `printer` | canonical `modelId`; optional bounded `label`, nozzle/material/location references; no credentials or serials |
 | `spool` | `product`, `materialId`, `capacityMg`, `status: active|empty|retired`; optional color/location/purchase fields |
 | `inventory_event` | `spoolId`, event enum, signed `deltaMg`, `occurredAt`, reason/source; same-user reference required unless importing a tombstoned spool |
-| `export_preset` | immutable snapshot reference, `slicer: bambu|orca|prusa`, `exportType`, engine/data/catalog versions; optional label |
+| `export_snapshot` | complete canonical web-shaped `state`, engine/data/catalog versions, and content hash; entity ID is derived from the hash |
+| `export_preset` | same-user `exportSnapshotId`, `slicer: bambu|orca|prusa`, `exportType`; optional label |
 | `preference` | deterministic allowlisted `key` and typed `value`; account secrets and engine/profile values are forbidden |
 
 API schemas define every request, success response, per-op result, page cursor, bootstrap manifest, export manifest, deletion status, and error body. Errors use `{code, message, retryable, requestId, details?}` with a closed `code` enum. Push returns one ordered result per submitted op (`applied|duplicate|conflict|rejected`), never an ambiguous batch boolean; dependency rejection names the prerequisite op. Pull returns `{entities, nextRevision, currentRevision, minAvailableRevision, hasMore}`. Canonical payload hashes use RFC 8785 JSON Canonicalization Scheme plus SHA-256.
@@ -438,13 +440,14 @@ No mandatory background task in v1. Backoff with jitter on failure. Local mutati
 
 Do not upload generated slicer files initially. Store:
 
-- source profile/entity snapshot or immutable snapshot hash;
+- an immutable `export_snapshot` containing the canonical configuration state needed for regeneration, content-addressed by its verified RFC-8785/SHA-256 hash;
+- an `export_preset`/history record referencing that immutable snapshot rather than a mutable profile;
 - slicer and export type;
 - engine/data/catalog version;
 - export timestamp;
 - optional user label/favorite.
 
-Regenerate locally. If a historical engine version cannot reproduce a file, label it honestly and offer current-engine regeneration. Actual file storage is a later R2-backed feature only if demand proves it.
+Regenerate locally from the stored snapshot body; the hash verifies integrity but is never treated as reconstructable content. If the recorded historical engine/data/catalog version is unavailable, label that honestly and offer current-engine regeneration from the same immutable state. Actual generated-file storage is a later R2-backed feature only if demand proves it.
 
 ### 10.3 Filament inventory
 
