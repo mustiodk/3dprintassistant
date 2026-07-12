@@ -405,6 +405,8 @@ Deletes create content-free tombstones `(kind, entityId, deletedRevision, delete
 
 Graveyard membership is exactly `HMAC-SHA-256(HMAC-SHA-256(graveyardMasterKey[keyVersion], firebaseUid), UTF8(kind + "\u0000" + entityId))`; store the complete 32-byte locator in the bucket, never a truncation. Each bucket records `keyVersion`; lookup computes against every version used by that account. The versioned master key is a dedicated Worker secret and remains available until all buckets carrying that version are deleted with their accounts. New compaction uses the current version; rotation, membership fixtures, and key-loss recovery are runbook gates.
 
+`bucket_id` is the locator's first byte (`00`–`ff`). `hash_set_blob` is a SQLite BLOB containing the unique full 32-byte locators for one `(user, keyVersion, bucket)` in unsigned lexicographic order, concatenated with no header, padding, or compression. Therefore `byte_count == member_count * 32`; readers reject a non-multiple length, duplicate/unsorted entries, wrong first byte, or hash produced under another key version. Shared fixtures publish input IDs, HMAC vectors, exact blob hex, membership/non-membership, compaction, and rotation round trips.
+
 Entity privacy lifecycle uses a fenced two-system protocol for `delete`, deterministic `neutral_reset`, and content-addressed `reactivate`:
 
 1. a D1 transaction validates `baseVersion`, allocates a monotonic per-user `lifecycle_generation` separate from sync revisions, creates an `entity_lifecycle_reservations` row, and blocks other writes to that entity;
@@ -443,7 +445,7 @@ sync_ops(user_id, op_id, op_sequence, request_hash, device_id, kind, entity_id,
          UNIQUE(user_id, op_id))
 deletion_graveyard_buckets(user_id, bucket_id, key_version, hash_set_blob,
                            member_count, byte_count, updated_at,
-                           PK(user_id, bucket_id))
+                           PK(user_id, key_version, bucket_id))
 deletion_jobs(request_id PK, user_id, status_capability_hash, status,
               requested_at, updated_at, retry_after, last_error_class,
               receipt_expires_at)
