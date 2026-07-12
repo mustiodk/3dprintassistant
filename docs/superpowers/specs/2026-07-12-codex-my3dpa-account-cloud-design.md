@@ -111,7 +111,7 @@ Before upload, create a local JSON safety backup and show a preview:
 - alternative: keep cloud and export local backup (never destructive without a backup);
 - conflicts create named copies or explicit choices; no silent overwrite.
 
-Backup must have a receipt containing schema version, byte count, SHA-256, creation time, and storage class. On web, leave the original v1/local store untouched, stage migration in a separate IndexedDB database, and offer a PDM2 file: use File System Access write+readback verification where available; otherwise require an explicit download/confirmation and retain the untouched original store until cloud round-trip succeeds. On iOS/macOS and Android, atomically write a sibling backup file in Application Support/internal app storage, reopen it, verify its hash, and keep it through the compatibility window. A backup receipt is valid only after readback or after the browser fallback's explicit download confirmation; a same-record overwrite never counts as a backup.
+Backup must have a receipt containing schema version, byte count, SHA-256, creation time, storage class, and cleanup deadline. On web, leave the original v1/local store untouched, stage migration in a separate IndexedDB database, and offer a PDM2 file: use File System Access write+readback verification where available; otherwise require an explicit download/confirmation and retain the untouched original store through validation. On iOS/macOS and Android, atomically write a sibling backup file in Application Support/internal app storage and reopen/verify its hash. A backup receipt is valid only after readback or after the browser fallback's explicit download confirmation; a same-record overwrite never counts as a backup. App-managed transition copies follow the explicit cleanup trigger in §15.2; user-saved exports are outside app control.
 
 ### 4.4 Sync visibility
 
@@ -794,9 +794,11 @@ Migration is idempotent; rerunning the same source hash creates no duplicate ent
 - Present conflict summary.
 - Commit staged PDM2 locally while retaining the original store and backup.
 - Push remaining local ops.
-- Mark sync enabled only after a pull verifies server round-trip; only then schedule transition-backup cleanup under §15.4.
+- Mark sync enabled only after a pull verifies server round-trip; only then evaluate the transition-backup cleanup trigger below.
 
 Failure injection is tested after backup write, readback, migration, cloud pull, staged merge, local commit, every partial push result, and verification pull. Before local commit, discard staging. After local commit, restore the verified backup/source store atomically and leave the failed PDM2 store quarantined for diagnostics. Every failure leaves local v1/PDM2 data usable and sync disabled.
+
+The app-managed original v1 store/transition backup becomes cleanup-eligible only after a verified PDM2 export plus two successful sync cycles separated by an app/browser restart. Show its size and deletion date in Sync & Backup; offer **Delete transition backup now** and **Save a copy**. Automatically erase it 30 days after eligibility (or sooner on explicit local-data deletion) and record only the content-free receipt. The compatibility window in §15.4 keeps the v1 *format reader/writer*, not duplicate personal data. Failed/quarantined migrations pause the deadline and surface remediation.
 
 ### 15.3 Import modes and server versions
 
