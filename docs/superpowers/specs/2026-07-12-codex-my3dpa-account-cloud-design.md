@@ -455,7 +455,8 @@ purchase_events(user_id, provider, provider_event_id, handle_hash,
                 entitlement_effect, created_at,
                 PK(provider, environment, provider_event_id))
 entitlements(user_id, product_key, status, source, source_tx_id_hash,
-             granted_at, revoked_at, PK(user_id, product_key))  -- later gate
+             granted_at, verified_at, revoked_at,
+             PK(user_id, product_key))  -- later gate
 ```
 
 The external account-erasure and entity-lifecycle ledgers are deliberately absent from this D1 schema. Their append-only schemas are `(requestId, uidLocator, keyVersion, status, pendingAt, completedAt?, expiresAt)` and `(opId, uidLocator, kind, entityLocator, action, baseVersion, reservedRevision, keyVersion, status, intentAt, completedAt?, encryptedRecoveryPayload?, expiresAt)`; keyed-locator/recovery key versions remain available for the full retained-ledger window.
@@ -487,7 +488,7 @@ POST /api/v1/purchases/apple/verify    (later)
 POST /api/v1/purchases/google/verify   (later)
 ```
 
-`GET /api/v1/account` returns the authenticated active account contract `{status, pdmVersion, currentRevision, appAccountToken, devicesSummary, entitlements}`. `appAccountToken` is the server-issued UUID that iOS passes unchanged to StoreKit; it is never client-generated, logged, placed in analytics, or included in portable export. The purchase validator requires the returned transaction token to equal this account field before applying entitlement.
+`GET /api/v1/account` returns the authenticated active account contract `{status, pdmVersion, currentRevision, appAccountToken, devicesSummary, entitlements[]}`; each entitlement is `{productKey, status, source, grantedAt, verifiedAt, revokedAt?}`. The later `GET /api/v1/entitlements` returns the same array. `verifiedAt` changes only after successful server/provider verification and is the sole origin for the seven-day offline window. `appAccountToken` is the server-issued UUID that iOS passes unchanged to StoreKit; it is never client-generated, logged, placed in analytics, or included in portable export. The purchase validator requires the returned transaction token to equal this account field before applying entitlement.
 
 Limits for v1: 100 ops/push, 500 entities/pull page, 64 KB/entity, 5 MB active payload/account, and rate limits sized from measured traffic. Exceeding a limit returns a structured, non-destructive error.
 
