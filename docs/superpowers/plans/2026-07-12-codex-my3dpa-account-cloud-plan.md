@@ -419,7 +419,7 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 ### O1 — production foundation with every product flag off
 
 **Repo:** web.
-**Depends on:** B0 + A1a–A1c + S0a–S0d green; fresh owner production/cost GO.
+**Depends on:** B1 + A1a–A1c + S0a–S0d green; fresh owner production/cost GO.
 **Goal:** provision and rehearse production without exposing signup or accepting sync writes.
 
 **Tasks:** create production Firebase project/provider config, EU D1 (`--jurisdiction=eu`), R2, Queue/DLQ, secrets and least-privilege access; apply expand-only migrations before deploying code that needs them; deploy with `accountApi`, `authUi`, `syncWrites`, and `webSync` false; verify schema/hash/capabilities; create a Time Travel checkpoint; rehearse restore, key rotation, and flag disable from the runbook.
