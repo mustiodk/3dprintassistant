@@ -417,6 +417,8 @@ Lookup is fail-closed on key availability. Before any create, restore, portable-
 
 `bucket_id` is the locator's first byte (`00`–`ff`). `hash_set_blob` is a SQLite BLOB containing the unique full 32-byte locators for one `(user, keyVersion, bucket)` in unsigned lexicographic order, concatenated with no header, padding, or compression. Therefore `byte_count == member_count * 32`; readers reject a non-multiple length, duplicate/unsorted entries, wrong first byte, or hash produced under another key version. Shared fixtures publish input IDs, HMAC vectors, exact blob hex, membership/non-membership, compaction, and rotation round trips.
 
+Compaction uses SET-union semantics: binary-search the sorted bucket first, insert/re-sort only when the locator is absent, and treat an existing locator as successful idempotent membership without changing `member_count` or bytes. Thus delete → compact → verified content-addressed restore → delete → compact cannot create a duplicate/invalid blob. The membership write/check and tombstone removal remain one transaction, with repeated-job fixtures proving byte-identical output.
+
 Entity privacy lifecycle uses a fenced two-system protocol for `delete`, deterministic `neutral_reset`, and content-addressed `reactivate`:
 
 1. a D1 transaction validates `baseVersion`, allocates a monotonic per-user `lifecycle_generation` separate from sync revisions, creates a five-minute leased `entity_lifecycle_reservations` row, and blocks other writes to that entity;
