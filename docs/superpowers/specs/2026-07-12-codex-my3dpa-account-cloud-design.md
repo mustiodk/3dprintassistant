@@ -246,6 +246,24 @@ Do not create anonymous Firebase accounts for every install. That would turn eve
 Account & Privacy must provide:
 
 - **Export my data:** machine-readable PDM2 JSON, including active entities, tombstones still retained, devices, entitlement state, and a schema/version manifest. Auth provider secrets/tokens are never included. Export is an asynchronous, retryable job: start returns `202` + `requestId`; status polling reports progress/failure/expiry and eventually streams the authenticated artifact.
+
+Server account exports wrap PDM2 in a signed restore envelope:
+
+```json
+{
+  "format": "3dpa-account-export",
+  "version": 1,
+  "exportId": "uuid",
+  "exportRevision": 123,
+  "restoreScopeExpiresAt": "RFC3339 + 90 days",
+  "accountScopeClaim": "base64url(HMAC(scopeKey[keyId], firebaseUid|exportId))",
+  "payloadHash": "sha256-rfc8785-pdm2",
+  "signature": { "alg": "ES256", "keyId": "export-signing-key-version", "value": "base64url" },
+  "pdm2": {}
+}
+```
+
+The signature covers every field except `signature.value` after RFC 8785 canonicalization. Clients verify the pinned/rotated export-signing public key before presenting “verified account export”; the server recomputes the scoped HMAC for the currently reauthenticated UID before same-account restore. Scope/signing key versions remain verifiable through the 90-day restore window plus 30 days. An expired/unsigned/invalid envelope can still be offered through safe portable import, which resets server versions and receives no same-account authority.
 - **Delete account:** reauthentication, impact summary, local-backup offer, typed/explicit confirmation, then D1 status lock, active-domain deletion plus Firebase identity deletion, and local sign-out. If an export is pending or completed-but-unverified, deletion does not lock yet: the user must wait and download/hash-verify it, or explicitly cancel/continue without it; failed/expired jobs can retry or be waived explicitly. Cloud-account deletion does **not** silently erase offline data: the explicit `Delete local data on this device too` control defaults off. Keeping it converts the installation back to signed-out `On this device` mode; selecting it removes local PDM2 data only after a verified export when the user requested one.
 - **Web deletion route:** `/account/delete`, available to users without reinstalling an app.
 
