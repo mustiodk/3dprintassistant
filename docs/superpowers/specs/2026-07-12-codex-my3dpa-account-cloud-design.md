@@ -234,8 +234,17 @@ Do not create anonymous Firebase accounts for every install. That would turn eve
 Account & Privacy must provide:
 
 - **Export my data:** machine-readable PDM2 JSON, including active entities, tombstones still retained, devices, entitlement state, and a schema/version manifest. Auth provider secrets/tokens are never included.
-- **Delete account:** reauthentication, impact summary, local-backup offer, typed/explicit confirmation, immediate D1 status lock, hard-delete domain rows and Firebase identity, then sign out locally. Local data is kept only if the user explicitly chooses it; default is local sign-out without local deletion.
+- **Delete account:** reauthentication, impact summary, local-backup offer, typed/explicit confirmation, immediate D1 status lock, active-domain deletion plus Firebase identity deletion, then sign out locally. Cloud-account deletion does **not** silently erase offline data: the explicit `Delete local data on this device too` control defaults off. Keeping it converts the installation back to signed-out `On this device` mode; selecting it removes local PDM2 data only after a verified export when the user requested one.
 - **Web deletion route:** `/account/delete`, available to users without reinstalling an app.
+
+Deletion is an idempotent cross-vendor saga, not an assumed transaction:
+
+1. recent reauthentication creates a `deletion_jobs` row and moves the user `active → deleting`; all account/sync APIs then fail closed except deletion status;
+2. delete active domain rows and entitlement/source transaction references, recording `domain_deleted`;
+3. revoke Firebase refresh tokens and delete the Firebase identity, retrying `identity_deletion_pending` with bounded alerts until confirmed or already absent;
+4. compact the job to a content-free deletion receipt (`requestId`, status, timestamps, error class only), irreversibly discard the UID, and retain the receipt for 30 days before deletion.
+
+The job table is outside the domain-row cascade, so a crash cannot erase retry state. Every step is idempotent; a reconciler resumes incomplete jobs, and support tooling can see status without seeing user content. If identity deletion remains unavailable, the D1 lock still prevents all data access and the user sees a non-misleading pending status.
 
 Google Play requires both an in-app path and a web deletion resource when account creation exists. [Official requirement](https://support.google.com/googleplay/android-developer/answer/13327111). GDPR rights include access, correction, erasure, and portability. [European Commission](https://commission.europa.eu/law/law-topic/data-protection/information-individuals_en).
 
@@ -326,6 +335,8 @@ sync_ops(user_id, op_id, device_id, kind, entity_id, base_version,
          UNIQUE(user_id, op_id))
 deletion_graveyard(user_id, kind, entity_id, deleted_revision, deleted_at,
                    PK(user_id, kind, entity_id))
+deletion_jobs(request_id PK, user_id, status, requested_at, updated_at,
+              retry_after, last_error_class, receipt_expires_at)
 entitlements(user_id, product_key, status, source, source_tx_id_hash,
              granted_at, revoked_at)  -- later monetization gate
 ```
