@@ -609,7 +609,7 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 
 **Tasks/evidence:** configure the exact production App Store Server API issuer/key IDs and ASSN v2 URL outside git; verify signed-environment separation and Apple root/key rotation; deploy with checkout and `proGrants=false`; smoke JWS validation, ASSN authentication/replay, `appAccountToken` binding, restore, refund/revoke, Queue/DLQ, and purchase-retention deletion rules. Then install the reviewed E0b build locally from Xcode without pushing iOS, allowlist the owner account only, enable grants for that account, and run a 48-hour sandbox-to-production-backend purchase/restore/refund canary with zero cross-account grants, replay acceptance, missed revocation, or secret/token logging.
 
-**Rollback/exit:** stop new owner grants/checkout while keeping ASSN/refund/revoke reconciliation and validated existing rights active; rehearse key disable/restore and Queue replay. E0p PASS is a signed ledger transition with config hashes, notification/reconciliation counts, rollback timestamps, and owner GO; E0b/E0bR remain blocked without it.
+**Rollback/exit:** stop new owner grants/checkout while keeping ASSN/refund/revoke reconciliation and validated existing rights active; rehearse key disable/restore and Queue replay. E0p PASS is a signed ledger transition with config hashes, notification/reconciliation counts, rollback timestamps, and owner GO; E0b remains local/unpushed and E0bR remains blocked without E0p PASS.
 
 ---
 
