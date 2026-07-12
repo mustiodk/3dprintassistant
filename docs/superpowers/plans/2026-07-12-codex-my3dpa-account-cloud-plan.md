@@ -436,7 +436,7 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 **Depends on:** O1 + S1 owner-soak evidence + A1 export/delete/DR evidence.
 **Goal:** make optional accounts public only after the lifecycle promises work in production.
 
-**Rollout:** allowlisted owner production account → 5% → 25% → 100%, with at least 48 hours at each public step. First enable `accountApi`, verify export/delete/recovery, then `authUi`; enable `syncWrites`/`webSync` only after the account step is green. The same numeric thresholds and zero-tolerance conditions from S1 apply at every step.
+**Rollout:** allowlisted owner production account for at least 48 hours → 5% → 25% → 100%, with at least 48 hours at every step. The owner-only canary must exercise signup/link/recovery, export verification/expiry, deletion/recreation, Queue/DLQ, two-browser sync, breaker, and erasure-aware restore before 5% or I1c may proceed. First enable `accountApi`, verify export/delete/recovery, then `authUi`; enable `syncWrites`/`webSync` only after the account step is green. The same numeric thresholds and zero-tolerance conditions from S1 apply at every step.
 
 **Tests:** production synthetic signup/link/recovery, provider collision, export verify/expiry, deletion capability misuse, account deletion/recreation, two-browser sync, outage breaker, restore/erasure blocker, signed-out baseline, and privacy/runtime disclosure audit.
 
