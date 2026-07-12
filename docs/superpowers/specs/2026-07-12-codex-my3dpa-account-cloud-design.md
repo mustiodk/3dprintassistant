@@ -354,8 +354,8 @@ devices(user_id, device_id, device_secret_hash, platform, app_version, label,
 sync_entities(user_id, kind, entity_id, entity_version, user_revision,
               schema_version, payload_json, payload_hash, deleted_at, updated_at,
               PK(user_id, kind, entity_id))
-sync_ops(user_id, op_id, device_id, kind, entity_id, base_version,
-         applied_version, user_revision, result, created_at,
+sync_ops(user_id, op_id, request_hash, device_id, kind, entity_id, base_version,
+         applied_version, user_revision, compact_result, created_at,
          UNIQUE(user_id, op_id))
 deletion_graveyard(user_id, kind, entity_id, deleted_revision, deleted_at,
                    PK(user_id, kind, entity_id))
@@ -391,8 +391,8 @@ Limits for v1: 100 ops/push, 500 entities/pull page, 64 KB/entity, 5 MB active p
 
 Every local mutation gets a random `opId`, registered `deviceId`, kind/entity ID, `baseVersion`, schema version, field mask plus changed values (or complete payload for a create), and payload/tombstone. The request also proves possession of that device's secret as defined in §7.4.
 
-- Duplicate `opId`: return the original result; never apply twice.
-- Append-only kinds: union by entity ID; duplicate IDs are idempotent.
+- Duplicate `opId` with the same canonical request hash: return the recorded result; never apply twice. The same `opId` with different bytes returns `409 idempotency_mismatch`.
+- Append-only kinds: union by entity ID. An existing ID with the same canonical payload hash is a duplicate; different bytes return `409 immutable_id_conflict` and neither version is changed.
 - Latest-per-key kinds address the deterministic entity ID/logical key. With the current base version they replace the prior value and receive a new server revision; a stale base returns the current value, after which the client may deliberately reapply. Client timestamps never choose the winner.
 - Mutable kinds with current `baseVersion`: apply and increment entity + user revision atomically.
 - Mutable updates merge only the validated field mask. A full replacement from a client below the stored entity schema version returns `409 schema_write_unsupported` instead of dropping unknown fields.
@@ -650,6 +650,7 @@ Do not send entity names, notes, printer selections, filament colors, or provide
 - Schedule a periodic encrypted D1 export to private R2 only when real account data exists; define retention before enabling.
 - Quarterly restore rehearsal against staging.
 - User PDM2 export is always available and tested across platforms.
+- `sync_ops` rows compact after 30 days to the minimum `(user_id, op_id, request_hash, compact_result)` fingerprint and remain until account deletion. Compaction never drops the proof needed to return the same result or reject mismatched reuse, so an old outbox retry cannot apply twice.
 
 ### 14.4 Kill switches
 
