@@ -651,6 +651,9 @@ This matrix overrides broader program-heading wording. Each row is one merge/rev
 | O1 | A1c,S0d | redacted ledger commands: `npm ci`, exact `npx wrangler d1 create --jurisdiction=eu`, migrate/deploy/smoke/rollback invocations | production flags false | prior deploy + checkpoint restore |
 | R0 | O1,S1 | `node --test scripts/production-account-smoke.test.mjs scripts/production-sync-smoke.test.mjs` with synthetic owner tenant | 5%→25%→100% | newest flag/percentage disabled; lifecycle stays up |
 | U0 | S1 | `node --test scripts/my3dpa-ui.test.mjs && node scripts/walkthrough-harness.js` | `my3dpaUi=false` added by this PR | old navigation + direct lifecycle route |
+| I1a | I0,S1,A1c | default iOS commands + `-only-testing:3DPrintAssistantTests/AuthDeviceTests` | reviewed local commits; `iosAccountSync=false` | remove auth UI/dependency; signed-out store intact |
+| I1b | I1a,S0d | default iOS commands + `-only-testing:3DPrintAssistantTests/SyncLifecycleTests` | reviewed local commits; sync off | remote flag; local outbox/export intact |
+| I1c | I1b + R0 owner-canary checkpoint | full default iOS suite, UI tests, and `node scripts/walkthrough-harness.js` in web | version bump + owner GO; one push | remote flag; deletion/export remains reachable |
 | X0a | W0 | `node --test scripts/export-library.test.mjs scripts/export-regression.test.mjs` | local only | hide UI; metadata exportable |
 | X0b | X0a,S1 | `node --test scripts/export-library-sync.test.mjs scripts/sync-reference-race.test.mjs` | sync flag off | local library remains authoritative |
 | IX0 | X0a,I1c | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/ExportLibraryTests` | local iOS commits | hide UI; local export retained |
