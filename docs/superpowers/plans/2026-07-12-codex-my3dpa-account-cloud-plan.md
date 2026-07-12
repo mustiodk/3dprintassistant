@@ -43,33 +43,29 @@ Hard constraints:
 ## 2. Dependency graph and release gates
 
 ```text
-G0 flags/toolchain/gate ledger
-  └─ O0 owner/provider/legal GO recorded in ledger
-      └─ C0 PDM2 contract
-          ├─ W0 web local repository + migration
-          ├─ I0 iOS contract adapter + local migration
-          └─ B0 local backend/schema foundation
-               └─ B1 remote staging foundation
-                    └─ A0 staging auth + device registration (owner-only)
-                         └─ A1 account export/delete/lifecycle program
-                              └─ S0 sync server program
-                                   ├─ S1 owner-only web Workshop sync soak
-                         │    ├─ R0 production/public account rollout
-                         │    └─ U0 My 3DPA web hub
-                         └─ I1 iOS auth + Workshop sync program (after S1 soak)
+G0 → O0 → C0
+C0 → W0
+C0 → I0
+C0 → B0 → B1 → A0 → A1a → A1b → A1c → S0a → S0b → S0c → S0d
+W0 + S0d → S1
+B1 + A1c + S0d → O1 (production foundation, flags off)
+O1 + S1 → R0 (owner canary → 5% → 25% → 100%)
+S1 → U0
+I0 + S1 + A1c → I1a → I1b
+I1b + R0 owner-canary checkpoint → I1c → 7-day TestFlight soak → App Store
 
-B1 + A1 + S0 ── O1 production foundation (flags off)
-O1 + S1 owner soak ── R0 public signup 5%→25%→100%
+W0 → X0a
+X0a + S1 → X0b
+X0a + I1c → IX0 → IXR
+W0 + C0 → F0 → F1a → F1b
+F1b + R0 → F2
+F2 + I1c → F3 → F3R
+F2 named usage/cost evidence + owner GO → E0a
+E0a + F3 → E0b → E0bR
 
-W0 ── X0 export history/library
-W0 ── F0 local inventory domain/web
-        └─ F1 bambuinventory export/import
-R0 + F1 ── F2 inventory cloud sync/web
-                  └─ F3 iOS inventory
-                       └─ E0 one-time Pro entitlement
-
-Android v1 shipped + C0 + A1/S0 soak + owner AG0 ── D0 Android v1.1 sync
-I1 + architecture extraction ── M0 native macOS
+Android v1 + C0 + A1c + S0d + owner AG0 → D0
+E0a + D0 → E0c
+I1c + architecture extraction GO → M0
 ```
 
 G0 is the first docs/tooling PR and creates the canonical ledger before any decision is recorded. O0 is then a decision gate, not a code PR. The IDs in the atomic-gate matrix in §5 are the authoritative one-PR boundaries; headings such as A1, S0, I1, X0, F1, E0 are program groupings only. C0 through R0 deliver the first public account release. X0/F0 may run after W0, but must not compete with the account critical path in the same session.
