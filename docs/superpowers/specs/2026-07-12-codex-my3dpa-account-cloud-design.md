@@ -272,6 +272,8 @@ Each entity:
 
 `version` is server-controlled after sync. Signed-out local entities use `version:0` until first upload.
 
+Readers must round-trip unknown envelope and payload fields byte-for-value through their raw representation. Mutable sync writes are field-mask updates, not blind replacement: the operation carries `changedFields`, the complete values for those fields, and the entity `baseVersion`; the Worker merges only those known paths into the current payload. A client may not name a field its supported entity schema does not define. Full replacement is allowed only for a new `version:0` entity or when the client supports the server entity's schema version. This prevents an older client from erasing fields added by a newer one.
+
 ### 8.2 Entity kinds
 
 | Kind | Merge class | Payload summary |
@@ -345,11 +347,12 @@ Limits for v1: 100 ops/push, 500 entities/pull page, 64 KB/entity, 5 MB active p
 
 ### 9.3 Push semantics
 
-Every local mutation gets a random `opId`, `deviceId`, kind/entity ID, `baseVersion`, schema version, and payload/tombstone.
+Every local mutation gets a random `opId`, `deviceId`, kind/entity ID, `baseVersion`, schema version, field mask plus changed values (or complete payload for a create), and payload/tombstone.
 
 - Duplicate `opId`: return the original result; never apply twice.
 - Append-only kinds: union by entity ID; duplicate IDs are idempotent.
 - Mutable kinds with current `baseVersion`: apply and increment entity + user revision atomically.
+- Mutable updates merge only the validated field mask. A full replacement from a client below the stored entity schema version returns `409 schema_write_unsupported` instead of dropping unknown fields.
 - Stale mutable base: return `409 conflict` plus current server entity; do not overwrite.
 - Absent entity with `baseVersion > 0`, or any create reusing an ID in `deletion_graveyard`: return `409 deleted_entity`; restoration requires a new entity ID.
 - Invalid schema/size/reference: reject only that op with a typed error; other valid ops may apply in a D1 batch only if dependency ordering remains safe.
@@ -632,7 +635,8 @@ Failure leaves local v1/PDM2 data usable and sync disabled.
 ### 15.3 Compatibility window
 
 - Keep v1 Workshop backup import/export for at least two stable app release trains after PDM2 ships on every active platform.
-- PDM2 readers ignore unknown additive entity kinds/fields by schema rule, but reject unsupported major versions.
+- PDM2 readers preserve unknown additive fields losslessly and ignore unknown entity kinds for presentation, but reject unsupported major versions. Writers use field-mask mutations and never serialize a lossy full replacement over a newer entity schema.
+- Shared downgrade fixtures prove that a newer client can add a field, an older client can edit a known field, and the newer field survives unchanged.
 - Engine state continues to serialize through `StateCodec` / `AppStateWebCodec`; PDM2 does not fork that vocabulary.
 
 ## 16. Acceptance criteria
