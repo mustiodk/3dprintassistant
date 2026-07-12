@@ -417,6 +417,9 @@ devices(user_id, device_id, signing_public_key, last_request_counter,
 sync_entities(user_id, kind, entity_id, entity_version, user_revision,
               schema_version, payload_json, payload_hash, deleted_at, updated_at,
               PK(user_id, kind, entity_id))
+inventory_projection(user_id, spool_id, through_user_revision, balance_mg,
+                     projected_status, location, printer_id, slot_label,
+                     updated_at, PK(user_id, spool_id))
 sync_ops(user_id, op_id, op_sequence, request_hash, device_id, kind, entity_id,
          base_version, applied_version, user_revision, compact_result, created_at,
          UNIQUE(user_id, op_id))
@@ -440,6 +443,8 @@ entitlements(user_id, product_key, status, source, source_tx_id_hash,
 ```
 
 The external erasure ledger is deliberately absent from this D1 schema. Its append-only record schema is `(requestId, uidLocator, keyVersion, status, pendingAt, completedAt?, expiresAt)` and its keyed-locator key versions remain available for the full retained-ledger window.
+
+`inventory_projection` is a non-authoritative, user-scoped cache with foreign-key/cascade semantics to the spool/account. Event acceptance updates it and `through_user_revision` in the same transaction; mismatch or missing rows rebuild from inventory events before serving derived inventory state. It is included in account deletion but not treated as an independent entity in PDM2 export.
 
 Indexes: `(user_id,user_revision)`, `(user_id,kind,deleted_at)`, `(user_id,device_id)`. Payloads are bounded JSON; the Worker has a per-kind allowlist and schema validator.
 
