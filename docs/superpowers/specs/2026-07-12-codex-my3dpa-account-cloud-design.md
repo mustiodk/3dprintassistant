@@ -370,7 +370,8 @@ Compacting the ordered change stream advances `users.min_available_revision`. A 
 users(user_id PK, status, pdm_version, next_revision, min_available_revision,
       created_at, deleted_at)
 devices(user_id, device_id, signing_public_key, last_request_counter,
-        last_request_hash, last_request_result, last_applied_op_sequence,
+        last_request_hash, last_request_result, last_processed_op_sequence,
+        last_acknowledged_op_sequence,
         platform, app_version, label,
         last_seen_at, revoked_at, PK(user_id, device_id))
 sync_entities(user_id, kind, entity_id, entity_version, user_revision,
@@ -417,7 +418,9 @@ Day-1 conservative limits are enforced before traffic data exists: per verified 
 
 ### 9.3 Push semantics
 
-Every local mutation gets `opId = <registeredDeviceId>:<monotonicOpSequence>`, registered `deviceId`, kind/entity ID, `baseVersion`, schema version, explicit `dependsOnOpIds[]`, field mask plus changed values (or complete payload for a create), and payload/tombstone. One device uploads its durable outbox in contiguous sequence order; gaps reject before mutation. This makes cross-device collisions impossible and lets the server compact old idempotency rows into a per-device applied-sequence watermark. The signed request proves possession of that device's private key as defined in §7.4. Clients topologically order a batch: sequential mutations of one entity depend on the prior mutation; an event/reference to an entity created in the batch depends on that create.
+Every local mutation gets `opId = <registeredDeviceId>:<monotonicOpSequence>`, registered `deviceId`, kind/entity ID, `baseVersion`, schema version, explicit `dependsOnOpIds[]`, field mask plus changed values (or complete payload for a create), and payload/tombstone. One device uploads its durable outbox in contiguous sequence order; gaps reject before mutation. The server advances `last_processed_op_sequence` for every durably terminal result—applied, duplicate, conflict, or rejected—but retains the exact per-sequence result until the client acknowledges it. The signed request proves possession of that device's private key as defined in §7.4. Clients topologically order a batch: sequential mutations of one entity depend on the prior mutation; an event/reference to an entity created in the batch depends on that create.
+
+After a client durably records/handles a contiguous run of terminal results, its next signed request carries `acknowledgedThroughOpSequence`; D1 advances `last_acknowledged_op_sequence` atomically and may compact only results at/below it. A conflict/rejection is acknowledged only after its resolution/quarantine is durable. Lost responses therefore remain queryable and cannot be mislabeled applied. Results above the acknowledgement watermark never compact merely due to age; quota/backpressure stops new mutations before unacknowledged rows become unbounded. Explicit device revocation may close and compact its terminal stream after the user accepts that any unavailable local outbox is abandoned.
 
 - Duplicate `opId` with the same canonical request hash: return the recorded result; never apply twice. The same `opId` with different bytes returns `409 idempotency_mismatch`.
 - Append-only kinds: union by entity ID. An existing ID with the same canonical payload hash is a duplicate; different bytes return `409 immutable_id_conflict` and neither version is changed.
@@ -707,7 +710,7 @@ Do not send entity names, notes, printer selections, filament colors, or provide
 - Quarterly restore rehearsal against staging.
 - User PDM2 export is always available and tested across platforms.
 - Disaster-recovery rehearsal restores D1 without the live database, reads the external erasure ledger, proves keyed-locator matches are re-erased, and blocks promotion on any unmatched/incomplete record.
-- Keep detailed `sync_ops` results for 30 days or the latest 1,024 ops/device, whichever is larger. Older contiguous rows compact to `devices.last_applied_op_sequence`; a retry at/below that watermark returns `already_applied_pull_required` and cannot mutate, while a sequence gap is rejected. Recent same-sequence/different-hash reuse remains a corruption error. This bounds operational rows without weakening at-most-once application.
+- Keep detailed `sync_ops` results until client acknowledgement and at least 30 days; keep the latest 1,024 acknowledged results/device as diagnostics. Older acknowledged rows compact to `devices.last_acknowledged_op_sequence`; a retry at/below it returns `already_acknowledged_pull_required` and cannot mutate, while unacknowledged terminal sequences return their exact applied/rejected/conflict result. A lost-response-before-compaction fixture proves rejected mutations are never reported as applied or silently cleared.
 
 ### 14.4 Kill switches
 
