@@ -254,6 +254,8 @@ Deletion is an idempotent cross-vendor saga, not an assumed transaction:
 
 The job table is outside the domain-row cascade, so a crash cannot erase retry state. Every step is idempotent; a reconciler resumes incomplete jobs, and support tooling can see status without seeing user content. If identity deletion remains unavailable, the D1 lock still prevents all data access and the user sees a non-misleading pending status.
 
+The start response returns `requestId` plus a random 256-bit, scoped status capability exactly once; D1 stores only its hash. `GET /api/v1/account/deletion/{requestId}` accepts that capability instead of Firebase identity and returns only `locked|domain_deleted|identity_pending|complete|failed_retrying`, timestamps, and `retryAfter`—never UID or content. Apps keep it in protected local storage until completion/receipt expiry; the web deletion page can resume from the capability. It expires with the 30-day receipt and is never logged or accepted by any other endpoint.
+
 Google Play requires both an in-app path and a web deletion resource when account creation exists. [Official requirement](https://support.google.com/googleplay/android-developer/answer/13327111). GDPR rights include access, correction, erasure, and portability. [European Commission](https://commission.europa.eu/law/law-topic/data-protection/information-individuals_en).
 
 D1 Time Travel can retain recoverable database history up to 30 days on Workers Paid or 7 days on Free. Privacy copy must state the backup-aging window; deleted accounts must remain API-inaccessible immediately. [D1 Time Travel](https://developers.cloudflare.com/d1/reference/time-travel/).
@@ -389,6 +391,7 @@ Indexes: `(user_id,user_revision)`, `(user_id,kind,deleted_at)`, `(user_id,devic
 GET  /api/v1/account
 POST /api/v1/account/export
 POST /api/v1/account/delete
+GET  /api/v1/account/deletion/{requestId}   (scoped status capability)
 GET  /api/v1/devices
 POST /api/v1/devices/{id}/revoke
 POST /api/v1/devices/register              (recent reauthentication required)
