@@ -479,6 +479,8 @@ Inventory event invariants are normative:
 
 Percent remaining is a presentation derived from `balanceMg / capacityMg`. CSV/import adapters normalize source units to integer milligrams, report rounding, and emit one idempotent `acquire` event per imported spool.
 
+CSV export is RFC 4180 encoded and spreadsheet-safe: text cells whose first non-whitespace character is `=`, `+`, `-`, `@`, tab, carriage return, or line feed are prefixed with a visible apostrophe in the CSV representation. JSON export preserves the exact original text. Fixtures cover quoted delimiters/newlines and formula payloads in every user-controlled field; CSV import never evaluates formulas.
+
 Reuse from bambuinventory:
 
 - material/color/product vocabulary and grouping;
