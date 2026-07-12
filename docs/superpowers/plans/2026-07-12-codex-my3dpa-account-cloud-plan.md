@@ -49,16 +49,17 @@ C0 → I0
 C0 → B0 → B1 → A0 → A1a → A1b → A1c → S0a → S0b → S0c → S0d
 W0 + S0d → S1
 B1 + A1c + S0d → O1 (production foundation, flags off)
-O1 + S1 → R0 (owner canary → 5% → 25% → 100%)
+S1 → S1G (signed soak PASS)
+O1 + S1G → R0a (owner account canary) → R0b (owner sync canary) → R0c (5% → 25% → 100%)
 S1 → U0
 I0 + S1 + A1c → I1a → I1b
-I1b + R0 owner-canary checkpoint → I1c → 7-day TestFlight soak → App Store
+I1b + R0b → I1c → 7-day TestFlight soak → App Store
 
 W0 → X0a
 X0a + S1 → X0b
 X0a + I1c → IX0 → IXR
 W0 + C0 → F0 → F1a → F1b
-F1b + R0 → F2
+F1b + R0c → F2
 F2 + I1c → F3 → F3R
 F2 named usage/cost evidence + owner GO → E0a
 E0a + F3 → E0b → E0bR
@@ -68,7 +69,7 @@ E0a + D0 → E0c
 I1c + architecture extraction GO → M0
 ```
 
-G0 is the first docs/tooling PR and creates the canonical ledger before any decision is recorded. O0 is then a decision gate, not a code PR. The IDs in the atomic-gate matrix in §5 are the authoritative one-PR boundaries; headings such as A1, S0, I1, X0, F1, E0 are program groupings only. C0 through R0 deliver the first public account release. X0/F0 may run after W0, but must not compete with the account critical path in the same session.
+G0 is the first docs/tooling PR and creates the canonical ledger before any decision is recorded. O0 is then a decision gate, not a code PR. The IDs in the atomic-gate matrix in §5 are the authoritative one-PR boundaries; headings such as A1, S0, I1, X0, F1, E0 are program groupings only. C0 through R0c deliver the first public account release. X0/F0 may run after W0, but must not compete with the account critical path in the same session.
 
 ## 3. Definition of done for every implementation PR
 
@@ -331,7 +332,7 @@ The same reviewed B1 run sheet provisions Firebase staging before A0: create the
 
 **Tests:** JWT confusion/rotation/outage, registration races, replay/counter, key loss with pending outbox, revocation, no-Web-Crypto degraded UX, Apple/Google popup+redirect CSP, signed-out no-auth load, anonymous-Firebase-token rejection, same-email/different-provider collision without silent linking, exact Firebase-`sub` D1-key equality, and independent stable `app_account_token` creation/retry/non-log/non-export behavior.
 
-**Rollout:** dev/staging only, then one owner staging account. Public signup and production auth UI remain disabled until O1 and R0; production sync writes remain disabled.
+**Rollout:** dev/staging only, then one owner staging account. Production auth remains disabled until R0a and public signup until R0c; production sync writes remain disabled until R0b.
 
 **Rollback:** disable staging signups/auth UI and remove/reset the owner test account with an environment-locked staging teardown script that cannot bind to production; configurator stays local. This gate does not promise production export/delete routes.
 
@@ -356,13 +357,13 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 - `/account/delete` web route and Account & Privacy UI
 - deletion/export/DR fixtures and runbooks
 
-**Tasks:** revision-consistent export snapshot; signed ES256 envelope; AES-256-GCM R2 artifact; seven-day expiry and verified receipt; deletion preflight; status capability; external account/entity lifecycle evidence; single-winner lease decisions; minimal purchase-retention seam; DR promotion blocker.
+**Tasks:** revision-consistent export snapshot; signed ES256 envelope; AES-256-GCM R2 artifact; seven-day expiry and verified receipt. A1b adds deletion preflight, status capability, account lock, and explicit cancel/continue UX but keeps deletion execution hard-disabled. A1c adds the external erasure/lifecycle evidence, single-winner lease decisions, reconciler, minimal purchase-retention seam, and DR promotion blocker; only A1c may enable domain/identity deletion.
 
-**Tests:** every saga crash point, timeout-after-success, concurrent entity/reference writes, artifact crypto tamper, key rotation, Time Travel restore with account/entity erasure, no payload in caches/logs. Enumerate deletion during all export states: queued, snapshotting, artifact-ready/unverified, verified, expired, and failed/cancelled. Reject deletion-status capabilities supplied in query, JSON body, cookies, headers other than the dedicated authorization header, or any non-status endpoint; reject wrong-account, expired, replayed, and log-reflected capabilities. Prove encrypted `export_job_items` and temporary artifact material are deleted within 24 hours in staging.
+**Tests:** every saga crash point, timeout-after-success, concurrent entity/reference writes, artifact crypto tamper, key rotation, Time Travel restore with account/entity erasure, no payload in caches/logs. Enumerate deletion during all export states: queued, snapshotting, artifact-ready/unverified, verified, expired, and failed/cancelled. A1b proves execution remains disabled and no domain mutation occurs without the A1c external-ledger capability. A1c injects failure before/after the external `pending_erasure` write and proves write failure leaves the account locked, performs zero domain/identity deletion, and is retried by the reconciler. Reject deletion-status capabilities supplied in query, JSON body, cookies, headers other than the dedicated authorization header, or any non-status endpoint; reject wrong-account, expired, replayed, and log-reflected capabilities. Prove encrypted `export_job_items` and temporary artifact material are deleted within 24 hours in staging.
 
 **Review/rollback:** privacy/security/DR hostile review + QA + cross-model zero. Kill switch keeps export/delete available while other account writes are off.
 
-**Exit:** staging restore rehearsal proves erased accounts/entities stay erased; in-app/web deletion flows are ready before iOS/Android account creation.
+**Exit:** A1b exits only with locked/preflight/status UX and execution disabled. A1c exits when the full staging deletion/reconciler/restore rehearsal proves erased accounts/entities stay erased and failed external pre-write never starts deletion; only then are in-app/web deletion flows ready before iOS/Android account creation.
 
 ---
 
@@ -406,11 +407,11 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 
 **Tests:** two browser profiles offline/concurrent, reload at every transaction boundary, lost response, stale delete, future fields, over quota, backend outage, sign-out, account deletion, signed-out baseline.
 
-**Rollout:** one owner staging account only. Invite and public percentages belong to R0, not this gate.
+**Rollout:** one owner staging account only. Production/public rollout belongs to R0a–R0c, not this gate.
 
 **Rollback:** `webSync=false`; never delete local/outbox data; export remains available.
 
-**Exit:** seven-day owner soak: zero data loss, cross-user access, payload leak, unhandled lifecycle/DR failure, cursor gaps, duplicate apply, and projection divergence; p95 push/pull under 2 seconds at the recorded staging fixture; 5xx below 1%; daily D1/R2/Queue use below 50% of the owner-approved budget. Any zero-tolerance event, 5xx at/above 1%, latency above 2 seconds for two consecutive windows, or budget at/above 75% disables `webSync`/`syncWrites` and blocks R0.
+**Exit:** seven-day owner soak: zero data loss, cross-user access, payload leak, unhandled lifecycle/DR failure, cursor gaps, duplicate apply, and projection divergence; p95 push/pull under 2 seconds at the recorded staging fixture; 5xx below 1%; daily D1/R2/Queue use below 50% of the owner-approved budget. Any zero-tolerance event, 5xx at/above 1%, latency above 2 seconds for two consecutive windows, or budget at/above 75% disables `webSync`/`syncWrites` and blocks S1G. S1G exists only when the evidence validator passes and the owner signs PASS in the ledger.
 
 ---
 
@@ -420,25 +421,25 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 **Depends on:** B1 + A1a–A1c + S0a–S0d green; fresh owner production/cost GO.
 **Goal:** provision and rehearse production without exposing signup or accepting sync writes.
 
-**Tasks:** create production Firebase project/provider config, EU D1 (`--jurisdiction=eu`), R2, Queue/DLQ, secrets and least-privilege access; apply expand-only migrations before deploying code that needs them; deploy with `accountApi`, `authUi`, `syncWrites`, and `webSync` false; verify schema/hash/capabilities; create a Time Travel checkpoint; rehearse restore, key rotation, and flag disable from the runbook.
+**Tasks:** create production Firebase project/provider config; EU D1 (`--jurisdiction=eu`); private `3dpa-account-production` export-artifact R2 bucket; separate private `3dpa-erasure-ledger-production` R2 bucket outside the D1/backup restore boundary; Queue/DLQ; secrets and least-privilege access. The reviewed O1 run sheet must literally contain `npx wrangler r2 bucket create 3dpa-account-production` and `npx wrangler r2 bucket create 3dpa-erasure-ledger-production`, bind them to distinct names, and fail smoke if either is absent or aliased. Apply expand-only migrations before deploying code that needs them; deploy with `accountApi`, `authUi`, `syncWrites`, and `webSync` false; verify schema/hash/capabilities; create a Time Travel checkpoint; rehearse restore, key rotation, and flag disable from the runbook.
 
 **Commands/evidence:** use only the lock-pinned Wrangler via `npm ci` and `npx wrangler`; the exact resource IDs and migration/deploy commands are generated in a redacted O1 run sheet, executed by the production owner, and pasted with timestamps/exit codes into the gate ledger. No secret value enters git or logs.
 
-**Rollback/exit:** disable all flags, roll the Worker back to the recorded deployment, and restore/forward-fix from the checkpoint without contracting schema. Zero public traffic and zero product writes are permitted; O1 health checks are limited to deployment, schema, capability, secret-presence, route-disabled, and rollback probes. The allowlisted owner account and product-flow smoke tests begin only in R0.
+**Rollback/exit:** disable all flags, roll the Worker back to the recorded deployment, and restore/forward-fix from the checkpoint without contracting schema. Zero public traffic and zero product writes are permitted; O1 health checks are limited to deployment, schema, capability, secret-presence, route-disabled, and rollback probes. The allowlisted owner account and product-flow smoke tests begin only in R0a.
 
 ---
 
-### R0 — public account and Workshop-sync rollout
+### R0 — production account and Workshop-sync rollout program
 
 **Repo:** web.
-**Depends on:** O1 + S1 owner-soak evidence + A1 export/delete/DR evidence.
+**Depends on:** O1 + signed S1G owner-soak PASS + A1 export/delete/DR evidence.
 **Goal:** make optional accounts public only after the lifecycle promises work in production.
 
-**Rollout:** allowlisted owner production account for at least 48 hours → 5% → 25% → 100%, with at least 48 hours at every step. The owner-only canary must exercise signup/link/recovery, export verification/expiry, deletion/recreation, Queue/DLQ, two-browser sync, breaker, and erasure-aware restore before 5% or I1c may proceed. First enable `accountApi`, verify export/delete/recovery, then `authUi`; enable `syncWrites`/`webSync` only after the account step is green. The same numeric thresholds and zero-tolerance conditions from S1 apply at every step.
+**Atomic rollout gates:** R0a enables `accountApi` then `authUi` for the allowlisted owner only and observes account creation/link/recovery/export/delete for 48 hours. R0b may then enable `syncWrites`/`webSync` for that owner only and observes Queue/DLQ, two-browser sync, breaker, and erasure-aware restore for a separate 48 hours. Only a signed R0b PASS allows I1c or R0c. R0c rolls public exposure 5% → 25% → 100%, at least 48 hours each. The same numeric thresholds and zero-tolerance conditions from S1 apply to every gate; a failure returns to the prior safe flag set and requires a new clean window.
 
 **Tests:** production synthetic signup/link/recovery, provider collision, export verify/expiry, deletion capability misuse, account deletion/recreation, two-browser sync, outage breaker, restore/erasure blocker, signed-out baseline, and privacy/runtime disclosure audit.
 
-**Rollback/exit:** disable newest flag/percentage first while keeping export/delete/status/pull reachable for existing accounts. Public completion requires 100% for 48 hours within thresholds, no unresolved P0–P2, and owner GO recorded in the ledger.
+**Rollback/exit:** disable newest flag/percentage first while keeping export/delete/status/pull reachable for existing accounts. Public completion is R0c at 100% for 48 hours within thresholds, no unresolved P0–P2, and owner GO recorded in the ledger.
 
 ---
 
@@ -550,7 +551,7 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 ### F2 — inventory sync and My 3DPA web integration
 
 **Repo:** web.  
-**Depends on:** F0 stable + R0 + F1 accepted.
+**Depends on:** F0 stable + R0c + F1 accepted.
 **Goal:** sync spool/events/projections safely while keeping local inventory useful.
 
 **Tasks:** enable inventory entity kinds server-side; reference/lifecycle tests; projection rebuild; quota UI; multi-device event union; Filament Overview cards/alerts; optional printer assignment; account export/delete coverage.
@@ -582,7 +583,7 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 ### E0 — one-time Pro entitlement and inventory-boundary program
 
 **Repos:** E0a web/backend contract, E0b iOS StoreKit, then E0c Android Play after D0; each is a separate PR.
-**Depends on:** F2's named 14-day usage/cost exit evidence; fresh owner pricing/legal GO. F3 architecture acceptance is an additional dependency of E0b, not E0a.
+**Depends on:** F2's named 14-day usage/cost exit evidence; fresh owner pricing/legal GO. E0b additionally depends on the merged, reviewed F3 implementation gate; no separate undefined “architecture acceptance” gate exists.
 **Goal:** server-authoritative lifetime Pro only when inventory proves value.
 
 **Owner gate:** confirm 50 active-spool definition, target 99 DKK localized price, seven-day offline grace, refund/chargeback/statutory retention, web checkout decision, and no subscription.
@@ -627,7 +628,7 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 
 ## 5. Atomic one-PR gate matrix and execution evidence
 
-This matrix overrides broader program-heading wording. Each row is one merge/review boundary. Every command must exit 0 with zero failed tests; the ledger records test counts, C0 hash, migration version, deployed revision when relevant, flag state, rollback result, architecture/QA review links, and cross-model link where required. Runtime gates use `npm ci` first and the lock-pinned Wrangler only. `node --test <path>` means the PR must create that exact test path.
+This matrix overrides broader program-heading wording. Each implementation row is one merge/review boundary; explicitly named owner/operational decision rows such as S1G are signed ledger transitions with no code PR. Every command must exit 0 with zero failed tests; the ledger records test counts, C0 hash, migration version, deployed revision when relevant, flag state, rollback result, architecture/QA review links, and cross-model link where required. Runtime gates use `npm ci` first and the lock-pinned Wrangler only. `node --test <path>` means the PR must create that exact test path.
 
 | Gate | Depends on | Exact gate command | Default/rollout | Required rollback proof |
 |---|---|---|---|---|
@@ -637,21 +638,24 @@ This matrix overrides broader program-heading wording. Each row is one merge/rev
 | I0 | C0 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/PDMContractTests` and `PDMMigrationTests` | local iOS commits | legacy-file restore; no push |
 | B0 | C0,O0 | `npm ci && npx wrangler d1 migrations apply 3dpa-account-preview --local && node --test scripts/account-schema.test.mjs scripts/account-dr.test.mjs functions/api/*.test.mjs` | local/preview; `accountApi=false` | fresh/upgrade/forward-fix rehearsal |
 | B1 | B0,O0 | exact B1 provision/migrate/deploy/smoke/rollback/forward-deploy sequence in §4 | remote staging; all flags false | prior staging deploy + forward-deploy proof |
-| A0 | B1 | `node --test scripts/auth-device.test.mjs scripts/auth-negative.test.mjs scripts/csp.test.mjs` | owner staging only; `authUi=false` | staging account reset; local app intact |
+| A0 | B1,O0 provider GO | `node --test scripts/auth-device.test.mjs scripts/auth-negative.test.mjs scripts/csp.test.mjs` | owner staging only; `authUi=false` | staging account reset; local app intact |
 | A1a | A0 | `node --test scripts/account-export.test.mjs scripts/export-crypto.test.mjs` | staging export only | cancel/expire and 24h purge proof |
-| A1b | A1a | `node --test scripts/account-delete.test.mjs scripts/delete-capability-negative.test.mjs` | staging delete only | reconciler resumes every crash state |
-| A1c | A1b | `node --test scripts/account-lifecycle.test.mjs scripts/account-dr.test.mjs` | lifecycle writes staging only | Time Travel restore retains erasure |
+| A1b | A1a | `node --test scripts/account-delete-preflight.test.mjs scripts/delete-capability-negative.test.mjs` | execution hard-disabled | lock/status rollback; zero domain mutation |
+| A1c | A1b | `node --test scripts/account-delete.test.mjs scripts/account-lifecycle.test.mjs scripts/account-dr.test.mjs scripts/erasure-prewrite-failure.test.mjs` | lifecycle/deletion staging only | reconciler resumes every crash state; Time Travel retains erasure |
 | S0a | A0,A1c | `node --test scripts/sync-push-status.test.mjs scripts/sync-auth-limits.test.mjs` | `syncWrites=false` | write breaker plus idempotent retry |
 | S0b | S0a | `node --test scripts/sync-pull-cursor.test.mjs scripts/sync-entity.test.mjs` | staging pull only | cursor reset/bootstrap path |
 | S0c | S0b | `node --test scripts/sync-bootstrap.test.mjs scripts/sync-lifecycle.test.mjs scripts/sync-system-actor.test.mjs` | staging lifecycle only | lease/reconciler and key-unavailable fail-close |
 | S0d | S0c | `node --test scripts/sync-concurrency.test.mjs scripts/sync-dr.test.mjs scripts/sync-load.test.mjs` | 24h staging soak | breaker/restore rehearsal |
 | S1 | W0,S0d | `node --test scripts/web-sync.test.mjs scripts/web-sync-browser.test.mjs && node scripts/walkthrough-harness.js` | owner staging; `webSync=false` until start | local/outbox survives disable |
 | O1 | A1c,S0d | redacted ledger commands: `npm ci`, exact `npx wrangler d1 create --jurisdiction=eu`, migrate/deploy/smoke/rollback invocations | production flags false | prior deploy + checkpoint restore |
-| R0 | O1,S1 | `node --test scripts/production-account-smoke.test.mjs scripts/production-sync-smoke.test.mjs` with synthetic owner tenant | 5%→25%→100% | newest flag/percentage disabled; lifecycle stays up |
+| S1G | S1 | `node scripts/gate-evidence.test.mjs --gate S1 --require-owner-pass` | signed operational decision; no code PR | fail/unsigned keeps production flags false |
+| R0a | O1,S1G | `node --test scripts/production-account-smoke.test.mjs` with synthetic owner tenant | owner-only account flags, 48h | disable `authUi`/`accountApi`; lifecycle stays up |
+| R0b | R0a | `node --test scripts/production-sync-smoke.test.mjs scripts/production-lifecycle-smoke.test.mjs` | owner-only sync flags, separate 48h | disable `webSync`/`syncWrites`; local/lifecycle stays up |
+| R0c | R0b | `node scripts/gate-evidence.test.mjs --gate R0c --require-steps 5,25,100` | 5%→25%→100%, 48h each | newest percentage disabled; lifecycle stays up |
 | U0 | S1 | `node --test scripts/my3dpa-ui.test.mjs && node scripts/walkthrough-harness.js` | `my3dpaUi=false` added by this PR | old navigation + direct lifecycle route |
 | I1a | I0,S1,A1c | default iOS commands + `-only-testing:3DPrintAssistantTests/AuthDeviceTests` | reviewed local commits; `iosAccountSync=false` | remove auth UI/dependency; signed-out store intact |
 | I1b | I1a,S0d | default iOS commands + `-only-testing:3DPrintAssistantTests/SyncLifecycleTests` | reviewed local commits; sync off | remote flag; local outbox/export intact |
-| I1c | I1b + R0 owner-canary checkpoint | full default iOS suite, UI tests, and `node scripts/walkthrough-harness.js` in web | version bump + owner GO; one push | remote flag; deletion/export remains reachable |
+| I1c | I1b,R0b | full default iOS suite, UI tests, and `node scripts/walkthrough-harness.js` in web | version bump + owner GO; one push | remote flag; deletion/export remains reachable |
 | X0a | W0 | `node --test scripts/export-library.test.mjs scripts/export-regression.test.mjs` | local only | hide UI; metadata exportable |
 | X0b | X0a,S1 | `node --test scripts/export-library-sync.test.mjs scripts/sync-reference-race.test.mjs` | sync flag off | local library remains authoritative |
 | IX0 | X0a,I1c | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/ExportLibraryTests` | local iOS commits | hide UI; local export retained |
@@ -659,11 +663,11 @@ This matrix overrides broader program-heading wording. Each row is one merge/rev
 | F0 | C0,W0 | `node --test scripts/inventory-store.test.mjs scripts/inventory-projection.test.mjs scripts/inventory-import.test.mjs` | `inventoryLocal=false` | hide UI; JSON export retained |
 | F1a | F0 | `python3 -m unittest discover -s tests -p 'test_export*.py'` in bambuinventory | read-only exporter | remove exporter; zero writes |
 | F1b | F1a | `node --test scripts/inventory-bambu-import.test.mjs scripts/inventory-reconcile.test.mjs` | dry-run first | backup pre-sync; compensation post-sync |
-| F2 | F1b,R0 | `node --test scripts/inventory-sync.test.mjs scripts/inventory-lifecycle.test.mjs scripts/inventory-projection.test.mjs` | owner beta; `inventorySync=false` | local/events/export survive disable |
+| F2 | F1b,R0c | `node --test scripts/inventory-sync.test.mjs scripts/inventory-lifecycle.test.mjs scripts/inventory-projection.test.mjs` | owner beta; `inventorySync=false` | local/events/export survive disable |
 | F3 | F2,I1c | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/InventoryTests` | local iOS commits | remote flag; local export retained |
 | F3R | F3 | full default iOS suite + UI tests + web walkthrough; version bump; owner GO; one push; manual TestFlight; seven-day production-backed reconciliation soak | only F3 release path | `iosInventory=false`; prior App Store build remains |
 | E0a | F2 named 14-day usage/cost evidence + owner price/legal GO | `node --test scripts/entitlement-server.test.mjs scripts/purchase-retention.test.mjs` | grants/checkout off | stop grants; retain validated rights |
-| E0b | E0a,F3 architecture acceptance,F3 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/StoreKitEntitlementTests` | StoreKit sandbox, local commits | checkout off; read/export retained |
+| E0b | E0a,F3 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/StoreKitEntitlementTests` | StoreKit sandbox, local commits | checkout off; read/export retained |
 | E0bR | E0b | full default iOS suite + StoreKit sandbox/UI tests + web walkthrough; version bump; owner GO; one push; manual TestFlight; seven-day production-backed purchase/restore/refund soak | only E0b release path | checkout/grants off; validated rights remain |
 | D0 | Android v1,C0,A1c,S0d,AG0 | `./gradlew test connectedCheck` on mac-mini | Android sync flag off | local Android v1 behavior |
 | E0c | E0a,D0 | `./gradlew test --tests '*PlayEntitlement*'` on mac-mini | Play sandbox/grants off | checkout off; rights retained |
@@ -681,15 +685,18 @@ Authoritative scope allowlist (tests, the gate review note, ledger row, and ROAD
 | B1 | staging bindings, `docs/runbooks/account-staging.md`, staging smoke/rollback scripts | remote staging only; no production or product code |
 | A0 | web auth/device modules, device/account registration routes, CSP/privacy copy | no export/delete/sync persistence migration |
 | A1a | export routes/consumer/crypto and export runbook using B0 schema | no migration, deletion, or sync route |
-| A1b | deletion routes/status UI, capability verifier, deletion runbook using B0 schema | no migration, DR promotion, or sync route |
-| A1c | lifecycle ledger/lease/reconciler and restore runbook using B0 schema | no migration or normal sync handler |
+| A1b | deletion preflight/lock/status UI, capability verifier, deletion runbook using B0 schema | deletion execution remains hard-disabled; no migration, DR promotion, or sync route |
+| A1c | deletion executor, external erasure/lifecycle ledger, lease/reconciler, and restore runbook using B0 schema | sole deletion-enable owner; no migration or normal sync handler |
 | S0a | push/status handlers and auth/limit/idempotency sync library using B0 schema | no migration or pull/bootstrap/lifecycle handler |
 | S0b | pull/entity/cursor handlers using B0 indexes | no migration or lifecycle/bootstrap mutation |
 | S0c | bootstrap/lifecycle/graveyard/reconciler modules using B0 schema | no migration or client UI |
 | S0d | load/DR fixtures, observability config, incident runbook | no protocol behavior except reviewed defect fixes |
 | S1 | web sync client/outbox/bootstrap, repository adapters, conflict/status UI | no server contract/migration |
 | O1 | production bindings/config and redacted provision/deploy/rollback run sheet | no product code or contraction migration |
-| R0 | production rollout config, smoke tests, privacy/runtime disclosures | no schema/protocol change |
+| S1G | canonical ledger decision row only | no code or runtime change |
+| R0a | owner-account rollout config, account smoke, privacy/runtime disclosures | no sync/schema/protocol change |
+| R0b | owner-sync rollout config and sync/lifecycle smoke | no schema/protocol change |
+| R0c | public percentage config and evidence | no schema/protocol change |
 | U0 | `my3dpa.js`, route/nav/sections/styles/locales | no data schema or sync behavior |
 | I1a | iOS `Models/Account/**`, `Services/Auth/**`, device Keychain, sign-in/account views, privacy config | no sync client |
 | I1b | iOS `Services/Sync/**`, PDM/outbox adapters, conflict/device/lifecycle views | no hub redesign/release metadata |
