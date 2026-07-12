@@ -141,7 +141,7 @@ xcodebuild test-without-building -project 3DPrintAssistant.xcodeproj \
 - `contracts/pdm2/manifest.json`
 - `contracts/pdm2/namespaces.json`
 - `contracts/pdm2/common/*.schema.json`
-- `contracts/pdm2/entities/*.schema.json` for every spec entity, explicitly including spool, inventory event, inventory projection, location/AMS assignment, export snapshot, preset, printer, profile, outcome, tuning, and custom material
+- `contracts/pdm2/entities/*.schema.json` for every portable PDM2 entity, explicitly including spool, inventory event, export snapshot, preset, printer, profile, outcome, tuning, and custom material; `inventory_projection` is a disposable server-cache contract and location/AMS assignment remains inventory-event metadata, never standalone portable entities
 - `contracts/pdm2/api/*.schema.json` for account/device/sync/export/delete/errors
 - `contracts/pdm2/fixtures/valid/`, `invalid/`, `golden/`
 - `scripts/pdm-contract.test.js`
