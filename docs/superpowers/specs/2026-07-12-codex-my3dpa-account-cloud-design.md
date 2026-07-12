@@ -264,7 +264,8 @@ Server account exports wrap PDM2 in a signed restore envelope:
   "exportId": "uuid",
   "exportRevision": 123,
   "restoreScopeExpiresAt": "RFC3339 + 90 days",
-  "accountScopeClaim": "base64url(HMAC(scopeKey[keyId], firebaseUid|exportId))",
+  "accountScopeKeyId": "scope-hmac-key-version",
+  "accountScopeClaim": "base64url(HMAC(scopeKey[accountScopeKeyId], firebaseUid|exportId))",
   "payloadHash": "sha256-rfc8785-pdm2",
   "signature": { "alg": "ES256", "keyId": "export-signing-key-version", "value": "base64url" },
   "pdm2": {}
@@ -448,6 +449,7 @@ Indexes: `(user_id,user_revision)`, `(user_id,kind,deleted_at)`, `(user_id,devic
 GET  /api/v1/account
 POST /api/v1/account/export
 GET  /api/v1/account/export/{requestId}     (status or authenticated download)
+POST /api/v1/account/export/{requestId}/verify  (ack downloaded artifact hash)
 POST /api/v1/account/delete
 GET  /api/v1/account/deletion/{requestId}   (scoped status capability)
 GET  /api/v1/devices
@@ -468,7 +470,7 @@ Limits for v1: 100 ops/push, 500 entities/pull page, 64 KB/entity, 5 MB active p
 
 Account export first materializes an immutable job-owned snapshot in one D1 transaction: briefly set a per-user export write barrier, capture `exportRevision`, copy the exact user entities/tombstones/device/entitlement manifest into `export_job_items`, verify item count/hash, and release the barrier. Concurrent sync writes receive retryable `409 export_snapshot_in_progress` only during that bounded transaction; later writes are outside the declared export revision. A failed transaction leaves no job snapshot and releases the barrier.
 
-A Cloudflare Queue consumer pages only those immutable job rows, checkpoints page/hash progress, and writes the completed archive to a private, encrypted R2 object. Retries never reread mutable live entities. The GET endpoint requires the same active reauthenticated user, returns progress or streams the object; object keys are random and never public. Jobs are idempotent by request ID, expose typed terminal errors, and delete staging rows/artifacts within 24 hours of completion. Deletion preflight handles pending, failed, expired, completed-but-not-downloaded, verified, and explicit-cancel states before the account lock; after lock, no account export artifact remains reachable. Fixtures mutate live data during materialization/queue retries and prove the archive equals exactly `exportRevision`. R2/Queue resources are therefore activated at the account-lifecycle gate, not for normal sync payload storage.
+A Cloudflare Queue consumer pages only those immutable job rows, checkpoints page/hash progress, and writes the completed archive to a private, encrypted R2 object. Retries never reread mutable live entities. The GET endpoint requires the same active reauthenticated user, returns progress or streams the object; object keys are random and never public. After download, the client hashes the exact artifact and calls the authenticated verify endpoint with `{artifactHash}`; the Worker constant-time compares `export_jobs.artifact_hash`, records `downloaded_verified_at`, and returns a signed receipt. A mismatch never marks verified. Jobs are idempotent by request ID, expose typed terminal errors, and delete staging rows/artifacts within 24 hours of completion. Deletion preflight handles pending, failed, expired, completed-but-not-downloaded, verified, and explicit-cancel states before the account lock; after lock, no account export artifact remains reachable. Fixtures mutate live data during materialization/queue retries and prove the archive equals exactly `exportRevision`. R2/Queue resources are therefore activated at the account-lifecycle gate, not for normal sync payload storage.
 
 Day-1 conservative limits are enforced before traffic data exists: per verified user, 20 pushes/minute, 60 pulls/minute, 2 exports/hour, 5 device registration/revocation attempts/hour, and 3 deletion starts/day; per source IP, 300 authenticated API requests/minute and 30 failed/unauthenticated auth requests/minute, with a higher documented emergency allowance for known provider callbacks. Responses use `429`, typed code, and `Retry-After`. Load tests verify normal foreground/debounce/bootstrap stays below these ceilings. Changes are configuration-reviewed against abuse, NAT/shared-IP impact, D1 cost, and observed p95—not silently relaxed in code.
 
