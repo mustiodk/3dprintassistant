@@ -725,6 +725,7 @@ Failure injection is tested after backup write, readback, migration, cloud pull,
 
 - Keep v1 Workshop backup import/export for at least two stable app release trains after PDM2 ships on every active platform.
 - PDM2 readers preserve unknown additive fields losslessly and ignore unknown entity kinds for presentation, but reject unsupported major versions. Writers use field-mask mutations and never serialize a lossy full replacement over a newer entity schema.
+- An unsupported future major version aborts import/bootstrap before mutation, preserves the raw artifact/staging data for export, disables sync writes, and shows **Update required to use this account data**. The signed-out configurator and last compatible local store remain usable read-only/local-first; the client never silently skips future-major entities or crashes through partial decoding.
 - Shared downgrade fixtures prove that a newer client can add a field, an older client can edit a known field, and the newer field survives unchanged.
 - Engine state continues to serialize through `StateCodec` / `AppStateWebCodec`; PDM2 does not fork that vocabulary.
 - The API publishes `minReadSchema`, `maxReadSchema`, and `minWriteSchema` per entity. It supports the current and previous two released entity schema versions for reads; a client below `minWriteSchema` remains local/read/export capable but receives `426 client_upgrade_required` for that entity kind instead of risking lossy writes.
