@@ -1,9 +1,9 @@
 # 3dpa — Next Session Kickoff
 
 **Purpose:** copy-paste kickoff prompt for the next fresh 3dpa session.
-**Last updated:** 2026-07-12 (owner comparison gate CLOSED — candidates merged into the My 3DPA merged plan, parked as a locked entry point; the release sequence continues unchanged).
+**Last updated:** 2026-07-12 (intake preflight recovered; Elegoo Centauri Carbon 2 parked fail-closed on Codex reviewer unavailability).
 
-The account work remains planning-only. Nothing is deployed or live from any account proposal. The two candidates are merged into one canonical decision set + plan (see ROADMAP banner/queue row); implementation is gated on **MG0 owner ratification + the SYN-17 Codex cross-model round**, sequenced AFTER the 1.0.7 and 1.0.8 trains.
+The immediate entry point is operational: restore the Codex review path and rerun the parked intake candidate through the autonomous pipeline. Nothing from `centauri_carbon_2` is shipped. After this retry reaches a terminal report, return to the 1.0.7 → 1.0.8 release sequence. My 3DPA stays planning-only and parked behind both trains.
 
 ---
 
@@ -21,9 +21,9 @@ Read in order:
 4. `3dprintassistant/docs/planning/ROADMAP.md`
 5. `3dprintassistant/docs/sessions/INDEX.md`
 6. Last three relevant session logs:
+   - `3dprintassistant/docs/sessions/2026-07-12-cowork-appdev-intake-preflight-recovery.md`
    - `3dprintassistant/docs/sessions/2026-07-12-remote-audit-merge-my3dpa.md`
-   - `3dprintassistant/docs/sessions/2026-07-12-cowork-appdev-independent-accounts-platform.md`
-   - `3dprintassistant/docs/sessions/2026-07-12-cowork-appdev-accounts-platform.md`
+   - `3dprintassistant/docs/sessions/2026-07-10-cowork-appdev-intake-autonomy-build.md`
 7. This `NEXT-SESSION.md`.
 
 Then verify local state:
@@ -37,9 +37,28 @@ git -C 3dprintassistant status --short --branch
 git -C 3dprintassistant-ios status --short --branch
 ```
 
-Expected known warning: `3dprintassistant-ios` may remain ahead locally under the iOS push gate. Do not push it merely to clean health output.
+Expected known warnings: `3dprintassistant-ios` may remain ahead locally under the iOS push gate; Android checkout may remain missing/health-only. Do not change either merely to clean health output.
 
-Today's primary task: **continue the locked release sequence** — the reviewed iOS 1.0.7 issue-fix train, then the 1.0.8 tip-jar train (ROADMAP is truth for exact state).
+Today's primary task: **repair Codex reviewer availability and rerun the parked `centauri_carbon_2` candidate through the same launchd path.**
+
+Verified starting state from the 2026-07-12 run:
+
+- Scheduled preflight failure was repaired by ff-only sync; full preflight passed.
+- Run `2026-07-12T19:42:00Z` → `19:59:13Z` completed `exit 0`.
+- Candidate evidence/validators/diff guards passed; hostile reviewer 1 returned GO.
+- Reviewer 2 was unavailable: local Codex CLI `v0.139.0` could not use configured `gpt-5.6-sol`; both bridge and direct fallback exited 1.
+- Candidate is parked as `review-unavailable`, retry class `availability-blocked`, retries `0/5`; custody commit `1e3aec5` is on `origin/main`. Nothing shipped.
+
+Process:
+
+1. Verify the actual Codex binary/install path and current version before changing it; do not guess the package manager.
+2. Restore a real Codex request path for the configured review model, then prove it with `bridge --health` plus a bounded `bridge --mode codex-only` smoke.
+3. Confirm web `main` is clean/current and the intake preflight is green.
+4. Kickstart the installed job: `launchctl kickstart -k gui/$(id -u)/dk.mragile.3dpa-intake`.
+5. Monitor to the final Discord/run report. Do not manually ship the printer around PD5; the parked retry must make the decision.
+6. If the candidate reaches `{GO,GO}`, verify merge/push/live overlay/picker/iOS-local-mirror/custody evidence per the runner contract. If it parks again, preserve the exact reason and stop.
+
+After this operational item closes: continue the reviewed iOS 1.0.7 issue-fix train, then the separate 1.0.8 tip-jar train.
 
 Parked locked entry point (do NOT open without explicit owner command): **My 3DPA merged platform plan.**
 
