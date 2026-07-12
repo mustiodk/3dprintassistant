@@ -595,6 +595,8 @@ The later entitlement gate must use a server-authoritative purchase contract:
 - `purchase_events` stores provider transaction/token hashes, immutable event IDs, environment, validation status, and entitlement effect. Replays are idempotent; sandbox never grants production entitlement; account transfer and family/ownership behavior require explicit fixtures.
 - Entitlement is derived from validated purchase events, never written directly by the client or a notification without provider verification.
 
+Every purchase surface includes **Restore Purchases** without requiring a new payment. iOS invokes StoreKit account sync/current entitlements and sends each verified transaction to the server; Android queries current Play purchases and revalidates their tokens. Restore is idempotent, shows pending/complete/error state, refreshes `/entitlements`, and has fixtures for reinstall, new device, provider-account mismatch, revoked/refunded purchase, and temporary store outage. It never grants from local history alone.
+
 ### 12.4 Subscription reconsideration trigger
 
 Do not add a subscription merely because accounts exist. Reopen only if measured recurring per-user costs or a genuinely recurring service (large cloud files, compute, monitoring) cannot be funded by tips/lifetime Pro. Record the cost threshold and owner decision then.
