@@ -1,7 +1,7 @@
 {
-  "content_version": 2026071005,
+  "content_version": 2026071201,
   "enabled": true,
-  "generated_at": "2026-07-10T22:15:29.514Z",
+  "generated_at": "2026-07-12T20:40:15.618Z",
   "min_app_version": "1.0.3",
   "payload": {
     "brands": [
@@ -207,9 +207,43 @@
         "notes": [
           "CFS multicolor — up to 16 colors"
         ]
+      },
+      {
+        "id": "centauri_carbon_2",
+        "name": "Centauri Carbon 2",
+        "manufacturer": "elegoo",
+        "series": "corexy",
+        "series_group": "Centauri Series",
+        "enclosure": "passive",
+        "active_chamber_heating": false,
+        "extruder_type": "direct_drive",
+        "max_nozzle_temp": 350,
+        "max_bed_temp": 110,
+        "max_speed": 500,
+        "max_acceleration": 20000,
+        "has_lidar": false,
+        "has_camera": true,
+        "multi_color_systems": [
+          "canvas"
+        ],
+        "available_plates": [
+          "textured_pei",
+          "cool_plate"
+        ],
+        "available_nozzle_sizes": [
+          0.4,
+          0.6,
+          0.8
+        ],
+        "open_door_threshold_bed_temp": null,
+        "notes": [
+          "CoreXY FDM printer, fully enclosed (passive chamber) with 350°C all-metal hardened steel nozzle",
+          "256×256×256mm build volume; 500 mm/s max speed, 20,000 mm/s² max acceleration",
+          "CANVAS multi-color add-on (4 colors) available separately or included in Centauri Carbon 2 Combo"
+        ]
       }
     ]
   },
-  "payload_sha256": "67760c1dcb45ce4e17afe86192c49bb2edcb580a6cbf38d3b998c088553d4205",
+  "payload_sha256": "0c8f737a836e5a21b10c1dc771cfb4e8c5ae1c351ae82861daec8e625d4fd912",
   "schema_version": 1
 }
