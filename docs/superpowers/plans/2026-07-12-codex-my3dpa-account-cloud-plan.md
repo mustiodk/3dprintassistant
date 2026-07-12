@@ -306,7 +306,7 @@ node --test functions/api/*.test.mjs
 
 **Rollout:** dev/staging only, then one owner staging account. Public signup and production auth UI remain disabled until O1 and R0; production sync writes remain disabled.
 
-**Rollback:** disable staging signups/auth UI and remove/reset the owner test account through the staging lifecycle tools; configurator stays local. This gate does not promise production export/delete routes.
+**Rollback:** disable staging signups/auth UI and remove/reset the owner test account with an environment-locked staging teardown script that cannot bind to production; configurator stays local. This gate does not promise production export/delete routes.
 
 **Review/exit:** architecture, QA, security, and cross-model review must all report zero P0–P2; zero cross-user access; account/device recovery works; privacy/DPA evidence recorded.
 
@@ -397,7 +397,7 @@ This heading is delivered as three separately reviewed PRs: A1a export, A1b dele
 
 **Commands/evidence:** use only the lock-pinned Wrangler via `npm ci` and `npx wrangler`; the exact resource IDs and migration/deploy commands are generated in a redacted O1 run sheet, executed by the production owner, and pasted with timestamps/exit codes into the gate ledger. No secret value enters git or logs.
 
-**Rollback/exit:** disable all flags, roll the Worker back to the recorded deployment, and restore/forward-fix from the checkpoint without contracting schema. Zero public traffic and zero product writes are permitted; production auth/export/delete/sync smoke tests use one allowlisted owner account and synthetic content only.
+**Rollback/exit:** disable all flags, roll the Worker back to the recorded deployment, and restore/forward-fix from the checkpoint without contracting schema. Zero public traffic and zero product writes are permitted; O1 health checks are limited to deployment, schema, capability, secret-presence, route-disabled, and rollback probes. The allowlisted owner account and product-flow smoke tests begin only in R0.
 
 ---
 
@@ -627,7 +627,7 @@ This matrix overrides broader program-heading wording. Each row is one merge/rev
 | F0 | C0,W0 | `node --test scripts/inventory-store.test.mjs scripts/inventory-projection.test.mjs scripts/inventory-import.test.mjs` | `inventoryLocal=false` | hide UI; JSON export retained |
 | F1a | F0 | `python3 -m unittest discover -s tests -p 'test_export*.py'` in bambuinventory | read-only exporter | remove exporter; zero writes |
 | F1b | F1a | `node --test scripts/inventory-bambu-import.test.mjs scripts/inventory-reconcile.test.mjs` | dry-run first | backup pre-sync; compensation post-sync |
-| F2 | F1b,S1 | `node --test scripts/inventory-sync.test.mjs scripts/inventory-lifecycle.test.mjs scripts/inventory-projection.test.mjs` | owner beta; `inventorySync=false` | local/events/export survive disable |
+| F2 | F1b,R0 | `node --test scripts/inventory-sync.test.mjs scripts/inventory-lifecycle.test.mjs scripts/inventory-projection.test.mjs` | owner beta; `inventorySync=false` | local/events/export survive disable |
 | F3 | F2,I1c | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/InventoryTests` | local iOS commits | remote flag; local export retained |
 | E0a | F2 + owner price/legal GO | `node --test scripts/entitlement-server.test.mjs scripts/purchase-retention.test.mjs` | grants/checkout off | stop grants; retain validated rights |
 | E0b | E0a,F3 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/StoreKitEntitlementTests` | StoreKit sandbox, local commits | checkout off; read/export retained |
