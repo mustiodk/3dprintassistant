@@ -37,7 +37,7 @@ Hard constraints:
 - No user content in durable result caches, logs, Analytics Engine, or deletion receipts.
 - All schema changes use expand/backfill/switch/contract; destructive contraction is a later PR.
 - One review finding = one commit.
-- Every gate includes the data/logic-change evaluation in §7.
+- Every gate includes the data/logic-change evaluation in §8.
 - iOS work is committed locally but not pushed until the full version is XCTest-green, walkthrough-green, version-bumped, and owner-ready for TestFlight.
 
 ## 2. Dependency graph and release gates
@@ -45,15 +45,20 @@ Hard constraints:
 ```text
 O0 owner/provider/legal GO
   └─ C0 PDM2 contract
-      ├─ W0 web local repository + migration
-      ├─ I0 iOS contract adapter + local migration
-      └─ B0 backend foundation (local/staging only)
-           └─ A0 auth + device registration
-                ├─ A1 account export/delete lifecycle
-                └─ S0 sync server protocol
-                     ├─ S1 web Workshop sync beta
-                     │    └─ U0 My 3DPA web hub
-                     └─ I1 iOS auth + Workshop sync
+      └─ G0 flags/toolchain/gate ledger
+          ├─ W0 web local repository + migration
+          ├─ I0 iOS contract adapter + local migration
+          └─ B0 backend foundation (local/staging only)
+               └─ A0 staging auth + device registration (owner-only)
+                    ├─ A1 account export/delete/lifecycle program
+                    └─ S0 sync server program
+                         ├─ S1 owner-only web Workshop sync soak
+                         │    ├─ R0 production/public account rollout
+                         │    └─ U0 My 3DPA web hub
+                         └─ I1 iOS auth + Workshop sync program (after S1 soak)
+
+B0 + A1 + S0 ── O1 production foundation (flags off)
+O1 + S1 owner soak ── R0 public signup 5%→25%→100%
 
 W0 ── X0 export history/library
 W0 ── F0 local inventory domain/web
@@ -62,11 +67,11 @@ W0 ── F0 local inventory domain/web
                   └─ F3 iOS inventory
                        └─ E0 one-time Pro entitlement
 
-I1 + Android v1 shipped ── D0 Android v1.1 sync
+Android v1 shipped + C0 + A1/S0 soak + owner AG0 ── D0 Android v1.1 sync
 I1 + architecture extraction ── M0 native macOS
 ```
 
-O0 is a decision gate, not a code PR. C0 through U0 deliver the first useful account release. X0/F0 may run after W0, but must not compete with the account critical path in the same session.
+O0 is a decision gate, not a code PR. The IDs in the atomic-gate matrix in §5 are the authoritative one-PR boundaries; headings such as A1, S0, I1, X0, F1, E0 are program groupings only. C0 through R0 deliver the first public account release. X0/F0 may run after W0, but must not compete with the account critical path in the same session.
 
 ## 3. Definition of done for every implementation PR
 
@@ -119,11 +124,12 @@ xcodebuild test-without-building -project 3DPrintAssistant.xcodeproj \
 3. Workshop sync is optional and free; existing features stay free forever.
 4. Android v1 stays account-free; My 3DPA is Android v1.1.
 5. Accept provider DPAs/SCCs/transfer-risk notes and the DR retention model.
-6. Approve dev/staging resource creation; production remains a separate GO in B0/A0.
+6. Approve dev/staging resource creation; production remains a separate O1 GO.
+7. Confirm only that the inventory free boundary/price is deferred to the later entitlement gate; 50 active spools / 99 DKK remains a recommendation, not a locked default.
 
 **Evidence:** signed decision block in ROADMAP or gate ledger, DPA/version references, privacy/data-safety change list, cost owner, rollback owner.
 
-**Exit:** all six explicit GO/NO-GO; any NO-GO sends the spec back to review. No silent default.
+**Exit:** all seven explicit GO/NO-GO; any NO-GO sends the spec back to review. No silent default.
 
 ---
 
@@ -151,13 +157,16 @@ xcodebuild test-without-building -project 3DPrintAssistant.xcodeproj \
 3. Add manifest hashing and a drift test.
 4. Add a minimal Swift fixture reader test in iOS without changing app behavior; record its local commit/hash, do not push iOS.
 5. Run JSON Schema meta-validation and the shared fixture suite.
+6. Hash every path and byte named by `manifest.json`, reject missing/extra contract files, and verify the computed aggregate equals the manifest root hash.
+7. Verify the selected R2 conditional-create primitive with a disposable development probe, including persisted-write/response-timeout and competing-create cases; if semantics are insufficient, freeze a per-op Durable Object coordinator instead.
 
 **Tests:**
 
 ```sh
 node --test scripts/pdm-contract.test.js
 node --test scripts/state-codec.test.js scripts/workshop-store.test.js
-shasum -a 256 contracts/pdm2/manifest.json contracts/pdm2/namespaces.json
+node scripts/pdm-contract.test.js --verify-full-manifest-hash
+node --test scripts/r2-conditional-capability.test.mjs
 ```
 
 **Review gate:** schema/domain review, security review, Swift parity QA, Claude cross-model zero P0–P2, owner manifest approval.
@@ -168,10 +177,33 @@ shasum -a 256 contracts/pdm2/manifest.json contracts/pdm2/namespaces.json
 
 ---
 
+### G0 — reproducible tooling, feature flags, and gate ledger
+
+**Repo:** web.
+**Depends on:** C0.
+**Goal:** make every later gate independently runnable, safely dark-launchable, and auditable before runtime code starts.
+
+**Create:**
+
+- `package.json` + `package-lock.json` with an exact Wrangler dev dependency selected and recorded by this gate;
+- `config/feature-flags.json` plus schema/default validation;
+- `scripts/feature-flags.test.mjs` and `scripts/gate-evidence.test.mjs`;
+- `docs/planning/MY3DPA-GATE-LEDGER.md` as the only canonical gate/evidence ledger.
+
+**Flag registry:** `pdm2Local`, `accountApi`, `authUi`, `syncWrites`, `webSync`, `my3dpaUi`, `exportLibraryLocal`, `exportLibrarySync`, `inventoryLocal`, `inventorySync`, `iosAccountSync`, `iosInventory`, `proGrants`, and `androidSync`. Every flag defaults false, has an owner, environment scope, dependency, enable/disable command, audit record, and tested safe-off behavior. A server capability response must prevent a stale client flag from enabling an unsupported path.
+
+**Tasks/tests:** use `npm ci` for all Worker/D1 gates; assert `npx wrangler --version` equals the lock-recorded version; validate flag names/defaults/dependencies and unknown-flag rejection; validate every ledger row has dependency hashes, commands, expected result, rollback proof, reviewer evidence, and owner decision where required.
+
+**Rollback:** config/docs/test-only revert; all runtime features remain off.
+
+**Exit:** clean-clone `npm ci` plus ledger/flag tests are green and C0's full manifest root hash is recorded.
+
+---
+
 ### W0 — web local PDM2 repository and v1 migration
 
 **Repo:** web.  
-**Depends on:** C0.  
+**Depends on:** G0.
 **Goal:** signed-out PDM2 persistence/outbox works locally without auth or network.
 
 **Create/modify:**
@@ -189,7 +221,7 @@ shasum -a 256 contracts/pdm2/manifest.json contracts/pdm2/namespaces.json
 4. Keep v1 import/export compatibility and all existing Workshop behavior.
 5. Put PDM2 behind `pdm2Local`; default off until fixture and browser QA pass.
 
-**Tests:** exact/legacy IDs, crash points, corrupt backup, unknown future fields, repeated migration, quota, signed-out reload, v1↔PDM2 round trip.
+**Tests:** exact/legacy IDs, crash points, corrupt backup, unknown future fields, repeated migration, quota, signed-out reload, v1↔PDM2 round trip. Prove a backup is valid only when it is stored at a distinct durable location and passes byte hash plus restore validation; overwriting the source record is not a backup. When File System Access is unavailable, require an explicit JSON download plus user confirmation before destructive migration or first-sync cleanup.
 
 **Review/rollback:** storage specialist + QA; disable flag and restore untouched v1 store. No cloud code.
 
@@ -200,7 +232,7 @@ shasum -a 256 contracts/pdm2/manifest.json contracts/pdm2/namespaces.json
 ### I0 — iOS PDM2 adapter, local migration, and Workshop journal parity
 
 **Repo:** iOS, local commits only.  
-**Depends on:** C0; may run parallel to W0 after manifest freeze.  
+**Depends on:** G0; may run parallel to W0 after manifest freeze.
 **Goal:** native local store consumes exact contract and reaches Workshop outcome/journal parity before sync.
 
 **Create/modify:**
@@ -225,7 +257,7 @@ shasum -a 256 contracts/pdm2/manifest.json contracts/pdm2/namespaces.json
 ### B0 — backend foundation, migrations, and local/staging runbooks
 
 **Repo:** web.  
-**Depends on:** C0 + O0 dev/staging authorization.  
+**Depends on:** G0 + O0 dev/staging authorization.
 **Goal:** testable Worker modules and expand-only D1 schema with no public account UI.
 
 **Create/modify:**
@@ -237,7 +269,7 @@ shasum -a 256 contracts/pdm2/manifest.json contracts/pdm2/namespaces.json
 - `scripts/account-schema.test.mjs`, `scripts/account-dr.test.mjs`
 - `docs/runbooks/account-backend.md`, `account-dr-restore.md`, `key-rotation.md`
 
-**Tasks:** implement all normative tables/indexes/constraints; local D1 migration tests; public schema manifest endpoint; feature flags/global write breaker; content-free logging; staging-only R2/Queue/conditional-decision probe; expand/rollback rehearsal.
+**Tasks:** implement all normative tables/indexes/constraints; local D1 migration tests; public schema manifest endpoint; the C0-selected R2-or-Durable-Object coordination adapter; feature flags/global write breaker; content-free logging; staging-only R2/Queue integration; expand/rollback rehearsal.
 
 **Tests:**
 
@@ -249,15 +281,15 @@ node --test functions/api/*.test.mjs
 
 **Review/rollback:** DB/security/DR reviews; remove preview bindings and revert expand migration before data. Production creation is still blocked.
 
-**Exit:** fresh + upgrade + rollback/forward-fix staging rehearsal, conditional-create capability proven, cost counters observable.
+**Exit:** fresh + upgrade + rollback/forward-fix staging rehearsal, the C0 coordination decision implemented without semantic drift, cost counters observable.
 
 ---
 
 ### A0 — auth, account creation, and device trust
 
 **Repo:** web.  
-**Depends on:** B0 + O0 production/provider GO.  
-**Goal:** optional Apple/Google sign-in and atomic account/device registration, with sync still read-only/off.
+**Depends on:** B0 + O0 provider/dev-staging GO.
+**Goal:** optional Apple/Google sign-in and atomic account/device registration in dev/staging, with sync still off.
 
 **Create/modify:**
 
@@ -268,25 +300,27 @@ node --test functions/api/*.test.mjs
 - CSP/header configuration, privacy copy
 - auth/device/JWKS/CSP tests
 
-**Tasks:** configure dev/staging Firebase; lazy signed-out loading; P-256 non-exportable keys; signed request counters/retries; device recovery/lost-device flow; provider-link collision safe-stop; accountEnabled marker; strict CSP.
+**Tasks:** configure dev/staging Firebase; lazy signed-out loading; P-256 non-exportable keys; signed request counters/retries; device recovery/lost-device flow; provider-link collision safe-stop; reject Firebase anonymous users; generate and persist a stable account UUID suitable for later `appAccountToken`; accountEnabled marker; strict CSP.
 
-**Tests:** JWT confusion/rotation/outage, registration races, replay/counter, key loss with pending outbox, revocation, no-Web-Crypto degraded UX, Apple/Google popup+redirect CSP, signed-out no-auth load.
+**Tests:** JWT confusion/rotation/outage, registration races, replay/counter, key loss with pending outbox, revocation, no-Web-Crypto degraded UX, Apple/Google popup+redirect CSP, signed-out no-auth load, anonymous-Firebase-token rejection, same-email/different-provider collision without silent linking, and stable UUID generation/retry.
 
-**Rollout:** internal staging accounts → owner account → 5% web flag → 100%; production sync writes remain disabled.
+**Rollout:** dev/staging only, then one owner staging account. Public signup and production auth UI remain disabled until O1 and R0; production sync writes remain disabled.
 
-**Rollback:** disable signups/auth UI, retain export/delete/account access for created accounts; configurator stays local.
+**Rollback:** disable staging signups/auth UI and remove/reset the owner test account through the staging lifecycle tools; configurator stays local. This gate does not promise production export/delete routes.
 
-**Exit:** zero cross-user access, account/device recovery works, privacy/DPA evidence recorded.
+**Review/exit:** architecture, QA, security, and cross-model review must all report zero P0–P2; zero cross-user access; account/device recovery works; privacy/DPA evidence recorded.
 
 ---
 
-### A1 — account export, deletion, and privacy lifecycle
+### A1 — account export, deletion, and privacy lifecycle program
 
 **Repo:** web.  
 **Depends on:** A0.  
 **Goal:** compliant portability/deletion exists before general account rollout.
 
-**Create/modify:**
+This heading is delivered as three separately reviewed PRs: A1a export, A1b deletion/account lifecycle, and A1c lifecycle ledger/DR. See §5.
+
+**Create/modify across the three PRs:**
 
 - account export start/status/verify handlers and Queue consumer
 - deletion start/status/reconciler handlers
@@ -297,7 +331,7 @@ node --test functions/api/*.test.mjs
 
 **Tasks:** revision-consistent export snapshot; signed ES256 envelope; AES-256-GCM R2 artifact; seven-day expiry and verified receipt; deletion preflight; status capability; external account/entity lifecycle evidence; single-winner lease decisions; minimal purchase-retention seam; DR promotion blocker.
 
-**Tests:** every saga crash point, timeout-after-success, concurrent entity/reference writes, deletion during export states, artifact crypto tamper, key rotation, Time Travel restore with account/entity erasure, no payload in caches/logs.
+**Tests:** every saga crash point, timeout-after-success, concurrent entity/reference writes, artifact crypto tamper, key rotation, Time Travel restore with account/entity erasure, no payload in caches/logs. Enumerate deletion during all export states: queued, snapshotting, artifact-ready/unverified, verified, expired, and failed/cancelled. Reject deletion-status capabilities supplied in query, JSON body, cookies, headers other than the dedicated authorization header, or any non-status endpoint; reject wrong-account, expired, replayed, and log-reflected capabilities. Prove encrypted `export_job_items` and temporary artifact material are deleted within 24 hours in staging.
 
 **Review/rollback:** privacy/security/DR hostile review + QA + cross-model zero. Kill switch keeps export/delete available while other account writes are off.
 
@@ -305,11 +339,11 @@ node --test functions/api/*.test.mjs
 
 ---
 
-### S0 — sync server protocol and lifecycle endpoint
+### S0 — sync server protocol and lifecycle program
 
 **Repo:** web.  
 **Depends on:** A0 + A1.  
-**Goal:** complete server sync semantics behind a staging/read-only production flag; no client auto-sync yet.
+**Goal:** complete server sync semantics behind staging flags; no client auto-sync or production binding yet. This heading is delivered as S0a normal push/status, S0b pull/cursor/entity, S0c bootstrap/lifecycle, and S0d load/DR soak; see §5.
 
 **Create/modify:**
 
@@ -318,9 +352,9 @@ node --test functions/api/*.test.mjs
 - `scripts/sync-protocol.test.mjs`, `sync-concurrency.test.mjs`, `sync-dr.test.mjs`
 - load/cost fixtures and incident runbook
 
-**Tasks:** batch-atomic normal push; request/device/op idempotency; dependency results; async lifecycle op; content-free durable status; pull/cursor expiry; bootstrap/remap rules; tombstone/graveyard set union; lifecycle leases/reconciler; schema negotiation; per-account/global budgets.
+**Tasks:** batch-atomic normal push; request/device/op idempotency; dependency results; async lifecycle op; content-free durable status; pull/cursor expiry; bootstrap/remap rules; tombstone/graveyard set union; lifecycle leases/reconciler; schema negotiation; per-account/global budgets. B0 owns the day-1 limiter implementation; S0a proves per-IP pre-auth and per-account/device post-auth enforcement plus global breaker behavior.
 
-**Tests:** property/concurrency tests for two devices, lost ACK, partial dependency failure, conflict copies, delete/reset/reactivate, old cursor, old client fields, malicious IDs/references, quota/write breaker, DR replay and later-update dominance. Run 1× and 4× capacity fixtures and record rows/op.
+**Tests:** property/concurrency tests for two devices, lost ACK, partial dependency failure, conflict copies, delete/reset/reactivate, old cursor, old client fields, malicious IDs/references, quota/write breaker, DR replay and later-update dominance. Reject a user/device attempting the reserved system actor and reject forged system-actor operations at every public route. Simulate unavailable graveyard encryption/decryption keys and require fail-closed `503` with no mutation. Run 1× and 4× capacity fixtures and record rows/op.
 
 **Review/rollback:** protocol/security/DB subagents, QA, Claude zero P0–P2. Keep `syncWrites=false`; pulls/exports/deletes stay available.
 
@@ -328,7 +362,7 @@ node --test functions/api/*.test.mjs
 
 ---
 
-### S1 — web Workshop sync beta
+### S1 — owner-only web Workshop sync soak
 
 **Repo:** web.  
 **Depends on:** W0 + S0.  
@@ -345,11 +379,39 @@ node --test functions/api/*.test.mjs
 
 **Tests:** two browser profiles offline/concurrent, reload at every transaction boundary, lost response, stale delete, future fields, over quota, backend outage, sign-out, account deletion, signed-out baseline.
 
-**Rollout:** owner-only → invite beta → 5% → 25% → 100%, each with 48-hour error/cost observation and rollback threshold.
+**Rollout:** one owner staging account only. Invite and public percentages belong to R0, not this gate.
 
 **Rollback:** `webSync=false`; never delete local/outbox data; export remains available.
 
-**Exit:** 7-day owner beta with no data loss/conflict surprise and measured D1 budget below threshold.
+**Exit:** seven-day owner soak: zero data loss, cross-user access, payload leak, unhandled lifecycle/DR failure, cursor gaps, duplicate apply, and projection divergence; p95 push/pull under 2 seconds at the recorded staging fixture; 5xx below 1%; daily D1/R2/Queue use below 50% of the owner-approved budget. Any zero-tolerance event, 5xx at/above 1%, latency above 2 seconds for two consecutive windows, or budget at/above 75% disables `webSync`/`syncWrites` and blocks R0.
+
+---
+
+### O1 — production foundation with every product flag off
+
+**Repo:** web.
+**Depends on:** B0 + A1a–A1c + S0a–S0d green; fresh owner production/cost GO.
+**Goal:** provision and rehearse production without exposing signup or accepting sync writes.
+
+**Tasks:** create production Firebase project/provider config, EU D1 (`--jurisdiction=eu`), R2, Queue/DLQ, secrets and least-privilege access; apply expand-only migrations before deploying code that needs them; deploy with `accountApi`, `authUi`, `syncWrites`, and `webSync` false; verify schema/hash/capabilities; create a Time Travel checkpoint; rehearse restore, key rotation, and flag disable from the runbook.
+
+**Commands/evidence:** use only the lock-pinned Wrangler via `npm ci` and `npx wrangler`; the exact resource IDs and migration/deploy commands are generated in a redacted O1 run sheet, executed by the production owner, and pasted with timestamps/exit codes into the gate ledger. No secret value enters git or logs.
+
+**Rollback/exit:** disable all flags, roll the Worker back to the recorded deployment, and restore/forward-fix from the checkpoint without contracting schema. Zero public traffic and zero product writes are permitted; production auth/export/delete/sync smoke tests use one allowlisted owner account and synthetic content only.
+
+---
+
+### R0 — public account and Workshop-sync rollout
+
+**Repo:** web.
+**Depends on:** O1 + S1 owner-soak evidence + A1 export/delete/DR evidence.
+**Goal:** make optional accounts public only after the lifecycle promises work in production.
+
+**Rollout:** allowlisted owner production account → 5% → 25% → 100%, with at least 48 hours at each public step. First enable `accountApi`, verify export/delete/recovery, then `authUi`; enable `syncWrites`/`webSync` only after the account step is green. The same numeric thresholds and zero-tolerance conditions from S1 apply at every step.
+
+**Tests:** production synthetic signup/link/recovery, provider collision, export verify/expiry, deletion capability misuse, account deletion/recreation, two-browser sync, outage breaker, restore/erasure blocker, signed-out baseline, and privacy/runtime disclosure audit.
+
+**Rollback/exit:** disable newest flag/percentage first while keeping export/delete/status/pull reachable for existing accounts. Public completion requires 100% for 48 hours within thresholds, no unresolved P0–P2, and owner GO recorded in the ledger.
 
 ---
 
@@ -373,11 +435,11 @@ node --test functions/api/*.test.mjs
 
 ---
 
-### I1 — iOS account, My 3DPA, and Workshop sync release train
+### I1 — iOS account, My 3DPA, and Workshop sync program
 
 **Repo:** iOS, local commits until complete.  
 **Depends on:** I0 + S0 + A1; start after S1 protocol soak.  
-**Goal:** native Apple/Google account lifecycle and Workshop sync with signed-out parity.
+**Goal:** native Apple/Google account lifecycle and Workshop sync with signed-out parity. Deliver as I1a auth/device, I1b sync/lifecycle, and I1c My 3DPA UI/release; see §5.
 
 **Create/modify:**
 
@@ -399,13 +461,13 @@ node --test functions/api/*.test.mjs
 
 ---
 
-### X0 — export recipe/history library
+### X0 — export recipe/history program
 
-**Repo:** web first; iOS follow-up only after web model acceptance.  
+**Repo:** web first; iOS is a distinct IX0 gate after web model acceptance.
 **Depends on:** W0; cloud sync portion depends on S1.  
-**Goal:** retain reproducible export inputs/metadata, not generated slicer files.
+**Goal:** retain reproducible export inputs/metadata, not generated slicer files. Deliver X0a local web library, X0b sync integration, then IX0 iOS repository/UI; see §5.
 
-**Create/modify:** `export-library.js`, PDM export snapshot/preset adapter, Exports section, tests; iOS Output/Export repository later.
+**Create/modify:** `export-library.js`, PDM export snapshot/preset adapter, Exports section, tests. IX0 separately implements the iOS Output/Export repository.
 
 **Tasks:** immutable content-addressed snapshots; preset pin/rename/repoint/delete; engine/data/catalog version labels; current-engine regeneration honesty; GC/reference races; optional sync under existing protocol.
 
@@ -425,12 +487,12 @@ node --test functions/api/*.test.mjs
 
 **Create/modify:**
 
-- inventory PDM schemas/fixtures via a C0-compatible additive contract PR
+- inventory adapters and fixtures against the already-complete C0 inventory schemas
 - `inventory-store.js`, `inventory-projection.js`, `inventory-import.js`
 - Filament section/UI/styles/locales
 - inventory accounting/import/CSV safety tests
 
-**Tasks:** spool metadata; event-authoritative acquire/consume/adjust/move/assign/dry/retire/reactivate; checked milligram bounds; projections; locations/AMS labels; search/filter; JSON/CSV import/export; dry-run ambiguity UI; no credentials/integrations.
+**Tasks:** consume the C0 spool/event/projection/location contract without adding or changing schemas; event-authoritative acquire/consume/adjust/move/assign/dry/retire/reactivate; checked milligram bounds; projections; locations/AMS labels; search/filter; JSON/CSV import/export; dry-run ambiguity UI; no credentials/integrations. Any contract defect returns to a separately approved C0 versioning gate and blocks F0.
 
 **Tests:** all event invariants, concurrent ordering, projection rebuild, capacity edits, negative/overflow, exact CSV re-import, formula injection, future fields, 50-spool presentation only (no entitlement enforcement yet).
 
@@ -440,9 +502,9 @@ node --test functions/api/*.test.mjs
 
 ---
 
-### F1 — bambuinventory read-only export and confirmed import
+### F1 — bambuinventory read-only export and confirmed import program
 
-**Repos:** bambuinventory exporter PR, then web importer PR; never combine writes across repos.  
+**Repos:** F1a bambuinventory exporter PR, then F1b web importer PR; never combine writes across repos.
 **Depends on:** F0.  
 **Goal:** reuse data/domain value without reusing insecure single-user API behavior.
 
@@ -452,7 +514,7 @@ node --test functions/api/*.test.mjs
 
 **Cutover:** bambuinventory remains source/read-only until owner compares counts, totals, locations, AMS assignments and approves. No big-bang deletion.
 
-**Rollback:** delete the unconfirmed import transaction locally or restore its pre-import backup; exporter is read-only.
+**Rollback:** dry-run creates no entities/events. Before confirmation, cancel with zero writes. Before first sync, a verified distinct-location backup may restore the whole local import transaction. After any imported event has synced, rollback is compensating inventory events plus metadata correction only; immutable events are never deleted or rewritten. The exporter is read-only.
 
 **Exit:** signed reconciliation report with source/import/skipped/ambiguous counts and exact remaining-total comparison.
 
@@ -461,7 +523,7 @@ node --test functions/api/*.test.mjs
 ### F2 — inventory sync and My 3DPA web integration
 
 **Repo:** web.  
-**Depends on:** F0 stable + S1 + F1 accepted.  
+**Depends on:** F0 stable + R0 + F1 accepted.
 **Goal:** sync spool/events/projections safely while keeping local inventory useful.
 
 **Tasks:** enable inventory entity kinds server-side; reference/lifecycle tests; projection rebuild; quota UI; multi-device event union; Filament Overview cards/alerts; optional printer assignment; account export/delete coverage.
@@ -490,15 +552,15 @@ node --test functions/api/*.test.mjs
 
 ---
 
-### E0 — one-time Pro entitlement and inventory boundary
+### E0 — one-time Pro entitlement and inventory-boundary program
 
-**Repos:** web backend/UI, then iOS and Android store-specific PRs.  
+**Repos:** E0a web/backend contract, E0b iOS StoreKit, then E0c Android Play after D0; each is a separate PR.
 **Depends on:** F2 usage/cost evidence + F3 architecture; fresh owner pricing/legal GO.  
 **Goal:** server-authoritative lifetime Pro only when inventory proves value.
 
 **Owner gate:** confirm 50 active-spool definition, target 99 DKK localized price, seven-day offline grace, refund/chargeback/statutory retention, web checkout decision, and no subscription.
 
-**Tasks:** purchase event/retention migrations; StoreKit 2 JWS + ASSN v2; Play Developer API/RTDN later; appAccountToken; restore purchases; cross-platform entitlement; non-destructive downgrade/over-limit; server reconciliation and key rotation.
+**Tasks:** E0a adds purchase event/retention migrations and server truth; E0b adds StoreKit 2 JWS + ASSN v2 using the stable A0 account UUID as `appAccountToken`; E0c adds Play Developer API/RTDN only after D0. All include restore purchases, non-destructive downgrade/over-limit, server reconciliation, and key rotation.
 
 **Tests:** sandbox/production isolation, replay, refund/revoke, family/ownership, account mismatch, restore on new device, offline grace timestamp, over-limit edits/export/sync, deletion inside/outside retention window.
 
@@ -511,7 +573,7 @@ node --test functions/api/*.test.mjs
 ### D0 — Android v1.1 My 3DPA sync
 
 **Repo:** Android on mac-mini only.  
-**Depends on:** Android v1 shipped + S1 protocol stable + C0 manifest + owner reopens Android gate.  
+**Depends on:** Android v1 shipped + C0 manifest + A1/S0 protocol/lifecycle soak + owner AG0 reopens Android. I1 is not a dependency unless D0's approved brief names a concrete shared artifact from I1.
 **Goal:** add contract/auth/local repository/sync without changing v1 launch scope retroactively.
 
 **Tasks:** vendor manifest; Room/local PDM store; Firebase Apple/Google where supported; Android Keystore device key; Workshop/account sync; deletion in-app + web resource; Data Safety update; shared fixtures.
@@ -536,7 +598,48 @@ node --test functions/api/*.test.mjs
 
 **Exit:** same contract/XCTest fixtures and account deletion/export behavior on macOS.
 
-## 5. Backlog after the gated program
+## 5. Atomic one-PR gate matrix and execution evidence
+
+This matrix overrides broader program-heading wording. Each row is one merge/review boundary. Every command must exit 0 with zero failed tests; the ledger records test counts, C0 hash, migration version, deployed revision when relevant, flag state, rollback result, architecture/QA review links, and cross-model link where required. Runtime gates use `npm ci` first and the lock-pinned Wrangler only. `node --test <path>` means the PR must create that exact test path.
+
+| Gate | Depends on | Exact gate command | Default/rollout | Required rollback proof |
+|---|---|---|---|---|
+| C0 | O0 | `node --test scripts/pdm-contract.test.js && node scripts/pdm-contract.test.js --verify-full-manifest-hash` | contract only | revert on empty store |
+| G0 | C0 | `npm ci && npx wrangler --version && node --test scripts/feature-flags.test.mjs scripts/gate-evidence.test.mjs` | all flags false | clean-clone safe defaults |
+| W0 | G0 | `node --test scripts/pdm-store.test.js scripts/pdm-migration.test.js scripts/state-codec.test.js scripts/workshop-store.test.js` | `pdm2Local=false` | validated distinct backup restore |
+| I0 | G0 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/PDMContractTests` and `PDMMigrationTests` | local iOS commits | legacy-file restore; no push |
+| B0 | G0,O0 | `npm ci && npx wrangler d1 migrations apply 3dpa-account-preview --local && node --test scripts/account-schema.test.mjs scripts/account-dr.test.mjs functions/api/*.test.mjs` | preview/staging; `accountApi=false` | fresh/upgrade/forward-fix rehearsal |
+| A0 | B0 | `node --test scripts/auth-device.test.mjs scripts/auth-negative.test.mjs scripts/csp.test.mjs` | owner staging only; `authUi=false` | staging account reset; local app intact |
+| A1a | A0 | `node --test scripts/account-export.test.mjs scripts/export-crypto.test.mjs` | staging export only | cancel/expire and 24h purge proof |
+| A1b | A1a | `node --test scripts/account-delete.test.mjs scripts/delete-capability-negative.test.mjs` | staging delete only | reconciler resumes every crash state |
+| A1c | A1b | `node --test scripts/account-lifecycle.test.mjs scripts/account-dr.test.mjs` | lifecycle writes staging only | Time Travel restore retains erasure |
+| S0a | A0,A1c | `node --test scripts/sync-push-status.test.mjs scripts/sync-auth-limits.test.mjs` | `syncWrites=false` | write breaker plus idempotent retry |
+| S0b | S0a | `node --test scripts/sync-pull-cursor.test.mjs scripts/sync-entity.test.mjs` | staging pull only | cursor reset/bootstrap path |
+| S0c | S0b | `node --test scripts/sync-bootstrap.test.mjs scripts/sync-lifecycle.test.mjs scripts/sync-system-actor.test.mjs` | staging lifecycle only | lease/reconciler and key-unavailable fail-close |
+| S0d | S0c | `node --test scripts/sync-concurrency.test.mjs scripts/sync-dr.test.mjs scripts/sync-load.test.mjs` | 24h staging soak | breaker/restore rehearsal |
+| S1 | W0,S0d | `node --test scripts/web-sync.test.mjs scripts/web-sync-browser.test.mjs && node scripts/walkthrough-harness.js` | owner staging; `webSync=false` until start | local/outbox survives disable |
+| O1 | A1c,S0d | redacted ledger commands: `npm ci`, exact `npx wrangler d1 create --jurisdiction=eu`, migrate/deploy/smoke/rollback invocations | production flags false | prior deploy + checkpoint restore |
+| R0 | O1,S1 | `node --test scripts/production-account-smoke.test.mjs scripts/production-sync-smoke.test.mjs` with synthetic owner tenant | 5%→25%→100% | newest flag/percentage disabled; lifecycle stays up |
+| U0 | S1 | `node --test scripts/my3dpa-ui.test.mjs && node scripts/walkthrough-harness.js` | `my3dpaUi=false` added by this PR | old navigation + direct lifecycle route |
+| X0a | W0 | `node --test scripts/export-library.test.mjs scripts/export-regression.test.mjs` | local only | hide UI; metadata exportable |
+| X0b | X0a,S1 | `node --test scripts/export-library-sync.test.mjs scripts/sync-reference-race.test.mjs` | sync flag off | local library remains authoritative |
+| IX0 | X0a,I1c | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/ExportLibraryTests` | local iOS commits | hide UI; local export retained |
+| F0 | C0,W0 | `node --test scripts/inventory-store.test.mjs scripts/inventory-projection.test.mjs scripts/inventory-import.test.mjs` | `inventoryLocal=false` | hide UI; JSON export retained |
+| F1a | F0 | `python3 -m unittest discover -s tests -p 'test_export*.py'` in bambuinventory | read-only exporter | remove exporter; zero writes |
+| F1b | F1a | `node --test scripts/inventory-bambu-import.test.mjs scripts/inventory-reconcile.test.mjs` | dry-run first | backup pre-sync; compensation post-sync |
+| F2 | F1b,S1 | `node --test scripts/inventory-sync.test.mjs scripts/inventory-lifecycle.test.mjs scripts/inventory-projection.test.mjs` | owner beta; `inventorySync=false` | local/events/export survive disable |
+| F3 | F2,I1c | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/InventoryTests` | local iOS commits | remote flag; local export retained |
+| E0a | F2 + owner price/legal GO | `node --test scripts/entitlement-server.test.mjs scripts/purchase-retention.test.mjs` | grants/checkout off | stop grants; retain validated rights |
+| E0b | E0a,F3 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/StoreKitEntitlementTests` | StoreKit sandbox, local commits | checkout off; read/export retained |
+| D0 | Android v1,C0,A1c,S0d,AG0 | `./gradlew test connectedCheck` on mac-mini | Android sync flag off | local Android v1 behavior |
+| E0c | E0a,D0 | `./gradlew test --tests '*PlayEntitlement*'` on mac-mini | Play sandbox/grants off | checkout off; rights retained |
+| M0 | I1c + extraction GO | default iOS/macOS build/test commands with macOS destination | unreleased target | iOS-on-Mac remains |
+
+I1 itself is three iOS PR/local-commit boundaries: I1a runs `-only-testing:3DPrintAssistantTests/AuthDeviceTests`; I1b runs `-only-testing:3DPrintAssistantTests/SyncLifecycleTests`; I1c runs the full default iOS suite plus UI tests and the web walkthrough before the single owner-approved push. S1 also proves cleanup of a synced transition backup through two eligible cleanup cycles separated by an app/browser restart, including the automatic 30-day erasure rule and an auditable user-triggered early cleanup.
+
+O1's command cell is deliberately template-shaped because Cloudflare resource IDs do not exist before owner authorization; it is not permission to improvise. G0 pins the tool version, B0 writes the exact parameterized runbook, and O1 materializes the redacted, copy/paste command list in the ledger before execution. Any command absent from that reviewed run sheet blocks O1.
+
+## 6. Backlog after the gated program
 
 Add, but do not pull into the account critical path:
 
@@ -553,7 +656,7 @@ Add, but do not pull into the account critical path:
 
 Explicitly reject from this backlog: mandatory accounts, cloud slicer, STL/G-code library, remote cameras/control, farm/team administration without a separate business case, and subscription-by-default.
 
-## 6. Review and release cadence
+## 7. Review and release cadence
 
 For each gate:
 
@@ -569,7 +672,7 @@ For each gate:
 
 Never stack unreviewed dependent PRs. A draft may begin locally, but it does not open/merge until the dependency's final contract hash and migration state are known.
 
-## 7. Mandatory data/logic cross-platform evaluation
+## 8. Mandatory data/logic cross-platform evaluation
 
 | Gate/change | Web | iOS | Android | macOS | Engine/data action |
 |---|---|---|---|---|---|
@@ -583,7 +686,7 @@ Never stack unreviewed dependent PRs. A draft may begin locally, but it does not
 
 If any later gate changes `engine.js` or canonical `data/`, it becomes a separate web-master PR: edit web first, byte-mirror iOS/Android, run web walkthrough/data validators and native tests, and document UI/UX changes required to expose the improvement. None of C0–S1 is authorized to change profile formulas or canonical printer/material data.
 
-## 8. Program completion criteria
+## 9. Program completion criteria
 
 The account/cloud foundation is complete only when:
 
