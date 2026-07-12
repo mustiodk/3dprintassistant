@@ -408,7 +408,7 @@ Compacting the ordered change stream advances `users.min_available_revision`. A 
 
 ```text
 users(user_id PK, status, pdm_version, next_revision, min_available_revision,
-      export_write_barrier, app_account_token, created_at, deleted_at)
+      app_account_token, created_at, deleted_at)
 devices(user_id, device_id, signing_public_key, last_request_counter,
         last_request_hash, last_request_result, last_processed_op_sequence,
         last_acknowledged_op_sequence,
@@ -468,7 +468,7 @@ POST /api/v1/purchases/google/verify   (later)
 
 Limits for v1: 100 ops/push, 500 entities/pull page, 64 KB/entity, 5 MB active payload/account, and rate limits sized from measured traffic. Exceeding a limit returns a structured, non-destructive error.
 
-Account export first materializes an immutable job-owned snapshot in one D1 transaction: briefly set a per-user export write barrier, capture `exportRevision`, copy the exact user entities/tombstones/device/entitlement manifest into `export_job_items`, verify item count/hash, and release the barrier. Concurrent sync writes receive retryable `409 export_snapshot_in_progress` only during that bounded transaction; later writes are outside the declared export revision. A failed transaction leaves no job snapshot and releases the barrier.
+Account export first materializes an immutable job-owned snapshot in one D1 transaction: capture `exportRevision`, copy the exact user entities/tombstones/device/entitlement manifest with one atomic `INSERT … SELECT`/batch into `export_job_items`, and record item count/hash. D1 serialization places concurrent writes wholly before or after this transaction; there is no externally visible write barrier or typed barrier error. Later writes are simply outside the declared export revision. A failed transaction rolls back both job metadata and items.
 
 A Cloudflare Queue consumer pages only those immutable job rows, checkpoints page/hash progress, and writes the completed archive to a private, encrypted R2 object. Retries never reread mutable live entities. The GET endpoint requires the same active reauthenticated user, returns progress or streams the object; object keys are random and never public. After download, the client hashes the exact artifact and calls the authenticated verify endpoint with `{artifactHash}`; the Worker constant-time compares `export_jobs.artifact_hash`, records `downloaded_verified_at`, and returns a signed receipt. A mismatch never marks verified. Jobs are idempotent by request ID, expose typed terminal errors, and delete staging rows/artifacts within 24 hours of completion. Deletion preflight handles pending, failed, expired, completed-but-not-downloaded, verified, and explicit-cancel states before the account lock; after lock, no account export artifact remains reachable. Fixtures mutate live data during materialization/queue retries and prove the archive equals exactly `exportRevision`. R2/Queue resources are therefore activated at the account-lifecycle gate, not for normal sync payload storage.
 
