@@ -287,7 +287,7 @@ node --test functions/api/*.test.mjs
 **Depends on:** B0 + O0 dev/staging authorization.
 **Goal:** create the actual remote staging environment required by A0–S1, while every public/product flag remains false.
 
-**Create/modify:** staging-only `wrangler` environment/bindings, redacted `docs/runbooks/account-staging.md`, synthetic smoke tests, and the B1 ledger run sheet. No production binding or product UI is allowed.
+**Create/modify:** staging-only `wrangler` environment/bindings, redacted `docs/runbooks/account-staging.md`, `docs/runbooks/firebase-staging.md`, synthetic smoke tests, and the B1 ledger run sheet. No production binding or product UI is allowed.
 
 **Reviewed command sequence after `npm ci`:**
 
@@ -306,7 +306,9 @@ npx wrangler deploy --env staging
 
 Wrangler-generated D1/Queue IDs are inserted into the staging binding file and reviewed before migrate/deploy. Secrets are set through the non-echoing `npx wrangler secret put <NAME> --env staging` command list in the ledger; the values and command stdin are never logged. The smoke suite proves remote schema/hash, R2 conditional races, Queue→DLQ, secret-presence without disclosure, route-disabled behavior, cost counters, and rollback/forward-deploy.
 
-**Exit:** a fresh remote migrate/deploy/smoke/rollback/forward-deploy exits 0; all flags remain false; no public hostname/navigation exposes the staging app; resource IDs, revisions, timestamps, and sanitized output are in the ledger.
+The same reviewed B1 run sheet provisions Firebase staging before A0: create the dedicated `3dpa-account-staging` project; record project number/ID and least-privilege owners; enable only Apple and Google identity providers; explicitly prove anonymous and email/password disabled; register only the exact staging origin and OAuth/Apple redirect domains; store Apple/Google secrets outside git; record SHA-256 hashes of the public Firebase config and provider/domain export; obtain one Google and one Apple staging token and verify exact issuer/audience/redirect rejection cases. The rollback rehearsal disables both providers, removes the staging origin, proves new sign-in fails while local/signed-out use remains intact, then restores the reviewed config. Screenshots/exports are sanitized and checksummed in the ledger; secret values and tokens are never captured.
+
+**Exit:** a fresh remote migrate/deploy/smoke/rollback/forward-deploy exits 0; Firebase provider/domain disable-and-restore evidence is green; all flags remain false; no public hostname/navigation exposes the staging app; resource IDs, revisions, timestamps, provider/config hashes, and sanitized output are in the ledger.
 
 ---
 
