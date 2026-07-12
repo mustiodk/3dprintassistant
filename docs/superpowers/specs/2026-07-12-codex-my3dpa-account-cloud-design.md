@@ -350,11 +350,22 @@ One shared fixture corpus contains valid boundary examples, every invalid enum/r
 ### 8.3 IDs and timestamps
 
 - New ordinary entities use UUID v4 identifiers generated locally. Validated legacy IDs are namespaced as described in §15.1.
-- Latest-per-key entities use a deterministic UUID v5 from the fixed 3dpa namespace plus `kind + normalizedLogicalKey`: preference keys are a closed account-setting enum; tuning-dismissal keys are the canonical suggestion key. D1 also enforces `UNIQUE(user_id, kind, logical_key)`.
+- Latest-per-key entities use deterministic UUID v5 namespace `pdm2LogicalKey` plus `kind + normalizedLogicalKey`: preference keys are a closed account-setting enum; tuning-dismissal keys are the canonical suggestion key. D1 also enforces `UNIQUE(user_id, kind, logical_key)`.
 - RFC 3339 UTC display timestamps.
 - Ordering/causality uses server revisions, not client wall clocks.
 - Client timestamps are informational and bounded/validated.
 - IDs are opaque; no email, printer serial, or provider ID embedded.
+
+`contracts/pdm2/namespaces.json` is normative and copied verbatim into every platform fixture:
+
+```json
+{
+  "pdm2LogicalKey": "9eb11ca3-a665-4981-8ebd-89f7c2f63841",
+  "pdm2Legacy": "f685ba46-a921-45c2-9c64-b44e8b4c3c83",
+  "pdm2Conflict": "af3ef675-b9ec-4ae5-926d-2b16d020aa9e",
+  "pdm2Import": "4f5f1045-9a16-4caf-a418-20dc4e7b3de7"
+}
+```
 
 ### 8.4 Tombstones
 
@@ -457,7 +468,7 @@ After a client durably records/handles a contiguous run of terminal results, its
 - Spool metadata: field-level merge is deliberately rejected for v1; return a conflict copy/choice to avoid invented combinations.
 - Stale edit after a deletion: deletion remains; offer “Restore as a new copy” locally.
 
-Conflict creation is retry-safe. The copy ID is deterministic UUID v5 from `conflict + rejectedOpId`; its local `version`/`baseVersion` are zero, and its new create operation has a deterministically persisted resolution op ID. In one local transaction the client writes the copy, writes its outbox op, records the original op as resolved-to-copy, and only then clears the rejected op. A crash/retry derives the same IDs and cannot create duplicate conflict copies. “Restore as a new copy” uses the same rule from the rejected stale-delete op.
+Conflict creation is retry-safe. The copy ID is UUID v5 in namespace `pdm2Conflict` from `conflict + rejectedOpId`; its local `version`/`baseVersion` are zero, and its new create operation has a deterministically persisted resolution op ID. In one local transaction the client writes the copy, writes its outbox op, records the original op as resolved-to-copy, and only then clears the rejected op. A crash/retry derives the same IDs and cannot create duplicate conflict copies. “Restore as a new copy” uses the same rule from the rejected stale-delete op.
 
 ### 9.5 Pull and cursor
 
@@ -745,7 +756,7 @@ The configurator/engine must remain available during every backend incident.
 1. Detect `3dpa_workshop_v1` / iOS `workshop.json` v1.
 2. Parse with existing tolerant readers.
 3. Convert profiles, journals, tuning accepts/dismissals into PDM2 entities in memory.
-4. For every valid UUID v4 source ID, retain it. For legacy fallback IDs such as `p_<timestamp>_<random>`, derive UUID v5 from the fixed 3dpa legacy namespace plus `kind + sourceId`; rewrite every reference through the same map and record source→target IDs in the migration report. Reject malformed/oversized IDs instead of guessing.
+4. For every valid UUID v4 source ID, retain it. For legacy fallback IDs such as `p_<timestamp>_<random>`, derive UUID v5 in namespace `pdm2Legacy` from `kind + sourceId`; rewrite every reference through the same map and record source→target IDs in the migration report. Reject malformed/oversized IDs instead of guessing.
 5. Validate rewritten references and prove the mapping is collision-free in the source set.
 6. Atomically write PDM2 plus `migrationSourceHash`.
 7. Export/retain the untouched v1 backup.
@@ -769,7 +780,7 @@ Failure injection is tested after backup write, readback, migration, cloud pull,
 
 Serialized `entity.version`/`baseVersion` is never trusted as authorization state:
 
-- **Signed-out/portable import:** validate content, reset every imported entity to local `version:0`, and create new outbox ops only after future sync opt-in. For ordinary mutable/append entities, a differing ID collision derives deterministic UUID v5 from `import + manifestHash + kind + sourceId` and rewrites references; identical canonical content deduplicates. Latest-per-key entities (`preference`, `tuning_dismissal`) keep their logical-key-derived ID and enter an explicit reconcile/choice, never duplicate. A content-addressed `export_snapshot` must recompute to its stated hash/ID; same ID with different content is corruption and quarantines the snapshot plus dependent presets.
+- **Signed-out/portable import:** validate content, reset every imported entity to local `version:0`, and create new outbox ops only after future sync opt-in. For ordinary mutable/append entities, a differing ID collision derives UUID v5 in namespace `pdm2Import` from `manifestHash + kind + sourceId` and rewrites references; identical canonical content deduplicates. Latest-per-key entities (`preference`, `tuning_dismissal`) keep their logical-key-derived ID and enter an explicit reconcile/choice, never duplicate. A content-addressed `export_snapshot` must recompute to its stated hash/ID; same ID with different content is corruption and quarantines the snapshot plus dependent presets.
 - **New/different account import:** apply the same reset and per-kind policy. Bootstrap checks server active IDs and graveyard membership; only ordinary entities remap, latest-per-key entities reconcile by logical key, and content-addressed snapshots verify/quarantine. No imported entity is sent as a `baseVersion > 0` create.
 - **Same-account restore:** permitted only from a server-signed account export whose opaque account-scope claim verifies for the currently reauthenticated UID. Pull current server state first and reconcile by ID/content; serialized versions are hints for conflict reporting, while current D1 versions control mutations.
 
