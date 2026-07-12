@@ -379,6 +379,7 @@ One shared fixture corpus contains valid boundary examples, every invalid enum/r
 ### 8.3 IDs and timestamps
 
 - New ordinary entities use UUID v4 identifiers generated locally. Validated legacy IDs are namespaced as described in §15.1.
+- `export_snapshot` is the sole non-UUID entity: `id = "sha256:" + lowercaseHex(SHA-256(RFC8785(payload)))`, using the complete 32-byte digest with no truncation or UUID nibble rewriting. All platforms hash the exact normative payload bytes and fixtures include the expected 64-hex ID.
 - Latest-per-key entities use deterministic UUID v5 namespace `pdm2LogicalKey` plus `kind + normalizedLogicalKey`: preference keys are a closed account-setting enum; tuning-dismissal keys are the canonical suggestion key. The Worker recomputes this UUID from the schema-normalized logical key and rejects an ID mismatch; the existing `sync_entities` primary key then enforces one row without a duplicate logical-key column.
 - RFC 3339 UTC display timestamps.
 - Ordering/causality uses server revisions, not client wall clocks.
