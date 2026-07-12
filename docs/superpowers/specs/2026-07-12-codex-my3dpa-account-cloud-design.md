@@ -796,6 +796,6 @@ These decisions must be explicit before implementation mutates external services
 3. Confirm basic Workshop sync is free and account-optional.
 4. Confirm Android v1 remains unblocked/account-free; sync is v1.1 by default.
 5. Confirm inventory free boundary only when inventory product detail is specified; 50 active spools / 99 DKK lifetime is a recommendation, not a silently locked price.
-6. Approve creation of Firebase projects, D1 databases, and updated privacy/data-safety disclosures.
+6. Before creating production Firebase/D1 resources or processing user data: approve the provider split; execute/accept the current Google Cloud/Firebase and Cloudflare DPAs; confirm the applicable EU Standard Contractual Clauses and transfer-risk measures cover Firebase Authentication's US processing and Cloudflare recovery copies; record agreement versions/effective dates; and approve the matching privacy, App Privacy, and Play Data Safety disclosures. This is an evidence-recorded GO gate, not a launch-day checkbox.
 
 No owner decision is needed to continue local docs/planning/review work in this session.
