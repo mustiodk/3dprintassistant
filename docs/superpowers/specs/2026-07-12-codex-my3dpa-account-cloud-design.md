@@ -379,7 +379,7 @@ One shared fixture corpus contains valid boundary examples, every invalid enum/r
 ### 8.3 IDs and timestamps
 
 - New ordinary entities use UUID v4 identifiers generated locally. Validated legacy IDs are namespaced as described in §15.1.
-- Latest-per-key entities use deterministic UUID v5 namespace `pdm2LogicalKey` plus `kind + normalizedLogicalKey`: preference keys are a closed account-setting enum; tuning-dismissal keys are the canonical suggestion key. D1 also enforces `UNIQUE(user_id, kind, logical_key)`.
+- Latest-per-key entities use deterministic UUID v5 namespace `pdm2LogicalKey` plus `kind + normalizedLogicalKey`: preference keys are a closed account-setting enum; tuning-dismissal keys are the canonical suggestion key. The Worker recomputes this UUID from the schema-normalized logical key and rejects an ID mismatch; the existing `sync_entities` primary key then enforces one row without a duplicate logical-key column.
 - RFC 3339 UTC display timestamps.
 - Ordering/causality uses server revisions, not client wall clocks.
 - Client timestamps are informational and bounded/validated.
