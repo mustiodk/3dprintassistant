@@ -304,6 +304,29 @@ Readers must round-trip unknown envelope and payload fields byte-for-value throu
 
 Journal entries move out of nested profile arrays during migration. Remaining filament is derived from `spool.initialQuantity + sum(inventory_event.delta)`, clamped to an honest range with explicit adjustment events. Never sync only a mutable percentage when two devices can consume the same spool.
 
+#### 8.2.1 Normative schema contract
+
+Before any client implementation, the contract gate publishes versioned JSON Schema 2020-12 files in `contracts/pdm2/entities/` and `contracts/pdm2/api/`. Those checked-in files, not prose or a platform model, are authoritative. They set `additionalProperties: true` for forward-compatible payload fields, while the Worker separately allowlists writable paths per client schema version. All strings are valid UTF-8; IDs and reference fields are bounded to 128 bytes; user labels are 1–80 Unicode scalar values; notes are at most 2,000; timestamps use RFC 3339 UTC; monetary values are integer minor units plus ISO-4217 currency; quantities are finite integer milligrams internally and rendered in user units.
+
+The first schema set must fully define:
+
+| Kind | Required payload contract |
+|---|---|
+| `profile` | `name`, complete web-shaped `state`, `engineVersion`, `dataVersion`; optional `notes` |
+| `outcome` | `profileId`, `result: worked|failed`, `symptomIds[]`, `occurredAt`; optional `note`; reference may point to a tombstoned same-user profile |
+| `tuning_op` | `pairKey`, `offsetKey`, `action: accept|revert`, finite `step`, `clampMin`, `clampMax`, `occurredAt`; optional `symptomId` |
+| `tuning_dismissal` | deterministic `suggestionKey`, `dismissedAt` |
+| `custom_material` | namespaced `materialId`, `canonicalTemplateId`, schema-allowlisted `overrides` |
+| `printer` | canonical `modelId`; optional bounded `label`, nozzle/material/location references; no credentials or serials |
+| `spool` | `product`, `materialId`, `capacityMg`, `status: active|empty|retired`; optional color/location/purchase fields |
+| `inventory_event` | `spoolId`, event enum, signed `deltaMg`, `occurredAt`, reason/source; same-user reference required unless importing a tombstoned spool |
+| `export_preset` | immutable snapshot reference, `slicer: bambu|orca|prusa`, `exportType`, engine/data/catalog versions; optional label |
+| `preference` | deterministic allowlisted `key` and typed `value`; account secrets and engine/profile values are forbidden |
+
+API schemas define every request, success response, per-op result, page cursor, bootstrap manifest, export manifest, deletion status, and error body. Errors use `{code, message, retryable, requestId, details?}` with a closed `code` enum. Push returns one ordered result per submitted op (`applied|duplicate|conflict|rejected`), never an ambiguous batch boolean; dependency rejection names the prerequisite op. Pull returns `{entities, nextRevision, currentRevision, minAvailableRevision, hasMore}`. Canonical payload hashes use RFC 8785 JSON Canonicalization Scheme plus SHA-256.
+
+One shared fixture corpus contains valid boundary examples, every invalid enum/reference/size case, unknown-field round trips, canonical hashes, partial-batch dependency cases, and expected typed errors. JavaScript, Swift, and Kotlin conformance suites must consume the exact same files before their adapters can merge.
+
 ### 8.3 IDs and timestamps
 
 - UUID v4 identifiers generated locally.
