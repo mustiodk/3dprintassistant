@@ -48,22 +48,23 @@ G0 flags/toolchain/gate ledger
       └─ C0 PDM2 contract
           ├─ W0 web local repository + migration
           ├─ I0 iOS contract adapter + local migration
-          └─ B0 backend foundation (local/staging only)
-               └─ A0 staging auth + device registration (owner-only)
-                    ├─ A1 account export/delete/lifecycle program
-                    └─ S0 sync server program
-                         ├─ S1 owner-only web Workshop sync soak
+          └─ B0 local backend/schema foundation
+               └─ B1 remote staging foundation
+                    └─ A0 staging auth + device registration (owner-only)
+                         └─ A1 account export/delete/lifecycle program
+                              └─ S0 sync server program
+                                   ├─ S1 owner-only web Workshop sync soak
                          │    ├─ R0 production/public account rollout
                          │    └─ U0 My 3DPA web hub
                          └─ I1 iOS auth + Workshop sync program (after S1 soak)
 
-B0 + A1 + S0 ── O1 production foundation (flags off)
+B1 + A1 + S0 ── O1 production foundation (flags off)
 O1 + S1 owner soak ── R0 public signup 5%→25%→100%
 
 W0 ── X0 export history/library
 W0 ── F0 local inventory domain/web
         └─ F1 bambuinventory export/import
-             └─ F2 inventory cloud sync/web
+R0 + F1 ── F2 inventory cloud sync/web
                   └─ F3 iOS inventory
                        └─ E0 one-time Pro entitlement
 
@@ -244,7 +245,7 @@ node --test scripts/r2-conditional-capability.test.mjs
 - `3DPrintAssistantTests/PDMContractTests.swift`
 - `3DPrintAssistantTests/PDMMigrationTests.swift`
 
-**Tasks:** vendor manifest/fixtures by hash; preserve unknown raw JSON; atomically migrate Application Support files; add outbox/conflict models; expose journal/outcome UI parity; keep engine startup independent of PDM/cloud.
+**Tasks:** first add the minimal Swift fixture reader and record exact C0 hash parity; then vendor manifest/fixtures by hash; preserve unknown raw JSON; atomically migrate Application Support files; add outbox/conflict models; expose journal/outcome UI parity; keep engine startup independent of PDM/cloud.
 
 **Tests:** shared fixtures, file-write failure injection, fallback legacy IDs, backup cleanup, journal parity, existing Workshop/AppState/Engine tests.
 
@@ -254,22 +255,22 @@ node --test scripts/r2-conditional-capability.test.mjs
 
 ---
 
-### B0 — backend foundation, migrations, and local/staging runbooks
+### B0 — local backend/schema foundation
 
 **Repo:** web.  
 **Depends on:** C0 + O0 dev/staging authorization.
-**Goal:** testable Worker modules and expand-only D1 schema with no public account UI.
+**Goal:** testable Worker modules and expand-only local D1 schema with no remote resource or public account UI.
 
 **Create/modify:**
 
 - `functions/api/v1/_lib/` for schema, errors, canonical JSON, quotas, DB helpers
 - `functions/api/v1/schema/versions.js`
 - `migrations/account/0001_expand.sql`
-- `wrangler.toml` preview bindings only
+- `wrangler.toml` local/preview bindings only
 - `scripts/account-schema.test.mjs`, `scripts/account-dr.test.mjs`
 - `docs/runbooks/account-backend.md`, `account-dr-restore.md`, `key-rotation.md`
 
-**Tasks:** implement all normative tables/indexes/constraints; local D1 migration tests; public schema manifest endpoint; the C0-selected R2-or-Durable-Object coordination adapter; feature flags/global write breaker; content-free logging; staging-only R2/Queue integration; expand/rollback rehearsal.
+**Tasks:** implement all normative tables/indexes/constraints; local D1 migration tests; schema manifest endpoint; the C0-selected R2-or-Durable-Object coordination adapter behind local fakes; feature flags/global write breaker; content-free logging; expand/rollback rehearsal.
 
 **Tests:**
 
@@ -279,16 +280,45 @@ node --test scripts/account-schema.test.mjs scripts/account-dr.test.mjs
 node --test functions/api/*.test.mjs
 ```
 
-**Review/rollback:** DB/security/DR reviews; remove preview bindings and revert expand migration before data. Production creation is still blocked.
+**Review/rollback:** DB/security/DR reviews; remove preview bindings and recreate the empty local database. Remote creation is still blocked.
 
-**Exit:** fresh + upgrade + rollback/forward-fix staging rehearsal, the C0 coordination decision implemented without semantic drift, cost counters observable.
+**Exit:** fresh + upgrade + rollback/forward-fix local rehearsal, the C0 coordination decision implemented without semantic drift, cost counters observable in fixtures.
+
+---
+
+### B1 — remote staging provision, deploy, and rollback
+
+**Repo:** web.
+**Depends on:** B0 + O0 dev/staging authorization.
+**Goal:** create the actual remote staging environment required by A0–S1, while every public/product flag remains false.
+
+**Create/modify:** staging-only `wrangler` environment/bindings, redacted `docs/runbooks/account-staging.md`, synthetic smoke tests, and the B1 ledger run sheet. No production binding or product UI is allowed.
+
+**Reviewed command sequence after `npm ci`:**
+
+```sh
+npx wrangler d1 create 3dpa-account-staging --jurisdiction=eu
+npx wrangler r2 bucket create 3dpa-account-staging
+npx wrangler r2 bucket create 3dpa-erasure-ledger-staging
+npx wrangler queues create 3dpa-account-staging
+npx wrangler queues create 3dpa-account-staging-dlq
+npx wrangler d1 migrations apply 3dpa-account-staging --remote --env staging
+npx wrangler deploy --env staging
+node --test scripts/staging-foundation-smoke.test.mjs scripts/staging-rollback.test.mjs
+npx wrangler rollback --env staging
+npx wrangler deploy --env staging
+```
+
+Wrangler-generated D1/Queue IDs are inserted into the staging binding file and reviewed before migrate/deploy. Secrets are set through the non-echoing `npx wrangler secret put <NAME> --env staging` command list in the ledger; the values and command stdin are never logged. The smoke suite proves remote schema/hash, R2 conditional races, Queue→DLQ, secret-presence without disclosure, route-disabled behavior, cost counters, and rollback/forward-deploy.
+
+**Exit:** a fresh remote migrate/deploy/smoke/rollback/forward-deploy exits 0; all flags remain false; no public hostname/navigation exposes the staging app; resource IDs, revisions, timestamps, and sanitized output are in the ledger.
 
 ---
 
 ### A0 — auth, account creation, and device trust
 
 **Repo:** web.  
-**Depends on:** B0 + O0 provider/dev-staging GO.
+**Depends on:** B1 + O0 provider/dev-staging GO.
 **Goal:** optional Apple/Google sign-in and atomic account/device registration in dev/staging, with sync still off.
 
 **Create/modify:**
@@ -608,8 +638,9 @@ This matrix overrides broader program-heading wording. Each row is one merge/rev
 | C0 | G0,O0 | `node --test scripts/pdm-contract.test.js scripts/r2-conditional-capability.test.mjs && node scripts/pdm-contract.test.js --verify-full-manifest-hash`, plus the default iOS commands with `-only-testing:3DPrintAssistantTests/PDMContractTests` | contract only; iOS local commit | revert on empty store; no iOS push |
 | W0 | C0 | `node --test scripts/pdm-store.test.js scripts/pdm-migration.test.js scripts/state-codec.test.js scripts/workshop-store.test.js` | `pdm2Local=false` | validated distinct backup restore |
 | I0 | C0 | default iOS build/test commands + `-only-testing:3DPrintAssistantTests/PDMContractTests` and `PDMMigrationTests` | local iOS commits | legacy-file restore; no push |
-| B0 | C0,O0 | `npm ci && npx wrangler d1 migrations apply 3dpa-account-preview --local && node --test scripts/account-schema.test.mjs scripts/account-dr.test.mjs functions/api/*.test.mjs` | preview/staging; `accountApi=false` | fresh/upgrade/forward-fix rehearsal |
-| A0 | B0 | `node --test scripts/auth-device.test.mjs scripts/auth-negative.test.mjs scripts/csp.test.mjs` | owner staging only; `authUi=false` | staging account reset; local app intact |
+| B0 | C0,O0 | `npm ci && npx wrangler d1 migrations apply 3dpa-account-preview --local && node --test scripts/account-schema.test.mjs scripts/account-dr.test.mjs functions/api/*.test.mjs` | local/preview; `accountApi=false` | fresh/upgrade/forward-fix rehearsal |
+| B1 | B0,O0 | exact B1 provision/migrate/deploy/smoke/rollback/forward-deploy sequence in §4 | remote staging; all flags false | prior staging deploy + forward-deploy proof |
+| A0 | B1 | `node --test scripts/auth-device.test.mjs scripts/auth-negative.test.mjs scripts/csp.test.mjs` | owner staging only; `authUi=false` | staging account reset; local app intact |
 | A1a | A0 | `node --test scripts/account-export.test.mjs scripts/export-crypto.test.mjs` | staging export only | cancel/expire and 24h purge proof |
 | A1b | A1a | `node --test scripts/account-delete.test.mjs scripts/delete-capability-negative.test.mjs` | staging delete only | reconciler resumes every crash state |
 | A1c | A1b | `node --test scripts/account-lifecycle.test.mjs scripts/account-dr.test.mjs` | lifecycle writes staging only | Time Travel restore retains erasure |
