@@ -475,6 +475,8 @@ POST /api/v1/purchases/apple/verify    (later)
 POST /api/v1/purchases/google/verify   (later)
 ```
 
+`GET /api/v1/account` returns the authenticated active account contract `{status, pdmVersion, currentRevision, appAccountToken, devicesSummary, entitlements}`. `appAccountToken` is the server-issued UUID that iOS passes unchanged to StoreKit; it is never client-generated, logged, placed in analytics, or included in portable export. The purchase validator requires the returned transaction token to equal this account field before applying entitlement.
+
 Limits for v1: 100 ops/push, 500 entities/pull page, 64 KB/entity, 5 MB active payload/account, and rate limits sized from measured traffic. Exceeding a limit returns a structured, non-destructive error.
 
 Account export first materializes an immutable job-owned snapshot in one D1 transaction: capture `exportRevision`, copy the exact user entities/tombstones/device/entitlement manifest with one atomic `INSERT … SELECT`/batch into `export_job_items`, and record item count/hash. D1 serialization places concurrent writes wholly before or after this transaction; there is no externally visible write barrier or typed barrier error. Later writes are simply outside the declared export revision. A failed transaction rolls back both job metadata and items.
