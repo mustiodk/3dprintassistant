@@ -219,9 +219,13 @@ The active-user D1 check makes account deletion effective immediately even if a 
 First authenticated request creates:
 
 - an active D1 user row;
-- a random device row supplied by the client installation;
+- a server-registered device row and one-time device secret after recent provider reauthentication;
 - PDM version `2`;
 - zero domain data until the user confirms first upload.
+
+The device secret is stored in Keychain/Keystore or browser Web Crypto non-exportable storage where available; D1 stores only its hash. Sync calls include device ID, nonce, timestamp, and an HMAC over method/path/body hash. The Worker rejects replayed nonces, revoked devices, invalid proofs, and proofs outside a short clock window. Registering or rotating a device requires a Firebase token with recent `auth_time`, so a revoked installation cannot simply invent a new device ID using a background refresh token.
+
+Device removal therefore revokes sync capability for that installation. The lost-device flow additionally calls Firebase refresh-token revocation for the account, locks all device secrets, and requires fresh provider sign-in before trusted devices are re-registered. The UI states clearly that account-wide sign-out is required for a suspected stolen credential.
 
 Do not create anonymous Firebase accounts for every install. That would turn every local user into server state and weaken the no-account promise.
 
@@ -312,7 +316,8 @@ Compacting the ordered change stream advances `users.min_available_revision`. A 
 ```text
 users(user_id PK, status, pdm_version, next_revision, min_available_revision,
       created_at, deleted_at)
-devices(user_id, device_id, platform, app_version, label, last_seen_at, revoked_at)
+devices(user_id, device_id, device_secret_hash, platform, app_version, label,
+        last_seen_at, revoked_at)
 sync_entities(user_id, kind, entity_id, entity_version, user_revision,
               schema_version, payload_json, payload_hash, deleted_at, updated_at,
               PK(user_id, kind, entity_id))
@@ -335,6 +340,8 @@ POST /api/v1/account/export
 POST /api/v1/account/delete
 GET  /api/v1/devices
 POST /api/v1/devices/{id}/revoke
+POST /api/v1/devices/register              (recent reauthentication required)
+POST /api/v1/devices/revoke-all            (lost-device incident flow)
 POST /api/v1/sync/push
 GET  /api/v1/sync/pull?after=<revision>&limit=<n>
 POST /api/v1/sync/bootstrap
@@ -347,7 +354,7 @@ Limits for v1: 100 ops/push, 500 entities/pull page, 64 KB/entity, 5 MB active p
 
 ### 9.3 Push semantics
 
-Every local mutation gets a random `opId`, `deviceId`, kind/entity ID, `baseVersion`, schema version, field mask plus changed values (or complete payload for a create), and payload/tombstone.
+Every local mutation gets a random `opId`, registered `deviceId`, kind/entity ID, `baseVersion`, schema version, field mask plus changed values (or complete payload for a create), and payload/tombstone. The request also proves possession of that device's secret as defined in §7.4.
 
 - Duplicate `opId`: return the original result; never apply twice.
 - Append-only kinds: union by entity ID; duplicate IDs are idempotent.
