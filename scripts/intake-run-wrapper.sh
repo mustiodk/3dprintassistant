@@ -2,10 +2,11 @@
 # intake-run-wrapper.sh — launchd plist entrypoint (Intake Autonomy v2, Gate B3).
 #
 # Sequence: env pin → preflight → lock ACQUIRE → claude -p (headless runner
-# session) → trap-release + failure notify (Codex SF-1: lock custody lives
-# HERE, not inside the Claude session — the lock releases on EVERY exit,
-# including claude failing to launch at all; the runner contract additionally
-# releases on its own graceful paths).
+# session) → post-run invariants (intake-post-run-invariants.sh — claude exit 0
+# alone is NOT success; 2026-07-12 incident) → trap-release + failure notify
+# (Codex SF-1: lock custody lives HERE, not inside the Claude session — the
+# lock releases on EVERY exit, including claude failing to launch at all; the
+# runner contract additionally releases on its own graceful paths).
 #
 # ENV PARITY (B0 review observation): PATH pin + oauth.env sourcing below MUST
 # match scripts/intake-launchd-probe.sh — the probe proved THIS environment.
@@ -13,10 +14,22 @@
 export PATH="/Users/mustafaozturk-macmini/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 REPO="/Users/mustafaozturk-macmini/dev/Claude/Projects/3dprintassistant"
+OAUTH_ENV="$HOME/.config/claude-code/oauth.env"
+
+# Test seams (production launchd passes no arguments — defaults above hold):
+# --repo <path> · --oauth-env <path> · --path-prepend <dir> (stub claude/node).
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --repo)         REPO="$2"; shift 2 ;;
+    --oauth-env)    OAUTH_ENV="$2"; shift 2 ;;
+    --path-prepend) export PATH="$2:$PATH"; shift 2 ;;
+    *) echo "WRAPPER unknown argument $1"; exit 64 ;;
+  esac
+done
+
 LOCK="$REPO/scripts/.intake-run.lock"
 KICKOFF="$REPO/scripts/intake-run-kickoff.md"
 STATE_DIR="$REPO/scripts/.intake-runner-state"
-OAUTH_ENV="$HOME/.config/claude-code/oauth.env"
 
 cd "$REPO" || exit 78
 mkdir -p "$STATE_DIR" "$REPO/scripts/.printer-intake-out"
@@ -81,6 +94,7 @@ if [[ ! -f "$KICKOFF" ]]; then
   notify_failure "kickoff: $KICKOFF missing"
   exit 1
 fi
+run_start_epoch=$(date +%s)
 claude -p "$(cat "$KICKOFF")" --output-format text --permission-mode bypassPermissions \
   > "$STATE_DIR/last-run-session.log" 2>&1
 claude_rc=$?
@@ -93,6 +107,22 @@ if [[ $claude_rc -ne 0 ]]; then
   # owner-only by design (accepted at B3, ledgered).
   node "$REPO/scripts/intake-notify.js" --failure "runner-session: claude exited rc=$claude_rc — tail: $(tail -c 300 "$STATE_DIR/last-run-session.log" | tr '\n' ' ')" --shipped-unknown || true
   exit $claude_rc
+fi
+
+# 5 — POST-RUN INVARIANTS (2026-07-12 incident): claude exit 0 only proves the
+# CLI completed — a session once exited 0 after the candidate commit with no
+# PD5 review, report, notify or cleanup, and this wrapper reported success.
+# The deterministic gate verifies the contract's observable terminal
+# obligations (fresh report ⇒ notify ran; non-empty session log; HEAD on main;
+# clean-or-custody tree; custody-only ahead). Failure is fail-closed:
+# --shipped-unknown, because an incomplete session MAY have shipped (PD8).
+postrun_out=$("$REPO/scripts/intake-post-run-invariants.sh" \
+  --repo "$REPO" --state-dir "$STATE_DIR" --run-start-epoch "$run_start_epoch" 2>&1)
+postrun_rc=$?
+echo "$postrun_out"
+if [[ $postrun_rc -ne 0 ]]; then
+  node "$REPO/scripts/intake-notify.js" --failure "post-run: runner session exited 0 but terminal invariants failed — ${postrun_out##*$'\n'}" --shipped-unknown || true
+  exit 65
 fi
 
 exit 0
