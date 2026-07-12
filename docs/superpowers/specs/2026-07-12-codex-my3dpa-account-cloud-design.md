@@ -322,7 +322,7 @@ Each entity:
 ```json
 {
   "kind": "profile",
-  "id": "uuid",
+  "id": "entity-id",
   "schemaVersion": 1,
   "version": 7,
   "createdAt": "...",
@@ -333,6 +333,8 @@ Each entity:
 ```
 
 `version` is server-controlled after sync. Signed-out local entities use `version:0` until first upload.
+
+The common entity schema defines `id` as a string union of canonical lowercase UUID (`uuid-v4|uuid-v5` as constrained by the per-kind schema) or `^sha256:[0-9a-f]{64}$`. Every ordinary/latest-per-key entity schema narrows to its required UUID version/derivation; `export_snapshot.json` requires only the full `sha256:` pattern. The envelope example's `entity-id` is descriptive, never a UUID constraint inherited by snapshots.
 
 Readers must round-trip unknown envelope and payload fields byte-for-value through their raw representation. Mutable sync writes are field-mask updates, not blind replacement: the operation carries `changedFields`, the complete values for those fields, and the entity `baseVersion`; the Worker merges only those known paths into the current payload. A client may not name a field its supported entity schema does not define. Full replacement is allowed only for a new `version:0` entity or when the client supports the server entity's schema version. This prevents an older client from erasing fields added by a newer one.
 
