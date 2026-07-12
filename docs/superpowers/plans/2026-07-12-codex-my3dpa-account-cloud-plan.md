@@ -1,7 +1,7 @@
 # My 3DPA account/cloud platform — gated implementation plan
 
 **Date:** 2026-07-12  
-**Status:** independent Codex plan — review pending  
+**Status:** independent Codex plan — architecture, QA, and cross-model review complete; zero P0–P2
 **Source spec:** `docs/superpowers/specs/2026-07-12-codex-my3dpa-account-cloud-design.md`  
 **Audience:** owner and one implementation session per gate  
 **Program rule:** no gate starts until every dependency is merged and its exit evidence is attached; one gate = one focused PR unless an iOS gate is deliberately held as local commits by the iOS push rule.
