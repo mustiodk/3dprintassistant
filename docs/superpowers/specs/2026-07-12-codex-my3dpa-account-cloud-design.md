@@ -437,16 +437,16 @@ export_job_items(request_id, ordinal, kind, entity_id, canonical_json,
 purchase_events(user_id, provider, provider_event_id, handle_hash,
                 handle_encrypted, key_version, environment, validation_status,
                 entitlement_effect, created_at,
-                PK(provider, provider_event_id))
+                PK(provider, environment, provider_event_id))
 entitlements(user_id, product_key, status, source, source_tx_id_hash,
-             granted_at, revoked_at)  -- later monetization gate
+             granted_at, revoked_at, PK(user_id, product_key))  -- later gate
 ```
 
 The external erasure ledger is deliberately absent from this D1 schema. Its append-only record schema is `(requestId, uidLocator, keyVersion, status, pendingAt, completedAt?, expiresAt)` and its keyed-locator key versions remain available for the full retained-ledger window.
 
 `inventory_projection` is a non-authoritative, user-scoped cache with foreign-key/cascade semantics to the spool/account. Event acceptance updates it and `through_user_revision` in the same transaction; mismatch or missing rows rebuild from inventory events before serving derived inventory state. It is included in account deletion but not treated as an independent entity in PDM2 export.
 
-Indexes: `(user_id,user_revision)`, `(user_id,kind,deleted_at)`, `(user_id,device_id)`. Payloads are bounded JSON; the Worker has a per-kind allowlist and schema validator.
+Indexes: `(user_id,user_revision)`, `(user_id,kind,deleted_at)`, `(user_id,device_id)`, and `purchase_events(user_id,created_at)`. Payloads are bounded JSON; the Worker has a per-kind allowlist and schema validator.
 
 ### 9.2 API
 
