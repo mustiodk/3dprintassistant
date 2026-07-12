@@ -680,12 +680,12 @@ Authoritative scope allowlist (tests, the gate review note, ledger row, and ROAD
 | B0 | `functions/api/v1/_lib/**`, schema versions, `migrations/account/0001_expand.sql`, preview bindings, backend/DR runbooks | sole owner of initial D1 expand migration; no auth UI |
 | B1 | staging bindings, `docs/runbooks/account-staging.md`, staging smoke/rollback scripts | remote staging only; no production or product code |
 | A0 | web auth/device modules, device/account registration routes, CSP/privacy copy | no export/delete/sync persistence migration |
-| A1a | export routes/consumer/crypto plus export-only expand migration and export runbook | no deletion or sync route |
-| A1b | deletion routes/status UI, capability verifier, deletion-only expand migration/runbook | no DR promotion or sync route |
-| A1c | lifecycle ledger/lease/reconciler, erasure/DR migrations and restore runbook | no normal sync handler |
-| S0a | push/status handlers, auth/limit/idempotency sync library, push-only expand migration | no pull/bootstrap/lifecycle handler |
-| S0b | pull/entity/cursor handlers and cursor indexes/migration | no lifecycle/bootstrap mutation |
-| S0c | bootstrap/lifecycle/graveyard/reconciler modules and lifecycle-only expand migration | no client UI |
+| A1a | export routes/consumer/crypto and export runbook using B0 schema | no migration, deletion, or sync route |
+| A1b | deletion routes/status UI, capability verifier, deletion runbook using B0 schema | no migration, DR promotion, or sync route |
+| A1c | lifecycle ledger/lease/reconciler and restore runbook using B0 schema | no migration or normal sync handler |
+| S0a | push/status handlers and auth/limit/idempotency sync library using B0 schema | no migration or pull/bootstrap/lifecycle handler |
+| S0b | pull/entity/cursor handlers using B0 indexes | no migration or lifecycle/bootstrap mutation |
+| S0c | bootstrap/lifecycle/graveyard/reconciler modules using B0 schema | no migration or client UI |
 | S0d | load/DR fixtures, observability config, incident runbook | no protocol behavior except reviewed defect fixes |
 | S1 | web sync client/outbox/bootstrap, repository adapters, conflict/status UI | no server contract/migration |
 | O1 | production bindings/config and redacted provision/deploy/rollback run sheet | no product code or contraction migration |
@@ -695,13 +695,13 @@ Authoritative scope allowlist (tests, the gate review note, ledger row, and ROAD
 | I1b | iOS `Services/Sync/**`, PDM/outbox adapters, conflict/device/lifecycle views | no hub redesign/release metadata |
 | I1c | iOS My 3DPA presentation, accessibility/UI tests, version/release metadata | no contract/schema change; only gate allowed to push |
 | X0a | web export-library repository/UI/adapters | no server migration or iOS file |
-| X0b | export sync adapter, server kind allowlist, export-reference expand migration | no local exporter logic change |
+| X0b | export sync adapter and server kind allowlist using B0 schema | no migration or local exporter logic change |
 | IX0 | iOS export repository/Output UI | no web/server path; local commits until an iOS release gate |
 | IXR | iOS version/release metadata and release evidence only | no IX0 behavior change except reviewed release blocker fix |
 | F0 | web inventory store/projection/import/UI/locales consuming C0 | no contract or Worker migration |
 | F1a | bambuinventory `export_inventory.py` and sanitized exporter fixtures | read-only; no API/PHP change |
 | F1b | web bambuinventory importer/reconciliation UI | no source-system write or server sync |
-| F2 | inventory server kind/projection handlers, inventory-only expand migration, My 3DPA cards | no entitlement enforcement |
+| F2 | inventory server kind/projection handlers and My 3DPA cards using B0 schema | no migration or entitlement enforcement |
 | F3 | iOS inventory domain/repository/views | no store purchase code; local commits until release gate |
 | F3R | iOS version/release metadata and release evidence only | no inventory behavior change except reviewed release blocker fix |
 | E0a | web entitlement/purchase callbacks and UI boundary state using B0 purchase/retention schema | no migration or StoreKit/Play client code |
