@@ -668,7 +668,46 @@ This matrix overrides broader program-heading wording. Each row is one merge/rev
 | E0c | E0a,D0 | `./gradlew test --tests '*PlayEntitlement*'` on mac-mini | Play sandbox/grants off | checkout off; rights retained |
 | M0 | I1c + extraction GO | default iOS/macOS build/test commands with macOS destination | unreleased target | iOS-on-Mac remains |
 
-I1 itself is three iOS PR/local-commit boundaries: I1a runs `-only-testing:3DPrintAssistantTests/AuthDeviceTests`; I1b runs `-only-testing:3DPrintAssistantTests/SyncLifecycleTests`; I1c runs the full default iOS suite plus UI tests and the web walkthrough before the single owner-approved push. S1 also proves cleanup of a synced transition backup through two eligible cleanup cycles separated by an app/browser restart, including the automatic 30-day erasure rule and an auditable user-triggered early cleanup.
+Authoritative scope allowlist (tests, the gate review note, ledger row, and ROADMAP status are additionally allowed for every gate; any other production path requires a plan amendment before coding):
+
+| Gate | Allowed production/create paths and migration owner | Explicit boundary |
+|---|---|---|
+| G0 | `package*.json`, `config/feature-flags.json`, `scripts/verify-toolchain.mjs`, ledger validator, canonical ledger | no runtime feature code |
+| C0 | web `contracts/pdm2/**` plus contract scripts/fixtures/runbook | owns no persistence migration or native-client file |
+| W0 | web `pdm-*.js`, adapters in `workshop-store.js`/`state-codec.js`, IndexedDB migration/backup UI | no Worker/auth/sync route |
+| I0 | iOS `Models/PDM/**`, PDM repository/migration, local Workshop parity views | no auth/network; owns iOS PDM migration |
+| B0 | `functions/api/v1/_lib/**`, schema versions, `migrations/account/0001_expand.sql`, preview bindings, backend/DR runbooks | sole owner of initial D1 expand migration; no auth UI |
+| B1 | staging bindings, `docs/runbooks/account-staging.md`, staging smoke/rollback scripts | remote staging only; no production or product code |
+| A0 | web auth/device modules, device/account registration routes, CSP/privacy copy | no export/delete/sync persistence migration |
+| A1a | export routes/consumer/crypto plus export-only expand migration and export runbook | no deletion or sync route |
+| A1b | deletion routes/status UI, capability verifier, deletion-only expand migration/runbook | no DR promotion or sync route |
+| A1c | lifecycle ledger/lease/reconciler, erasure/DR migrations and restore runbook | no normal sync handler |
+| S0a | push/status handlers, auth/limit/idempotency sync library, push-only expand migration | no pull/bootstrap/lifecycle handler |
+| S0b | pull/entity/cursor handlers and cursor indexes/migration | no lifecycle/bootstrap mutation |
+| S0c | bootstrap/lifecycle/graveyard/reconciler modules and lifecycle-only expand migration | no client UI |
+| S0d | load/DR fixtures, observability config, incident runbook | no protocol behavior except reviewed defect fixes |
+| S1 | web sync client/outbox/bootstrap, repository adapters, conflict/status UI | no server contract/migration |
+| O1 | production bindings/config and redacted provision/deploy/rollback run sheet | no product code or contraction migration |
+| R0 | production rollout config, smoke tests, privacy/runtime disclosures | no schema/protocol change |
+| U0 | `my3dpa.js`, route/nav/sections/styles/locales | no data schema or sync behavior |
+| I1a | iOS `Models/Account/**`, `Services/Auth/**`, device Keychain, sign-in/account views, privacy config | no sync client |
+| I1b | iOS `Services/Sync/**`, PDM/outbox adapters, conflict/device/lifecycle views | no hub redesign/release metadata |
+| I1c | iOS My 3DPA presentation, accessibility/UI tests, version/release metadata | no contract/schema change; only gate allowed to push |
+| X0a | web export-library repository/UI/adapters | no server migration or iOS file |
+| X0b | export sync adapter, server kind allowlist, export-reference expand migration | no local exporter logic change |
+| IX0 | iOS export repository/Output UI | no web/server path; local commits until an iOS release gate |
+| F0 | web inventory store/projection/import/UI/locales consuming C0 | no contract or Worker migration |
+| F1a | bambuinventory `export_inventory.py` and sanitized exporter fixtures | read-only; no API/PHP change |
+| F1b | web bambuinventory importer/reconciliation UI | no source-system write or server sync |
+| F2 | inventory server kind/projection handlers, inventory-only expand migration, My 3DPA cards | no entitlement enforcement |
+| F3 | iOS inventory domain/repository/views | no store purchase code; local commits until release gate |
+| E0a | web entitlement/purchase callbacks, purchase/retention expand migration and UI boundary state | no StoreKit/Play client code |
+| E0b | iOS StoreKit service/purchase UI/privacy metadata | no Android or backend schema change |
+| D0 | Android PDM/auth/sync/data-safety paths in native Android repo | no entitlement/Play Billing path |
+| E0c | Android Play Billing/RTDN client integration only | no base Android sync or web migration |
+| M0 | shared Swift-package extraction and macOS target/window/navigation/files | no behavior change to shipped iOS paths without separate proof |
+
+I1a and I1b remain reviewed local commits under the iOS push hold. Only I1c, after the full suite is green, the marketing version is bumped, and the owner gives TestFlight GO, authorizes the single push and manual workflow. S1 also proves cleanup of a synced transition backup through two eligible cleanup cycles separated by an app/browser restart, including the automatic 30-day erasure rule and an auditable user-triggered early cleanup.
 
 O1's command cell is deliberately template-shaped because Cloudflare resource IDs do not exist before owner authorization; it is not permission to improvise. G0 pins the tool version, B0 writes the exact parameterized runbook, and O1 materializes the redacted, copy/paste command list in the ledger before execution. Any command absent from that reviewed run sheet blocks O1.
 
