@@ -574,6 +574,8 @@ Pro is specified only after inventory v1 has real usage. Recommended initial bou
 
 Do not meter past/empty spool history in a way that forces deletion. The 50-spool limit applies to active inventory only.
 
+Refund, revocation, expired test entitlement, or an import may leave a free account above 50 active spools. The system never deletes, hides, or stops backing up those records: reading, export, retirement, consumption/adjustment of existing spools, and sync of existing records remain available. While over limit, creating/reactivating a spool and bulk imports that increase the active count are blocked with the exact count and two remedies: retire spools or restore Pro. Metadata edits are allowed. A platform without current store connectivity honors the last server-verified entitlement through a bounded grace period, then applies this same non-destructive over-limit state.
+
 Entitlement is account-level and cross-platform. Apple allows multiplatform services to expose features bought elsewhere when those features are also available as IAP in the app. [App Review Guideline 3.1.3(b)](https://developer.apple.com/app-store/review/guidelines/). Therefore:
 
 - iOS offers the non-consumable via StoreKit;
