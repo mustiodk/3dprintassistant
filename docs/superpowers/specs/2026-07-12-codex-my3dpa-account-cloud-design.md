@@ -393,6 +393,8 @@ POST /api/v1/purchases/google/verify   (later)
 
 Limits for v1: 100 ops/push, 500 entities/pull page, 64 KB/entity, 5 MB active payload/account, and rate limits sized from measured traffic. Exceeding a limit returns a structured, non-destructive error.
 
+Day-1 conservative limits are enforced before traffic data exists: per verified user, 20 pushes/minute, 60 pulls/minute, 2 exports/hour, 5 device registration/revocation attempts/hour, and 3 deletion starts/day; per source IP, 300 authenticated API requests/minute and 30 failed/unauthenticated auth requests/minute, with a higher documented emergency allowance for known provider callbacks. Responses use `429`, typed code, and `Retry-After`. Load tests verify normal foreground/debounce/bootstrap stays below these ceilings. Changes are configuration-reviewed against abuse, NAT/shared-IP impact, D1 cost, and observed p95—not silently relaxed in code.
+
 ### 9.3 Push semantics
 
 Every local mutation gets a random `opId`, registered `deviceId`, kind/entity ID, `baseVersion`, schema version, explicit `dependsOnOpIds[]`, field mask plus changed values (or complete payload for a create), and payload/tombstone. The request also proves possession of that device's secret as defined in §7.4. Clients topologically order a batch: sequential mutations of one entity depend on the prior mutation; an event/reference to an entity created in the batch depends on that create.
