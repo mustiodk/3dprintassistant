@@ -614,6 +614,8 @@ Do not add a subscription merely because accounts exist. Reopen only if measured
 
 GDPR principles include purpose limitation, minimization, storage limitation, integrity/confidentiality, and accountability. [European Commission summary](https://commission.europa.eu/law/law-topic/data-protection/reform/what-does-general-data-protection-regulation-gdpr-govern_en) and [EDPB privacy by design](https://www.edpb.europa.eu/topics/ai-and-technology/privacy-by-design-and-by-default_en).
 
+The production record of processing and privacy notice must state the purpose/legal-basis map: GDPR Art. 6(1)(b), performance of the user-requested service, for account identity, sync, backup/export, deletion, and entitlement delivery; Art. 6(1)(c) only for purchase/tax records that law requires retaining; and Art. 6(1)(f) for narrowly retained security, abuse, and deletion-operation logs after a documented legitimate-interest assessment and opt-out analysis. Optional product analytics stays separate under its existing consent/ePrivacy analysis and is never reclassified as “contract” merely because the user creates an account. No marketing purpose is introduced. Retention and recipients are recorded per purpose before production GO.
+
 ### 13.2 API defenses
 
 - strict origins for browser account endpoints; native clients use bearer auth, not CORS as authentication;
