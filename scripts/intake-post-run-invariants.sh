@@ -20,6 +20,11 @@
 #      exception preflight grants — the next run repairs it).
 #   5. Ahead-of-origin commits are custody-only (an unpushed merge or stray
 #      work fails; custody push-repair is next run's job).
+#   6. Park preservation: any parked sidecar written this run still has its
+#      candidate packet, and review-stage parks (review-unavailable /
+#      review-split) still have their intake/<id> branch (2026-07-13 incident:
+#      the runner parked, then deleted branch+packet as "cleanup" and claimed
+#      success).
 #
 # Exit codes: 0 ok · 65 invariant violated · 1 bad-args.
 # Machine line: "POSTRUN ok=true|false reason=<slug> detail=<...>"
@@ -143,6 +148,62 @@ if [[ -z "$ahead" ]]; then
 fi
 if [[ "$ahead" != "0" ]] && ! ahead_commits_are_custody_only; then
   fail web-out-of-sync "ahead=$ahead non-custody"
+fi
+
+# 6 — park preservation (2026-07-13 incident): the runner parked
+# centauri_carbon_2 correctly, then deleted the candidate branch and ignored
+# packet as "cleanup" and reported success. A sidecar written THIS run
+# (mtime >= run start) must leave its preservation-marked evidence behind.
+#
+# Branch requirement is scoped by park REASON (hostile-review finding: most
+# parks happen at stage 3, BEFORE the intake/<id> branch exists — demanding a
+# branch for `unverified-model` etc. would fail every legitimate research-stage
+# park):
+#   - `review-unavailable` / `review-split` (stage-5 parks; branch exists and
+#     must survive for retry / owner decision) → branch REQUIRED.
+#   - `review-no-go` → branch EXEMPT here: its branch legitimately dies in the
+#     NEXT run's stage 0b after ledgering, and a stage-0b sidecar migration can
+#     bump mtime in the same run the branch is deleted — a hard requirement
+#     would false-fail that healthy path. Its objections live in the sidecar.
+#   - all other reasons (stage-3/4 parks) → branch not expected.
+# Packet evidence is required for EVERY fresh sidecar: any candidate-*.json in
+# the parked dir itself, or a staging packet that names or contains the id.
+PARKED_ROOT="$STATE_DIR/parked"
+if [[ -d "$PARKED_ROOT" ]]; then
+  for sidecar in "$PARKED_ROOT"/*/parked.json(N); do
+    sidecar_mtime=$(mtime_of "$sidecar")
+    if [[ -z "$sidecar_mtime" ]]; then
+      fail park-sidecar-unreadable "cannot stat $sidecar"
+    fi
+    (( sidecar_mtime >= RUN_START_EPOCH )) || continue
+    candidate_id="${sidecar:h:t}"
+    park_reason="$(grep -o '"reason"[[:space:]]*:[[:space:]]*"[^"]*"' "$sidecar" \
+      | head -1 | sed 's/.*:[[:space:]]*"//; s/"$//')"
+    if [[ -z "$park_reason" ]]; then
+      fail park-sidecar-unreadable "no reason field in $sidecar"
+    fi
+    case "$park_reason" in
+      review-unavailable|review-split)
+        if ! git show-ref --verify --quiet "refs/heads/intake/$candidate_id"; then
+          fail park-branch-missing "intake/$candidate_id deleted (fresh $park_reason park)"
+        fi ;;
+    esac
+    packet_found=false
+    for packet in "${sidecar:h}"/candidate-*.json(N); do
+      [[ -e "$packet" ]] && packet_found=true && break
+    done
+    if [[ "$packet_found" != "true" ]]; then
+      for packet in "$REPO/scripts/.printer-intake-out"/candidate-*.json(N); do
+        if [[ "${packet:t}" == *"$candidate_id"* ]] \
+          || grep -q "\"$candidate_id\"" "$packet" 2>/dev/null; then
+          packet_found=true; break
+        fi
+      done
+    fi
+    if [[ "$packet_found" != "true" ]]; then
+      fail park-packet-missing "$candidate_id (no candidate packet in parked dir or staging)"
+    fi
+  done
 fi
 
 echo "POSTRUN ok=true reason=none detail="

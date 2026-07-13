@@ -31,7 +31,7 @@ init_repo() {
   printf '[]\n' > scripts/printer-intake-outcomes.jsonl
   printf '{"schema":"printer-provenance@1","printers":{}}\n' > docs/printer-provenance.json
   printf '{"printers":[]}\n' > data/printers.json
-  printf 'scripts/.intake-runner-state/\n' > .gitignore
+  printf 'scripts/.intake-runner-state/\nscripts/.printer-intake-out/\n' > .gitignore
   copy_script
   git add .
   git commit -qm init
@@ -138,5 +138,85 @@ printf 'bad' > "$REPO/data/printers.json"
 git -C "$REPO" add data/printers.json
 git -C "$REPO" commit -qm "feat: unpushed printer row"
 expect_fail web-out-of-sync
+
+make_parked() { # id [reason] — fresh intake-parked@2 sidecar for this run
+  local reason="${2:-review-unavailable}"
+  mkdir -p "$STATE/parked/$1"
+  printf '{"schema":"intake-parked@2","reason":"%s","class":"%s","repairAttempts":0,"verdictRefs":[],"tainted":false,"evidence":[]}\n' \
+    "$reason" "$reason" > "$STATE/parked/$1/parked.json"
+}
+
+# 12 — fresh park with preserved branch + packet passes
+init_repo
+git -C "$REPO" branch intake/centauri_carbon_2
+make_parked centauri_carbon_2
+mkdir -p "$REPO/scripts/.printer-intake-out"
+printf '{}\n' > "$REPO/scripts/.printer-intake-out/candidate-elegoo-centauri_carbon_2.json"
+expect_ok
+
+# 13 — fresh park whose branch was deleted fails (2026-07-13 incident shape)
+init_repo
+make_parked centauri_carbon_2
+mkdir -p "$REPO/scripts/.printer-intake-out"
+printf '{}\n' > "$REPO/scripts/.printer-intake-out/candidate-elegoo-centauri_carbon_2.json"
+expect_fail park-branch-missing
+
+# 14 — fresh park whose packet evidence is gone fails
+init_repo
+git -C "$REPO" branch intake/centauri_carbon_2
+make_parked centauri_carbon_2
+expect_fail park-packet-missing
+
+# 15 — packet inside the parked dir itself also satisfies preservation
+init_repo
+git -C "$REPO" branch intake/centauri_carbon_2
+make_parked centauri_carbon_2
+printf '{}\n' > "$STATE/parked/centauri_carbon_2/candidate-elegoo-centauri_carbon_2.json"
+expect_ok
+
+# 16 — PRIOR-run sidecar with deleted branch is exempt (stage 0b cleanup of a
+#      ledgered review-no-go park must not trip the preservation gate)
+init_repo
+make_parked centauri_carbon_2
+touch -mt 202601010000 "$STATE/parked/centauri_carbon_2/parked.json"
+RUN_START=$(( $(date +%s) - 60 ))
+expect_ok
+RUN_START=0
+
+# 17 — stage-3 park (no branch ever created) passes with packet only
+#      (hostile-review finding: unverified-model parks happen BEFORE stage 4)
+init_repo
+make_parked mystery_printer unverified-model
+printf '{}\n' > "$STATE/parked/mystery_printer/candidate-unknown-mystery_printer.json"
+expect_ok
+
+# 18 — fresh review-no-go park is branch-exempt (stage 0b migration can bump
+#      sidecar mtime in the same run its prior-run branch is deleted) but
+#      still needs its packet
+init_repo
+make_parked centauri_carbon_2 review-no-go
+printf '{}\n' > "$STATE/parked/centauri_carbon_2/candidate-elegoo-centauri_carbon_2.json"
+expect_ok
+
+# 19 — review-split park without its branch fails (owner decision needs it)
+init_repo
+make_parked centauri_carbon_2 review-split
+printf '{}\n' > "$STATE/parked/centauri_carbon_2/candidate-elegoo-centauri_carbon_2.json"
+expect_fail park-branch-missing
+
+# 20 — staging packet matched by CONTENT when the filename does not embed the
+#      printer id (Scout names packets candidate-<mfr>-<snake(model)>.json)
+init_repo
+make_parked x1c unverified-model
+mkdir -p "$REPO/scripts/.printer-intake-out"
+printf '{"printerId":"x1c","model":"X1 Carbon"}\n' > "$REPO/scripts/.printer-intake-out/candidate-bambu-x1_carbon.json"
+expect_ok
+
+# 21 — sidecar without a reason field fails unreadable (fail-closed)
+init_repo
+git -C "$REPO" branch intake/centauri_carbon_2
+mkdir -p "$STATE/parked/centauri_carbon_2"
+printf '{"schema":"intake-parked@2"}\n' > "$STATE/parked/centauri_carbon_2/parked.json"
+expect_fail park-sidecar-unreadable
 
 echo "intake-post-run-invariants.test.sh: all tests passed"
