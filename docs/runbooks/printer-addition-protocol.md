@@ -58,6 +58,9 @@ sequencing.**
    Autonomous v2.1 additions:
    - Every profile/safety-critical field must carry
      `value`/`source`/`confidence`/`evidenceType` before review.
+   - Every non-null field-level `source` must be a full canonical `https://`
+     URL, not a bare host/path. Typed absence-rationale checked sources keep
+     the scheme-less canonical identity returned by `canonicalSource()`.
    - `world-absent` is validator-assigned only after a typed absence rationale
      and complete source-class sweep.
    - Reviewer NO-GO emits structured objections; malformed reviewer output
@@ -92,7 +95,10 @@ sequencing.**
    `id`/`name`/`manufacturer`, deep-compares every packet row field, and requires
    materialized optional critical fields to be present in the packet. Missing,
    duplicate, or unequal materialization is `research-defect` and consumes zero
-   review turns. This exception does not apply to any other field or value.
+   review turns. Run this gate exactly once per candidate branch HEAD. Any
+   non-zero result parks `research-defect` immediately: do not edit the packet
+   and do not rerun the gate in the same run. A later eligible repair uses a new
+   branch HEAD. This exception does not apply to any other field or value.
 
    **This manual protocol remains canonical on any conflict** — an autonomous
    runner that cannot satisfy a step parks the candidate; it never improvises

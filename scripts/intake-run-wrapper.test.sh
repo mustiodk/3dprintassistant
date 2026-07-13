@@ -220,4 +220,22 @@ if [[ "$r1_block" == *'<fresh-r1-prompt>'* || "$r1_block" == *'<printer-id>'* ]]
 fi
 [[ $kickoff_contract_failures -eq 0 ]] || exit 1
 
+# 7 — candidate evidence is canonical before the single allowed gate call.
+# The 2026-07-13 clean retry wrote host/path strings into manufacturer `source`
+# fields, then tried to repair the ignored packet after the gate failed. Both
+# behaviors violate the fail-closed stage-4b contract.
+evidence_contract_failures=0
+for token in \
+  'full canonical `https://` URL' \
+  'Run the evidence gate exactly once per candidate branch HEAD' \
+  'do not edit the candidate packet' \
+  'do not rerun the evidence gate' \
+  'park `research-defect` immediately'; do
+  if ! grep -Fq -- "$token" "$ROOT/scripts/intake-run-kickoff.md"; then
+    echo "FAIL: kickoff missing fail-closed evidence token: $token" >&2
+    evidence_contract_failures=$((evidence_contract_failures + 1))
+  fi
+done
+[[ $evidence_contract_failures -eq 0 ]] || exit 1
+
 echo "intake-run-wrapper.test.sh: all tests passed"
