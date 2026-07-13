@@ -5,6 +5,21 @@ Execute EXACTLY the versioned runner contract at /Users/mustafaozturk-macmini/de
 Non-negotiables (the contract elaborates; on any conflict the runbook docs/runbooks/printer-addition-protocol.md wins):
 - Follow the stage order exactly: preflight with v2.1 custody pass → v2.1 taxonomy validation → parked-candidate migration/retry sweep → known-good snapshot → Scout triage (`--source kv --no-watermark --out scripts/.printer-intake-out`) → per-candidate research/fill (Assistant contract, autonomous mode) → mechanical ship on branch `intake/<printer-id>` (data/printers.json by STRING SPLICE, never a whole-file reserialize; then `node scripts/intake-diff-guards.js --base main` must PASS) → `node scripts/validate-candidate-evidence.js <candidate-packet> --printers-json data/printers.json` (including packet/materialized-row parity) before any review turn → `intake-retry-gate.js` for `judgment-on-evidence` retries → PD5 dual-review merge gate with structured reviewer output (`{GO,GO}` ships, `{NO-GO,NO-GO}` parks as `review-no-go`, and `{GO,NO-GO}` / `{NO-GO,GO}` routes `review-split` → `decision-required`; no same-run retry) → parked-store write or merge+push → live verify (verify-live-overlay.js + verify-live-picker.js) with PD6 auto-rollback → iOS mirror local commit only if data changed (never push iOS) → provenance+ledger custody commit before watermark advance → KV hygiene (`--apply`, ambient auth) → notify (scripts/intake-notify.js — always, even for a 0-candidate run).
 - Every reviewer must emit the v2.1 structured result before prose: `{ reviewer, verdict:"GO"|"NO-GO", objections:[{field,question,raisedAt}] }`. Validate it with `validate-reviewer-output.js`. Malformed reviewer output parks as `review-unavailable`; never infer a verdict or objections from prose.
+- Reviewer 1 runs fresh and ONLY through the merged fail-closed boundary below. Never use the internal `Agent` tool or a sub-agent; never invoke bare `claude -p` for Reviewer 1. Set `printer_id` to the concrete candidate id and require it to match `[A-Za-z0-9._-]+`; otherwise park `review-unavailable`, notify, and stop. Set the two path variables exactly as below, write a fresh concrete review over the `main...intake/$printer_id` diff to `$fresh_r1_prompt`, and verify that file is non-empty before invoking the boundary:
+
+```text
+fresh_r1_prompt="scripts/.intake-runner-state/bridge-reviews/pd5-${printer_id}-r1-prompt.md"
+r1_label="pd5-${printer_id}-r1-$(date -u +%Y%m%dT%H%M%SZ)"
+zsh scripts/intake-r1-structured-review.sh \
+  --prompt-file "$fresh_r1_prompt" \
+  --schema-file scripts/.intake-runner-state/bridge-reviews/claude-opus-r1-schema.json \
+  --out-dir scripts/.intake-runner-state/bridge-reviews \
+  --label "$r1_label" \
+  --claude-bin claude-opus-4-8 \
+  --require-reviewer claude-opus-r1
+```
+
+Only the boundary's `R1REVIEW ok=true verdict=GO|NO-GO` status line counts as a Reviewer 1 result. Any `R1REVIEW ok=false` line, any non-zero exit (including exit 1 or 65), a missing status line, or an invalid structured result parks as `review-unavailable`, notifies, and stops before Reviewer 2. Reviewer 2 runs only after a contract-valid Reviewer 1 GO.
 - Bridge is a review-runner CLI, not a tool to configure or probe mid-run. The ONLY allowed invocations are `bridge --health` and this exact PD5 reviewer-2 turn (Bridge pins the Codex model itself):
 
 ```text

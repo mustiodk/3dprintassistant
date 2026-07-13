@@ -176,4 +176,48 @@ if [[ -e "$TMP/claude-invoked" ]]; then
 fi
 [[ $bridge_output_failures -eq 0 ]] || exit 1
 
+# 6 — the production kickoff must wire Reviewer 1 through the merged boundary.
+# A generic "structured output" instruction is not enough: on 2026-07-13 the
+# autonomous runner selected the internal Agent tool and bypassed the boundary.
+kickoff_contract_failures=0
+for token in \
+  'zsh scripts/intake-r1-structured-review.sh' \
+  'fresh_r1_prompt="scripts/.intake-runner-state/bridge-reviews/pd5-${printer_id}-r1-prompt.md"' \
+  'r1_label="pd5-${printer_id}-r1-$(date -u +%Y%m%dT%H%M%SZ)"' \
+  '--prompt-file "$fresh_r1_prompt"' \
+  '--schema-file scripts/.intake-runner-state/bridge-reviews/claude-opus-r1-schema.json' \
+  '--label "$r1_label"' \
+  '--claude-bin claude-opus-4-8' \
+  '--require-reviewer claude-opus-r1' \
+  'R1REVIEW ok=true verdict=' \
+  'R1REVIEW ok=false' \
+  'any non-zero exit'; do
+  if ! grep -Fq -- "$token" "$ROOT/scripts/intake-run-kickoff.md"; then
+    echo "FAIL: kickoff missing mandatory R1 boundary token: $token" >&2
+    kickoff_contract_failures=$((kickoff_contract_failures + 1))
+  fi
+done
+if grep -Fq 'hostile sub-agent review' "$ROOT/scripts/intake-run-kickoff.md"; then
+  echo "FAIL: kickoff still permits obsolete hostile-sub-agent R1" >&2
+  kickoff_contract_failures=$((kickoff_contract_failures + 1))
+fi
+if ! grep -Fq 'Never use the internal `Agent` tool' "$ROOT/scripts/intake-run-kickoff.md"; then
+  echo "FAIL: kickoff does not explicitly forbid internal Agent for R1" >&2
+  kickoff_contract_failures=$((kickoff_contract_failures + 1))
+fi
+if ! grep -Fq 'never invoke bare `claude -p`' "$ROOT/scripts/intake-run-kickoff.md"; then
+  echo "FAIL: kickoff does not explicitly forbid bare claude -p for R1" >&2
+  kickoff_contract_failures=$((kickoff_contract_failures + 1))
+fi
+if ! grep -Fq 'Reviewer 2 runs only after' "$ROOT/scripts/intake-run-kickoff.md"; then
+  echo "FAIL: kickoff does not gate Reviewer 2 behind contract-valid R1 GO" >&2
+  kickoff_contract_failures=$((kickoff_contract_failures + 1))
+fi
+r1_block="$(sed -n '/Reviewer 1 runs fresh/,/Only the boundary/p' "$ROOT/scripts/intake-run-kickoff.md")"
+if [[ "$r1_block" == *'<fresh-r1-prompt>'* || "$r1_block" == *'<printer-id>'* ]]; then
+  echo "FAIL: kickoff R1 command still contains shell-unsafe angle-bracket placeholders" >&2
+  kickoff_contract_failures=$((kickoff_contract_failures + 1))
+fi
+[[ $kickoff_contract_failures -eq 0 ]] || exit 1
+
 echo "intake-run-wrapper.test.sh: all tests passed"
