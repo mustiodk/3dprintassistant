@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-13
 
-**Status:** owner-approved design; implementation gated on this written-spec review
+**Status:** owner-approved design; P0/P1 review amendments accepted; implementation gated on the reviewed plan
 
 **Scope:** repair the autonomous intake runner's Bridge-output integration, then continue `centauri_carbon_2` from its preserved checkpoint without rerunning Scout or bypassing PD5.
 
@@ -26,7 +26,9 @@ The wrapper still exited `65` because the pinned PD5 command omitted `--out-dir`
 - Do not run Scout or repeat the full research/intake pipeline.
 - Do not relax the `decision-required` taxonomy or its owner trigger.
 - Do not treat the previous Reviewer 2 `GO` as reusable after evidence/base changes.
-- Do not edit `engine.js`, `app.js`, any validator, or any iOS source.
+- Do not edit `engine.js`, `app.js`, or any iOS source. The only validator
+  change allowed is the targeted evidence/parity rule in Design B; runtime
+  profile behavior and general manufacturer-evidence policy remain unchanged.
 - Do not push iOS; its six local commits remain behind the push gate.
 - Do not delete `be49fea`, `8695583`, the parked sidecar, session logs, or Bridge reports.
 - Do not allow Bridge report filenames as POSTRUN custody paths.
@@ -68,11 +70,28 @@ Continuation sequence:
 3. Update the preserved evidence/review packet so `cool_plate` cites Elegoo's official Centauri Series accessory page, which explicitly describes a "Cool Plate Surface" for low-temperature PLA printing.
 4. Record `open_door_threshold_bed_temp: 45` as an owner-approved 3dpa repository convention, not as a manufacturer claim:
    - current data audit: all 21 passive-enclosure printers use `45`;
-   - add explicit owner-resolution text to the durable provenance/reviewer packet;
+   - add the field to the candidate packet with `source: null`,
+     `confidence: "owner-approved"`, `evidenceType: "repo-convention"`, and a
+     typed `ownerResolution` containing the exact policy id
+     `passive-enclosure-open-door-threshold`, a parseable approval timestamp,
+     and non-empty rationale;
    - do not label the value `manufacturer` and do not fabricate a manufacturer URL.
-5. Rerun the candidate evidence gate, diff guards, data validation, picker dry-run, walkthrough harness, profile matrix audit, overlay validation, and `git diff --check`.
-6. Run a fresh hostile Reviewer 1 and a fresh Bridge Reviewer 2 using the repaired absolute output directory. Validate both structured outputs.
-7. Classify the new verdicts exactly as v2.1 requires:
+5. Extend `validate-candidate-evidence.js` narrowly so this convention passes
+   only for `open_door_threshold_bed_temp`, only at value `45`, only when the
+   candidate enclosure is `passive`, only with the typed owner resolution, and
+   only while every materialized passive-enclosure row in `data/printers.json`
+   also carries `45`. No other field gains a repository-convention exception.
+6. Make the evidence gate compare the complete candidate packet row against
+   the materialized candidate in `data/printers.json`: metadata objects compare
+   through their `value`, scalar identity fields compare directly, missing
+   optional critical fields fail when present in the materialized row, and any
+   mismatch parks before review. The runner invocation becomes
+   `node scripts/validate-candidate-evidence.js <candidate-packet> --printers-json data/printers.json`.
+   Update the materialized candidate notes to retain the packet's manufacturer
+   citation rather than weakening the parity rule.
+7. Rerun the candidate evidence gate, diff guards, data validation, picker dry-run, walkthrough harness, profile matrix audit, overlay validation, and `git diff --check`.
+8. Run a fresh hostile Reviewer 1 and a fresh Bridge Reviewer 2 using the repaired absolute output directory. Validate both structured outputs.
+9. Classify the new verdicts exactly as v2.1 requires:
    - `{GO,GO}`: recheck remote `main`, merge/push web, verify live overlay and picker, create the local-only byte-identical iOS mirror, then finish custody/notify/cleanup;
    - any `NO-GO`: update the parked sidecar with the exact objections and stop;
    - reviewer unavailable/malformed: park fail-closed and stop.
@@ -91,6 +110,10 @@ The earlier split verdict stays in history. It is never overwritten or reinterpr
 
 - RED is observed for the missing directory/contract behavior before implementation.
 - The focused wrapper, POSTRUN, preflight, and reviewer-contract shell/Node suites are GREEN on macOS.
+- The evidence-gate suite proves packet/materialized-row parity, rejects an
+  omitted or mismatched optional field, accepts the typed 45-degree passive
+  enclosure convention, and rejects that convention for every other field,
+  value, or enclosure class.
 - The full existing intake shell suites remain GREEN.
 - The pinned Bridge command includes the absolute ignored output directory in both governing documents.
 - The preserved 2026-07-13 Bridge report has identical source/destination SHA-256 after relocation.
@@ -106,6 +129,8 @@ Web repository:
 - `scripts/intake-run-wrapper.test.sh`
 - `scripts/intake-post-run-invariants.test.sh`
 - `scripts/intake-run-kickoff.md`
+- `scripts/validate-candidate-evidence.js`
+- `scripts/validate-candidate-evidence.test.js`
 - `scripts/validate-reviewer-output.test.js`
 - `docs/printer-provenance.json` only on the candidate continuation branch
 - ignored `.intake-runner-state/` evidence and candidate packet
