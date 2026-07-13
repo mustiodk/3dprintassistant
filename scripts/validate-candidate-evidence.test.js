@@ -1,5 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { spawnSync } = require('node:child_process');
+const { mkdtempSync, rmSync, writeFileSync } = require('node:fs');
+const { tmpdir } = require('node:os');
+const path = require('node:path');
 const { validateCandidateEvidence } = require('./validate-candidate-evidence.js');
 
 const SOURCE = 'https://creality.com/products/k2-se';
@@ -113,6 +117,24 @@ function repoConventionCandidate() {
     },
   };
   return candidate;
+}
+
+function runCliWithCatalog(catalog, { writeCatalog = true } = {}) {
+  const dir = mkdtempSync(path.join(tmpdir(), 'validate-candidate-evidence-'));
+  const candidatePath = path.join(dir, 'candidate.json');
+  const catalogPath = path.join(dir, 'printers.json');
+  try {
+    writeFileSync(candidatePath, JSON.stringify(baseCandidate()));
+    if (writeCatalog) writeFileSync(catalogPath, JSON.stringify(catalog));
+    return spawnSync(process.execPath, [
+      path.join(__dirname, 'validate-candidate-evidence.js'),
+      candidatePath,
+      '--printers-json',
+      catalogPath,
+    ], { encoding: 'utf8' });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 test('confirmed manufacturer evidence passes', () => {
@@ -454,4 +476,28 @@ test('repository convention requires every passive catalog threshold to be numer
     assert.equal(result.reason, 'research-defect');
     assert.equal(result.reviewRequests, 0);
   }
+});
+
+test('CLI fails clearly when the printers catalog is unreadable', () => {
+  const result = runCliWithCatalog(null, { writeCatalog: false });
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /^\[validate-candidate-evidence\] unable to read printer catalog /m);
+});
+
+test('CLI fails clearly when the printers catalog shape is invalid', () => {
+  const result = runCliWithCatalog({ brands: [], printers: {} });
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /^\[validate-candidate-evidence\] invalid printer catalog shape:/m);
+});
+
+test('CLI fails clearly when the candidate id is duplicated in the catalog', () => {
+  const candidate = baseCandidate();
+  const row = materializedRow(candidate);
+  const result = runCliWithCatalog({ brands: [], printers: [row, { ...row }] });
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr,
+    /^\[validate-candidate-evidence\] expected exactly one materialized catalog row for k2_se; found 2$/m);
 });
