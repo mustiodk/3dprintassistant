@@ -102,6 +102,29 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
      ```
     All four keys required and non-empty; `sourceClassesChecked` must include ≥1 manufacturer-class entry, and every `checkedSources[].canonicalSource` uses the same canonical-source normalizer as RD3. `validate-candidate-evidence.js` is the only component allowed to classify an absence as `world-absent`, and only after this typed rationale plus the source-sweep completeness predicate pass. The researcher cannot self-select `world-absent`. This mirrors `printer-addition-protocol.md`'s definition (*"which source classes were checked, what feature would normally be advertised if present, and why the omission is safe for this field"*); *"silence alone is `low-confidence`"* and still parks. *Without this, `has_lidar:false`, `has_camera:false`, `active_chamber_heating:false` — which manufacturers rarely state explicitly — would deadlock every candidate.*
 
+  **Owner amendment — 2026-07-13 (additive fourth pass path; RD1 items 1–3
+  remain unchanged).**
+  4. `evidenceType == "repo-convention"` is valid for
+     `open_door_threshold_bed_temp` only when its numeric value is exactly `45`,
+     `source == null`, `confidence == "owner-approved"`, the candidate enclosure
+     is `passive`, and `ownerResolution` carries policy
+     `passive-enclosure-open-door-threshold`, a parseable approval date, and a
+     non-empty rationale. The gate must also prove the whole materialized
+     passive-enclosure catalog corpus carries numeric `45`; non-passive rows are
+     outside that corpus and need no threshold. No other field or value gains a
+     repository-convention path.
+
+  This amended gate is invoked as
+  `node scripts/validate-candidate-evidence.js <candidate-packet> --printers-json data/printers.json`.
+  It resolves exactly one materialized catalog row by candidate id, unwraps
+  packet metadata `.value` while preserving scalar identity fields, deep-compares
+  every packet row field, and requires materialized optional critical fields in
+  the packet. Any missing, duplicate, or unequal materialization is
+  `research-defect`, spends zero review turns, and blocks PD5. Operationally,
+  this amended parity gate runs after the candidate row is materialized on its
+  isolated intake branch and before PD5; running it before materialization would
+  fail every new candidate as missing.
+
   **Producer change required:** the Scout skeleton (`printer-intake-scout.js:710`) has **no `{value,source,confidence}` slot for `extruder_type` or `max_acceleration`** (nor chamber/camera/lidar). Adding the slots + the `evidenceType` field is an explicit build item.
 
 - **RD2 — The retry taxonomy (fixes D3). ✅ (substantially amended by Codex must-fix #1, #2, #4)**
@@ -251,6 +274,17 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
 | 7 ledger | ledger line per candidate | **ONE atomic custody commit: ledger line + provenance, pushed before watermark advance** (RD10) |
 | 8 staging lifecycle | ad-hoc retry | RD2 taxonomy; sidecar v2 (RD5); RD9 14-day no-rot |
 | 10 notify | summary | + non-trivial runs: verbatim verdicts, objections, evidence table, validator summary, diff ref, timings (RD6b) |
+
+> **Additive stage-order clarification — 2026-07-13.** The stage names in this
+> table are preserved as ratified v2.1 history and are not silently rewritten.
+> After the materialized-evidence amendment, the operative contract maps them to
+> this fail-closed sequence: **Stage 4 mechanical materialization on the isolated
+> intake branch → Stage 4b candidate-evidence plus catalog-parity gate → Stage 5
+> entry retry gate for `judgment-on-evidence` candidates → PD5 dual review**.
+> Thus the historical `3b evidence gate` label now executes operationally as
+> Stage 4b, after materialization; the historical `4b retry gate` executes at the
+> Stage 5 entry. Neither retry evaluation nor PD5 may spend a review turn until
+> catalog parity passes.
 
 **Components:** `scripts/intake-park-taxonomy.json` + validator · `validate-candidate-evidence.js` + test · `intake-retry-gate.js` + test (incl. canonical-source normaliser) · `intake-parked-store.js` + test + v1→v2 migration · `intake-provenance-store.js` + test · `docs/printer-provenance.json` · Scout skeleton slots + `evidenceType` · reviewer output contract (structured objections) · runner contract **v2** · Assistant amendment · runbook amendment.
 

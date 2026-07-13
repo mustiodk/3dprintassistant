@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const fs = require('fs');
+const { isDeepStrictEqual } = require('node:util');
 const { canonicalSource } = require('./lib/intake-source-normalizer.js');
 
 const CRITICAL_FIELDS = [
@@ -37,6 +38,9 @@ const ABSENCE_BOOLEAN_FIELDS = new Set([
   'has_camera',
   'has_lidar',
 ]);
+
+const REPO_CONVENTION_FIELD = 'open_door_threshold_bed_temp';
+const REPO_CONVENTION_POLICY = 'passive-enclosure-open-door-threshold';
 
 function nonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
@@ -108,7 +112,41 @@ function hasValidManufacturerSource(field) {
   }
 }
 
-function fieldPasses(name, field) {
+function unwrapPacketValue(value) {
+  if (value && typeof value === 'object'
+      && Object.prototype.hasOwnProperty.call(value, 'value')) {
+    return value.value;
+  }
+  return value;
+}
+
+function hasRepoConvention(name, field, row, printersData) {
+  if (name !== REPO_CONVENTION_FIELD
+      || !field
+      || field.value !== 45
+      || field.source !== null
+      || field.confidence !== 'owner-approved'
+      || field.evidenceType !== 'repo-convention'
+      || unwrapPacketValue(row.enclosure) !== 'passive') {
+    return false;
+  }
+
+  const resolution = field.ownerResolution;
+  if (!resolution
+      || resolution.policy !== REPO_CONVENTION_POLICY
+      || !nonEmptyString(resolution.approvedAt)
+      || Number.isNaN(Date.parse(resolution.approvedAt))
+      || !nonEmptyString(resolution.rationale)) {
+    return false;
+  }
+
+  if (!printersData || !Array.isArray(printersData.printers)) return false;
+  return printersData.printers
+    .filter((printer) => printer && printer.enclosure === 'passive')
+    .every((printer) => printer.open_door_threshold_bed_temp === 45);
+}
+
+function fieldPasses(name, field, context = {}) {
   if (!field || field.value === null || field.value === undefined) return false;
   if (hasValidManufacturerSource(field)) return true;
   if (name === 'max_acceleration'
@@ -117,10 +155,72 @@ function fieldPasses(name, field) {
       && hasAppCapSweep(field)) {
     return true;
   }
+  if (hasRepoConvention(name, field, context.row || {}, context.printersData)) {
+    return true;
+  }
   return ABSENCE_BOOLEAN_FIELDS.has(name)
     && field.evidenceType === 'absence-rationale'
     && field.value === false
     && hasAbsenceRationale(field);
+}
+
+function validateMaterializedParity(candidate, printersData) {
+  const errors = [];
+  const row = candidate && candidate.printersJsonRow;
+  if (!row || typeof row !== 'object' || Array.isArray(row)) {
+    return {
+      ok: false,
+      errors: ['candidate printersJsonRow must be an object'],
+    };
+  }
+  if (!printersData || !Array.isArray(printersData.printers)) {
+    return {
+      ok: false,
+      errors: ['materialized printer catalog must contain a printers array'],
+    };
+  }
+
+  const proposedId = candidate.proposedTaxonomy && candidate.proposedTaxonomy.id;
+  const rowId = row.id;
+  const candidateId = nonEmptyString(proposedId)
+    ? proposedId
+    : (nonEmptyString(rowId) ? rowId : null);
+  if (!candidateId) {
+    return {
+      ok: false,
+      errors: ['candidate packet must identify the printer in proposedTaxonomy.id or printersJsonRow.id'],
+    };
+  }
+
+  const matches = printersData.printers.filter((printer) => (
+    printer && printer.id === candidateId
+  ));
+  if (matches.length !== 1) {
+    return {
+      ok: false,
+      errors: [`expected exactly one materialized catalog row for ${candidateId}; found ${matches.length}`],
+    };
+  }
+
+  const materialized = matches[0];
+  for (const [name, packetValue] of Object.entries(row)) {
+    if (!Object.prototype.hasOwnProperty.call(materialized, name)) {
+      errors.push(`materialized catalog row is missing packet field ${name}`);
+      continue;
+    }
+    if (!isDeepStrictEqual(unwrapPacketValue(packetValue), materialized[name])) {
+      errors.push(`packet field ${name} does not match the materialized catalog row`);
+    }
+  }
+
+  for (const name of OPTIONAL_CRITICAL_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(materialized, name)
+        && !Object.prototype.hasOwnProperty.call(row, name)) {
+      errors.push(`materialized optional critical field ${name} is missing from the candidate packet`);
+    }
+  }
+
+  return { ok: errors.length === 0, errors };
 }
 
 function notesCarryManufacturerCitation(field) {
@@ -161,8 +261,9 @@ function notesCarryAppCapProvenance(acceleration, notes) {
   });
 }
 
-function validateCandidateEvidence(candidate) {
+function validateCandidateEvidence(candidate, options = {}) {
   const row = candidate && candidate.printersJsonRow ? candidate.printersJsonRow : {};
+  const printersData = options.printersData;
   const fields = CRITICAL_FIELDS.concat(
     OPTIONAL_CRITICAL_FIELDS.filter((name) => Object.prototype.hasOwnProperty.call(row, name))
   );
@@ -172,7 +273,7 @@ function validateCandidateEvidence(candidate) {
   for (const name of fields) {
     const field = row[name];
     if (name === 'notes') {
-      if (!fieldPasses('notes', field)) {
+      if (!fieldPasses('notes', field, { row, printersData })) {
         errors.push('notes require confirmed manufacturer evidence metadata');
       } else if (!notesCarryManufacturerCitation(field)) {
         errors.push('notes must include a manufacturer citation URL');
@@ -187,7 +288,7 @@ function validateCandidateEvidence(candidate) {
       errors.push(`absence rationale for ${name} must use canonical source identities`);
       continue;
     }
-    if (!fieldPasses(name, field)) {
+    if (!fieldPasses(name, field, { row, printersData })) {
       errors.push(`missing or insufficient manufacturer evidence for ${name}`);
       if (field && field.evidenceType === 'absence-rationale'
           && hasCompleteSourceSweep(field)) {
@@ -198,6 +299,11 @@ function validateCandidateEvidence(candidate) {
 
   if (!notesCarryAppCapProvenance(row.max_acceleration, row.notes)) {
     errors.push('app-cap max_acceleration requires value and unpublished-source rationale in notes');
+  }
+
+  if (Object.prototype.hasOwnProperty.call(options, 'printersData')) {
+    const parity = validateMaterializedParity(candidate, printersData);
+    errors.push(...parity.errors);
   }
 
   const ok = errors.length === 0;
@@ -213,14 +319,62 @@ function validateCandidateEvidence(candidate) {
   };
 }
 
-if (require.main === module) {
-  const candidate = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
-  const result = validateCandidateEvidence(candidate);
-  for (const error of result.errors) {
-    console.error(`[validate-candidate-evidence] ${error}`);
+function parseCliArgs(args) {
+  const optionIndexes = args
+    .map((arg, index) => (arg === '--printers-json' ? index : -1))
+    .filter((index) => index !== -1);
+  if (optionIndexes.length !== 1) {
+    throw new Error('usage: validate-candidate-evidence.js <candidate-packet> --printers-json <catalog>');
   }
-  console.log(`[validate-candidate-evidence] ok=${result.ok} reason=${result.reason || 'none'}`);
-  process.exit(result.ok ? 0 : 1);
+  const optionIndex = optionIndexes[0];
+  const catalogPath = args[optionIndex + 1];
+  const remaining = args.filter((_, index) => index !== optionIndex && index !== optionIndex + 1);
+  if (!catalogPath || catalogPath.startsWith('--') || remaining.length !== 1
+      || remaining[0].startsWith('--')) {
+    throw new Error('usage: validate-candidate-evidence.js <candidate-packet> --printers-json <catalog>');
+  }
+  return { candidatePath: remaining[0], catalogPath };
+}
+
+function readJsonFile(filePath, label) {
+  let content;
+  try {
+    content = fs.readFileSync(filePath, 'utf8');
+  } catch (error) {
+    throw new Error(`unable to read ${label} ${filePath}: ${error.message}`);
+  }
+  try {
+    return JSON.parse(content);
+  } catch (error) {
+    throw new Error(`invalid JSON in ${label} ${filePath}: ${error.message}`);
+  }
+}
+
+function assertCatalogShape(printersData) {
+  if (!printersData || typeof printersData !== 'object' || Array.isArray(printersData)
+      || !Array.isArray(printersData.brands) || !Array.isArray(printersData.printers)
+      || !printersData.printers.every((row) => row && typeof row === 'object'
+        && !Array.isArray(row) && nonEmptyString(row.id))) {
+    throw new Error('invalid printer catalog shape: expected { brands: [], printers: [{ id, ... }] }');
+  }
+}
+
+if (require.main === module) {
+  try {
+    const { candidatePath, catalogPath } = parseCliArgs(process.argv.slice(2));
+    const candidate = readJsonFile(candidatePath, 'candidate packet');
+    const printersData = readJsonFile(catalogPath, 'printer catalog');
+    assertCatalogShape(printersData);
+    const result = validateCandidateEvidence(candidate, { printersData });
+    for (const error of result.errors) {
+      console.error(`[validate-candidate-evidence] ${error}`);
+    }
+    console.log(`[validate-candidate-evidence] ok=${result.ok} reason=${result.reason || 'none'}`);
+    process.exit(result.ok ? 0 : 1);
+  } catch (error) {
+    console.error(`[validate-candidate-evidence] ${error.message}`);
+    process.exit(1);
+  }
 }
 
 module.exports = {
@@ -228,5 +382,6 @@ module.exports = {
   OPTIONAL_CRITICAL_FIELDS,
   hasAbsenceRationale,
   hasCompleteSourceSweep,
+  validateMaterializedParity,
   validateCandidateEvidence,
 };
