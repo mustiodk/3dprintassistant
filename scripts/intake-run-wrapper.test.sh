@@ -74,6 +74,18 @@ EOF
   chmod +x "$BIN/claude"
 }
 
+make_observable_good_claude() {
+  cat > "$BIN/claude" <<EOF
+#!/usr/bin/env bash
+touch "$TMP/claude-invoked"
+mkdir -p "$STATE"
+printf '# 3dpa intake run — stub\n' > "$STATE/last-run-report.md"
+echo "run complete: shipped 0 parked 0 errored 0"
+exit 0
+EOF
+  chmod +x "$BIN/claude"
+}
+
 make_crashing_claude() {
   cat > "$BIN/claude" <<EOF
 #!/usr/bin/env bash
@@ -131,5 +143,37 @@ run_wrapper
 [[ $rc -eq 7 ]] || { cat "$TMP/wrapper.out" >&2; echo "FAIL: expected rc=7, got $rc" >&2; exit 1; }
 grep -q -- '--shipped-unknown' "$REPO/scripts/notify-calls.log" || { echo "FAIL: crash did not notify --shipped-unknown" >&2; exit 1; }
 [[ ! -f "$REPO/scripts/.intake-run.lock" ]] || { echo "FAIL: lock not released" >&2; exit 1; }
+
+# 4 — Bridge output is always an ignored directory under runner state
+bridge_output_failures=0
+init_fixture
+make_good_claude
+run_wrapper
+if [[ ! -d "$STATE/bridge-reviews" ]]; then
+  echo "FAIL: successful wrapper run did not create $STATE/bridge-reviews" >&2
+  bridge_output_failures=$((bridge_output_failures + 1))
+fi
+
+# 5 — a conflicting non-directory fails closed before Claude is invoked
+init_fixture
+mkdir -p "$STATE"
+printf 'not a directory\n' > "$STATE/bridge-reviews"
+rm -f "$TMP/claude-invoked"
+make_observable_good_claude
+run_wrapper
+if [[ $rc -eq 0 ]]; then
+  echo "FAIL: wrapper accepted a non-directory Bridge output path" >&2
+  bridge_output_failures=$((bridge_output_failures + 1))
+fi
+if [[ ! -f "$REPO/scripts/notify-calls.log" ]] \
+  || ! grep -q 'bridge-output' "$REPO/scripts/notify-calls.log"; then
+  echo "FAIL: Bridge output path conflict did not send a bridge-output failure notification" >&2
+  bridge_output_failures=$((bridge_output_failures + 1))
+fi
+if [[ -e "$TMP/claude-invoked" ]]; then
+  echo "FAIL: Claude was invoked after the Bridge output path conflict" >&2
+  bridge_output_failures=$((bridge_output_failures + 1))
+fi
+[[ $bridge_output_failures -eq 0 ]] || exit 1
 
 echo "intake-run-wrapper.test.sh: all tests passed"

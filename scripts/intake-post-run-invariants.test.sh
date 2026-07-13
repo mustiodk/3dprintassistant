@@ -114,19 +114,25 @@ init_repo
 printf 'full-mode bridge run\n' > "$REPO/bridge-2026-07-12-222924-350261.md"
 expect_fail web-dirty
 
-# 8 — custody-only dirt is repairable next run, not a failure
+# 8 — Bridge output inside ignored runner state is retained without dirtying web
+init_repo
+mkdir -p "$STATE/bridge-reviews"
+printf 'codex-only bridge run\n' > "$STATE/bridge-reviews/bridge-2026-07-13-100815-004699.md"
+expect_ok
+
+# 9 — custody-only dirt is repairable next run, not a failure
 init_repo
 printf '{"candidateKey":"k2_se"}\n' >> "$REPO/scripts/printer-intake-outcomes.jsonl"
 expect_ok
 
-# 9 — custody-only ahead commits allowed (push repair next run)
+# 10 — custody-only ahead commits allowed (push repair next run)
 init_repo
 printf '{"candidateKey":"k2_se"}\n' >> "$REPO/scripts/printer-intake-outcomes.jsonl"
 git -C "$REPO" add scripts/printer-intake-outcomes.jsonl
 git -C "$REPO" commit -qm "chore(intake): custody k2_se"
 expect_ok
 
-# 10 — non-custody ahead commits fail (unpushed merge / stray work)
+# 11 — non-custody ahead commits fail (unpushed merge / stray work)
 init_repo
 printf 'bad' > "$REPO/data/printers.json"
 git -C "$REPO" add data/printers.json
