@@ -343,6 +343,9 @@ test('exact passive-enclosure open-door repository convention passes', () => {
     id: 'another_passive_printer',
     enclosure: 'passive',
     open_door_threshold_bed_temp: 45,
+  }, {
+    id: 'open_printer_without_threshold',
+    enclosure: 'open',
   }]);
   const result = validateCandidateEvidence(candidate, { printersData });
   assert.equal(result.ok, true);
@@ -355,6 +358,25 @@ test('repository convention requires a complete owner resolution', () => {
     (field) => { field.ownerResolution.policy = 'different-policy'; },
     (field) => { field.ownerResolution.approvedAt = 'not-a-date'; },
     (field) => { field.ownerResolution.rationale = ' '; },
+  ];
+
+  for (const mutate of variants) {
+    const candidate = repoConventionCandidate();
+    mutate(candidate.printersJsonRow.open_door_threshold_bed_temp);
+    const result = validateCandidateEvidence(candidate, {
+      printersData: materializedCatalog(candidate),
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, 'research-defect');
+    assert.equal(result.reviewRequests, 0);
+  }
+});
+
+test('repository convention requires exact evidence metadata', () => {
+  const variants = [
+    (field) => { field.source = SOURCE; },
+    (field) => { field.confidence = 'confirmed'; },
+    (field) => { field.evidenceType = 'manufacturer'; },
   ];
 
   for (const mutate of variants) {
