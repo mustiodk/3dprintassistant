@@ -121,17 +121,23 @@ function addPrinter(printerId, opts = {}) {
   const { overlayPath, printersPath, addBrand, minAppVersion } = { ...DEFAULTS, ...opts };
   const overlay = readJson(overlayPath);
   const source = readJson(printersPath);
+  const existingIndex = overlay.payload.printers.findIndex((p) => p.id === printerId);
+  const row = source.printers.find((p) => p.id === printerId);
+  if (!row) throw new Error(`printer ${printerId} not found in ${printersPath}`);
 
-  if (overlay.payload.printers.some((p) => p.id === printerId)) {
+  if (existingIndex !== -1) {
     if (addBrand || minAppVersion) {
       // Never silently discard a requested envelope change on the no-op path.
       throw new Error(`printer ${printerId} is already in the overlay, but ${[addBrand && '--add-brand', minAppVersion && '--min-app-version'].filter(Boolean).join(' + ')} was requested — refusing to no-op past an envelope change`);
     }
-    return { changed: false, version: overlay.content_version, message: `printer ${printerId} is already in the overlay — no-op (no version churn)` };
+    if (stableStringify(overlay.payload.printers[existingIndex]) === stableStringify(row)) {
+      return { changed: false, version: overlay.content_version, message: `printer ${printerId} is already in the overlay — no-op (no version churn)` };
+    }
+    overlay.payload.printers[existingIndex] = row;
+    const version = nextVersion(overlay.content_version);
+    writeValidated(freshEnvelope(overlay, version), opts);
+    return { changed: true, version, message: `refreshed ${printerId} at content_version ${version}` };
   }
-
-  const row = source.printers.find((p) => p.id === printerId);
-  if (!row) throw new Error(`printer ${printerId} not found in ${printersPath}`);
 
   if (addBrand) {
     if (!overlay.payload.brands.some((b) => b.id === addBrand)) {
