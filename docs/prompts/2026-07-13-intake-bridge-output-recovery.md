@@ -33,6 +33,10 @@ the full LaunchAgent.
 - iOS is six local commits ahead under the push gate. Never push it.
 - Bridge v0.2.0 health is green; scheduled PD5 remains `codex-only`. Because
   Codex is the controller, independent cross-model reviews use Claude Opus 4.8.
+- The normal 12:00 run on 2026-07-13 stopped at preflight `web-dirty` before
+  `claude -p`, notified failure, released/no lock, and did not touch the
+  candidate. The planning docs are now pushed; the preserved root Bridge report
+  is the only remaining web-tree dirt at implementation start.
 
 ## Required workflow
 
