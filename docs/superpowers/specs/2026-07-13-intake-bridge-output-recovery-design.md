@@ -66,9 +66,14 @@ The preserved branch `intake/centauri_carbon_2` at `8695583` is the candidate ch
 Continuation sequence:
 
 1. Land the Bridge-output repair on web `main` and update the ai-operating-model contract.
-2. Rebase the preserved candidate branch onto current web `main`; do not recreate the candidate from Scout.
-3. Update the preserved evidence/review packet so `cool_plate` cites Elegoo's official Centauri Series accessory page, which explicitly describes a "Cool Plate Surface" for low-temperature PLA printing.
-4. Record `open_door_threshold_bed_temp: 45` as an owner-approved 3dpa repository convention, not as a manufacturer claim:
+2. Before moving the only branch ref, create annotated archival tag
+   `intake-checkpoint/centauri_carbon_2-review-split-20260713` at `8695583`,
+   push that exact tag to `origin`, and verify both local peeled target and
+   remote peeled target equal `8695583`. If the tag already exists at any other
+   object, stop; never force or overwrite it.
+3. Rebase the preserved candidate branch onto current web `main`; do not recreate the candidate from Scout. Verify the archival tag still resolves to `8695583` after rebase.
+4. Update the preserved evidence/review packet so `cool_plate` cites Elegoo's official Centauri Series accessory page, which explicitly describes a "Cool Plate Surface" for low-temperature PLA printing.
+5. Record `open_door_threshold_bed_temp: 45` as an owner-approved 3dpa repository convention, not as a manufacturer claim:
    - current data audit: all 21 passive-enclosure printers use `45`;
    - add the field to the candidate packet with `source: null`,
      `confidence: "owner-approved"`, `evidenceType: "repo-convention"`, and a
@@ -76,12 +81,12 @@ Continuation sequence:
      `passive-enclosure-open-door-threshold`, a parseable approval timestamp,
      and non-empty rationale;
    - do not label the value `manufacturer` and do not fabricate a manufacturer URL.
-5. Extend `validate-candidate-evidence.js` narrowly so this convention passes
+6. Extend `validate-candidate-evidence.js` narrowly so this convention passes
    only for `open_door_threshold_bed_temp`, only at value `45`, only when the
    candidate enclosure is `passive`, only with the typed owner resolution, and
    only while every materialized passive-enclosure row in `data/printers.json`
    also carries `45`. No other field gains a repository-convention exception.
-6. Make the evidence gate compare the complete candidate packet row against
+7. Make the evidence gate compare the complete candidate packet row against
    the materialized candidate in `data/printers.json`: metadata objects compare
    through their `value`, scalar identity fields compare directly, missing
    optional critical fields fail when present in the materialized row, and any
@@ -89,9 +94,9 @@ Continuation sequence:
    `node scripts/validate-candidate-evidence.js <candidate-packet> --printers-json data/printers.json`.
    Update the materialized candidate notes to retain the packet's manufacturer
    citation rather than weakening the parity rule.
-7. Rerun the candidate evidence gate, diff guards, data validation, picker dry-run, walkthrough harness, profile matrix audit, overlay validation, and `git diff --check`.
-8. Run a fresh hostile Reviewer 1 and a fresh Bridge Reviewer 2 using the repaired absolute output directory. Validate both structured outputs.
-9. Classify the new verdicts exactly as v2.1 requires:
+8. Rerun the candidate evidence gate, diff guards, data validation, picker dry-run, walkthrough harness, profile matrix audit, overlay validation, and `git diff --check`.
+9. Run a fresh hostile Reviewer 1 and a fresh Bridge Reviewer 2 using the repaired absolute output directory. Validate both structured outputs.
+10. Classify the new verdicts exactly as v2.1 requires:
    - `{GO,GO}`: recheck remote `main`, merge/push web, verify live overlay and picker, create the local-only byte-identical iOS mirror, then write `docs/printer-provenance.json` plus the outcomes ledger in the normal atomic custody commit on `main`, push it, and finish notify/cleanup;
    - any `NO-GO`: update the parked sidecar with the exact objections and stop;
    - reviewer unavailable/malformed: park fail-closed and stop.
@@ -110,6 +115,9 @@ committed shipped-printer provenance document.
 - Missing/unwritable Bridge output directory fails before a paid review turn.
 - Any root-level Bridge report still makes POSTRUN return `65`.
 - A changed remote `main` forces rebase, full validator rerun, and two fresh reviews.
+- The candidate branch is never rebased until the immutable checkpoint tag is
+  verified on `origin`; tag creation/push failure stops continuation without
+  moving the branch.
 - The candidate never ships from owner approval alone; owner approval authorizes re-entry, not merge.
 - No provenance or outcomes custody line is committed for a candidate that
   parks, fails review, or fails live verification.
@@ -127,6 +135,8 @@ committed shipped-printer provenance document.
 - The pinned Bridge command includes the absolute ignored output directory in both governing documents.
 - The preserved 2026-07-13 Bridge report has identical source/destination SHA-256 after relocation.
 - Web `main` is clean and synchronized before any candidate continuation.
+- The local and remote peeled archival tag targets remain exactly `8695583`
+  before and after candidate rebase.
 - No full LaunchAgent rerun is used for this candidate.
 - `centauri_carbon_2` ships only after fresh validated `{GO,GO}` plus live verification; otherwise it remains parked with a precise terminal reason.
 
