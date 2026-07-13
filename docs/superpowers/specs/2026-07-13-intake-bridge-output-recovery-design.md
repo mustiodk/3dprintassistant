@@ -92,11 +92,18 @@ Continuation sequence:
 7. Rerun the candidate evidence gate, diff guards, data validation, picker dry-run, walkthrough harness, profile matrix audit, overlay validation, and `git diff --check`.
 8. Run a fresh hostile Reviewer 1 and a fresh Bridge Reviewer 2 using the repaired absolute output directory. Validate both structured outputs.
 9. Classify the new verdicts exactly as v2.1 requires:
-   - `{GO,GO}`: recheck remote `main`, merge/push web, verify live overlay and picker, create the local-only byte-identical iOS mirror, then finish custody/notify/cleanup;
+   - `{GO,GO}`: recheck remote `main`, merge/push web, verify live overlay and picker, create the local-only byte-identical iOS mirror, then write `docs/printer-provenance.json` plus the outcomes ledger in the normal atomic custody commit on `main`, push it, and finish notify/cleanup;
    - any `NO-GO`: update the parked sidecar with the exact objections and stop;
    - reviewer unavailable/malformed: park fail-closed and stop.
 
 The earlier split verdict stays in history. It is never overwritten or reinterpreted.
+
+Candidate review evidence and owner resolution stay in the ignored candidate
+packet/parked sidecar before PD5. `docs/printer-provenance.json` is not edited on
+the candidate branch: it is a shipped-state custody artifact and is written only
+after fresh `{GO,GO}`, merge/push, live verification, and the local-only iOS
+mirror succeed. A parked or failed candidate therefore cannot appear in the
+committed shipped-printer provenance document.
 
 ## Error handling
 
@@ -104,6 +111,8 @@ The earlier split verdict stays in history. It is never overwritten or reinterpr
 - Any root-level Bridge report still makes POSTRUN return `65`.
 - A changed remote `main` forces rebase, full validator rerun, and two fresh reviews.
 - The candidate never ships from owner approval alone; owner approval authorizes re-entry, not merge.
+- No provenance or outcomes custody line is committed for a candidate that
+  parks, fails review, or fails live verification.
 - If the repaired review path fails, preserve its transcript/session report before any further attempt.
 
 ## Acceptance criteria
@@ -132,7 +141,9 @@ Web repository:
 - `scripts/validate-candidate-evidence.js`
 - `scripts/validate-candidate-evidence.test.js`
 - `scripts/validate-reviewer-output.test.js`
-- `docs/printer-provenance.json` only on the candidate continuation branch
+- `docs/printer-provenance.json` and
+  `scripts/printer-intake-outcomes.jsonl` only in the post-live custody commit on
+  `main`
 - ignored `.intake-runner-state/` evidence and candidate packet
 
 AI operating model repository:
