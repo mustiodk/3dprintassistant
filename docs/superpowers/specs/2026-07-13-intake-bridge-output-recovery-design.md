@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-13
 
-**Status:** owner-approved design; P0/P1 review amendments accepted; implementation gated on the reviewed plan
+**Status:** owner-approved; P0/P1 amendments applied; implementation plan full-lane reviewed GO
 
 **Scope:** repair the autonomous intake runner's Bridge-output integration, then continue `centauri_carbon_2` from its preserved checkpoint without rerunning Scout or bypassing PD5.
 
@@ -44,7 +44,7 @@ It is already covered by the repository's `scripts/.intake-runner-state/` ignore
 The launch wrapper creates this directory before starting the headless runner. Both the web kickoff and the ai-operating-model runner contract pin the only PD5 Reviewer-2 form to:
 
 ```sh
-bridge --mode codex-only "<concrete review prompt over main...intake/<printer-id>>" \
+bridge --mode codex-only "<concrete review prompt over main...intake/<printer-id> diff>" \
   --out-dir /Users/mustafaozturk-macmini/dev/Claude/Projects/3dprintassistant/scripts/.intake-runner-state/bridge-reviews
 ```
 
@@ -66,12 +66,13 @@ The preserved branch `intake/centauri_carbon_2` at `8695583` is the candidate ch
 Continuation sequence:
 
 1. Land the Bridge-output repair on web `main` and update the ai-operating-model contract.
-2. Before moving the only branch ref, create annotated archival tag
+2. Before moving the only branch ref, create annotated archival tags
+   `intake-checkpoint/centauri_carbon_2-candidate-20260712` at `be49fea` and
    `intake-checkpoint/centauri_carbon_2-review-split-20260713` at `8695583`,
-   push that exact tag to `origin`, and verify both local peeled target and
-   remote peeled target equal `8695583`. If the tag already exists at any other
-   object, stop; never force or overwrite it.
-3. Rebase the preserved candidate branch onto current web `main`; do not recreate the candidate from Scout. Verify the archival tag still resolves to `8695583` after rebase.
+   push both exact tags to `origin`, and verify each local and remote peeled
+   target. If either tag already exists at any other object, stop; never force
+   or overwrite it.
+3. Rebase the preserved candidate branch onto current web `main`; do not recreate the candidate from Scout. Verify both archival tags still resolve to their original commits after rebase.
 4. Update the preserved evidence/review packet so `cool_plate` cites Elegoo's official Centauri Series accessory page, which explicitly describes a "Cool Plate Surface" for low-temperature PLA printing.
 5. Record `open_door_threshold_bed_temp: 45` as an owner-approved 3dpa repository convention, not as a manufacturer claim:
    - current data audit: all 21 passive-enclosure printers use `45`;
@@ -135,8 +136,8 @@ committed shipped-printer provenance document.
 - The pinned Bridge command includes the absolute ignored output directory in both governing documents.
 - The preserved 2026-07-13 Bridge report has identical source/destination SHA-256 after relocation.
 - Web `main` is clean and synchronized before any candidate continuation.
-- The local and remote peeled archival tag targets remain exactly `8695583`
-  before and after candidate rebase.
+- The local and remote peeled archival tags remain exactly at `be49fea` and
+  `8695583` before and after candidate rebase.
 - No full LaunchAgent rerun is used for this candidate.
 - `centauri_carbon_2` ships only after fresh validated `{GO,GO}` plus live verification; otherwise it remains parked with a precise terminal reason.
 
@@ -151,6 +152,8 @@ Web repository:
 - `scripts/validate-candidate-evidence.js`
 - `scripts/validate-candidate-evidence.test.js`
 - `scripts/validate-reviewer-output.test.js`
+- `docs/runbooks/printer-addition-protocol.md`
+- `docs/superpowers/specs/2026-07-10-intake-autonomy-v2.1-evidence-retry-retrospective-design.md`
 - `docs/printer-provenance.json` and
   `scripts/printer-intake-outcomes.jsonl` only in the post-live custody commit on
   `main`
