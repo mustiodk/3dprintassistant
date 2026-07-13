@@ -41,6 +41,9 @@ function baseCandidate(overrides = {}) {
   return {
     schema: 'printer-intake-candidate@1',
     printersJsonRow: {
+      id: 'k2_se',
+      name: 'K2 SE',
+      manufacturer: 'creality',
       series: confirmed('K Series'),
       extruder_type: confirmed('direct_drive'),
       enclosure: confirmed('open'),
@@ -73,6 +76,43 @@ function baseCandidate(overrides = {}) {
     },
     ...overrides,
   };
+}
+
+function materializedRow(candidate) {
+  return Object.fromEntries(
+    Object.entries(candidate.printersJsonRow).map(([name, field]) => {
+      if (['id', 'name', 'manufacturer'].includes(name)) return [name, field];
+      if (field && typeof field === 'object'
+          && Object.prototype.hasOwnProperty.call(field, 'value')) {
+        return [name, field.value];
+      }
+      return [name, field];
+    })
+  );
+}
+
+function materializedCatalog(candidate, additionalRows = []) {
+  return {
+    brands: [],
+    printers: [materializedRow(candidate), ...additionalRows],
+  };
+}
+
+function repoConventionCandidate() {
+  const candidate = baseCandidate();
+  candidate.printersJsonRow.enclosure = confirmed('passive');
+  candidate.printersJsonRow.open_door_threshold_bed_temp = {
+    value: 45,
+    source: null,
+    confidence: 'owner-approved',
+    evidenceType: 'repo-convention',
+    ownerResolution: {
+      policy: 'passive-enclosure-open-door-threshold',
+      approvedAt: '2026-07-13T12:00:00Z',
+      rationale: 'Owner approved the existing 3dpa passive-enclosure convention.',
+    },
+  };
+  return candidate;
 }
 
 test('confirmed manufacturer evidence passes', () => {
@@ -235,4 +275,141 @@ test('absence rationale checked sources must already be canonical', () => {
   assert.equal(result.ok, false);
   assert.match(result.errors.join('\n'), /canonical/i);
   assert.equal(result.reviewRequests, 0);
+});
+
+test('materialized candidate must exist in the catalog before review', () => {
+  const candidate = baseCandidate();
+  const result = validateCandidateEvidence(candidate, {
+    printersData: { brands: [], printers: [] },
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'research-defect');
+  assert.equal(result.reviewRequests, 0);
+});
+
+test('packet fields must equal the materialized catalog row before review', () => {
+  const candidate = baseCandidate();
+  const printersData = materializedCatalog(candidate);
+  printersData.printers[0].max_speed = 499;
+  const result = validateCandidateEvidence(candidate, { printersData });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'research-defect');
+  assert.equal(result.reviewRequests, 0);
+});
+
+test('materialized optional critical fields must be present in the packet', () => {
+  const candidate = baseCandidate();
+  const printersData = materializedCatalog(candidate);
+  printersData.printers[0].open_door_threshold_bed_temp = 45;
+  const result = validateCandidateEvidence(candidate, { printersData });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'research-defect');
+  assert.equal(result.reviewRequests, 0);
+});
+
+test('packet notes citation must survive into the materialized row', () => {
+  const candidate = baseCandidate();
+  const printersData = materializedCatalog(candidate);
+  printersData.printers[0].notes = ['K2 SE'];
+  const result = validateCandidateEvidence(candidate, { printersData });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'research-defect');
+  assert.equal(result.reviewRequests, 0);
+});
+
+test('exact passive-enclosure open-door repository convention passes', () => {
+  const candidate = repoConventionCandidate();
+  const printersData = materializedCatalog(candidate, [{
+    id: 'another_passive_printer',
+    enclosure: 'passive',
+    open_door_threshold_bed_temp: 45,
+  }]);
+  const result = validateCandidateEvidence(candidate, { printersData });
+  assert.equal(result.ok, true);
+  assert.equal(result.reviewRequests, 1);
+});
+
+test('repository convention requires a complete owner resolution', () => {
+  const variants = [
+    (field) => { delete field.ownerResolution; },
+    (field) => { field.ownerResolution.policy = 'different-policy'; },
+    (field) => { field.ownerResolution.approvedAt = 'not-a-date'; },
+    (field) => { field.ownerResolution.rationale = ' '; },
+  ];
+
+  for (const mutate of variants) {
+    const candidate = repoConventionCandidate();
+    mutate(candidate.printersJsonRow.open_door_threshold_bed_temp);
+    const result = validateCandidateEvidence(candidate, {
+      printersData: materializedCatalog(candidate),
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, 'research-defect');
+    assert.equal(result.reviewRequests, 0);
+  }
+});
+
+test('repository convention requires the numeric value 45', () => {
+  const candidate = repoConventionCandidate();
+  candidate.printersJsonRow.open_door_threshold_bed_temp.value = 46;
+  const result = validateCandidateEvidence(candidate, {
+    printersData: materializedCatalog(candidate),
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'research-defect');
+  assert.equal(result.reviewRequests, 0);
+});
+
+test('repository convention is restricted to passive enclosures', () => {
+  const candidate = repoConventionCandidate();
+  candidate.printersJsonRow.enclosure = confirmed('open');
+  const result = validateCandidateEvidence(candidate, {
+    printersData: materializedCatalog(candidate),
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'research-defect');
+  assert.equal(result.reviewRequests, 0);
+});
+
+test('repository convention is restricted to the open-door threshold field', () => {
+  const candidate = repoConventionCandidate();
+  candidate.printersJsonRow.max_bed_temp = {
+    ...candidate.printersJsonRow.open_door_threshold_bed_temp,
+    ownerResolution: {
+      ...candidate.printersJsonRow.open_door_threshold_bed_temp.ownerResolution,
+    },
+  };
+  const result = validateCandidateEvidence(candidate, {
+    printersData: materializedCatalog(candidate),
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'research-defect');
+  assert.equal(result.reviewRequests, 0);
+});
+
+test('repository convention requires every passive catalog row to carry the threshold', () => {
+  const candidate = repoConventionCandidate();
+  const printersData = materializedCatalog(candidate, [{
+    id: 'passive_without_threshold',
+    enclosure: 'passive',
+  }]);
+  const result = validateCandidateEvidence(candidate, { printersData });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'research-defect');
+  assert.equal(result.reviewRequests, 0);
+});
+
+test('repository convention requires every passive catalog threshold to be numeric 45', () => {
+  for (const invalidThreshold of [46, '45']) {
+    const candidate = repoConventionCandidate();
+    const printersData = materializedCatalog(candidate, [{
+      id: 'passive_with_invalid_threshold',
+      enclosure: 'passive',
+      open_door_threshold_bed_temp: invalidThreshold,
+    }]);
+    const result = validateCandidateEvidence(candidate, { printersData });
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, 'research-defect');
+    assert.equal(result.reviewRequests, 0);
+  }
 });
