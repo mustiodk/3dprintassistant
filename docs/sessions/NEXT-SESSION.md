@@ -2,102 +2,102 @@
 
 **Purpose:** copy-paste kickoff prompt for a fresh session on the mac-mini.
 
-**Last updated:** 2026-07-13 after the terminal Centauri Carbon 2 continuation.
-The intake is parked `review-unavailable`, nothing shipped, and the owner has
-explicitly closed the intake lane until a later command. The next product lane
-is the reviewed iOS 1.0.7 issue-fix train; the separate iOS 1.0.8 tip-jar train
-comes after it.
+**Last updated:** 2026-07-13 (late) after the Air audit/fix session. The owner
+has EXPLICITLY reopened the printer-intake lane and authorized an e2e rerun of
+the Centauri Carbon 2 request. All fixes are merged and pushed on web `main`
+(boundary contract block `f989af6`, POSTRUN park preservation `4d034ad`,
+kickoff v2.2 `1c744ba`) and the runner contract is v2.2 (parent repo). After
+the intake terminal report, the product lane returns to iOS 1.0.7.
 
-Copy everything between the markers into the fresh session.
+Copy everything between the markers into the fresh session on the mac-mini.
 
 >>> START >>>
 
-3dpa cold start on the mac-mini. Start the reviewed iOS 1.0.7 issue-fix
-release plan. Do not restart or diagnose printer intake, and do not start the
-1.0.8 tip-jar train in this session.
+3dpa cold start on the mac-mini. OWNER-AUTHORIZED task: e2e rerun of the
+Centauri Carbon 2 printer-intake request through the fixed v2.2 pipeline, and
+confirm the outcome. The owner command of 2026-07-13 ("complete audit … fix …
+rerun the request and confirm") satisfies the parked sidecar's
+`nextEligibleTrigger: "owner"` — this session may spend review turns for this
+one candidate. Do not start the iOS 1.0.7 or 1.0.8 trains in this session.
 
 Read in order:
 
-1. `~/dev/Claude/Projects/AGENTS.md`
+1. `~/dev/Claude/Projects/CLAUDE.md`
 2. `3dprintassistant/CLAUDE.md`
 3. `3dprintassistant/docs/3dpa-context.md`
-4. `3dprintassistant/docs/planning/ROADMAP.md` (top lock banner + active queue)
+4. `3dprintassistant/docs/planning/ROADMAP.md` (top banner — intake reopened)
 5. `3dprintassistant/docs/sessions/INDEX.md`
 6. These session logs in full:
+   - `3dprintassistant/docs/sessions/2026-07-13-cowork-appdev-centauri-intake-audit-fix.md`
    - `3dprintassistant/docs/sessions/2026-07-13-cowork-appdev-centauri-intake-terminal.md`
    - `3dprintassistant/docs/sessions/2026-07-13-cowork-appdev-r1-boundary-rootcause.md`
-   - `3dprintassistant/docs/sessions/2026-07-13-cowork-appdev-centauri-pd5-handover.md`
-7. This `NEXT-SESSION.md`
-8. The reviewed 1.0.7 packet:
-   - `3dprintassistant/docs/superpowers/specs/2026-07-11-ios-1.0.7-issue-fix-release-design.md`
-   - `3dprintassistant/docs/superpowers/plans/2026-07-11-ios-1.0.7-issue-fix-release-plan.md`
-   - `3dprintassistant/docs/reviews/2026-07-11-ios-1.0.7-plan-review.md`
+7. `ai-operating-model/docs/agents/intake-pipeline-runner.md` (contract v2.2 IN FULL)
+8. `3dprintassistant/scripts/intake-run-kickoff.md` (v2.2)
+9. This `NEXT-SESSION.md`
 
 Before any mutation:
 
 ```bash
 cd ~/dev/Claude/Projects
 ~/.claude/claude-sync.sh health
-~/.claude/claude-sync.sh verify-parents
-~/.claude/claude-sync.sh push-children --dry
 git -C 3dprintassistant fetch origin --prune
 git -C 3dprintassistant status --short --branch
-git -C 3dprintassistant rev-parse HEAD origin/main
-git -C 3dprintassistant-ios fetch origin --prune
-git -C 3dprintassistant-ios status --short --branch
-git -C 3dprintassistant-ios rev-list --left-right --count main...origin/main
-git -C 3dprintassistant-ios log --oneline --decorate -10
+git -C 3dprintassistant pull --ff-only
+git -C 3dprintassistant log --oneline -6   # must include f989af6 4d034ad 1c744ba
+git -C 3dprintassistant branch --list 'intake/*'   # intake/centauri_carbon_2 @ 1694af2
+zsh 3dprintassistant/scripts/intake-r1-structured-review.test.sh   # 73/73
+bash 3dprintassistant/scripts/intake-post-run-invariants.test.sh
+bash 3dprintassistant/scripts/intake-run-wrapper.test.sh
 ```
 
 Expected state to verify, not assume:
 
-- Web clean `main`, equal to `origin/main`, at or beyond the terminal wrap
-  commit.
-- iOS clean `main`, six commits ahead at wrap: K2 SE bundled mirror plus the
-  verified Export Phases 2–4 mirrors. The push gate remains active. Reconcile
-  the exact commits and current-main plan assumptions before implementation.
-- `centauri_carbon_2` remains owner-parked at candidate `1694af2`; archive ref
-  and checkpoint tags remain preserved. Nothing from it is on remote `main` or
-  the live overlay.
-- Android may be absent on this machine; it is out of scope.
+- Web clean `main` == `origin/main`, containing the three fix commits.
+- `intake/centauri_carbon_2` at `1694af2`; archive ref + checkpoint tags
+  intact; parked sidecar `scripts/.intake-runner-state/parked/centauri_carbon_2/`
+  present with the R1 evidence; packet
+  `scripts/.printer-intake-out/candidate-elegoo-centauri_carbon_2.json` present.
+- No `scripts/.intake-autonomy-freeze`, no stale `scripts/.intake-run.lock`.
+- iOS clean `main`, ahead under the push gate (do not touch).
 
-Execute the reviewed iOS 1.0.7 plan task-by-task using its required
-`superpowers:executing-plans` workflow and checkpoints. Important boundaries:
+E2E procedure (this is the confirmation run the owner asked for):
 
-1. Run Task 0 current-state reconciliation before relying on the 2026-07-11
-   starting-state counts. The iOS ahead count moved from one to six because
-   Export Phases 2–4 are now locally mirrored and verified.
-2. Implement only issues #2–#5 plus the plan's narrow current-main-compatible
-   web analytics prerequisite. Do not wholesale merge or cherry-pick the stale
-   Claude reference branch.
-3. Keep `MARKETING_VERSION=1.0.7`; Fastlane owns the fresh build number.
-4. Preserve web as master for shared engine/data. No unrelated engine/data,
-   printer-intake, Android, accounts, or 1.0.8 work.
-5. Keep every iOS commit local until the complete 1.0.7 scope is implemented,
-   reviewed, all required web/iOS tests are green, shared files are verified,
-   the repos are clean, and the exact train is TestFlight-ready. Do not push
-   iOS early.
-6. Owner acceptance of the exact TestFlight build gates App Store submission.
-7. Stop after the 1.0.7 terminal report. The next separate train is iOS 1.0.8
-   tip jar; do not start it without a fresh owner command.
-
-Printer-intake hard stop:
-
-- Do not run the LaunchAgent, wrapper, R1 boundary, Bridge review, Scout, or
-  any Centauri validator/retry.
-- Do not delete or rewrite its parked sidecar, candidate branch, archive ref,
-  checkpoint tags, ignored packet, or raw R1 evidence.
-- The latest authorized turn passed all deterministic gates but R1 returned
-  prose without `structured_output`; the boundary parked exit 65. R2, merge,
-  live verify, iOS mirror, and ship did not run. Another turn requires a new
-  explicit owner command.
+1. **First, one diagnostic diff (no turn spent):** compare the preserved
+   failed live prompt
+   `scripts/.intake-runner-state/bridge-reviews/pd5-centauri_carbon_2-r1-20260713T190845Z*`
+   against what v2.2 now produces — confirm the old prompt carried the
+   "structured result before prose" instruction and that the new path
+   forbids it + appends the boundary's STRUCTURED OUTPUT CONTRACT block.
+2. Update the parked sidecar per the owner authorization (owner-triggered
+   re-entry; keep taint/verdictRefs history intact) so the candidate is due
+   this run.
+3. Run the pipeline via the wrapper (manual invocation, not launchd wait):
+   `zsh scripts/intake-run-wrapper.sh` from the web repo root. The v2.2
+   kickoff routes R1 through the boundary (which now appends the contract
+   block), then R2 via `bridge --mode codex-only` (run `bridge --health`
+   first per the kickoff).
+4. Outcomes are all acceptable — report faithfully, never force a ship:
+   - `{GO,GO}` → merge, push, live verify (PD6), iOS mirror LOCAL commit
+     only (never push iOS), custody commit, notify. Confirm live overlay
+     contains `centauri_carbon_2` and picker verification passes.
+   - `{NO-GO,*}` / split / review-unavailable → park per taxonomy, PRESERVE
+     branch+packet (v2.2: parking is not cleanup), fresh report + notify,
+     POSTRUN must be ok=true. A second consecutive stochastic
+     structured-output miss would now come with the exact effective prompt
+     preserved — capture it in the ai-om K4 finding as a true recurrence.
+5. Verify POSTRUN prints `ok=true` and the wrapper exits 0; confirm the
+   Discord notification and report accurately describe the outcome.
+6. Ledger + provenance custody per contract; then wrap up (Trigger A),
+   updating ROADMAP's top banner with the terminal outcome.
 
 Standing rules:
 
 - Show the progress tracker on multi-step work.
 - ROADMAP is truth; read it fully before status claims.
-- One finding = one commit.
-- Preserve the iOS push gate and clean-state release gate.
+- One finding = one commit. Park, don't fabricate.
+- iOS push gate stays active; web pushes freely.
+- Run `~/.claude/claude-sync.sh hold "intake e2e"` before touching
+  review-gated contract files; `release` after the deliberate commit.
 
 <<< END <<<
 
