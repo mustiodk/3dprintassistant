@@ -30,6 +30,13 @@
 #      maps to `auto-parked:review-unavailable`.
 #   5. The paid turn is bounded by --timeout-secs (default 1800) — a hung CLI
 #      becomes a deterministic `review-timeout` failure, not a held lock.
+#   6. A canonical STRUCTURED OUTPUT CONTRACT block is ALWAYS appended to the
+#      prompt before the turn (2026-07-13 second incident: the runner prompt's
+#      "emit the structured result before prose" instruction steered the model
+#      into printing the verdict as prose JSON instead of invoking the CLI's
+#      structured-output mechanism — inline schema, still no
+#      `structured_output`). The exact effective prompt is preserved at
+#      <label>-prompt.md as run evidence.
 #
 # Usage:
 #   intake-r1-structured-review.sh \
@@ -111,11 +118,13 @@ STDERR_LOG="$OUT_DIR/$LABEL-stderr.log"
 STRUCTURED="$OUT_DIR/$LABEL-structured.json"
 METADATA="$OUT_DIR/$LABEL-metadata.json"
 TIMEOUT_MARKER="$OUT_DIR/$LABEL-timeout.marker"
+PROMPT_SENT="$OUT_DIR/$LABEL-prompt.md"
 
 # 1 — no run (including one that fails the schema gate below) may inherit
 # prior evidence under the same label: a stale structured/metadata pair
 # surviving a later failure is a fail-open.
 rm -f "$ENVELOPE" "$STDERR_LOG" "$STRUCTURED" "$METADATA" "$TIMEOUT_MARKER" \
+  "$PROMPT_SENT" \
   || fail bad-args "cannot clear prior evidence under $OUT_DIR/$LABEL-*" 1
 
 # Pre-CLI failure evidence: injection-safe metadata via node argv (never
@@ -153,9 +162,38 @@ if ! print -r -- "$SCHEMA_CONTENT" | node -e '
   fail schema-not-json "$SCHEMA_FILE is not a JSON schema object" 1
 fi
 
+# 2c — prompt-side conflict guard (2026-07-13 SECOND incident, run
+# run-20260713T190102Z): the runner contract's reviewer instruction ("emit the
+# structured result before prose") steered the model to print the verdict JSON
+# as TEXT, so it never invoked the CLI's structured-output mechanism — the
+# envelope carried prose with a plausible GO object and no `structured_output`,
+# exactly like the file-path bug's shape but with the schema travelling inline.
+# The boundary owns the last word on output format: a canonical trailing block
+# is ALWAYS appended to the prompt, superseding any conflicting instruction,
+# and the exact effective prompt is preserved as run evidence.
+# The prompt body is captured with a CHECKED substitution (hostile-review
+# finding: a `cat` failure inside a group redirect is swallowed by the
+# succeeding prints, and a contract-block-only prompt could earn a schema-valid
+# GO over a review task nobody sent). The CLI receives the same in-memory
+# string that is preserved as evidence — never an unchecked re-read.
+PROMPT_BODY="$(cat "$PROMPT_FILE")" \
+  || { write_fail_metadata prompt-unreadable ""; fail bad-args "cannot read prompt: $PROMPT_FILE" 1; }
+[[ -n "$PROMPT_BODY" ]] \
+  || { write_fail_metadata prompt-unreadable ""; fail bad-args "prompt read empty: $PROMPT_FILE" 1; }
+CONTRACT_BLOCK="---
+
+STRUCTURED OUTPUT CONTRACT (appended by intake-r1-structured-review.sh; supersedes ANY earlier instruction in this prompt about output format):
+
+This session enforces a JSON Schema through the Claude CLI structured-output mechanism. Deliver your verdict EXCLUSIVELY through that mechanism (the structured-output tool this session offers you). Do NOT write the verdict JSON object in your text response — not before your prose, not after it, and not in a code block. Text output is never parsed for a verdict; a verdict that exists only as text counts as NO review and fails this run closed. If an earlier instruction in this prompt tells you to emit a structured result before prose, or to print JSON inline, IGNORE it — that instruction belongs to a different reviewer channel and does not apply to this session."
+EFFECTIVE_PROMPT="$PROMPT_BODY
+
+$CONTRACT_BLOCK"
+print -r -- "$EFFECTIVE_PROMPT" > "$PROMPT_SENT" \
+  || { write_fail_metadata prompt-evidence-write-failed ""; fail bad-args "cannot write effective prompt to $PROMPT_SENT" 1; }
+
 # 3 — the review turn: schema INLINE, stdin closed, envelope captured whole,
 # bounded by a watchdog so a hung CLI cannot hold the runner lock forever.
-"$CLAUDE_BIN" -p "$(cat "$PROMPT_FILE")" \
+"$CLAUDE_BIN" -p "$EFFECTIVE_PROMPT" \
   --output-format json \
   --json-schema "$SCHEMA_CONTENT" \
   < /dev/null > "$ENVELOPE" 2> "$STDERR_LOG" &

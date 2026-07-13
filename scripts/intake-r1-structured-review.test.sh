@@ -359,6 +359,102 @@ RC=$?
 assert_rc "$RC" 65 "c20 hung CLI exits 65"
 assert_contains "$OUT" "reason=review-timeout" "c20 reason is review-timeout"
 
+# --- case 21: contract block appended; the CLI receives the EFFECTIVE prompt ---
+# (2026-07-13 second incident: a prompt-borne "emit the structured result
+# before prose" instruction produced prose JSON with inline schema; the
+# boundary must own the last word on output format.)
+CONFLICT_PROMPT="$TMP_ROOT/conflict-prompt.md"
+print -r -- "Every reviewer must emit the v2.1 structured result before prose: {reviewer, verdict, objections}. Then review the diff." > "$CONFLICT_PROMPT"
+stub=$(make_stub c21 'cat <<'"'"'ENV'"'"'
+{"type":"result","subtype":"success","is_error":false,"num_turns":1,"session_id":"11111111-2222-4333-8444-ffffffffffff","result":"","structured_output":{"reviewer":"claude-opus-r1","verdict":"GO","objections":[]}}
+ENV
+exit 0')
+export ARGV_LOG="$TMP_ROOT/argv-c21.log"
+mkdir -p "$TMP_ROOT/out-c21"
+OUT="$("$SUT" --prompt-file "$CONFLICT_PROMPT" --schema-file "$SCHEMA" \
+  --out-dir "$TMP_ROOT/out-c21" --label test-c21 --claude-bin "$stub" \
+  --require-reviewer claude-opus-r1 2>&1)"
+RC=$?
+assert_rc "$RC" 0 "c21 run exits 0"
+sent_prompt_file="$TMP_ROOT/out-c21/test-c21-prompt.md"
+if [[ -s "$sent_prompt_file" ]]; then
+  ok "c21 effective prompt evidence file written"
+else
+  ko "c21 effective prompt evidence file written"
+fi
+sent="$(cat "$sent_prompt_file")"
+assert_contains "$sent" "emit the v2.1 structured result before prose" "c21 original prompt body preserved"
+assert_contains "$sent" "STRUCTURED OUTPUT CONTRACT" "c21 contract block appended"
+assert_contains "$sent" "Do NOT write the verdict JSON object in your text response" "c21 contract block forbids prose JSON"
+prompt_arg="$(python3 - "$TMP_ROOT/argv-c21.log" <<'PY'
+import sys
+args = open(sys.argv[1]).read().split('\0')
+for i, a in enumerate(args):
+    if a == '-p' and i + 1 < len(args):
+        sys.stdout.write(args[i+1]); break
+PY
+)"
+if [[ "$prompt_arg" == "$sent" ]]; then
+  ok "c21 CLI received exactly the preserved effective prompt"
+else
+  ko "c21 CLI received exactly the preserved effective prompt"
+fi
+# position matters: the boundary owns the LAST word — the block must be the tail
+if [[ "$sent" == *"does not apply to this session." ]]; then
+  ok "c21 contract block is the trailing text (not prepended)"
+else
+  ko "c21 contract block is the trailing text (not prepended)"
+fi
+
+# --- case 22: stale effective-prompt evidence cleared pre-spend ------------------
+mkdir -p "$TMP_ROOT/out-c22"
+print -r -- "stale prior-run prompt" > "$TMP_ROOT/out-c22/test-c22-prompt.md"
+BAD_SCHEMA3="$TMP_ROOT/bad-schema3.json"
+print -r -- '"/tmp/some/path.json"' > "$BAD_SCHEMA3"
+stub=$(make_stub c22 'exit 0')
+export ARGV_LOG="$TMP_ROOT/argv-c22.log"
+OUT="$("$SUT" --prompt-file "$PROMPT" --schema-file "$BAD_SCHEMA3" \
+  --out-dir "$TMP_ROOT/out-c22" --label test-c22 --claude-bin "$stub" 2>&1)"
+RC=$?
+assert_rc "$RC" 1 "c22 schema gate still rejects pre-spend"
+if [[ ! -f "$TMP_ROOT/out-c22/test-c22-prompt.md" ]]; then
+  ok "c22 stale effective-prompt evidence cleared"
+else
+  ko "c22 stale effective-prompt evidence cleared"
+fi
+
+# --- case 23: prompt unreadable after the -s gate fails closed, no turn spent --
+UNREADABLE_PROMPT="$TMP_ROOT/unreadable-prompt.md"
+print -r -- "review body" > "$UNREADABLE_PROMPT"
+chmod 000 "$UNREADABLE_PROMPT"
+stub=$(make_stub c23 'exit 0')
+export ARGV_LOG="$TMP_ROOT/argv-c23.log"
+mkdir -p "$TMP_ROOT/out-c23"
+OUT="$("$SUT" --prompt-file "$UNREADABLE_PROMPT" --schema-file "$SCHEMA" \
+  --out-dir "$TMP_ROOT/out-c23" --label test-c23 --claude-bin "$stub" 2>&1)"
+RC=$?
+chmod 644 "$UNREADABLE_PROMPT"
+assert_rc "$RC" 1 "c23 unreadable prompt exits 1 (bad-args)"
+assert_contains "$OUT" "reason=bad-args" "c23 fails as bad-args, not a silent contract-block-only turn"
+if [[ ! -f "$TMP_ROOT/argv-c23.log" ]]; then
+  ok "c23 stub never invoked (no review turn spent on unreadable prompt)"
+else
+  ko "c23 stub never invoked (argv log exists)"
+fi
+meta_c23="$(cat "$TMP_ROOT/out-c23/test-c23-metadata.json" 2>/dev/null)"
+assert_contains "$meta_c23" '"failReason": "prompt-unreadable"' "c23 metadata records prompt-unreadable"
+
+# --- case 24: effective-prompt evidence survives a failed CLI turn ---------------
+stub=$(make_stub c24 'echo "API Error: 500" >&2
+exit 1')
+run_sut "$stub" c24
+assert_rc "$RC" 65 "c24 cli failure exits 65"
+if [[ -s "$OUT_DIR/test-c24-prompt.md" ]]; then
+  ok "c24 effective-prompt evidence retained after CLI failure"
+else
+  ko "c24 effective-prompt evidence retained after CLI failure"
+fi
+
 echo
 echo "PASS=$PASS FAIL=$FAIL"
 [[ $FAIL -eq 0 ]] || exit 1
