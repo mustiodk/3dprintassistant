@@ -288,13 +288,33 @@ test('materialized candidate must exist in the catalog before review', () => {
 });
 
 test('packet fields must equal the materialized catalog row before review', () => {
-  const candidate = baseCandidate();
-  const printersData = materializedCatalog(candidate);
-  printersData.printers[0].max_speed = 499;
-  const result = validateCandidateEvidence(candidate, { printersData });
-  assert.equal(result.ok, false);
-  assert.equal(result.reason, 'research-defect');
-  assert.equal(result.reviewRequests, 0);
+  const variants = [
+    ['wrapped max_speed value', (row) => { row.max_speed = 499; }],
+    ['direct scalar name identity', (row) => { row.name = 'Different Name'; }],
+    ['direct scalar manufacturer identity', (row) => { row.manufacturer = 'elegoo'; }],
+    ['array value', (row) => { row.available_nozzle_sizes = [0.6]; }],
+    ['materialized field deletion', (row) => { delete row.max_bed_temp; }],
+  ];
+
+  const results = variants.map(([variant, mutate]) => {
+    const candidate = baseCandidate();
+    const printersData = materializedCatalog(candidate);
+    mutate(printersData.printers[0]);
+    const result = validateCandidateEvidence(candidate, { printersData });
+    return {
+      variant,
+      ok: result.ok,
+      reason: result.reason,
+      reviewRequests: result.reviewRequests,
+    };
+  });
+
+  assert.deepEqual(results, variants.map(([variant]) => ({
+    variant,
+    ok: false,
+    reason: 'research-defect',
+    reviewRequests: 0,
+  })));
 });
 
 test('materialized optional critical fields must be present in the packet', () => {
