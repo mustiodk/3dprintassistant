@@ -102,6 +102,29 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
      ```
     All four keys required and non-empty; `sourceClassesChecked` must include ≥1 manufacturer-class entry, and every `checkedSources[].canonicalSource` uses the same canonical-source normalizer as RD3. `validate-candidate-evidence.js` is the only component allowed to classify an absence as `world-absent`, and only after this typed rationale plus the source-sweep completeness predicate pass. The researcher cannot self-select `world-absent`. This mirrors `printer-addition-protocol.md`'s definition (*"which source classes were checked, what feature would normally be advertised if present, and why the omission is safe for this field"*); *"silence alone is `low-confidence`"* and still parks. *Without this, `has_lidar:false`, `has_camera:false`, `active_chamber_heating:false` — which manufacturers rarely state explicitly — would deadlock every candidate.*
 
+  **Owner amendment — 2026-07-13 (additive fourth pass path; RD1 items 1–3
+  remain unchanged).**
+  4. `evidenceType == "repo-convention"` is valid for
+     `open_door_threshold_bed_temp` only when its numeric value is exactly `45`,
+     `source == null`, `confidence == "owner-approved"`, the candidate enclosure
+     is `passive`, and `ownerResolution` carries policy
+     `passive-enclosure-open-door-threshold`, a parseable approval date, and a
+     non-empty rationale. The gate must also prove the whole materialized
+     passive-enclosure catalog corpus carries numeric `45`; non-passive rows are
+     outside that corpus and need no threshold. No other field or value gains a
+     repository-convention path.
+
+  This amended gate is invoked as
+  `node scripts/validate-candidate-evidence.js <candidate-packet> --printers-json data/printers.json`.
+  It resolves exactly one materialized catalog row by candidate id, unwraps
+  packet metadata `.value` while preserving scalar identity fields, deep-compares
+  every packet row field, and requires materialized optional critical fields in
+  the packet. Any missing, duplicate, or unequal materialization is
+  `research-defect`, spends zero review turns, and blocks PD5. Operationally,
+  this amended parity gate runs after the candidate row is materialized on its
+  isolated intake branch and before PD5; running it before materialization would
+  fail every new candidate as missing.
+
   **Producer change required:** the Scout skeleton (`printer-intake-scout.js:710`) has **no `{value,source,confidence}` slot for `extruder_type` or `max_acceleration`** (nor chamber/camera/lidar). Adding the slots + the `evidenceType` field is an explicit build item.
 
 - **RD2 — The retry taxonomy (fixes D3). ✅ (substantially amended by Codex must-fix #1, #2, #4)**

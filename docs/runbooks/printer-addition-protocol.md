@@ -67,6 +67,33 @@ sequencing.**
    - Shipped printer provenance is committed to
      `docs/printer-provenance.json` beside the append-only intake outcome line.
 
+   ### Owner amendment — 2026-07-13: passive-enclosure repository convention
+
+   This is an additive fourth evidence pass path; it does not rewrite or relax
+   the three ratified v2.1 paths. Only
+   `open_door_threshold_bed_temp` may use `evidenceType:"repo-convention"`, and
+   only with numeric `value:45`, `source:null`,
+   `confidence:"owner-approved"`, a packet `enclosure.value` of `"passive"`,
+   and `ownerResolution` containing the exact policy
+   `passive-enclosure-open-door-threshold`, a parseable `approvedAt`, and a
+   non-empty rationale. Every materialized passive-enclosure catalog row must
+   already carry numeric `open_door_threshold_bed_temp:45`; a non-passive row
+   does not need the field.
+
+   Before PD5, run:
+
+   ```bash
+   node scripts/validate-candidate-evidence.js <candidate-packet> \
+     --printers-json data/printers.json
+   ```
+
+   The gate resolves exactly one materialized row by candidate id, unwraps
+   packet metadata through `.value` while preserving scalar
+   `id`/`name`/`manufacturer`, deep-compares every packet row field, and requires
+   materialized optional critical fields to be present in the packet. Missing,
+   duplicate, or unequal materialization is `research-defect` and consumes zero
+   review turns. This exception does not apply to any other field or value.
+
    **This manual protocol remains canonical on any conflict** — an autonomous
    runner that cannot satisfy a step parks the candidate; it never improvises
    around the protocol.
