@@ -102,12 +102,17 @@ run_sut "$stub" c1
 assert_rc "$RC" 65 "c1 incident replay exits 65"
 assert_contains "$OUT" "reason=structured-output-missing" "c1 reason is structured-output-missing"
 assert_contains "$OUT" "R1REVIEW ok=false" "c1 machine line fails closed"
+meta="$(cat "$OUT_DIR/test-c1-metadata.json")"
+assert_contains "$meta" '"structuredOutputPresent": false' "c1 metadata structuredOutputPresent=false"
+assert_contains "$meta" '"failReason": "structured-output-missing"' "c1 metadata failReason recorded"
 
 # --- case 2: silent empty stdout, exit 0 (file-path-arg CLI shape) ----------
 stub=$(make_stub c2 'exit 0')
 run_sut "$stub" c2
 assert_rc "$RC" 65 "c2 empty stdout exits 65"
 assert_contains "$OUT" "reason=empty-envelope" "c2 reason is empty-envelope"
+meta="$(cat "$OUT_DIR/test-c2-metadata.json")"
+assert_contains "$meta" '"failReason": "empty-envelope"' "c2 failure metadata written"
 
 # --- case 3: valid GO --------------------------------------------------------
 stub=$(make_stub c3 'cat <<'"'"'ENV'"'"'
@@ -145,9 +150,21 @@ exit 0')
 run_sut "$stub" c5
 assert_rc "$RC" 65 "c5 contract-invalid exits 65"
 assert_contains "$OUT" "reason=contract-invalid" "c5 reason is contract-invalid"
+meta="$(cat "$OUT_DIR/test-c5-metadata.json")"
+assert_contains "$meta" '"structuredOutputPresent": true' "c5 metadata structuredOutputPresent=true"
+assert_contains "$meta" '"contractValid": false' "c5 metadata contractValid=false"
 
-# --- case 6: schema transported INLINE, not as a path ------------------------
-schema_arg="$(python3 - "$TMP_ROOT/argv-c3.log" <<'PY'
+# --- case 6: schema transported INLINE, not as a path (own run, not c3's) ----
+stub=$(make_stub c6 'cat <<'"'"'ENV'"'"'
+{"type":"result","subtype":"success","is_error":false,"num_turns":1,"session_id":"11111111-2222-4333-8444-999999999999","result":"","structured_output":{"reviewer":"claude-opus-r1","verdict":"GO","objections":[]}}
+ENV
+exit 0')
+run_sut "$stub" c6
+assert_rc "$RC" 0 "c6 run exits 0"
+if [[ ! -s "$TMP_ROOT/argv-c6.log" ]]; then
+  ko "c6 argv log captured"
+fi
+schema_arg="$(python3 - "$TMP_ROOT/argv-c6.log" <<'PY'
 import sys
 args = open(sys.argv[1]).read().split('\0')
 for i, a in enumerate(args):
@@ -204,6 +221,143 @@ exit 0')
 run_sut "$stub" c10
 assert_rc "$RC" 65 "c10 non-JSON envelope exits 65"
 assert_contains "$OUT" "reason=envelope-not-json" "c10 reason is envelope-not-json"
+
+# --- case 11: is_error=true with a valid structured GO is NEVER trusted -------
+stub=$(make_stub c11 'cat <<'"'"'ENV'"'"'
+{"type":"result","subtype":"success","is_error":true,"num_turns":1,"session_id":"11111111-2222-4333-8444-aaaaaaaaaaaa","result":"","structured_output":{"reviewer":"claude-opus-r1","verdict":"GO","objections":[]}}
+ENV
+exit 0')
+run_sut "$stub" c11
+assert_rc "$RC" 65 "c11 is_error=true exits 65"
+assert_contains "$OUT" "reason=envelope-is-error" "c11 reason is envelope-is-error"
+
+# --- case 12: structured_output explicitly null -------------------------------
+stub=$(make_stub c12 'cat <<'"'"'ENV'"'"'
+{"type":"result","subtype":"success","is_error":false,"num_turns":1,"session_id":"11111111-2222-4333-8444-bbbbbbbbbbbb","result":"prose","structured_output":null}
+ENV
+exit 0')
+run_sut "$stub" c12
+assert_rc "$RC" 65 "c12 null structured_output exits 65"
+assert_contains "$OUT" "reason=structured-output-missing" "c12 reason is structured-output-missing"
+
+# --- case 13: non-success subtype ----------------------------------------------
+stub=$(make_stub c13 'cat <<'"'"'ENV'"'"'
+{"type":"result","subtype":"error_max_turns","is_error":false,"num_turns":40,"session_id":"11111111-2222-4333-8444-cccccccccccc","result":""}
+ENV
+exit 0')
+run_sut "$stub" c13
+assert_rc "$RC" 65 "c13 non-success subtype exits 65"
+assert_contains "$OUT" "reason=envelope-subtype" "c13 reason is envelope-subtype"
+
+# --- case 14: whitespace-only stdout -------------------------------------------
+stub=$(make_stub c14 'printf "  \n  "
+exit 0')
+run_sut "$stub" c14
+assert_rc "$RC" 65 "c14 whitespace-only stdout exits 65"
+assert_contains "$OUT" "reason=envelope-not-json" "c14 reason is envelope-not-json"
+
+# --- case 15: missing session_id → metadata sessionId null ---------------------
+stub=$(make_stub c15 'cat <<'"'"'ENV'"'"'
+{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"","structured_output":{"reviewer":"claude-opus-r1","verdict":"GO","objections":[]}}
+ENV
+exit 0')
+run_sut "$stub" c15
+assert_rc "$RC" 0 "c15 missing session_id still valid"
+meta="$(cat "$OUT_DIR/test-c15-metadata.json")"
+assert_contains "$meta" '"sessionId": null' "c15 metadata sessionId is null"
+
+# --- case 16: stale prior-run evidence can never survive into a new run --------
+stale_dir="$TMP_ROOT/out-c16"
+mkdir -p "$stale_dir"
+print -r -- '{"reviewer":"claude-opus-r1","verdict":"GO","objections":[]}' > "$stale_dir/test-c16-structured.json"
+print -r -- '{"label":"test-c16","structuredOutputPresent":true,"contractValid":true,"sessionId":null,"cliExitCode":0,"failReason":null}' > "$stale_dir/test-c16-metadata.json"
+stub=$(make_stub c16 'cat <<'"'"'ENV'"'"'
+{"type":"result","subtype":"success","is_error":false,"num_turns":1,"session_id":"11111111-2222-4333-8444-dddddddddddd","result":"","structured_output":{"reviewer":"claude-opus-r1","verdict":"NO-GO","objections":[{"field":"max_speed","question":"source?","raisedAt":"2026-07-13T10:08:15Z"}]}}
+ENV
+exit 0')
+run_sut "$stub" c16
+assert_rc "$RC" 0 "c16 fresh run exits 0"
+assert_contains "$OUT" "verdict=NO-GO" "c16 verdict comes from THIS run, not stale GO"
+assert_contains "$(cat "$TMP_ROOT/out-c16/test-c16-structured.json")" '"verdict": "NO-GO"' "c16 structured file rewritten by this run"
+
+# stale evidence must also be cleared when the schema gate rejects pre-spend
+print -r -- '{"contractValid":true}' > "$TMP_ROOT/out-c16b-stale.json"
+mkdir -p "$TMP_ROOT/out-c16b"
+print -r -- '{"label":"test-c16b","structuredOutputPresent":true,"contractValid":true}' > "$TMP_ROOT/out-c16b/test-c16b-metadata.json"
+print -r -- '{"reviewer":"claude-opus-r1","verdict":"GO","objections":[]}' > "$TMP_ROOT/out-c16b/test-c16b-structured.json"
+BAD_SCHEMA2="$TMP_ROOT/bad-schema2.json"
+print -r -- '"/tmp/some/path.json"' > "$BAD_SCHEMA2"
+stub=$(make_stub c16b 'exit 0')
+export ARGV_LOG="$TMP_ROOT/argv-c16b.log"
+OUT="$("$SUT" --prompt-file "$PROMPT" --schema-file "$BAD_SCHEMA2" \
+  --out-dir "$TMP_ROOT/out-c16b" --label test-c16b --claude-bin "$stub" 2>&1)"
+RC=$?
+assert_rc "$RC" 1 "c16b quoted-path schema rejected pre-spend"
+assert_contains "$OUT" "reason=schema-not-json" "c16b reason is schema-not-json"
+if [[ ! -f "$TMP_ROOT/argv-c16b.log" ]]; then
+  ok "c16b stub never invoked (no review turn spent on quoted path)"
+else
+  ko "c16b stub never invoked (argv log exists)"
+fi
+if [[ ! -f "$TMP_ROOT/out-c16b/test-c16b-structured.json" ]]; then
+  ok "c16b stale structured evidence cleared"
+else
+  ko "c16b stale structured evidence cleared"
+fi
+assert_contains "$(cat "$TMP_ROOT/out-c16b/test-c16b-metadata.json")" '"failReason": "schema-not-json"' "c16b metadata reflects the gate failure"
+
+# --- case 17: hostile session_id bytes cannot inject metadata keys -------------
+stub=$(make_stub c17 'cat <<'"'"'ENV'"'"'
+{"type":"result","subtype":"success","is_error":false,"num_turns":1,"session_id":"x\",\"pwn\":true,\"y\":\"z","result":"","structured_output":{"reviewer":"claude-opus-r1","verdict":"GO","objections":[]}}
+ENV
+exit 0')
+run_sut "$stub" c17
+assert_rc "$RC" 0 "c17 hostile session_id still valid run"
+if python3 -c "
+import json,sys
+d=json.load(open('$TMP_ROOT/out-c17/test-c17-metadata.json'))
+assert set(d.keys()) == {'label','structuredOutputPresent','contractValid','sessionId','cliExitCode','failReason'}, d.keys()
+assert 'pwn' not in d
+assert d['sessionId'] == 'x\",\"pwn\":true,\"y\":\"z'.replace(chr(92)+'\"','\"')
+" 2>/dev/null; then
+  ok "c17 metadata parses with exact keys, no injection"
+else
+  ko "c17 metadata parses with exact keys, no injection"
+fi
+
+# --- case 18: validator crash is validator-error, not contract-invalid ---------
+FAKE_REPO="$TMP_ROOT/fake-repo"
+mkdir -p "$FAKE_REPO/scripts"
+print -r -- 'throw new Error("validator exploded");' > "$FAKE_REPO/scripts/validate-reviewer-output.js"
+stub=$(make_stub c18 'cat <<'"'"'ENV'"'"'
+{"type":"result","subtype":"success","is_error":false,"num_turns":1,"session_id":"11111111-2222-4333-8444-eeeeeeeeeeee","result":"","structured_output":{"reviewer":"claude-opus-r1","verdict":"GO","objections":[]}}
+ENV
+exit 0')
+export ARGV_LOG="$TMP_ROOT/argv-c18.log"
+OUT="$("$SUT" --prompt-file "$PROMPT" --schema-file "$SCHEMA" \
+  --out-dir "$TMP_ROOT/out-c18" --label test-c18 --claude-bin "$stub" \
+  --repo "$FAKE_REPO" 2>&1)"
+RC=$?
+assert_rc "$RC" 65 "c18 validator crash exits 65"
+assert_contains "$OUT" "reason=validator-error" "c18 reason is validator-error"
+
+# --- case 19: label with path separator rejected --------------------------------
+OUT="$("$SUT" --prompt-file "$PROMPT" --schema-file "$SCHEMA" \
+  --out-dir "$TMP_ROOT/out-c19" --label "../escape" --claude-bin /bin/false 2>&1)"
+RC=$?
+assert_rc "$RC" 1 "c19 label with separator exits 1"
+assert_contains "$OUT" "label must match" "c19 label rejected by charset rule"
+
+# --- case 20: hung CLI is bounded by --timeout-secs ------------------------------
+stub=$(make_stub c20 'sleep 30
+exit 0')
+export ARGV_LOG="$TMP_ROOT/argv-c20.log"
+OUT="$("$SUT" --prompt-file "$PROMPT" --schema-file "$SCHEMA" \
+  --out-dir "$TMP_ROOT/out-c20" --label test-c20 --claude-bin "$stub" \
+  --timeout-secs 1 2>&1)"
+RC=$?
+assert_rc "$RC" 65 "c20 hung CLI exits 65"
+assert_contains "$OUT" "reason=review-timeout" "c20 reason is review-timeout"
 
 echo
 echo "PASS=$PASS FAIL=$FAIL"
