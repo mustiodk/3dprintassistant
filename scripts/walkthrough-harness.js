@@ -504,6 +504,9 @@ const COMBOS = [
 
   { id: 16, label: 'Creality K2 SE + 0.4 std + PLA Basic + Standard/Balanced (open-frame K-series CoreXY, 500mm/s cap, CFS)',
     state: stateDefault({ printer: 'k2_se', nozzle: 'std_0.4', material: 'pla_basic' }) },
+
+  { id: 17, label: 'Elegoo Centauri Carbon 2 + 0.4 std + ABS + Standard/Balanced (passively enclosed CoreXY, 350°C nozzle, Canvas MCS)',
+    state: stateDefault({ printer: 'centauri_carbon_2', nozzle: 'std_0.4', material: 'abs' }) },
 ];
 
 // ─── Main ───────────────────────────────────────────────────────────────────
