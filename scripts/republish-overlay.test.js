@@ -152,6 +152,31 @@ test('addPrinter: idempotent no-op when the id is already in the overlay', () =>
   assert.strictEqual(readOverlay().content_version, TODAY01);
 });
 
+test('addPrinter: existing differing row is refreshed in place from the exact source row', () => {
+  const { paths, readOverlay } = makeFixture({ contentVersion: 2020010101 });
+  addPrinter('b1_test_printer', paths);
+  const before = readOverlay();
+  const existingIndex = before.payload.printers.findIndex((p) => p.id === 'b1_test_printer');
+  assert.notStrictEqual(existingIndex, -1);
+
+  const source = JSON.parse(fs.readFileSync(paths.printersPath, 'utf8'));
+  const sourceRow = source.printers.find((p) => p.id === 'b1_test_printer');
+  sourceRow.notes = ['Corrected source note'];
+  fs.writeFileSync(paths.printersPath, `${JSON.stringify(source, null, 2)}\n`);
+
+  const result = addPrinter('b1_test_printer', paths);
+  assert.strictEqual(result.changed, true);
+  assert.match(result.message, /refreshed/i);
+
+  const after = readOverlay();
+  const refreshedIndex = after.payload.printers.findIndex((p) => p.id === 'b1_test_printer');
+  assert.strictEqual(refreshedIndex, existingIndex, 'existing row must be replaced at the same index');
+  assert.deepStrictEqual(after.payload.printers[refreshedIndex], sourceRow, 'overlay row must exactly equal the source row');
+  assert.strictEqual(after.content_version, TODAY01 + 1, 'refresh must advance content_version');
+  assert.strictEqual(after.payload_sha256, sha256(stableStringify(after.payload)));
+  assert.ok(validateOverlay(paths).ok, 'validator must pass on the refreshed overlay');
+});
+
 test('addPrinter with --add-brand: new brand + printer rows byte-identical, validator green', () => {
   const { paths, readOverlay } = makeFixture({ contentVersion: 2020010101 });
   const result = addPrinter('b1_test_brand_printer', { ...paths, addBrand: 'b1_test_brand' });
