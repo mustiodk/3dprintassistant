@@ -92,6 +92,25 @@ test('objections must be an array', () => {
   assert.match(result.errors.join('\n'), /array/);
 });
 
+test('kickoff pins codex-only Bridge output under ignored runner state', () => {
+  const repo = path.join(__dirname, '..');
+  const kickoff = fs.readFileSync(path.join(repo, 'scripts/intake-run-kickoff.md'), 'utf8');
+  const expectedCommand =
+    'bridge --mode codex-only "<concrete review prompt over the main...intake/<printer-id> diff>" \\\n' +
+    '  --out-dir /Users/mustafaozturk-macmini/dev/Claude/Projects/3dprintassistant/scripts/.intake-runner-state/bridge-reviews';
+
+  assert.ok(
+    kickoff.includes(expectedCommand),
+    `kickoff must contain the exact Bridge command:\n${expectedCommand}`,
+  );
+});
+
+test('kickoff retains the direct Codex fallback', () => {
+  const repo = path.join(__dirname, '..');
+  const kickoff = fs.readFileSync(path.join(repo, 'scripts/intake-run-kickoff.md'), 'utf8');
+  assert.ok(kickoff.includes('codex exec -s read-only -m gpt-5.5'));
+});
+
 test('operational docs preserve the RD4 split-verdict decision-required branch', () => {
   const repo = path.join(__dirname, '..');
   const kickoff = fs.readFileSync(path.join(repo, 'scripts/intake-run-kickoff.md'), 'utf8');

@@ -30,14 +30,19 @@ done
 LOCK="$REPO/scripts/.intake-run.lock"
 KICKOFF="$REPO/scripts/intake-run-kickoff.md"
 STATE_DIR="$REPO/scripts/.intake-runner-state"
-
-cd "$REPO" || exit 78
-mkdir -p "$STATE_DIR" "$REPO/scripts/.printer-intake-out"
+BRIDGE_OUT_DIR="$STATE_DIR/bridge-reviews"
 
 notify_failure() {
   # Never let a notification failure mask the run failure itself.
   node "$REPO/scripts/intake-notify.js" --failure "$1" || true
 }
+
+cd "$REPO" || exit 78
+if ! mkdir -p "$STATE_DIR" "$BRIDGE_OUT_DIR" "$REPO/scripts/.printer-intake-out" \
+  || [[ ! -d "$BRIDGE_OUT_DIR" || ! -w "$BRIDGE_OUT_DIR" ]]; then
+  notify_failure "bridge-output: cannot create a writable directory at $BRIDGE_OUT_DIR"
+  exit 73
+fi
 
 # 1 — preflight (checks only; includes freeze/lock/repo/auth predicates)
 preflight_out=$("$REPO/scripts/intake-run-preflight.sh" 2>&1)
