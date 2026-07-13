@@ -28,6 +28,25 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 ## Rows (newest first)
 
+### Additive stage-order clarification (2026-07-13)
+
+The R6 row below is immutable implementation history: its original
+`research/fill → evidence gate → retry gate → mechanical ship → PD5` wording
+describes the pre-parity contract and is not rewritten. The 2026-07-13
+materialized-evidence amendment adds catalog parity, so the current operative
+order is now:
+
+`research/fill → Stage 4 mechanical materialization on the isolated intake
+branch → Stage 4b candidate-evidence plus catalog-parity gate → Stage 5 entry
+retry gate for judgment-on-evidence candidates → PD5 dual review`.
+
+This ordering is fail-closed: catalog parity cannot run before the candidate row
+exists, and neither the retry gate nor PD5 may spend a review turn until the
+evidence/catalog gate passes. The original v2.1 spec's `3b evidence gate` and
+`4b retry gate` table labels remain as ratified historical labels; the operative
+labels and order are the Stage 4 / 4b / 5 sequence above, matching the current
+kickoff and AI-OM runner contract.
+
 ### R8 — final validation + ready state ✅ (2026-07-10; web final-docs close + ai-om `a118bd5`)
 
 **Verification:** R8 Step 0 proved all expected test files exist. Full local intake suite passed: `node scripts/intake-park-taxonomy.test.js` **11/11**; `node scripts/lib/intake-source-normalizer.test.js` **3/3**; `node scripts/validate-candidate-evidence.test.js` **15/15**; `node scripts/validate-reviewer-output.test.js` **12/12**; `node scripts/intake-parked-store.test.js` **14/14**; `node scripts/intake-retry-gate.test.js` **16/16**; `node scripts/intake-provenance-store.test.js` **2/2**; `bash scripts/intake-run-preflight.test.sh`; `node scripts/printer-intake-scout.test.js` **ALL TESTS PASS**; `node scripts/republish-overlay.test.js` **21/21**; `node scripts/verify-live-overlay.test.js` **15/15**; `node scripts/verify-live-picker.test.js` **10/10**; `node scripts/intake-kv-hygiene.test.js` **15/15**; `node scripts/intake-notify.test.js` **11/11**; `node scripts/intake-diff-guards.test.js` **10/10**. Project validators passed: `node scripts/validate-data.js`, `node scripts/validate-ios-printer-overlay.js`, and `git diff --check`.

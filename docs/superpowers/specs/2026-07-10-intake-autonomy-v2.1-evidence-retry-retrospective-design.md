@@ -275,6 +275,17 @@ Because the answering step is performed by an agent that wants to ship, RD3 is e
 | 8 staging lifecycle | ad-hoc retry | RD2 taxonomy; sidecar v2 (RD5); RD9 14-day no-rot |
 | 10 notify | summary | + non-trivial runs: verbatim verdicts, objections, evidence table, validator summary, diff ref, timings (RD6b) |
 
+> **Additive stage-order clarification — 2026-07-13.** The stage names in this
+> table are preserved as ratified v2.1 history and are not silently rewritten.
+> After the materialized-evidence amendment, the operative contract maps them to
+> this fail-closed sequence: **Stage 4 mechanical materialization on the isolated
+> intake branch → Stage 4b candidate-evidence plus catalog-parity gate → Stage 5
+> entry retry gate for `judgment-on-evidence` candidates → PD5 dual review**.
+> Thus the historical `3b evidence gate` label now executes operationally as
+> Stage 4b, after materialization; the historical `4b retry gate` executes at the
+> Stage 5 entry. Neither retry evaluation nor PD5 may spend a review turn until
+> catalog parity passes.
+
 **Components:** `scripts/intake-park-taxonomy.json` + validator · `validate-candidate-evidence.js` + test · `intake-retry-gate.js` + test (incl. canonical-source normaliser) · `intake-parked-store.js` + test + v1→v2 migration · `intake-provenance-store.js` + test · `docs/printer-provenance.json` · Scout skeleton slots + `evidenceType` · reviewer output contract (structured objections) · runner contract **v2** · Assistant amendment · runbook amendment.
 
 **Dropped vs draft 1:** `intake-run-context.json` + schema validator, `intake-findings.js`, `docs/intake-run-findings.jsonl`, `intake-run-retrospective.md` — deferred with RD6.
