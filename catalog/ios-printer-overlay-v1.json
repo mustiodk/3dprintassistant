@@ -1,7 +1,7 @@
 {
-  "content_version": 2026071005,
+  "content_version": 2026071301,
   "enabled": true,
-  "generated_at": "2026-07-10T22:15:29.514Z",
+  "generated_at": "2026-07-13T19:06:47.943Z",
   "min_app_version": "1.0.3",
   "payload": {
     "brands": [
@@ -207,9 +207,38 @@
         "notes": [
           "CFS multicolor — up to 16 colors"
         ]
+      },
+      {
+        "id": "centauri_carbon_2",
+        "name": "Centauri Carbon 2",
+        "manufacturer": "elegoo",
+        "series": "corexy",
+        "series_group": "Centauri Series",
+        "enclosure": "passive",
+        "active_chamber_heating": false,
+        "extruder_type": "direct_drive",
+        "max_nozzle_temp": 350,
+        "max_bed_temp": 110,
+        "max_speed": 500,
+        "max_acceleration": 20000,
+        "has_lidar": false,
+        "has_camera": true,
+        "multi_color_systems": [],
+        "available_plates": [
+          "textured_pei"
+        ],
+        "available_nozzle_sizes": [
+          0.4
+        ],
+        "open_door_threshold_bed_temp": 45,
+        "notes": [
+          "350°C all-metal direct drive, 20,000 mm/s² CoreXY, passive enclosed Smart Grille — see https://us.elegoo.com/products/centauri-carbon-2",
+          "256×256×256mm build volume; 1000W AC heated bed; no active chamber heating",
+          "CANVAS 4-color multi-material system available on Centauri Carbon 2 Combo variant only"
+        ]
       }
     ]
   },
-  "payload_sha256": "67760c1dcb45ce4e17afe86192c49bb2edcb580a6cbf38d3b998c088553d4205",
+  "payload_sha256": "65edf6a6c84036933163a9a5f1f78952510e9b5135b7292e8b2667ed055443ef",
   "schema_version": 1
 }
