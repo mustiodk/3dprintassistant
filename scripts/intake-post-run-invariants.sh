@@ -166,8 +166,11 @@ fi
 #     bump mtime in the same run the branch is deleted — a hard requirement
 #     would false-fail that healthy path. Its objections live in the sidecar.
 #   - all other reasons (stage-3/4 parks) → branch not expected.
-# Packet evidence is required for EVERY fresh sidecar: any candidate-*.json in
-# the parked dir itself, or a staging packet that names or contains the id.
+# Packet evidence is required for EVERY fresh sidecar. A v2 sidecar carrying
+# candidateArtifact.path + sha256 must preserve those exact bytes; a new Scout
+# skeleton at the same filename is not custody. Legacy sidecars without full
+# identity metadata retain the existence fallback: any candidate-*.json in the
+# parked dir itself, or a staging packet that names or contains the id.
 PARKED_ROOT="$STATE_DIR/parked"
 if [[ -d "$PARKED_ROOT" ]]; then
   for sidecar in "$PARKED_ROOT"/*/parked.json(N); do
@@ -188,18 +191,66 @@ if [[ -d "$PARKED_ROOT" ]]; then
           fail park-branch-missing "intake/$candidate_id deleted (fresh $park_reason park)"
         fi ;;
     esac
+    artifact_status="$(node - "$REPO" "$sidecar" <<'NODE'
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+
+try {
+  const repo = fs.realpathSync(process.argv[2]);
+  const sidecar = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+  const artifact = sidecar.candidateArtifact;
+  if (!artifact || (!artifact.path && !artifact.sha256)) {
+    process.stdout.write('legacy');
+    process.exit(0);
+  }
+  if (typeof artifact.path !== 'string' || typeof artifact.sha256 !== 'string'
+      || !/^[a-f0-9]{64}$/i.test(artifact.sha256)) {
+    process.stdout.write('invalid');
+    process.exit(0);
+  }
+  const absolute = path.resolve(repo, artifact.path);
+  if (absolute !== repo && !absolute.startsWith(`${repo}${path.sep}`)) {
+    process.stdout.write('unsafe');
+    process.exit(0);
+  }
+  if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) {
+    process.stdout.write('missing');
+    process.exit(0);
+  }
+  const canonical = fs.realpathSync(absolute);
+  if (canonical !== repo && !canonical.startsWith(`${repo}${path.sep}`)) {
+    process.stdout.write('unsafe');
+    process.exit(0);
+  }
+  const actual = crypto.createHash('sha256').update(fs.readFileSync(canonical)).digest('hex');
+  process.stdout.write(actual === artifact.sha256.toLowerCase() ? 'ok' : 'mismatch');
+} catch (_) {
+  process.stdout.write('invalid');
+}
+NODE
+)"
     packet_found=false
-    for packet in "${sidecar:h}"/candidate-*.json(N); do
-      [[ -e "$packet" ]] && packet_found=true && break
-    done
-    if [[ "$packet_found" != "true" ]]; then
-      for packet in "$REPO/scripts/.printer-intake-out"/candidate-*.json(N); do
-        if [[ "${packet:t}" == *"$candidate_id"* ]] \
-          || grep -q "\"$candidate_id\"" "$packet" 2>/dev/null; then
-          packet_found=true; break
-        fi
-      done
-    fi
+    case "$artifact_status" in
+      ok) packet_found=true ;;
+      unsafe) fail park-packet-unsafe "$candidate_id candidateArtifact escapes repository" ;;
+      missing) fail park-packet-missing "$candidate_id declared candidateArtifact is missing" ;;
+      mismatch) fail park-packet-mismatch "$candidate_id candidateArtifact sha256 mismatch" ;;
+      invalid) fail park-sidecar-unreadable "$candidate_id invalid candidateArtifact metadata" ;;
+      legacy)
+        for packet in "${sidecar:h}"/candidate-*.json(N); do
+          [[ -e "$packet" ]] && packet_found=true && break
+        done
+        if [[ "$packet_found" != "true" ]]; then
+          for packet in "$REPO/scripts/.printer-intake-out"/candidate-*.json(N); do
+            if [[ "${packet:t}" == *"$candidate_id"* ]] \
+              || grep -q "\"$candidate_id\"" "$packet" 2>/dev/null; then
+              packet_found=true; break
+            fi
+          done
+        fi ;;
+      *) fail park-sidecar-unreadable "$candidate_id unknown artifact status" ;;
+    esac
     if [[ "$packet_found" != "true" ]]; then
       fail park-packet-missing "$candidate_id (no candidate packet in parked dir or staging)"
     fi

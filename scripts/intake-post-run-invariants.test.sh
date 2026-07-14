@@ -146,6 +146,16 @@ make_parked() { # id [reason] — fresh intake-parked@2 sidecar for this run
     "$reason" "$reason" > "$STATE/parked/$1/parked.json"
 }
 
+set_candidate_artifact() { # id relative-path sha256
+  node -e '
+    const fs = require("fs");
+    const sidecar = process.argv[1];
+    const data = JSON.parse(fs.readFileSync(sidecar, "utf8"));
+    data.candidateArtifact = { path: process.argv[2], sha256: process.argv[3] };
+    fs.writeFileSync(sidecar, `${JSON.stringify(data)}\n`);
+  ' "$STATE/parked/$1/parked.json" "$2" "$3"
+}
+
 # 12 — fresh park with preserved branch + packet passes
 init_repo
 git -C "$REPO" branch intake/centauri_carbon_2
@@ -218,5 +228,44 @@ git -C "$REPO" branch intake/centauri_carbon_2
 mkdir -p "$STATE/parked/centauri_carbon_2"
 printf '{"schema":"intake-parked@2"}\n' > "$STATE/parked/centauri_carbon_2/parked.json"
 expect_fail park-sidecar-unreadable
+
+# 22 — v2 sidecar artifact identity passes only when the exact path + SHA match
+init_repo
+make_parked centauri_carbon_2 unverified-model
+mkdir -p "$REPO/scripts/.printer-intake-out"
+packet_rel="scripts/.printer-intake-out/candidate-elegoo-centauri_carbon_2.json"
+printf '{"printerId":"centauri_carbon_2","filled":true}\n' > "$REPO/$packet_rel"
+packet_sha="$(shasum -a 256 "$REPO/$packet_rel" | awk '{print $1}')"
+set_candidate_artifact centauri_carbon_2 "$packet_rel" "$packet_sha"
+expect_ok
+
+# 23 — a skeleton at the right path cannot impersonate the declared packet
+init_repo
+make_parked centauri_carbon_2 unverified-model
+mkdir -p "$REPO/scripts/.printer-intake-out"
+packet_rel="scripts/.printer-intake-out/candidate-elegoo-centauri_carbon_2.json"
+printf '{"printerId":"centauri_carbon_2","filled":false}\n' > "$REPO/$packet_rel"
+set_candidate_artifact centauri_carbon_2 "$packet_rel" "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+expect_fail park-packet-mismatch
+
+# 24 — candidateArtifact may not escape the repository
+init_repo
+make_parked centauri_carbon_2 unverified-model
+outside="$TMP/outside-candidate.json"
+printf '{"printerId":"centauri_carbon_2","filled":true}\n' > "$outside"
+outside_sha="$(shasum -a 256 "$outside" | awk '{print $1}')"
+set_candidate_artifact centauri_carbon_2 "../outside-candidate.json" "$outside_sha"
+expect_fail park-packet-unsafe
+
+# 25 — a repository-local symlink may not smuggle an outside artifact through
+init_repo
+make_parked centauri_carbon_2 unverified-model
+outside="$TMP/outside-candidate-symlink-target.json"
+printf '{"printerId":"centauri_carbon_2","filled":true}\n' > "$outside"
+mkdir -p "$REPO/scripts/.printer-intake-out"
+ln -s "$outside" "$REPO/scripts/.printer-intake-out/candidate-elegoo-centauri_carbon_2.json"
+outside_sha="$(shasum -a 256 "$outside" | awk '{print $1}')"
+set_candidate_artifact centauri_carbon_2 "scripts/.printer-intake-out/candidate-elegoo-centauri_carbon_2.json" "$outside_sha"
+expect_fail park-packet-unsafe
 
 echo "intake-post-run-invariants.test.sh: all tests passed"

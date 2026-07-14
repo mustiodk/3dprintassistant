@@ -674,6 +674,31 @@ let adv, advRaw;
   fs.unlinkSync(qf3);
 }
 
+// ── TC50 — an existing filled packet survives Scout re-entry ──
+{
+  console.log('TC50 — existing candidate packet is preserved byte-for-byte on Scout re-entry');
+  const outDir = path.join(os.tmpdir(), `pi-custody-out-${process.pid}`);
+  try { fs.rmSync(outDir, { recursive: true, force: true }); } catch (_) {}
+
+  const first = run(['--queue', SAMPLE, '--out', outDir]);
+  const firstReport = parse(first.stdout) || {};
+  const candidate = (firstReport.candidates || [])[0];
+  const candidatePath = candidate ? path.join(outDir, candidate) : null;
+  const sentinel = '{"sentinel":"preserved-filled-packet"}\n';
+  if (candidatePath) fs.writeFileSync(candidatePath, sentinel);
+
+  const second = run(['--queue', SAMPLE, '--out', outDir]);
+  const secondReport = parse(second.stdout) || {};
+  check('TC50 rerun exits 0', second.code === 0, `code ${second.code} stderr ${second.stderr}`);
+  check('TC50 existing packet bytes unchanged', candidatePath && fs.readFileSync(candidatePath, 'utf8') === sentinel,
+    candidatePath ? `got ${fs.readFileSync(candidatePath, 'utf8').slice(0, 80)}` : 'no candidate path');
+  check('TC50 report records preserved candidate',
+    candidate && (secondReport.preservedExistingCandidates || []).includes(candidate),
+    `candidate=${candidate} preserved=${JSON.stringify(secondReport.preservedExistingCandidates)}`);
+
+  try { fs.rmSync(outDir, { recursive: true, force: true }); } catch (_) {}
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');

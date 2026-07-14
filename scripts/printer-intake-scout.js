@@ -952,6 +952,12 @@ async function main() {
   };
   for (const it of candItems) { it.candidate = nameFor(it); candidateFiles.push(it.candidate); }
 
+  // Stage 0b re-entry and stage 0 crash recovery may deliberately leave an
+  // evidence-bearing packet at the deterministic candidate path. Scout owns
+  // skeleton creation, not replacement: overwriting that packet would erase
+  // researched values before the evidence/review gates can inspect them.
+  const preservedExistingCandidates = [];
+
   const report = {
     tool: 'printer-intake-scout', version: 3,
     source: sourceMeta,
@@ -959,6 +965,7 @@ async function main() {
     counts,
     inQueueCollapses,
     candidates: candidateFiles,
+    preservedExistingCandidates,
     // S2: heuristic-lane (wrong-form) candidates grouped separately so they don't
     // read as explicit form requests; flagged + never auto-promoted. Only the
     // actionable outcomes appear here (a form-lane corroboration flips an item to
@@ -1011,7 +1018,12 @@ async function main() {
   if (args.out) {
     fs.mkdirSync(args.out, { recursive: true });
     for (const it of candItems) {
-      fs.writeFileSync(path.join(args.out, it.candidate), JSON.stringify(candidateSkeleton(it), null, 2) + '\n');
+      const candidatePath = path.join(args.out, it.candidate);
+      if (fs.existsSync(candidatePath)) {
+        preservedExistingCandidates.push(it.candidate);
+      } else {
+        fs.writeFileSync(candidatePath, JSON.stringify(candidateSkeleton(it), null, 2) + '\n');
+      }
     }
     fs.writeFileSync(path.join(args.out, 'run-report.json'), JSON.stringify(report, null, 2) + '\n');
   }
