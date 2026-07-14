@@ -2,35 +2,31 @@
 
 **Purpose:** copy-paste kickoff prompt for a fresh session on the mac-mini.
 
-**Last updated:** 2026-07-14 after the terminal Centauri Carbon 2 v2.2 rerun.
-The intake is parked `research-defect` and effectively `decision-required`;
-nothing shipped. The next product lane is the reviewed iOS 1.0.7 issue-fix
-train. The separate iOS 1.0.8 tip-jar train comes after it.
+**Last updated:** 2026-07-14 after the terminal Centauri v2.3 debug/rerun.
+The candidate is parked `review-split → decision-required`; nothing shipped.
 
 Copy everything between the markers into the fresh session.
 
 >>> START >>>
 
-3dpa cold start on the mac-mini. Start the reviewed iOS 1.0.7 issue-fix
-release plan. Do not restart or repair printer intake, and do not start the
-1.0.8 tip-jar train in this session.
+3dpa cold start on the mac-mini. Resolve the owner-decision gate for the
+Centauri Carbon 2 review split. Do not start iOS 1.0.7 or 1.0.8, and do not
+rerun or edit the candidate until the owner has answered the two CANVAS
+questions below.
 
 Read in order:
 
 1. `~/dev/Claude/Projects/AGENTS.md`
 2. `3dprintassistant/CLAUDE.md`
 3. `3dprintassistant/docs/3dpa-context.md`
-4. `3dprintassistant/docs/planning/ROADMAP.md` (top terminal banner + active queue)
+4. `3dprintassistant/docs/planning/ROADMAP.md` (terminal banner + intake row)
 5. `3dprintassistant/docs/sessions/INDEX.md`
 6. These session logs in full:
+   - `3dprintassistant/docs/sessions/2026-07-14-cowork-appdev-centauri-v23-debug-rerun.md`
    - `3dprintassistant/docs/sessions/2026-07-14-cowork-appdev-centauri-v22-e2e-rerun.md`
-   - `3dprintassistant/docs/sessions/2026-07-13-cowork-appdev-centauri-intake-audit-fix.md`
-   - `3dprintassistant/docs/sessions/2026-07-13-cowork-appdev-centauri-intake-terminal.md`
 7. This `NEXT-SESSION.md`
-8. The reviewed 1.0.7 packet:
-   - `3dprintassistant/docs/superpowers/specs/2026-07-11-ios-1.0.7-issue-fix-release-design.md`
-   - `3dprintassistant/docs/superpowers/plans/2026-07-11-ios-1.0.7-issue-fix-release-plan.md`
-   - `3dprintassistant/docs/reviews/2026-07-11-ios-1.0.7-plan-review.md`
+8. `ai-operating-model/docs/agents/intake-pipeline-runner.md` (v2.3)
+9. `3dprintassistant/docs/runbooks/printer-addition-protocol.md`
 
 Before any mutation:
 
@@ -42,57 +38,48 @@ cd ~/dev/Claude/Projects
 git -C 3dprintassistant fetch origin --prune
 git -C 3dprintassistant status --short --branch
 git -C 3dprintassistant rev-parse HEAD origin/main
-git -C 3dprintassistant branch --list 'intake/centauri_carbon_2'
-git -C 3dprintassistant-ios fetch origin --prune
+git -C 3dprintassistant show-ref --verify refs/heads/intake/centauri_carbon_2
+git -C 3dprintassistant rev-parse intake/centauri_carbon_2
 git -C 3dprintassistant-ios status --short --branch
 git -C 3dprintassistant-ios rev-list --left-right --count main...origin/main
-git -C 3dprintassistant-ios log --oneline --decorate -10
 ```
 
 Expected state to verify, not assume:
 
-- Web clean `main`, equal to `origin/main`, at or beyond custody `5c0879c`
-  and the 2026-07-14 wrap commit.
-- iOS clean `main`, six commits ahead at wrap: K2 SE bundled mirror plus the
-  verified Export Phases 2–4 mirrors. The push gate remains active. Reconcile
-  the exact commits and current-main plan assumptions before implementation.
-- `centauri_carbon_2` remains parked `research-defect` with branch
-  `intake/centauri_carbon_2@1bc4f8f`; archive ref and checkpoint tags remain
-  preserved. Nothing from it is on remote `main` or the live overlay.
-- Android may be absent on this machine; it is out of scope.
+- Web clean `main`, equal to `origin/main`, at or beyond custody `a358e47`
+  and the wrap commit.
+- Candidate branch exactly
+  `intake/centauri_carbon_2@c4f5075aa60d767ad79cd61e2ff46960a33409ec`.
+- Parked sidecar says `reason=review-split`, `class=decision-required`,
+  `nextEligibleTrigger=owner-decision`, and exact packet SHA
+  `0ada20324970ed0dba69f7fb7a3e60d563f7508be652570b26708b4ed8bf1ac1`.
+- Terminal report says `0 shipped · 1 parked · 0 errored`; R1 GO and R2 NO-GO.
+- Live overlay remains `2026071005` without `centauri_carbon_2`.
+- iOS remains locally ahead under its push gate; do not push it.
 
-Execute the reviewed iOS 1.0.7 plan task-by-task using its required
-`superpowers:executing-plans` workflow and checkpoints. Important boundaries:
+Owner decision required before intake can resume:
 
-1. Run Task 0 current-state reconciliation before relying on the 2026-07-11
-   starting-state counts. The iOS ahead count moved from one to six because
-   Export Phases 2–4 are now locally mirrored and verified.
-2. Implement only issues #2–#5 plus the plan's narrow current-main-compatible
-   web analytics prerequisite. Do not wholesale merge or cherry-pick the stale
-   Claude reference branch.
-3. Keep `MARKETING_VERSION=1.0.7`; Fastlane owns the fresh build number.
-4. Preserve web as master for shared engine/data. No unrelated engine/data,
-   printer-intake, Android, accounts, or 1.0.8 work.
-5. Keep every iOS commit local until the complete 1.0.7 scope is implemented,
-   reviewed, all required web/iOS tests are green, shared files are verified,
-   the repos are clean, and the exact train is TestFlight-ready. Do not push
-   iOS early.
-6. Owner acceptance of the exact TestFlight build gates App Store submission.
-7. Stop after the 1.0.7 terminal report. The next separate train is iOS 1.0.8
-   tip jar; do not start it without a fresh owner command.
+1. Model base-printer CANVAS upgrade compatibility as
+   `multi_color_systems: ["canvas"]`, or explicitly override with a reason to
+   keep `[]`.
+2. Replace the inaccurate "Combo variant only" note with wording that CANVAS
+   is included with the Combo and sold separately for the base printer, or
+   explicitly provide contrary source evidence.
 
-Printer-intake hard stop:
+After the owner decision, a later authorized implementation session may update
+the preserved branch and evidence packet, create a new branch HEAD, rerun the
+mechanical/evidence gates once for that HEAD, and start fresh R1/R2 turns. It
+must still obey `{GO,GO}` ship / split park / NO-GO park and never force ship.
 
-- Do not run the LaunchAgent, wrapper, R1 boundary, Bridge review, Scout, or
-  any Centauri validator/retry.
-- Do not delete or rewrite the parked sidecar, candidate branch, archive ref,
-  checkpoint tags, ignored packet, or raw review evidence.
-- The 2026-07-14 owner-authorized rerun passed every mechanical gate but
-  parked before R1 because Scout replaced the preserved filled packet with a
-  fresh null-field packet at the shared staging path. `repairAttempts:1` is
-  exhausted; next stage-0b re-entry escalates to `decision-required`.
-- Another intake action requires a new explicit owner decision covering both
-  packet rebuild and re-entry/Scout custody hardening. Never force a ship.
+Hard stops until owner decision:
+
+- Do not run the LaunchAgent, wrapper, Scout, R1 boundary, Bridge review, or
+  candidate validator/retry.
+- Do not edit/delete the parked sidecar, candidate branch, packet, archive
+  evidence, checkpoint tags, or raw review evidence.
+- Do not merge `c4f5075`, bump/republish the overlay, mirror to iOS, or report
+  Centauri as live.
+- Do not start the iOS 1.0.7 or 1.0.8 trains in this session.
 
 Standing rules:
 
