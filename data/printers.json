@@ -1178,6 +1178,31 @@
       ]
     },
     {
+      "id": "centauri_carbon_2",
+      "name": "Centauri Carbon 2",
+      "manufacturer": "elegoo",
+      "series": "corexy",
+      "series_group": "Centauri Series",
+      "enclosure": "passive",
+      "active_chamber_heating": false,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 350,
+      "max_bed_temp": 110,
+      "max_speed": 500,
+      "max_acceleration": 20000,
+      "has_lidar": false,
+      "has_camera": true,
+      "multi_color_systems": ["canvas"],
+      "available_plates": ["textured_pei"],
+      "available_nozzle_sizes": [0.4],
+      "open_door_threshold_bed_temp": 45,
+      "notes": [
+        "350\u00b0C all-metal direct drive, 20,000 mm/s\u00b2 CoreXY, passive enclosed Smart Grille \u2014 see https://us.elegoo.com/products/centauri-carbon-2",
+        "256\u00d7256\u00d7256mm build volume; 1000W AC heated bed; no active chamber heating",
+        "CANVAS 4-color multi-material system is sold separately for the base printer and included with the Combo variant"
+      ]
+    },
+    {
       "id": "sv08",
       "name": "SV08",
       "manufacturer": "sovol",
