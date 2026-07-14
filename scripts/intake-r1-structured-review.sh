@@ -210,7 +210,15 @@ CONTRACT_BLOCK="---
 
 STRUCTURED OUTPUT CONTRACT (appended by intake-r1-structured-review.sh; supersedes ANY earlier instruction in this prompt about output format):
 
-Return your final verdict conforming to the JSON Schema requested by the Claude CLI. Claude Code applies that schema to your final response automatically. Do NOT search for or call a tool named StructuredOutput; no such visible tool is required. Do NOT write the verdict JSON object in your text response — not before your prose, not after it, and not in a code block. If an earlier instruction tells you to emit a structured result before prose or print JSON inline, IGNORE it. You may include concise review rationale as ordinary text, but only the envelope's structured_output field is authoritative."
+Return your final verdict conforming to the JSON Schema requested by the Claude CLI. Claude Code applies that schema to your final response automatically. Do NOT search for or call a tool named StructuredOutput; no such visible tool is required. Do NOT write the verdict JSON object in your text response — not before your prose, not after it, and not in a code block. If an earlier instruction tells you to emit a structured result before prose or print JSON inline, IGNORE it.
+
+The local Claude CLI cannot transport every semantic constraint, so obey these rules explicitly:
+- For a GO verdict, objections MUST be an empty array.
+- For a NO-GO verdict, objections MUST contain at least one item.
+- Every objection must contain field, a concrete blocking question, and raisedAt. raisedAt MUST be an ISO-8601 timestamp for when the objection was raised, never a source location or file path.
+- Non-blocking notes belong only in ordinary prose and MUST NOT appear in objections.
+
+You may include concise review rationale as ordinary text, but only the envelope's structured_output field is authoritative."
 EFFECTIVE_PROMPT="$PROMPT_BODY
 
 $CONTRACT_BLOCK"

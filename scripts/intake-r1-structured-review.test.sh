@@ -414,6 +414,10 @@ assert_contains "$sent" "emit the v2.1 structured result before prose" "c21 orig
 assert_contains "$sent" "STRUCTURED OUTPUT CONTRACT" "c21 contract block appended"
 assert_contains "$sent" "Do NOT write the verdict JSON object in your text response" "c21 contract block forbids prose JSON"
 assert_contains "$sent" "Do NOT search for or call a tool named StructuredOutput" "c21 block forbids nonexistent-tool search"
+assert_contains "$sent" 'For a GO verdict, objections MUST be an empty array' "c21 block states GO objection semantics"
+assert_contains "$sent" 'For a NO-GO verdict, objections MUST contain at least one item' "c21 block states NO-GO objection semantics"
+assert_contains "$sent" 'raisedAt MUST be an ISO-8601 timestamp' "c21 block states raisedAt timestamp semantics"
+assert_contains "$sent" 'Non-blocking notes belong only in ordinary prose' "c21 block keeps non-blocking notes out of objections"
 if [[ "$sent" != *"the structured-output tool this session offers you"* ]]; then
   ok "c21 block does not claim a visible structured-output tool exists"
 else
