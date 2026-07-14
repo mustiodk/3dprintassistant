@@ -18,7 +18,9 @@
 # WHAT THIS SCRIPT GUARANTEES:
 #   1. The schema file must parse as a JSON OBJECT before any review turn is
 #      spent (a quoted path is valid JSON but not a schema — rejected too).
-#   2. The schema is transported INLINE (content, never the path).
+#   2. The schema is transported INLINE (content, never the path) after an
+#      R1-specific compatibility transform removes constraints Claude Code
+#      2.1.175 silently rejects. validate-reviewer-output.js re-enforces them.
 #   3. Stale evidence from a previous run under the same label is removed
 #      before the turn, so no failure mode can surface prior-run evidence.
 #   4. Envelope parsing, shape checks (non-empty, JSON, subtype=success,
@@ -33,10 +35,10 @@
 #   6. A canonical STRUCTURED OUTPUT CONTRACT block is ALWAYS appended to the
 #      prompt before the turn (2026-07-13 second incident: the runner prompt's
 #      "emit the structured result before prose" instruction steered the model
-#      into printing the verdict as prose JSON instead of invoking the CLI's
-#      structured-output mechanism — inline schema, still no
-#      `structured_output`). The exact effective prompt is preserved at
-#      <label>-prompt.md as run evidence.
+#      into printing the verdict as prose JSON. The block never describes the
+#      mechanism as a visible tool: Claude Code applies the schema to the final
+#      response automatically. The exact prompt and transported schema are
+#      preserved as run evidence.
 #
 # Usage:
 #   intake-r1-structured-review.sh \
@@ -119,12 +121,13 @@ STRUCTURED="$OUT_DIR/$LABEL-structured.json"
 METADATA="$OUT_DIR/$LABEL-metadata.json"
 TIMEOUT_MARKER="$OUT_DIR/$LABEL-timeout.marker"
 PROMPT_SENT="$OUT_DIR/$LABEL-prompt.md"
+SCHEMA_SENT="$OUT_DIR/$LABEL-schema.json"
 
 # 1 — no run (including one that fails the schema gate below) may inherit
 # prior evidence under the same label: a stale structured/metadata pair
 # surviving a later failure is a fail-open.
 rm -f "$ENVELOPE" "$STDERR_LOG" "$STRUCTURED" "$METADATA" "$TIMEOUT_MARKER" \
-  "$PROMPT_SENT" \
+  "$PROMPT_SENT" "$SCHEMA_SENT" \
   || fail bad-args "cannot clear prior evidence under $OUT_DIR/$LABEL-*" 1
 
 # Pre-CLI failure evidence: injection-safe metadata via node argv (never
@@ -145,22 +148,45 @@ write_fail_metadata() { # failReason cliExitCode-or-empty
 }
 
 # 2 — schema must parse as a JSON OBJECT before any review turn is spent.
-# Read the file ONCE and validate the exact bytes that will travel (no TOCTOU):
-# a quoted file path is valid JSON but not a schema, so require a real object.
-SCHEMA_CONTENT="$(cat "$SCHEMA_FILE")" || fail bad-args "cannot read schema: $SCHEMA_FILE" 1
-if ! print -r -- "$SCHEMA_CONTENT" | node -e '
-  let raw = "";
-  process.stdin.on("data", (chunk) => { raw += chunk; });
-  process.stdin.on("end", () => {
-    let parsed;
-    try { parsed = JSON.parse(raw); } catch { process.exit(1); }
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) process.exit(1);
-    process.exit(0);
-  });
-' 2>/dev/null; then
+# Claude Code <2.1.205 silently ignores schemas containing constraints such as
+# `format`; the live mac-mini CLI is 2.1.175. Transport only the documented
+# grammar-safe shape and let validate-reviewer-output.js enforce the stronger
+# R1 contract after capture. This boundary is R1-specific, so weakening the
+# transport never weakens the terminal gate.
+SCHEMA_CONTENT="$(node - "$SCHEMA_FILE" <<'NODE'
+const fs = require('fs');
+
+const drop = new Set([
+  '$schema', 'format', 'minLength', 'maxLength', 'minItems', 'maxItems',
+  'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf',
+  'oneOf', 'allOf', 'not', 'if', 'then', 'else',
+]);
+
+function compatible(value) {
+  if (Array.isArray(value)) return value.map(compatible);
+  if (!value || typeof value !== 'object') return value;
+  const output = {};
+  for (const [key, child] of Object.entries(value)) {
+    if (!drop.has(key)) output[key] = compatible(child);
+  }
+  return output;
+}
+
+try {
+  const parsed = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) process.exit(1);
+  process.stdout.write(JSON.stringify(compatible(parsed)));
+} catch (_) {
+  process.exit(1);
+}
+NODE
+)"
+if [[ $? -ne 0 || -z "$SCHEMA_CONTENT" ]]; then
   write_fail_metadata schema-not-json ""
   fail schema-not-json "$SCHEMA_FILE is not a JSON schema object" 1
 fi
+print -r -- "$SCHEMA_CONTENT" > "$SCHEMA_SENT" \
+  || { write_fail_metadata schema-evidence-write-failed ""; fail bad-args "cannot write transported schema to $SCHEMA_SENT" 1; }
 
 # 2c — prompt-side conflict guard (2026-07-13 SECOND incident, run
 # run-20260713T190102Z): the runner contract's reviewer instruction ("emit the
@@ -184,7 +210,7 @@ CONTRACT_BLOCK="---
 
 STRUCTURED OUTPUT CONTRACT (appended by intake-r1-structured-review.sh; supersedes ANY earlier instruction in this prompt about output format):
 
-This session enforces a JSON Schema through the Claude CLI structured-output mechanism. Deliver your verdict EXCLUSIVELY through that mechanism (the structured-output tool this session offers you). Do NOT write the verdict JSON object in your text response — not before your prose, not after it, and not in a code block. Text output is never parsed for a verdict; a verdict that exists only as text counts as NO review and fails this run closed. If an earlier instruction in this prompt tells you to emit a structured result before prose, or to print JSON inline, IGNORE it — that instruction belongs to a different reviewer channel and does not apply to this session."
+Return your final verdict conforming to the JSON Schema requested by the Claude CLI. Claude Code applies that schema to your final response automatically. Do NOT search for or call a tool named StructuredOutput; no such visible tool is required. Do NOT write the verdict JSON object in your text response — not before your prose, not after it, and not in a code block. If an earlier instruction tells you to emit a structured result before prose or print JSON inline, IGNORE it. You may include concise review rationale as ordinary text, but only the envelope's structured_output field is authoritative."
 EFFECTIVE_PROMPT="$PROMPT_BODY
 
 $CONTRACT_BLOCK"

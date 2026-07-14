@@ -38,6 +38,7 @@ assert_rc() { # actual expected label
 SCHEMA="$TMP_ROOT/schema.json"
 cat > "$SCHEMA" <<'EOF'
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
   "required": ["reviewer", "verdict", "objections"],
@@ -53,11 +54,15 @@ cat > "$SCHEMA" <<'EOF'
         "properties": {
           "field": { "type": "string", "minLength": 1 },
           "question": { "type": "string", "minLength": 1 },
-          "raisedAt": { "type": "string", "minLength": 20 }
+          "raisedAt": { "type": "string", "minLength": 20, "format": "date-time" }
         }
       }
     }
-  }
+  },
+  "oneOf": [
+    { "properties": { "verdict": { "const": "GO" }, "objections": { "maxItems": 0 } } },
+    { "properties": { "verdict": { "const": "NO-GO" }, "objections": { "minItems": 1 } } }
+  ]
 }
 EOF
 
@@ -177,10 +182,32 @@ if python3 -c "import json,sys; json.loads(sys.argv[1])" "$schema_arg" 2>/dev/nu
 else
   ko "c6 --json-schema argument is inline JSON (got: ${schema_arg:0:80})"
 fi
-if [[ "$schema_arg" == "$(cat "$SCHEMA")" ]]; then
-  ok "c6 inline schema equals schema file content"
+if python3 - "$SCHEMA" "$schema_arg" <<'PY'
+import json, sys
+original = json.load(open(sys.argv[1]))
+transport = json.loads(sys.argv[2])
+forbidden = {'$schema', 'format', 'minLength', 'minItems', 'maxItems', 'oneOf'}
+def keys(value):
+    if isinstance(value, dict):
+        yield from value.keys()
+        for child in value.values(): yield from keys(child)
+    elif isinstance(value, list):
+        for child in value: yield from keys(child)
+assert original != transport
+assert not (forbidden & set(keys(transport)))
+assert transport['properties']['reviewer']['const'] == 'claude-opus-r1'
+assert transport['required'] == ['reviewer', 'verdict', 'objections']
+PY
+then
+  ok "c6 transport strips CLI-incompatible constraints but preserves contract shape"
 else
-  ko "c6 inline schema equals schema file content"
+  ko "c6 transport strips CLI-incompatible constraints but preserves contract shape"
+fi
+schema_evidence="$OUT_DIR/test-c6-schema.json"
+if [[ -s "$schema_evidence" && "$(cat "$schema_evidence")" == "$schema_arg" ]]; then
+  ok "c6 exact transported schema preserved as evidence"
+else
+  ko "c6 exact transported schema preserved as evidence"
 fi
 
 # --- case 7: CLI nonzero exit -------------------------------------------------
@@ -386,6 +413,12 @@ sent="$(cat "$sent_prompt_file")"
 assert_contains "$sent" "emit the v2.1 structured result before prose" "c21 original prompt body preserved"
 assert_contains "$sent" "STRUCTURED OUTPUT CONTRACT" "c21 contract block appended"
 assert_contains "$sent" "Do NOT write the verdict JSON object in your text response" "c21 contract block forbids prose JSON"
+assert_contains "$sent" "Do NOT search for or call a tool named StructuredOutput" "c21 block forbids nonexistent-tool search"
+if [[ "$sent" != *"the structured-output tool this session offers you"* ]]; then
+  ok "c21 block does not claim a visible structured-output tool exists"
+else
+  ko "c21 block does not claim a visible structured-output tool exists"
+fi
 prompt_arg="$(python3 - "$TMP_ROOT/argv-c21.log" <<'PY'
 import sys
 args = open(sys.argv[1]).read().split('\0')
@@ -400,7 +433,7 @@ else
   ko "c21 CLI received exactly the preserved effective prompt"
 fi
 # position matters: the boundary owns the LAST word — the block must be the tail
-if [[ "$sent" == *"does not apply to this session." ]]; then
+if [[ "$sent" == *"only the envelope's structured_output field is authoritative." ]]; then
   ok "c21 contract block is the trailing text (not prepended)"
 else
   ko "c21 contract block is the trailing text (not prepended)"
