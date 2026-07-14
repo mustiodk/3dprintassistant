@@ -1266,6 +1266,27 @@
       "notes": ["Large bedslinger \u2014 300\u00d7300\u00d7350mm", "Klipper firmware"]
     },
     {
+      "id": "sv06_ace",
+      "name": "SV06 ACE",
+      "manufacturer": "sovol",
+      "series": "bedslinger",
+      "series_group": "High Speed",
+      "enclosure": "none",
+      "active_chamber_heating": false,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 300,
+      "max_bed_temp": 100,
+      "max_speed": 600,
+      "max_acceleration": 20000,
+      "has_lidar": false,
+      "has_camera": true,
+      "multi_color_systems": [],
+      "available_plates": ["textured_pei"],
+      "available_nozzle_sizes": [0.2, 0.4, 0.6, 0.8],
+      "open_door_threshold_bed_temp": null,
+      "notes": ["600mm/s bedslinger, 20,000mm/s\u00b2, direct drive, Klipper \u2014 see https://www.sovol3d.com/products/sovol-sv06-ace", "220\u00d7220\u00d7250mm build volume"]
+    },
+    {
       "id": "sv06_plus",
       "name": "SV06 Plus",
       "manufacturer": "sovol",

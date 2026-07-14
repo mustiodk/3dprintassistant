@@ -504,6 +504,9 @@ const COMBOS = [
 
   { id: 16, label: 'Creality K2 SE + 0.4 std + PLA Basic + Standard/Balanced (open-frame K-series CoreXY, 500mm/s cap, CFS)',
     state: stateDefault({ printer: 'k2_se', nozzle: 'std_0.4', material: 'pla_basic' }) },
+
+  { id: 17, label: 'Sovol SV06 ACE + 0.4 std + PLA Basic + Standard/Balanced (High Speed bedslinger, 600mm/s, 20000mm/s², camera, 100°C bed cap)',
+    state: stateDefault({ printer: 'sv06_ace', nozzle: 'std_0.4', material: 'pla_basic' }) },
 ];
 
 // ─── Main ───────────────────────────────────────────────────────────────────
