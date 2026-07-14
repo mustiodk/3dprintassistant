@@ -43,7 +43,7 @@ test ! -e 3dprintassistant/scripts/.intake-run.lock
 test ! -e 3dprintassistant/scripts/.intake-autonomy-freeze
 git -C 3dprintassistant-ios status --short --branch
 git -C 3dprintassistant-ios rev-list --left-right --count main...origin/main
-diff -q 3dprintassistant/data/printers.json 3dprintassistant-ios/ThreeDPrintAssistant/Resources/data/printers.json
+diff -q 3dprintassistant/data/printers.json 3dprintassistant-ios/3DPrintAssistant/Data/printers.json
 ```
 
 Expected state to verify, not assume:
