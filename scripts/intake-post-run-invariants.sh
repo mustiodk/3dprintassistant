@@ -21,10 +21,9 @@
 #   5. Ahead-of-origin commits are custody-only (an unpushed merge or stray
 #      work fails; custody push-repair is next run's job).
 #   6. Park preservation: any parked sidecar written this run still has its
-#      candidate packet, and review-stage parks (review-unavailable /
-#      review-split) still have their intake/<id> branch (2026-07-13 incident:
-#      the runner parked, then deleted branch+packet as "cleanup" and claimed
-#      success).
+#      exact declared candidate packet, and review-stage parks
+#      (review-unavailable / review-split) still have their intake/<id> branch;
+#      when preservedRef is present it must name the branch's current commit.
 #
 # Exit codes: 0 ok · 65 invariant violated · 1 bad-args.
 # Machine line: "POSTRUN ok=true|false reason=<slug> detail=<...>"
@@ -189,6 +188,20 @@ if [[ -d "$PARKED_ROOT" ]]; then
       review-unavailable|review-split)
         if ! git show-ref --verify --quiet "refs/heads/intake/$candidate_id"; then
           fail park-branch-missing "intake/$candidate_id deleted (fresh $park_reason park)"
+        fi
+        preserved_ref="$(node -e '
+          const fs = require("fs");
+          const sidecar = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+          process.stdout.write(typeof sidecar.preservedRef === "string" ? sidecar.preservedRef : "");
+        ' "$sidecar" 2>/dev/null)" \
+          || fail park-sidecar-unreadable "cannot parse preservedRef in $sidecar"
+        if [[ -n "$preserved_ref" ]]; then
+          branch_sha="$(git rev-parse "refs/heads/intake/$candidate_id" 2>/dev/null)" \
+            || fail park-branch-missing "cannot resolve intake/$candidate_id"
+          expected_ref="intake/$candidate_id@$branch_sha"
+          if [[ "$preserved_ref" != "$expected_ref" ]]; then
+            fail park-ref-mismatch "declared=$preserved_ref actual=$expected_ref"
+          fi
         fi ;;
     esac
     artifact_status="$(node - "$REPO" "$sidecar" <<'NODE'

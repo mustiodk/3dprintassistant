@@ -156,6 +156,16 @@ set_candidate_artifact() { # id relative-path sha256
   ' "$STATE/parked/$1/parked.json" "$2" "$3"
 }
 
+set_preserved_ref() { # id ref
+  node -e '
+    const fs = require("fs");
+    const sidecar = process.argv[1];
+    const data = JSON.parse(fs.readFileSync(sidecar, "utf8"));
+    data.preservedRef = process.argv[2];
+    fs.writeFileSync(sidecar, `${JSON.stringify(data)}\n`);
+  ' "$STATE/parked/$1/parked.json" "$2"
+}
+
 # 12 — fresh park with preserved branch + packet passes
 init_repo
 git -C "$REPO" branch intake/centauri_carbon_2
@@ -267,5 +277,22 @@ ln -s "$outside" "$REPO/scripts/.printer-intake-out/candidate-elegoo-centauri_ca
 outside_sha="$(shasum -a 256 "$outside" | awk '{print $1}')"
 set_candidate_artifact centauri_carbon_2 "scripts/.printer-intake-out/candidate-elegoo-centauri_carbon_2.json" "$outside_sha"
 expect_fail park-packet-unsafe
+
+# 26 — a review-stage sidecar may not point at a pre-rebase branch commit
+init_repo
+git -C "$REPO" branch intake/centauri_carbon_2
+make_parked centauri_carbon_2 review-unavailable
+printf '{}\n' > "$STATE/parked/centauri_carbon_2/candidate-elegoo-centauri_carbon_2.json"
+set_preserved_ref centauri_carbon_2 "intake/centauri_carbon_2@1111111111111111111111111111111111111111"
+expect_fail park-ref-mismatch
+
+# 27 — an exact review-stage branch identity satisfies custody
+init_repo
+git -C "$REPO" branch intake/centauri_carbon_2
+make_parked centauri_carbon_2 review-unavailable
+printf '{}\n' > "$STATE/parked/centauri_carbon_2/candidate-elegoo-centauri_carbon_2.json"
+branch_sha="$(git -C "$REPO" rev-parse refs/heads/intake/centauri_carbon_2)"
+set_preserved_ref centauri_carbon_2 "intake/centauri_carbon_2@$branch_sha"
+expect_ok
 
 echo "intake-post-run-invariants.test.sh: all tests passed"
