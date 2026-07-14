@@ -1,7 +1,7 @@
 {
-  "content_version": 2026071401,
+  "content_version": 2026071402,
   "enabled": true,
-  "generated_at": "2026-07-14T08:50:11.872Z",
+  "generated_at": "2026-07-14T10:48:38.475Z",
   "min_app_version": "1.0.3",
   "payload": {
     "brands": [
@@ -238,9 +238,40 @@
           "256×256×256mm build volume; 1000W AC heated bed; no active chamber heating",
           "CANVAS 4-color multi-material system is sold separately for the base printer and included with the Combo variant"
         ]
+      },
+      {
+        "id": "sv06_ace",
+        "name": "SV06 ACE",
+        "manufacturer": "sovol",
+        "series": "bedslinger",
+        "series_group": "High Speed",
+        "enclosure": "none",
+        "active_chamber_heating": false,
+        "extruder_type": "direct_drive",
+        "max_nozzle_temp": 300,
+        "max_bed_temp": 100,
+        "max_speed": 600,
+        "max_acceleration": 20000,
+        "has_lidar": false,
+        "has_camera": true,
+        "multi_color_systems": [],
+        "available_plates": [
+          "textured_pei"
+        ],
+        "available_nozzle_sizes": [
+          0.2,
+          0.4,
+          0.6,
+          0.8
+        ],
+        "open_door_threshold_bed_temp": null,
+        "notes": [
+          "600mm/s bedslinger, 20,000mm/s², direct drive, Klipper — see https://www.sovol3d.com/products/sovol-sv06-ace",
+          "220×220×250mm build volume"
+        ]
       }
     ]
   },
-  "payload_sha256": "05d490d885865bc19b8b94e4afd57e513a71706b60dd91e66827e9b0da2e2b53",
+  "payload_sha256": "2b5627a4a9b0dd6010f3d3c088b059f175559193bacc3e3103148ea17910cb3d",
   "schema_version": 1
 }
