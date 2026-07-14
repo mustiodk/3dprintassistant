@@ -1,7 +1,7 @@
 {
-  "content_version": 2026071301,
+  "content_version": 2026071401,
   "enabled": true,
-  "generated_at": "2026-07-13T19:06:47.943Z",
+  "generated_at": "2026-07-14T08:50:11.872Z",
   "min_app_version": "1.0.3",
   "payload": {
     "brands": [
@@ -223,7 +223,9 @@
         "max_acceleration": 20000,
         "has_lidar": false,
         "has_camera": true,
-        "multi_color_systems": [],
+        "multi_color_systems": [
+          "canvas"
+        ],
         "available_plates": [
           "textured_pei"
         ],
@@ -234,11 +236,11 @@
         "notes": [
           "350°C all-metal direct drive, 20,000 mm/s² CoreXY, passive enclosed Smart Grille — see https://us.elegoo.com/products/centauri-carbon-2",
           "256×256×256mm build volume; 1000W AC heated bed; no active chamber heating",
-          "CANVAS 4-color multi-material system available on Centauri Carbon 2 Combo variant only"
+          "CANVAS 4-color multi-material system is sold separately for the base printer and included with the Combo variant"
         ]
       }
     ]
   },
-  "payload_sha256": "65edf6a6c84036933163a9a5f1f78952510e9b5135b7292e8b2667ed055443ef",
+  "payload_sha256": "05d490d885865bc19b8b94e4afd57e513a71706b60dd91e66827e9b0da2e2b53",
   "schema_version": 1
 }
