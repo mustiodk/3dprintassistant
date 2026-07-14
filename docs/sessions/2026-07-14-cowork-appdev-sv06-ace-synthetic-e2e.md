@@ -157,8 +157,11 @@ or pushed.
   deletion.
 - Md-hygiene: no orphan root-level Markdown stubs, no untracked Markdown outside
   this wrap, and current state was promoted into ROADMAP/NEXT-SESSION/INDEX.
-- The unrelated local change in
-  `~/.claude/plugins/known_marketplaces.json` was preserved and not touched.
+- Product work did not touch the unrelated
+  `~/.claude/plugins/known_marketplaces.json` change. During the mandatory
+  parent-sync step, claude-sync auto-committed/pushed its generated
+  `lastUpdated`-only delta as `3ea863de`; `~/.claude` is clean/current. The
+  existing 2026-07-12 marketplace-metadata churn finding remains owner-pending.
 - Lesson spotter (compact): one no-action candidate — the initial wrong iOS
   mirror path was caught by final verification and already belongs to the
   existing assert-without-verify family. K3/K4/K1 sweep found no new finding;
