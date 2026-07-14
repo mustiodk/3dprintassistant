@@ -75,6 +75,22 @@ function shippedCount(report) {
   return (report.candidates || []).filter((c) => SHIP_OUTCOMES.has(c.outcome)).length;
 }
 
+function renderSummaryValue(value, prefix = '') {
+  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+    return Object.entries(value).flatMap(([key, child]) => {
+      const childPrefix = prefix ? `${prefix}.${key}` : key;
+      return renderSummaryValue(child, childPrefix);
+    });
+  }
+
+  const rendered = Array.isArray(value) ? JSON.stringify(value) : String(value);
+  return [prefix ? `${prefix}=${rendered}` : rendered];
+}
+
+function renderSummary(value) {
+  return renderSummaryValue(value).join(' · ');
+}
+
 function renderMarkdown(report, digestRows) {
   const lines = [];
   lines.push(`# 3dpa intake run — ${report.runId || 'unknown run'}`);
@@ -85,10 +101,10 @@ function renderMarkdown(report, digestRows) {
   }
   lines.push(`- started: ${report.startedAt || '?'} · finished: ${report.finishedAt || '?'}`);
   lines.push(`- shipped: ${report.shipped || 0} · parked: ${report.parked || 0} · errored: ${report.errored || 0}`);
-  if (report.liveVerify) lines.push(`- live verify: ${report.liveVerify}`);
+  if (report.liveVerify) lines.push(`- live verify: ${renderSummary(report.liveVerify)}`);
   lines.push('');
   for (const c of report.candidates || []) {
-    lines.push(`- **${c.id}** → ${c.outcome}${c.detail ? ` — ${c.detail}` : ''}${c.commits ? ` (${c.commits})` : ''}`);
+    lines.push(`- **${c.id}** → ${c.outcome}${c.detail ? ` — ${c.detail}` : ''}${c.commits ? ` (${renderSummary(c.commits)})` : ''}`);
   }
   for (const n of report.notes || []) lines.push(`- note: ${n}`);
   if (digestRows) {

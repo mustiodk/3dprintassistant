@@ -163,6 +163,34 @@ test('terminal report normalizes missing finish time and candidate-derived count
   assert.ok(!fs.existsSync(env.freezePath), 'false shipped count must not create a freeze');
 });
 
+test('structured live-verify and commit summaries render their evidence instead of [object Object]', async () => {
+  const env = makeEnv();
+  const fetchImpl = okFetch();
+  await notify(report({
+    shipped: 1,
+    liveVerify: {
+      overlay: { ok: true, attempts: 3, elapsedSeconds: 30.2 },
+      picker: { ok: true, printer: 'centauri_carbon_2' },
+    },
+    candidates: [{
+      id: 'centauri_carbon_2',
+      outcome: 'auto-shipped',
+      commits: { web_merge: '954cfa3', custody: '88816bd', ios_mirror_local: 'f9a810c' },
+    }],
+  }), {
+    ...env, fetchImpl, log: () => {},
+  });
+
+  const local = fs.readFileSync(path.join(env.stateDir, 'last-run-report.md'), 'utf8');
+  assert.ok(!local.includes('[object Object]'));
+  assert.match(local, /overlay\.ok=true/);
+  assert.match(local, /overlay\.attempts=3/);
+  assert.match(local, /picker\.printer=centauri_carbon_2/);
+  assert.match(local, /web_merge=954cfa3/);
+  assert.match(local, /custody=88816bd/);
+  assert.match(local, /ios_mirror_local=f9a810c/);
+});
+
 test('digest cursor does NOT advance on a failed POST (rows re-digest next month)', async () => {
   const env = makeEnv();
   fs.writeFileSync(env.ledgerPath, `${JSON.stringify({ candidateKey: 'row_a', scoutOutcome: 'needs-research', ownerResolution: 'auto-shipped' })}\n`);
