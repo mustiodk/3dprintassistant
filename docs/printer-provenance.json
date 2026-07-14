@@ -318,6 +318,126 @@
         "evidenceType": "manufacturer",
         "gatheredAt": "2026-07-14T09:07:49.629Z"
       }
+    },
+    "sv06_ace": {
+      "id": "sv06_ace",
+      "name": "SV06 ACE",
+      "manufacturer": "sovol",
+      "series": {
+        "value": "bedslinger",
+        "source": "https://www.sovol3d.com/products/sovol-sv06-ace",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "absenceRationale": null
+      },
+      "series_group": {
+        "value": "High Speed",
+        "source": "https://www.sovol3d.com/products/sovol-sv06-ace",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "absenceRationale": null
+      },
+      "enclosure": {
+        "value": "none",
+        "source": "https://www.sovol3d.com/products/sovol-sv06-ace",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "absenceRationale": null
+      },
+      "extruder_type": {
+        "value": "direct_drive",
+        "source": "https://www.sovol3d.com/products/sovol-sv06-ace",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "absenceRationale": null
+      },
+      "max_nozzle_temp": {
+        "value": 300,
+        "source": "https://www.sovol3d.com/products/sovol-sv06-ace",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "absenceRationale": null
+      },
+      "max_bed_temp": {
+        "value": 100,
+        "source": "https://www.sovol3d.com/products/sovol-sv06-ace",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "absenceRationale": null
+      },
+      "max_speed": {
+        "value": 600,
+        "source": "https://www.sovol3d.com/products/sovol-sv06-ace",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "absenceRationale": null
+      },
+      "max_acceleration": {
+        "value": 20000,
+        "source": "https://www.sovol3d.com/products/sovol-sv06-ace",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "absenceRationale": null
+      },
+      "available_nozzle_sizes": {
+        "value": [
+          0.2,
+          0.4,
+          0.6,
+          0.8
+        ],
+        "source": "https://www.sovol3d.com/products/sovol-sv06-ace",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "absenceRationale": null
+      },
+      "multi_color_systems": {
+        "value": [],
+        "source": "https://www.sovol3d.com/products/sovol-sv06-ace",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "absenceRationale": null
+      },
+      "available_plates": {
+        "value": [
+          "textured_pei"
+        ],
+        "source": "https://www.sovol3d.com/products/sovol-sv06-ace",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "absenceRationale": null
+      },
+      "active_chamber_heating": {
+        "value": false,
+        "source": "https://www.sovol3d.com/products/sovol-sv06-ace",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "absenceRationale": null
+      },
+      "has_camera": {
+        "value": true,
+        "source": "https://www.sovol3d.com/products/sovol-sv06-ace",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "absenceRationale": null
+      },
+      "has_lidar": {
+        "value": false,
+        "source": "https://www.sovol3d.com/products/sovol-sv06-ace",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "absenceRationale": null
+      },
+      "notes": {
+        "value": [
+          "600mm/s bedslinger, 20,000mm/s², direct drive, Klipper — see https://www.sovol3d.com/products/sovol-sv06-ace",
+          "220×220×250mm build volume"
+        ],
+        "source": "https://www.sovol3d.com/products/sovol-sv06-ace",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "absenceRationale": null
+      }
     }
   }
 }
