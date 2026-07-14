@@ -45,6 +45,30 @@ function readWebhookUrl(configPath) {
 // Outcome vocabulary pinned to the runner contract's ship outcomes — a regex
 // here would false-positive on hypothetical park reasons containing "shipped".
 const SHIP_OUTCOMES = new Set(['shipped', 'auto-shipped']);
+const ERROR_OUTCOMES = new Set(['error', 'errored', 'failed']);
+
+function normalizeTerminalReport(report, now = () => new Date()) {
+  const candidates = Array.isArray(report.candidates) ? report.candidates : [];
+  const normalized = { ...report, candidates };
+
+  if (typeof normalized.finishedAt !== 'string'
+      || Number.isNaN(Date.parse(normalized.finishedAt))) {
+    normalized.finishedAt = now().toISOString();
+  }
+
+  // Per-candidate outcomes are the terminal source of truth. When present,
+  // derive the headline counts instead of trusting LLM-authored aggregates;
+  // wrapper-level failure reports intentionally have no candidates and retain
+  // their explicit errored/shippedUnknown counters.
+  if (candidates.length > 0) {
+    normalized.shipped = candidates.filter((c) => SHIP_OUTCOMES.has(c.outcome)).length;
+    normalized.parked = candidates.filter((c) => c.outcome === 'parked'
+      || (typeof c.outcome === 'string' && c.outcome.startsWith('auto-parked:'))).length;
+    normalized.errored = candidates.filter((c) => ERROR_OUTCOMES.has(c.outcome)).length;
+  }
+
+  return normalized;
+}
 
 function shippedCount(report) {
   if (Number.isInteger(report.shipped) && report.shipped > 0) return report.shipped;
@@ -114,13 +138,15 @@ async function notify(report, opts = {}) {
     ledgerPath = DEFAULT_LEDGER,
     freezePath = DEFAULT_FREEZE,
     fetchImpl = global.fetch,
+    now = () => new Date(),
     log = (line) => console.log(`[intake-notify] ${line}`),
   } = opts;
 
   fs.mkdirSync(stateDir, { recursive: true });
 
-  const { digestRows, commit: commitDigest } = collectDigest(ledgerPath, stateDir, report.finishedAt);
-  const markdown = renderMarkdown(report, digestRows);
+  const terminalReport = normalizeTerminalReport(report, now);
+  const { digestRows, commit: commitDigest } = collectDigest(ledgerPath, stateDir, terminalReport.finishedAt);
+  const markdown = renderMarkdown(terminalReport, digestRows);
 
   // The local report file is unconditional — the one place a run's outcome
   // can always be read, webhook or not.
@@ -158,16 +184,16 @@ async function notify(report, opts = {}) {
   // shippedUnknown (wrapper --shipped-unknown): a crashed runner session MAY
   // have shipped before dying — fail-closed, treat as shipped for the freeze
   // rule (over-freeze beats a PD8 bypass).
-  const shipped = shippedCount(report);
-  const mayHaveShipped = shipped > 0 || report.shippedUnknown === true;
+  const shipped = shippedCount(terminalReport);
+  const mayHaveShipped = shipped > 0 || terminalReport.shippedUnknown === true;
   let frozen = false;
   if (mayHaveShipped && !posted) {
     // Shipped-and-unreported is the one silent state never allowed (PD8).
     fs.writeFileSync(freezePath, `${JSON.stringify({
       reason: 'shipped-and-unreported',
-      detail: report.shippedUnknown
-        ? `run ${report.runId || '?'} FAILED mid-session (ship state unknown) and the run report could not be delivered`
-        : `run ${report.runId || '?'} shipped ${shipped} candidate(s) but the Discord run report could not be delivered`,
+      detail: terminalReport.shippedUnknown
+        ? `run ${terminalReport.runId || '?'} FAILED mid-session (ship state unknown) and the run report could not be delivered`
+        : `run ${terminalReport.runId || '?'} shipped ${shipped} candidate(s) but the Discord run report could not be delivered`,
       at: new Date().toISOString(),
     }, null, 2)}\n`);
     frozen = true;
@@ -184,7 +210,7 @@ async function notify(report, opts = {}) {
   return { posted, frozen, digest, exitCode };
 }
 
-module.exports = { notify, renderMarkdown };
+module.exports = { notify, renderMarkdown, normalizeTerminalReport };
 
 if (require.main === module) {
   const args = process.argv.slice(2);

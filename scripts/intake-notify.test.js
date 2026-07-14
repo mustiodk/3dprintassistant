@@ -138,6 +138,31 @@ test('freeze rule counts auto-shipped candidates even when report.shipped is 0 (
   assert.strictEqual(noFp.frozen, false, 'park reasons containing "shipped" must not count as ships');
 });
 
+test('terminal report normalizes missing finish time and candidate-derived counts before local/Discord output', async () => {
+  const env = makeEnv();
+  const fetchImpl = okFetch();
+  await notify(report({
+    finishedAt: null,
+    shipped: 9,
+    parked: 0,
+    errored: 4,
+    candidates: [{ id: 'centauri_carbon_2', outcome: 'auto-parked:review-unavailable' }],
+  }), {
+    ...env,
+    fetchImpl,
+    now: () => new Date('2026-07-14T08:00:00Z'),
+    log: () => {},
+  });
+
+  const local = fs.readFileSync(path.join(env.stateDir, 'last-run-report.md'), 'utf8');
+  assert.match(local, /finished: 2026-07-14T08:00:00\.000Z/);
+  assert.match(local, /shipped: 0 · parked: 1 · errored: 0/);
+  const discord = JSON.parse(fetchImpl.calls[0].init.body).content;
+  assert.match(discord, /finished: 2026-07-14T08:00:00\.000Z/);
+  assert.match(discord, /shipped: 0 · parked: 1 · errored: 0/);
+  assert.ok(!fs.existsSync(env.freezePath), 'false shipped count must not create a freeze');
+});
+
 test('digest cursor does NOT advance on a failed POST (rows re-digest next month)', async () => {
   const env = makeEnv();
   fs.writeFileSync(env.ledgerPath, `${JSON.stringify({ candidateKey: 'row_a', scoutOutcome: 'needs-research', ownerResolution: 'auto-shipped' })}\n`);
