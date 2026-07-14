@@ -198,9 +198,8 @@ if [[ -d "$PARKED_ROOT" ]]; then
         if [[ -n "$preserved_ref" ]]; then
           branch_sha="$(git rev-parse "refs/heads/intake/$candidate_id" 2>/dev/null)" \
             || fail park-branch-missing "cannot resolve intake/$candidate_id"
-          expected_ref="intake/$candidate_id@$branch_sha"
-          if [[ "$preserved_ref" != "$expected_ref" ]]; then
-            fail park-ref-mismatch "declared=$preserved_ref actual=$expected_ref"
+          if [[ "$preserved_ref" != "$branch_sha" ]]; then
+            fail park-ref-mismatch "declared=$preserved_ref actual=$branch_sha"
           fi
         fi ;;
     esac

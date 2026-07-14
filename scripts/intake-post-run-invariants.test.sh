@@ -292,7 +292,7 @@ git -C "$REPO" branch intake/centauri_carbon_2
 make_parked centauri_carbon_2 review-unavailable
 printf '{}\n' > "$STATE/parked/centauri_carbon_2/candidate-elegoo-centauri_carbon_2.json"
 branch_sha="$(git -C "$REPO" rev-parse refs/heads/intake/centauri_carbon_2)"
-set_preserved_ref centauri_carbon_2 "intake/centauri_carbon_2@$branch_sha"
+set_preserved_ref centauri_carbon_2 "$branch_sha"
 expect_ok
 
 echo "intake-post-run-invariants.test.sh: all tests passed"
