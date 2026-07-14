@@ -153,6 +153,171 @@
         "gatheredAt": "2026-07-10T22:15:29Z",
         "resolution": "Official K2 SE support/spec lists Nozzle Diameter 0.4 mm; no official K2 SE source verified 0.6 mm, so 0.6 was not inherited from K-series siblings."
       }
+    },
+    "centauri_carbon_2": {
+      "runId": "run-20260714T085459Z",
+      "candidateKey": [
+        "req:1783955904071:fb09d854"
+      ],
+      "gatheredAt": "2026-07-14T09:07:49.629Z",
+      "ownerResolution": "owner-resolved review-split on multi_color_systems and notes[2]; auto-shipped on {GO,GO} after owner instruction",
+      "series": {
+        "value": "corexy",
+        "source": "https://us.elegoo.com/products/centauri-carbon-2",
+        "canonicalSource": "us.elegoo.com/products/centauri-carbon-2",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-14T09:07:49.629Z"
+      },
+      "series_group": {
+        "value": "Centauri Series",
+        "source": "https://us.elegoo.com/products/centauri-carbon-2",
+        "canonicalSource": "us.elegoo.com/products/centauri-carbon-2",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-14T09:07:49.629Z"
+      },
+      "enclosure": {
+        "value": "passive",
+        "source": "https://us.elegoo.com/products/centauri-carbon-2",
+        "canonicalSource": "us.elegoo.com/products/centauri-carbon-2",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-14T09:07:49.629Z"
+      },
+      "active_chamber_heating": {
+        "value": false,
+        "source": null,
+        "canonicalSource": null,
+        "confidence": "confirmed",
+        "evidenceType": "absence-rationale",
+        "gatheredAt": "2026-07-14T09:07:49.629Z",
+        "absenceRationale": "Neither the official product page nor the manual lists a chamber heater, active heating temperature, or chamber temp spec; the Smart Grille system is explicitly described as passive air recirculation and filtration only"
+      },
+      "extruder_type": {
+        "value": "direct_drive",
+        "source": "https://us.elegoo.com/products/centauri-carbon-2",
+        "canonicalSource": "us.elegoo.com/products/centauri-carbon-2",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-14T09:07:49.629Z"
+      },
+      "max_nozzle_temp": {
+        "value": 350,
+        "source": "https://us.elegoo.com/products/centauri-carbon-2",
+        "canonicalSource": "us.elegoo.com/products/centauri-carbon-2",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-14T09:07:49.629Z"
+      },
+      "max_bed_temp": {
+        "value": 110,
+        "source": "https://us.elegoo.com/products/centauri-carbon-2",
+        "canonicalSource": "us.elegoo.com/products/centauri-carbon-2",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-14T09:07:49.629Z"
+      },
+      "max_speed": {
+        "value": 500,
+        "source": "https://us.elegoo.com/products/centauri-carbon-2",
+        "canonicalSource": "us.elegoo.com/products/centauri-carbon-2",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-14T09:07:49.629Z"
+      },
+      "max_acceleration": {
+        "value": 20000,
+        "source": "https://us.elegoo.com/products/centauri-carbon-2",
+        "canonicalSource": "us.elegoo.com/products/centauri-carbon-2",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-14T09:07:49.629Z"
+      },
+      "has_lidar": {
+        "value": false,
+        "source": null,
+        "canonicalSource": null,
+        "confidence": "confirmed",
+        "evidenceType": "absence-rationale",
+        "gatheredAt": "2026-07-14T09:07:49.629Z",
+        "absenceRationale": "No LiDAR is mentioned in the official product page or manual; the printer uses camera-based AI print monitoring as its failure detection feature, which is the only optical sensing system described"
+      },
+      "has_camera": {
+        "value": true,
+        "source": "https://us.elegoo.com/products/centauri-carbon-2",
+        "canonicalSource": "us.elegoo.com/products/centauri-carbon-2",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-14T09:07:49.629Z"
+      },
+      "multi_color_systems": {
+        "value": [
+          "canvas"
+        ],
+        "source": "https://us.elegoo.com/products/centauri-carbon-2",
+        "canonicalSource": "us.elegoo.com/products/centauri-carbon-2",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-14T09:07:49.629Z"
+      },
+      "available_plates": {
+        "value": [
+          "textured_pei"
+        ],
+        "source": "https://us.elegoo.com/products/centauri-carbon-2",
+        "canonicalSource": "us.elegoo.com/products/centauri-carbon-2",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-14T09:07:49.629Z"
+      },
+      "available_nozzle_sizes": {
+        "value": [
+          0.4
+        ],
+        "source": "https://us.elegoo.com/products/centauri-carbon-2",
+        "canonicalSource": "us.elegoo.com/products/centauri-carbon-2",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-14T09:07:49.629Z"
+      },
+      "open_door_threshold_bed_temp": {
+        "value": 45,
+        "source": null,
+        "canonicalSource": null,
+        "confidence": "owner-approved",
+        "evidenceType": "repo-convention",
+        "gatheredAt": "2026-07-14T09:07:49.629Z",
+        "ownerResolution": "{\"policy\":\"passive-enclosure-open-door-threshold\",\"approvedAt\":\"2026-07-13T00:00:00Z\",\"rationale\":\"Owner-ratified 2026-07-13 amendment: all passive-enclosure printers carry open_door_threshold_bed_temp:45. Centauri Carbon 2 has enclosure:passive confirmed from manufacturer source; this convention applies.\"}"
+      },
+      "notes": {
+        "value": [
+          "350°C all-metal direct drive, 20,000 mm/s² CoreXY, passive enclosed Smart Grille — see https://us.elegoo.com/products/centauri-carbon-2",
+          "256×256×256mm build volume; 1000W AC heated bed; no active chamber heating",
+          "CANVAS 4-color multi-material system is sold separately for the base printer and included with the Combo variant"
+        ],
+        "source": "https://us.elegoo.com/products/centauri-carbon-2",
+        "canonicalSource": "us.elegoo.com/products/centauri-carbon-2",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-14T09:07:49.629Z"
+      },
+      "manufacturer": {
+        "value": "elegoo",
+        "source": "https://us.elegoo.com/products/centauri-carbon-2",
+        "canonicalSource": "us.elegoo.com/products/centauri-carbon-2",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-14T09:07:49.629Z"
+      },
+      "name": {
+        "value": "Centauri Carbon 2",
+        "source": "https://us.elegoo.com/products/centauri-carbon-2",
+        "canonicalSource": "us.elegoo.com/products/centauri-carbon-2",
+        "confidence": "confirmed",
+        "evidenceType": "manufacturer",
+        "gatheredAt": "2026-07-14T09:07:49.629Z"
+      }
     }
   }
 }
