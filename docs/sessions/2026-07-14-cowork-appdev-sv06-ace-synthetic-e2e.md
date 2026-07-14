@@ -1,6 +1,19 @@
 # 2026-07-14 — Sovol SV06 ACE synthetic printer-intake E2E
 
-## Outcome
+## Durable context
+
+- The owner-authorized synthetic production request proved the complete
+  `/api/feedback` → Discord/KV → Scout → research/evidence → fresh R1/R2 →
+  merge/live/custody path on the mac-mini.
+- The first run stayed fail-closed. It spent no R2 turn and shipped nothing
+  after R1 returned a contract-invalid `GO` payload.
+- Two independent pipeline defects were fixed TDD-first without weakening any
+  gate: full-SHA parked-ref comparison (`c2fe6fd`) and explicit R1 semantic
+  output rules (`16606a7`).
+- The clean re-entry reached semantic fresh `GO/GO`; iOS received only a local
+  data mirror and remains push-gated. iOS 1.0.7/1.0.8 were not started.
+
+## What happened / Actions
 
 **Terminal `GO/GO` — auto-shipped and live-verified.** An owner-authorized
 synthetic missing-printer request traversed the real production path from
@@ -111,7 +124,33 @@ release. No engine, schema, Swift, functional, structural, UI, or UX change is
 needed to use the improvement. iOS 1.0.7 and 1.0.8 were not started, dispatched,
 or pushed.
 
-## Wrap hygiene
+## Files touched (Modified / Deleted / Untracked)
+
+- Web/runtime: `scripts/intake-post-run-invariants.sh`,
+  `scripts/intake-post-run-invariants.test.sh`,
+  `scripts/intake-r1-structured-review.sh`, and
+  `scripts/intake-r1-structured-review.test.sh`.
+- Catalog/custody: `data/printers.json`, `catalog/ios-printer-overlay-v1.json`,
+  `docs/printer-provenance.json`, `scripts/printer-intake-outcomes.jsonl`, and
+  the walkthrough coverage.
+- Tracking: this log, `docs/sessions/INDEX.md`,
+  `docs/sessions/NEXT-SESSION.md`, and `docs/planning/ROADMAP.md`.
+- iOS: `3DPrintAssistant/Data/printers.json` in local commit `80c26dd`.
+- Deleted: no owner files. The candidate packet/sidecar/branch were removed by
+  the runner only after terminal ship and custody.
+- Untracked: none at close.
+
+## Commits
+
+- `c2fe6fd` — accept full SHA parked refs.
+- `16606a7` — state R1 semantic output rules.
+- `3bba2c2` — ship Sovol SV06 ACE.
+- `54dc4c8` — custody provenance/outcome closure.
+- `438ba8f` + `744695a` — close the E2E tracking surfaces and correct the iOS
+  mirror verification path.
+- iOS local-only `80c26dd` — byte-identical bundled catalog mirror; not pushed.
+
+## Open questions / Follow-up
 
 - Historical run evidence was retained. The wrapper intentionally refreshed
   the canonical last-run surfaces; no conflicting old history required manual
@@ -120,13 +159,22 @@ or pushed.
   this wrap, and current state was promoted into ROADMAP/NEXT-SESSION/INDEX.
 - The unrelated local change in
   `~/.claude/plugins/known_marketplaces.json` was preserved and not touched.
+- Lesson spotter (compact): one no-action candidate — the initial wrong iOS
+  mirror path was caught by final verification and already belongs to the
+  existing assert-without-verify family. K3/K4/K1 sweep found no new finding;
+  no MCP behavior was in scope.
+- Memory sweep: no durable memory to add; the existing fail-closed printer
+  intake memory already covers the reusable behavior.
+- Vault sweep: nothing durable to propagate; this is project-operational state,
+  not strategy, shorthand, cross-project method, hobby insight, consulting
+  context, or external-source ingest.
 - Verify-before-mutate summary (verbatim):
 
 ```text
 verify-before-mutate ledger: no entries this session
 ```
 
-## Next action
+## Next session
 
 Printer intake is closed. Return to owner lane selection. Do not automatically
 start iOS 1.0.7 or the separate iOS 1.0.8 tip-jar train.

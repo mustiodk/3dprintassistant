@@ -24,6 +24,7 @@ Read in order:
 6. These session logs in full:
    - `3dprintassistant/docs/sessions/2026-07-14-cowork-appdev-sv06-ace-synthetic-e2e.md`
    - `3dprintassistant/docs/sessions/2026-07-14-cowork-appdev-centauri-owner-decision-ship.md`
+   - `3dprintassistant/docs/sessions/2026-07-14-cowork-appdev-centauri-v23-debug-rerun.md`
 7. This `NEXT-SESSION.md`
 
 Before any mutation:
