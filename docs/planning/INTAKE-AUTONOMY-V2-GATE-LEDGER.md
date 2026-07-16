@@ -8,6 +8,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 | Gate | Status | Evidence |
 |---|---|---|
+| I1 parked-sidecar path ownership | ✅ 2026-07-16 | `run-20260715T100124Z` root cause reconstructed from the headless transcript; RED reproduced the unsafe raw writer, web `104251c` + ai-om `8151868` close it under contract v2.4; Claude hostile review PASS; focused suite green; see I1 row |
 | R8 final validation + ready state | ✅ 2026-07-10 | Expected test files exist; full R8 intake suite + project validators green; final review NO-GO on ai-om split-routing fixed by `a118bd5`; focused re-review GO; no push/PR/merge; see R8 row |
 | R7 K2 SE migration drill | ✅ 2026-07-10 | Existing R3 fixture drill re-run: `node scripts/intake-parked-store.test.js` **14/14**; K2 SE v1 sidecar migrates to `decision-required`, remains tainted, fixture byte-unchanged; no automatic reattempt; see R7 row |
 | R6 runner contract integration | ✅ 2026-07-10 | web `e3c3d44` + ai-om `9bc6e0c`; direct review NO-GO chain closed by `d749925`/`fbe7ccc`/`b15f430`/`6de7f86`/`1ad308d`; final focused re-review GO; verification green; see R6 row |
@@ -27,6 +28,38 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 ---
 
 ## Rows (newest first)
+
+### I1 — parked-sidecar path ownership ✅ (2026-07-16; web `104251c` + ai-om `8151868`)
+
+**Incident and root cause:** `run-20260715T100124Z` correctly parked the
+ambiguous `i7_i` candidate as `unverified-model`, but its headless transcript
+shows an earlier call to `writeParked('i7_i', sidecar)`. The raw API expected a
+file path and performed an unchecked `writeFileSync`, so that call created the
+untracked repo-root file `i7_i`. The wrapper's POSTRUN then correctly failed
+`web-dirty`, and the same artifact blocked the 2026-07-16 preflight before a
+runner report could be produced. The preflight was the correct fail-closed
+symptom, not the defect.
+
+**TDD and fix:** the regression first failed against both the exact bare
+candidate-id call and a relative `parked.json` path. Web commit `104251c` makes
+the store own the canonical destination through
+`writeParkedForCandidate(candidateId, sidecar)`, validates candidate identity,
+and makes the raw writer reject relative paths or a basename other than
+`parked.json` before filesystem I/O. The kickoff requires the candidate-owned
+helper. AI-OM commit `8151868` advances the executable runner contract to v2.4
+with the same invariant. The original stray artifact was preserved byte-for-byte
+under ignored incident state before removal from repo root; the canonical parked
+sidecar and candidate packet were not rewritten.
+
+**Review and verification:** independent Claude hostile review returned
+**PASS — no MUST-FIX**. Two directly relevant suggestions were accepted before
+commit: require an absolute raw-writer path and pin the literal incident call in
+the test. The unrelated suggestion for extra taint-path coverage was left outside
+this incident patch. Fresh verification passed: `node --check
+scripts/intake-parked-store.js`; parked-store **16/16**; taxonomy **11/11**;
+`intake-run-preflight.test.sh`; `intake-post-run-invariants.test.sh`;
+`intake-run-wrapper.test.sh`; and `git diff --check` in both repositories.
+No printer catalog, overlay, web UI, iOS data, or Android plan changed.
 
 ### Additive stage-order clarification (2026-07-13)
 
