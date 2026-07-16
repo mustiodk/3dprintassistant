@@ -1,9 +1,30 @@
 #!/usr/bin/env node
 const fs = require('node:fs');
+const path = require('node:path');
 
 const { classifyParkReason } = require('./intake-park-taxonomy.js');
 
 const TAINTED_CLASSES = new Set(['judgment-on-evidence', 'decision-required']);
+const DEFAULT_PARKED_ROOT = path.join(__dirname, '.intake-runner-state', 'parked');
+
+function assertParkedFilePath(filePath) {
+  if (typeof filePath !== 'string' || !path.isAbsolute(filePath)) {
+    throw new Error('parked sidecar path must be absolute');
+  }
+  if (path.basename(filePath) !== 'parked.json') {
+    throw new Error('parked sidecar path must end with parked.json; a candidate id is not a file path');
+  }
+}
+
+function parkedSidecarPath(candidateId, parkedRoot = DEFAULT_PARKED_ROOT) {
+  if (typeof candidateId !== 'string'
+    || !/^[A-Za-z0-9._-]+$/.test(candidateId)
+    || candidateId === '.'
+    || candidateId === '..') {
+    throw new Error('candidateId must match [A-Za-z0-9._-]+ and cannot be . or ..');
+  }
+  return path.join(parkedRoot, candidateId, 'parked.json');
+}
 
 function parseRepairAttempts(value) {
   if (value === undefined) return { valid: true, value: 0 };
@@ -85,6 +106,7 @@ function readParked(filePath) {
 }
 
 function writeParked(filePath, sidecar) {
+  assertParkedFilePath(filePath);
   const previous = fs.existsSync(filePath) ? readParked(filePath) : null;
   const verdictRefs = [];
   const seenVerdicts = new Set();
@@ -108,6 +130,17 @@ function writeParked(filePath, sidecar) {
   fs.writeFileSync(filePath, `${JSON.stringify(normalized, null, 2)}\n`);
 }
 
+function writeParkedForCandidate(candidateId, sidecar, { parkedRoot = DEFAULT_PARKED_ROOT } = {}) {
+  if (sidecar?.candidateId !== undefined && sidecar.candidateId !== candidateId) {
+    throw new Error(`sidecar candidateId ${sidecar.candidateId} does not match ${candidateId}`);
+  }
+
+  const filePath = parkedSidecarPath(candidateId, parkedRoot);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  writeParked(filePath, { ...sidecar, candidateId });
+  return filePath;
+}
+
 module.exports = {
   isTainted,
   assertWritableClass,
@@ -115,4 +148,5 @@ module.exports = {
   enterResearchRepair,
   readParked,
   writeParked,
+  writeParkedForCandidate,
 };

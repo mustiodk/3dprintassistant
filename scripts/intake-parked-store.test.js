@@ -10,6 +10,7 @@ const {
   assertWritableClass,
   readParked,
   writeParked,
+  writeParkedForCandidate,
 } = require('./intake-parked-store.js');
 
 const K2_FIXTURE = path.join(__dirname, 'fixtures', 'k2-se-parked-v1.json');
@@ -94,6 +95,52 @@ test('readParked migrates the real-like K2 SE fixture without mutating it', () =
   assert.equal(migrated.class, 'decision-required');
   assert.equal(migrated.tainted, true);
   assert.equal(fs.readFileSync(K2_FIXTURE, 'utf8'), before);
+});
+
+test('writeParked rejects a candidate id used as a file path without creating a stray file', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'intake-parked-store-'));
+  const strayPath = path.join(tempDir, 'i7_i');
+  const relativeSidecarPath = path.relative(process.cwd(), path.join(tempDir, 'parked.json'));
+
+  try {
+    assert.throws(() => writeParked('i7_i', {
+      class: 'decision-required',
+      candidateId: 'i7_i',
+      verdictRefs: [],
+    }), /absolute/i);
+    assert.throws(() => writeParked(strayPath, {
+      class: 'decision-required',
+      candidateId: 'i7_i',
+      verdictRefs: [],
+    }), /parked\.json/i);
+    assert.throws(() => writeParked(relativeSidecarPath, {
+      class: 'decision-required',
+      candidateId: 'i7_i',
+      verdictRefs: [],
+    }), /absolute/i);
+    assert.equal(fs.existsSync(strayPath), false);
+    assert.equal(fs.existsSync(relativeSidecarPath), false);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('writeParkedForCandidate owns the canonical parked sidecar path', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'intake-parked-store-'));
+  const parkedRoot = path.join(tempDir, 'parked');
+
+  try {
+    const filePath = writeParkedForCandidate('i7_i', {
+      class: 'decision-required',
+      candidateId: 'i7_i',
+      verdictRefs: [],
+    }, { parkedRoot });
+
+    assert.equal(filePath, path.join(parkedRoot, 'i7_i', 'parked.json'));
+    assert.equal(JSON.parse(fs.readFileSync(filePath, 'utf8')).candidateId, 'i7_i');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
 });
 
 test('writeParked derives taint from verdictRefs in the persisted v2 sidecar', () => {
