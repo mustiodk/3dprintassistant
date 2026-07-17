@@ -7,10 +7,18 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
-    <string>/Users/mustafaozturk-macmini/dev/Claude/Projects/3dprintassistant/scripts/intake-run-wrapper.sh</string>
+    <string>__INTAKE_BOOTSTRAP__</string>
+    <string>--repo</string>
+    <string>__INTAKE_REPO__</string>
+    <string>--ios-repo</string>
+    <string>__IOS_REPO__</string>
+    <string>--expected-origin</string>
+    <string>__EXPECTED_ORIGIN__</string>
+    <string>--lock</string>
+    <string>__INTAKE_LOCK__</string>
   </array>
   <key>WorkingDirectory</key>
-  <string>/Users/mustafaozturk-macmini/dev/Claude/Projects/3dprintassistant</string>
+  <string>__INSTALL_ROOT__</string>
   <!-- Daily 12:00 local — owner-set 2026-07-10 (supersedes the plan's proposed
        07:45). Keep scripts/intake-runner.config.json "schedule" in sync. -->
   <key>StartCalendarInterval</key>

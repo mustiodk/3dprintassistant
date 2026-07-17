@@ -8,6 +8,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 | Gate | Status | Evidence |
 |---|---|---|
+| S1 sync-first isolated runner | 🟡 local implementation 2026-07-17 | Plan review GO-WITH-PATCHES applied; bootstrap/path/owner-decision/installer focused suites green; not merged, pushed, installed, or loaded yet; no candidate rerun and no iOS push |
 | I1 parked-sidecar path ownership | ✅ 2026-07-16 | `run-20260715T100124Z` root cause reconstructed from the headless transcript; RED reproduced the unsafe raw writer, web `104251c` + ai-om `8151868` close it under contract v2.4; Claude hostile review PASS; focused suite green; see I1 row |
 | R8 final validation + ready state | ✅ 2026-07-10 | Expected test files exist; full R8 intake suite + project validators green; final review NO-GO on ai-om split-routing fixed by `a118bd5`; focused re-review GO; no push/PR/merge; see R8 row |
 | R7 K2 SE migration drill | ✅ 2026-07-10 | Existing R3 fixture drill re-run: `node scripts/intake-parked-store.test.js` **14/14**; K2 SE v1 sidecar migrates to `decision-required`, remains tainted, fixture byte-unchanged; no automatic reattempt; see R7 row |
@@ -28,6 +29,42 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 ---
 
 ## Rows (newest first)
+
+### S1 — sync-first isolated runner 🟡 local implementation (2026-07-17)
+
+**Root cause and decision:** the production LaunchAgent pointed at the owner's
+normal web checkout and called preflight before synchronization. Reproduction
+proved clean/behind stops as `web-out-of-sync` and dirty/behind stops as
+`web-dirty`. Pull-first in the same checkout fixes only clean/behind; automated
+stash/reset/clean would put owner work at risk. The owner approved a persistent
+automation-owned checkout with a strict sync bootstrap in front of the existing
+preflight/wrapper/POSTRUN chain.
+
+**Plan gate:** independent Claude review through Bridge returned
+`GO-WITH-PATCHES`. The plan now includes a six-hour stale bootstrap-lock
+takeover, positive proof that both parked candidates remain owner-ineligible
+before the cutover run, contract-version traceability, and explicit handling of
+the development checkout becoming behind after automation custody pushes. The
+owner's stop rule is active: no style/polish review loop.
+
+**Local implementation evidence:** sync bootstrap RED (missing executable) →
+all clean/current, clean/behind, dirt-preservation, ahead/diverged, origin,
+branch, wrapper, fresh/stale-lock, development-decoupling, and exit-propagation
+cases green (`intake-sync-bootstrap.test.sh`). Runtime-path tests RED on the
+hardcoded iOS sibling/web paths → preflight, wrapper, validator, republisher,
+kickoff, and AI-OM v2.5 path contract green. Owner-decision tests RED on missing
+module and stale U1 blocked copy → six duplicate/re-entry identity/SHA/archive/
+idempotency cases green; kickoff + AI-OM v2.6 require deterministic
+`verify-reentry`. Installer RED on missing executable → fresh clone, exact
+bootstrap/plist rendering, SHA-verified state migration, verify-only byte
+stability, idempotency, and conflict refusal green.
+
+**Current boundary:** implementation remains on isolated local branches. The
+real LaunchAgent still points to the former checkout. Both parked candidates
+remain untouched and owner-gated; the repo-root `i7_i` artifact remains absent;
+iOS remains unpushed. Final implementation review, full verification,
+merge/push, installation, zero-candidate cutover proof, i7 duplicate closure,
+and U1 `U Series` re-entry are still pending and must occur in that order.
 
 ### I1 — parked-sidecar path ownership ✅ (2026-07-16; web `104251c` + ai-om `8151868`)
 
