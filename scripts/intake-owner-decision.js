@@ -24,6 +24,87 @@ function sameKey(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function transactionPath(candidateDir) {
+  return path.join(candidateDir, '.owner-decision-transaction');
+}
+
+function writeDurable(filePath, bytes) {
+  const descriptor = fs.openSync(filePath, 'wx');
+  try {
+    fs.writeFileSync(descriptor, bytes);
+    fs.fsyncSync(descriptor);
+  } finally {
+    fs.closeSync(descriptor);
+  }
+}
+
+function replaceFromSnapshot(snapshotPath, destinationPath) {
+  const tempPath = `${destinationPath}.recover-${process.pid}`;
+  fs.copyFileSync(snapshotPath, tempPath, fs.constants.COPYFILE_EXCL);
+  try {
+    fs.renameSync(tempPath, destinationPath);
+  } finally {
+    fs.rmSync(tempPath, { force: true });
+  }
+}
+
+function recoverOwnerDecisionTransaction(candidateDir, candidateId) {
+  const directory = transactionPath(candidateDir);
+  if (!fs.existsSync(directory)) return { recovered: false };
+  const manifestPath = path.join(directory, 'transaction.json');
+  if (!fs.existsSync(manifestPath)) {
+    throw new Error(`owner-decision transaction is incomplete for ${candidateId}; preserve ${directory}`);
+  }
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  if (manifest.schema !== 'intake-owner-decision-transaction@1'
+      || manifest.candidateId !== candidateId
+      || typeof manifest.packetName !== 'string'
+      || path.basename(manifest.packetName) !== manifest.packetName) {
+    throw new Error(`owner-decision transaction identity is invalid for ${candidateId}`);
+  }
+  const packetPath = path.join(candidateDir, manifest.packetName);
+  const sidecarPath = path.join(candidateDir, 'parked.json');
+  const snapshots = {
+    packetOld: path.join(directory, 'packet.old'),
+    packetNew: path.join(directory, 'packet.new'),
+    sidecarOld: path.join(directory, 'sidecar.old'),
+    sidecarNew: path.join(directory, 'sidecar.new'),
+  };
+  for (const [name, snapshot] of Object.entries(snapshots)) {
+    if (!fs.existsSync(snapshot) || shaFile(snapshot) !== manifest[`${name}Sha256`]) {
+      throw new Error(`owner-decision transaction ${name} snapshot is invalid for ${candidateId}`);
+    }
+  }
+  if (!fs.existsSync(packetPath) || !fs.existsSync(sidecarPath)) {
+    throw new Error(`owner-decision transaction target is missing for ${candidateId}`);
+  }
+  const packetSha = shaFile(packetPath);
+  const sidecarSha = shaFile(sidecarPath);
+  const packetOld = packetSha === manifest.packetOldSha256;
+  const packetNew = packetSha === manifest.packetNewSha256;
+  const sidecarOld = sidecarSha === manifest.sidecarOldSha256;
+  const sidecarNew = sidecarSha === manifest.sidecarNewSha256;
+
+  if (packetOld && sidecarOld) {
+    fs.rmSync(directory, { recursive: true });
+    return { recovered: true, outcome: 'prepared-not-applied' };
+  }
+  if (packetNew && sidecarOld) {
+    replaceFromSnapshot(snapshots.sidecarNew, sidecarPath);
+  } else if (packetOld && sidecarNew) {
+    replaceFromSnapshot(snapshots.packetNew, packetPath);
+  } else if (!(packetNew && sidecarNew)) {
+    throw new Error(`owner-decision transaction target hashes are ambiguous for ${candidateId}`);
+  }
+
+  if (shaFile(packetPath) !== manifest.packetNewSha256
+      || shaFile(sidecarPath) !== manifest.sidecarNewSha256) {
+    throw new Error(`owner-decision transaction recovery verification failed for ${candidateId}`);
+  }
+  fs.rmSync(directory, { recursive: true });
+  return { recovered: true, outcome: 'committed' };
+}
+
 function defaults(options = {}) {
   const repoRoot = path.resolve(options.repoRoot || DEFAULT_REPO_ROOT);
   return {
@@ -40,6 +121,7 @@ function readContext(options) {
   const { candidateId } = options;
   assertId(candidateId, 'candidateId');
   const candidateDir = path.join(paths.parkedRoot, candidateId);
+  recoverOwnerDecisionTransaction(candidateDir, candidateId);
   const sidecarPath = path.join(candidateDir, 'parked.json');
   if (!fs.existsSync(sidecarPath)) throw new Error(`active parked sidecar missing for ${candidateId}`);
   const sidecarBytes = fs.readFileSync(sidecarPath);
@@ -251,22 +333,40 @@ function approveSeries(options) {
   const result = { changed: false, action: 'approve-series', seriesGroup, validation };
   if (!options.apply) return result;
 
-  const packetTemp = `${context.packetPath}.owner-decision-${process.pid}`;
-  const sidecarTemp = `${context.sidecarPath}.owner-decision-${process.pid}`;
-  try {
-    fs.writeFileSync(packetTemp, packetText, { flag: 'wx' });
-    fs.writeFileSync(sidecarTemp, sidecarText, { flag: 'wx' });
-    fs.renameSync(packetTemp, context.packetPath);
-    try {
-      fs.renameSync(sidecarTemp, context.sidecarPath);
-    } catch (error) {
-      fs.writeFileSync(context.packetPath, context.packetBytes);
-      throw error;
-    }
-  } finally {
-    fs.rmSync(packetTemp, { force: true });
-    fs.rmSync(sidecarTemp, { force: true });
+  const transactionDir = transactionPath(context.candidateDir);
+  if (fs.existsSync(transactionDir)) {
+    throw new Error(`owner-decision transaction already exists for ${context.candidateId}`);
   }
+  try {
+    fs.mkdirSync(transactionDir);
+    writeDurable(path.join(transactionDir, 'packet.old'), context.packetBytes);
+    writeDurable(path.join(transactionDir, 'packet.new'), packetText);
+    writeDurable(path.join(transactionDir, 'sidecar.old'), context.sidecarBytes);
+    writeDurable(path.join(transactionDir, 'sidecar.new'), sidecarText);
+    writeDurable(path.join(transactionDir, 'transaction.json'), `${JSON.stringify({
+      schema: 'intake-owner-decision-transaction@1',
+      candidateId: context.candidateId,
+      packetName: path.basename(context.packetPath),
+      packetOldSha256: context.packetSha,
+      packetNewSha256: nextPacketSha,
+      sidecarOldSha256: shaBuffer(context.sidecarBytes),
+      sidecarNewSha256: shaBuffer(Buffer.from(sidecarText)),
+      preparedAt: now.toISOString(),
+    }, null, 2)}\n`);
+  } catch (error) {
+    fs.rmSync(transactionDir, { recursive: true, force: true });
+    throw error;
+  }
+
+  replaceFromSnapshot(path.join(transactionDir, 'packet.new'), context.packetPath);
+  if (options._testCrashAfter === 'packet-rename') {
+    throw new Error('simulated crash after packet rename');
+  }
+  replaceFromSnapshot(path.join(transactionDir, 'sidecar.new'), context.sidecarPath);
+  if (options._testCrashAfter === 'sidecar-rename') {
+    throw new Error('simulated crash after sidecar rename');
+  }
+  fs.rmSync(transactionDir, { recursive: true });
   return { ...result, changed: true };
 }
 
@@ -304,6 +404,7 @@ module.exports = {
   resolveDuplicate,
   approveSeries,
   validateReentryDecision,
+  recoverOwnerDecisionTransaction,
 };
 
 if (require.main === module) {

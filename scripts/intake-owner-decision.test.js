@@ -210,3 +210,27 @@ test('arbitrary sidecar text cannot act as a reentry decision', () => {
   assert.equal(result.ok, false);
   assert.match(result.reason, /owner-decision/);
 });
+
+test('series approval recovers a crash between packet and sidecar swaps', () => {
+  const f = fixture('u1');
+  assert.throws(
+    () => approveSeries({
+      ...opts(f),
+      candidateId: 'u1',
+      seriesGroup: 'U Series',
+      apply: true,
+      _testCrashAfter: 'packet-rename',
+    }),
+    /simulated crash after packet rename/,
+  );
+  const transactionDir = path.join(path.dirname(f.sidecarPath), '.owner-decision-transaction');
+  assert.equal(fs.existsSync(transactionDir), true, 'recovery journal must survive the crash');
+
+  const replay = approveSeries({ ...opts(f), candidateId: 'u1', seriesGroup: 'U Series', apply: true });
+  assert.equal(replay.changed, false, 'recovery finishes the original approval, then replay is idempotent');
+  assert.equal(fs.existsSync(transactionDir), false, 'completed recovery removes the journal');
+  const packet = JSON.parse(fs.readFileSync(f.packetPath, 'utf8'));
+  const sidecar = JSON.parse(fs.readFileSync(f.sidecarPath, 'utf8'));
+  assert.equal(sidecar.candidateArtifact.sha256, sha(f.packetPath));
+  assert.equal(validateReentryDecision({ sidecar, packet, candidateId: 'u1' }).ok, true);
+});
