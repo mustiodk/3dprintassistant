@@ -97,12 +97,13 @@ test('kickoff pins codex-only Bridge output under ignored runner state', () => {
   const kickoff = fs.readFileSync(path.join(repo, 'scripts/intake-run-kickoff.md'), 'utf8');
   const expectedCommand =
     'bridge --mode codex-only "<concrete review prompt over the main...intake/<printer-id> diff>" \\\n' +
-    '  --out-dir /Users/mustafaozturk-macmini/dev/Claude/Projects/3dprintassistant/scripts/.intake-runner-state/bridge-reviews';
+    '  --out-dir scripts/.intake-runner-state/bridge-reviews';
 
   assert.ok(
     kickoff.includes(expectedCommand),
     `kickoff must contain the exact Bridge command:\n${expectedCommand}`,
   );
+  assert.doesNotMatch(kickoff, /--out-dir \/Users\/[^\s]+\/3dprintassistant\/scripts\/\.intake-runner-state\/bridge-reviews/);
 });
 
 test('kickoff retains the direct Codex fallback', () => {
