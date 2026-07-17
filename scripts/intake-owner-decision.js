@@ -191,8 +191,23 @@ function resolveDuplicate(options) {
     throw new Error('no prior ledger line found for the full candidateKey');
   }
 
-  const now = options.now || new Date();
-  const runId = ownerRunId(now);
+  const resolutionPath = path.join(context.candidateDir, 'resolution.json');
+  let resolution = null;
+  if (fs.existsSync(resolutionPath)) {
+    resolution = JSON.parse(fs.readFileSync(resolutionPath, 'utf8'));
+    if (resolution.schema !== 'intake-owner-resolution@1'
+        || resolution.action !== 'duplicate'
+        || resolution.candidateId !== context.candidateId
+        || !sameKey(resolution.candidateKey, context.sidecar.candidateKey)
+        || resolution.duplicateOf !== options.duplicateOf
+        || resolution.packetSha256 !== context.packetSha
+        || typeof resolution.runId !== 'string'
+        || Number.isNaN(Date.parse(resolution.resolvedAt || ''))) {
+      throw new Error(`existing duplicate resolution is invalid for ${context.candidateId}`);
+    }
+  }
+  const now = resolution ? new Date(resolution.resolvedAt) : (options.now || new Date());
+  const runId = resolution?.runId || ownerRunId(now);
   const correction = {
     candidateKey: context.sidecar.candidateKey,
     runId,
@@ -208,23 +223,40 @@ function resolveDuplicate(options) {
   if (fs.existsSync(archivePath)) throw new Error(`resolved archive already exists: ${archivePath}`);
 
   const ledgerBefore = fs.readFileSync(context.ledgerPath);
-  const resolutionPath = path.join(context.candidateDir, 'resolution.json');
+  const correctionExists = ledgerLines.some((line) => (
+    line.runId === runId
+      && line.ownerResolution === 'was-duplicate-missed'
+      && sameKey(line.candidateKey, context.sidecar.candidateKey)
+  ));
+  let wroteResolution = false;
   try {
-    fs.writeFileSync(resolutionPath, `${JSON.stringify({
-      schema: 'intake-owner-resolution@1',
-      action: 'duplicate',
-      candidateId: context.candidateId,
-      candidateKey: context.sidecar.candidateKey,
-      duplicateOf: options.duplicateOf,
-      packetSha256: context.packetSha,
-      resolvedAt: now.toISOString(),
-    }, null, 2)}\n`);
-    fs.appendFileSync(context.ledgerPath, `${JSON.stringify(correction)}\n`);
+    if (!resolution) {
+      fs.writeFileSync(resolutionPath, `${JSON.stringify({
+        schema: 'intake-owner-resolution@1',
+        action: 'duplicate',
+        candidateId: context.candidateId,
+        candidateKey: context.sidecar.candidateKey,
+        duplicateOf: options.duplicateOf,
+        packetSha256: context.packetSha,
+        runId,
+        resolvedAt: now.toISOString(),
+      }, null, 2)}\n`);
+      wroteResolution = true;
+    }
+    if (!correctionExists) {
+      fs.appendFileSync(context.ledgerPath, `${JSON.stringify(correction)}\n`);
+    }
+    if (options._testCrashAfter === 'ledger-append') {
+      const error = new Error('simulated crash after ledger append');
+      error.simulatedCrash = true;
+      throw error;
+    }
     fs.mkdirSync(path.dirname(archivePath), { recursive: true });
     fs.renameSync(context.candidateDir, archivePath);
   } catch (error) {
+    if (error.simulatedCrash) throw error;
     fs.writeFileSync(context.ledgerPath, ledgerBefore);
-    if (fs.existsSync(resolutionPath)) fs.rmSync(resolutionPath, { force: true });
+    if (wroteResolution && fs.existsSync(resolutionPath)) fs.rmSync(resolutionPath, { force: true });
     throw error;
   }
   return { ...result, changed: true };

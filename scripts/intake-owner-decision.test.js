@@ -154,6 +154,32 @@ test('duplicate rejects invalid ids, missing targets, and packet SHA mismatch', 
   assert.throws(() => resolveDuplicate({ ...opts(invalid), candidateId: 'i7_i', duplicateOf: 'sparkx_i7' }), /SHA/);
 });
 
+test('duplicate replay after ledger append archives without a second correction', () => {
+  const f = fixture('i7_i');
+  assert.throws(
+    () => resolveDuplicate({
+      ...opts(f),
+      candidateId: 'i7_i',
+      duplicateOf: 'sparkx_i7',
+      apply: true,
+      _testCrashAfter: 'ledger-append',
+    }),
+    /simulated crash after ledger append/,
+  );
+  assert.equal(fs.existsSync(f.sidecarPath), true, 'active evidence remains before replay');
+  const firstLines = fs.readFileSync(f.ledgerPath, 'utf8').trim().split('\n').map(JSON.parse);
+  assert.equal(firstLines.filter((line) => line.ownerResolution === 'was-duplicate-missed').length, 1);
+
+  const replay = resolveDuplicate({
+    ...opts(f), candidateId: 'i7_i', duplicateOf: 'sparkx_i7', apply: true,
+  });
+  assert.equal(replay.changed, true);
+  const finalLines = fs.readFileSync(f.ledgerPath, 'utf8').trim().split('\n').map(JSON.parse);
+  assert.equal(finalLines.filter((line) => line.ownerResolution === 'was-duplicate-missed').length, 1);
+  assert.equal(fs.existsSync(f.sidecarPath), false);
+  assert.equal(fs.existsSync(replay.archivePath), true);
+});
+
 test('series approval records a bound owner decision and preserves unrelated evidence', () => {
   const f = fixture('u1');
   const before = JSON.parse(fs.readFileSync(f.packetPath, 'utf8'));
