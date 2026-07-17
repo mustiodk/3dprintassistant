@@ -8,7 +8,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 | Gate | Status | Evidence |
 |---|---|---|
-| S1 sync-first isolated runner | 🟡 local implementation 2026-07-17 | Plan review GO-WITH-PATCHES applied; bootstrap/path/owner-decision/installer focused suites green; not merged, pushed, installed, or loaded yet; no candidate rerun and no iOS push |
+| S1 sync-first isolated runner | ✅ local implementation + final review GO 2026-07-17; cutover pending | Plan review GO-WITH-PATCHES applied; implementation review GO-WITH-PATCHES, three material fixes one-per-commit, focused follow-up GO; fresh full suite green; not merged/pushed/installed/loaded yet; no candidate rerun and no iOS push |
 | I1 parked-sidecar path ownership | ✅ 2026-07-16 | `run-20260715T100124Z` root cause reconstructed from the headless transcript; RED reproduced the unsafe raw writer, web `104251c` + ai-om `8151868` close it under contract v2.4; Claude hostile review PASS; focused suite green; see I1 row |
 | R8 final validation + ready state | ✅ 2026-07-10 | Expected test files exist; full R8 intake suite + project validators green; final review NO-GO on ai-om split-routing fixed by `a118bd5`; focused re-review GO; no push/PR/merge; see R8 row |
 | R7 K2 SE migration drill | ✅ 2026-07-10 | Existing R3 fixture drill re-run: `node scripts/intake-parked-store.test.js` **14/14**; K2 SE v1 sidecar migrates to `decision-required`, remains tainted, fixture byte-unchanged; no automatic reattempt; see R7 row |
@@ -60,11 +60,20 @@ bootstrap/plist rendering, SHA-verified state migration, verify-only byte
 stability, idempotency, and conflict refusal green.
 
 **Current boundary:** implementation remains on isolated local branches. The
-real LaunchAgent still points to the former checkout. Both parked candidates
-remain untouched and owner-gated; the repo-root `i7_i` artifact remains absent;
-iOS remains unpushed. Final implementation review, full verification,
-merge/push, installation, zero-candidate cutover proof, i7 duplicate closure,
-and U1 `U Series` re-entry are still pending and must occur in that order.
+real LaunchAgent still points to the former checkout. Independent implementation
+review returned `GO-WITH-PATCHES`: wrapper fallback, owner-approval crash
+recovery, and duplicate-ledger replay landed one-per-commit (`baee2f5`,
+`daf815b`, `a9ef915`). The single focused follow-up returned **GO** on all
+three; the review loop stopped there. Fresh final verification passed:
+bootstrap + installer + preflight + wrapper + POSTRUN shell suites; combined
+Node suite **32/32**; taxonomy **11/11**; parked store **16/16**; candidate
+evidence **30/30**; reviewer output **14/14**; data **6/6**; live-path overlay
+validator green; plist lint green; both worktrees clean.
+
+Both parked candidates remain untouched and owner-gated; the repo-root `i7_i`
+artifact remains absent; iOS remains unpushed. Merge/push, installation,
+zero-candidate cutover proof, i7 duplicate closure, and U1 `U Series` re-entry
+are still pending and must occur in that order.
 
 ### I1 — parked-sidecar path ownership ✅ (2026-07-16; web `104251c` + ai-om `8151868`)
 
