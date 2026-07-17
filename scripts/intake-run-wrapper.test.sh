@@ -255,4 +255,17 @@ grep -Fq 'THREEDPA_INTAKE_REPO' "$ROOT/scripts/intake-run-kickoff.md" || { echo 
 grep -Fq 'THREEDPA_IOS_REPO' "$ROOT/scripts/intake-run-kickoff.md" || { echo "FAIL: kickoff missing THREEDPA_IOS_REPO" >&2; exit 1; }
 grep -Fq -- '--out-dir scripts/.intake-runner-state/bridge-reviews' "$ROOT/scripts/intake-run-kickoff.md" || { echo "FAIL: kickoff Bridge output is not repo-relative" >&2; exit 1; }
 
+# 9 — owner-approved re-entry is valid only through the deterministic decision
+# verifier; arbitrary sidecar prose must never become authorization.
+for token in \
+  'contract version 2.6' \
+  'nextEligibleTrigger:"owner-approved"' \
+  'node scripts/intake-owner-decision.js verify-reentry --candidate "$candidate_id"' \
+  'OWNERDECISION ok=true action=verify-reentry'; do
+  grep -Fq -- "$token" "$ROOT/scripts/intake-run-kickoff.md" || {
+    echo "FAIL: kickoff missing owner-decision token: $token" >&2
+    exit 1
+  }
+done
+
 echo "intake-run-wrapper.test.sh: all tests passed"
