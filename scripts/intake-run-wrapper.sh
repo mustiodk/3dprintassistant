@@ -13,8 +13,8 @@
 
 export PATH="/Users/mustafaozturk-macmini/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
-REPO="/Users/mustafaozturk-macmini/dev/Claude/Projects/3dprintassistant"
-IOS_REPO="/Users/mustafaozturk-macmini/dev/Claude/Projects/3dprintassistant-ios"
+REPO=""
+IOS_REPO=""
 OAUTH_ENV="$HOME/.config/claude-code/oauth.env"
 
 # Test seams (production launchd passes no arguments — defaults above hold):
@@ -38,6 +38,11 @@ while [[ $# -gt 0 ]]; do
     *) echo "WRAPPER unknown argument $1"; exit 64 ;;
   esac
 done
+
+if [[ -z "$REPO" || -z "$IOS_REPO" ]]; then
+  echo "WRAPPER explicit --repo and --ios-repo are required"
+  exit 64
+fi
 
 LOCK="$REPO/scripts/.intake-run.lock"
 KICKOFF="$REPO/scripts/intake-run-kickoff.md"

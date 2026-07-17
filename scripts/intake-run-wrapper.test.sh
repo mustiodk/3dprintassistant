@@ -268,4 +268,19 @@ for token in \
   }
 done
 
+# 10 — bootstrap bypass must fail closed. Supplying only one runtime checkout
+# is not permission to fall back to the owner's development paths.
+init_fixture
+rm -f "$TMP/claude-invoked"
+make_observable_good_claude
+set +e
+zsh "$REPO/scripts/intake-run-wrapper.sh" \
+  --repo "$REPO" --oauth-env "$TMP/oauth.env" --path-prepend "$BIN" \
+  > "$TMP/wrapper-missing-ios.out" 2>&1
+missing_ios_rc=$?
+set -e
+[[ "$missing_ios_rc" == 64 ]] || { cat "$TMP/wrapper-missing-ios.out" >&2; echo "FAIL: missing explicit --ios-repo did not fail 64" >&2; exit 1; }
+grep -q 'explicit --repo and --ios-repo are required' "$TMP/wrapper-missing-ios.out" || { cat "$TMP/wrapper-missing-ios.out" >&2; echo "FAIL: missing runtime path failure is unclear" >&2; exit 1; }
+[[ ! -e "$TMP/claude-invoked" ]] || { echo "FAIL: Claude ran through a development-path fallback" >&2; exit 1; }
+
 echo "intake-run-wrapper.test.sh: all tests passed"
