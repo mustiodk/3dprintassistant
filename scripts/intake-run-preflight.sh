@@ -36,6 +36,13 @@ while [[ $# -gt 0 ]]; do
       LOCK="$REPO/scripts/.intake-run.lock"
       shift 2
       ;;
+    --ios-repo)
+      if [[ $# -lt 2 || -z "$2" ]]; then
+        fail bad-args "--ios-repo requires a path"
+      fi
+      IOS_REPO="$2"
+      shift 2
+      ;;
     --dry-run)
       DRY_RUN=true
       shift
@@ -133,11 +140,6 @@ if [[ "$ahead" != "0" ]]; then
   fi
 fi
 
-if [[ "$DRY_RUN" == "true" ]]; then
-  echo "PREFLIGHT ok=true reason=none detail=dry-run"
-  exit 0
-fi
-
 # 4 — iOS repo predicates: clean; AHEAD-ONLY allowed (mirror commits
 # accumulate by design under the push gate); behind/diverged blocks.
 if [[ ! -d "$IOS_REPO/.git" ]]; then
@@ -146,10 +148,20 @@ fi
 if [[ -n "$(git -C "$IOS_REPO" status --porcelain)" ]]; then
   fail ios-dirty "$(git -C "$IOS_REPO" status --porcelain | head -3 | tr '\n' ' ')"
 fi
-git -C "$IOS_REPO" fetch origin main --quiet || fail ios-fetch-failed ""
+if [[ "$DRY_RUN" == "false" ]]; then
+  git -C "$IOS_REPO" fetch origin main --quiet || fail ios-fetch-failed ""
+elif ! git -C "$IOS_REPO" show-ref --verify --quiet refs/remotes/origin/main; then
+  git -C "$IOS_REPO" update-ref refs/remotes/origin/main HEAD 2>/dev/null \
+    || fail dry-run-ios-origin-main ""
+fi
 ios_behind=$(git -C "$IOS_REPO" rev-list HEAD..origin/main --count)
 if [[ "$ios_behind" != "0" ]]; then
   fail ios-behind-or-diverged "behind=$ios_behind"
+fi
+
+if [[ "$DRY_RUN" == "true" ]]; then
+  echo "PREFLIGHT ok=true reason=none detail=dry-run"
+  exit 0
 fi
 
 # 5 — wrangler auth + KV delete-scope probe (write+delete a probe: key; the

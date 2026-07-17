@@ -7,7 +7,9 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 const defaultOverlayPath = path.join(root, 'catalog', 'ios-printer-overlay-v1.json');
 const defaultBaselinesPath = path.join(root, 'catalog', 'ios-bundled-catalog-baselines.json');
-const defaultProjectPath = path.resolve(root, '..', '3dprintassistant-ios', 'project.yml');
+const defaultProjectPath = process.env.THREEDPA_IOS_REPO
+  ? path.resolve(process.env.THREEDPA_IOS_REPO, 'project.yml')
+  : path.resolve(root, '..', '3dprintassistant-ios', 'project.yml');
 
 // YYYYMMDDXX scheme, capped at 2099-12-31-99 to match the iOS poisoned-cache guard.
 const maximumReasonableContentVersion = 2_099_123_199;

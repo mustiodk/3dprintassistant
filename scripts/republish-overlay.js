@@ -37,7 +37,9 @@ const DEFAULTS = {
   overlayPath: path.join(root, 'catalog', 'ios-printer-overlay-v1.json'),
   baselinesPath: path.join(root, 'catalog', 'ios-bundled-catalog-baselines.json'),
   printersPath: path.join(root, 'data', 'printers.json'),
-  projectPath: path.resolve(root, '..', '3dprintassistant-ios', 'project.yml'),
+  projectPath: process.env.THREEDPA_IOS_REPO
+    ? path.resolve(process.env.THREEDPA_IOS_REPO, 'project.yml')
+    : path.resolve(root, '..', '3dprintassistant-ios', 'project.yml'),
 };
 
 // Matches the validator's maximumReasonableContentVersion (not exported there).

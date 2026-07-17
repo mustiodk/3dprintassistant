@@ -14,23 +14,25 @@ trap 'rm -rf "$TMP"' EXIT
 REPO="$TMP/repo"
 STATE="$REPO/scripts/.intake-runner-state"
 BIN="$TMP/bin"
+IOS="$TMP/ios"
 
 init_fixture() {
-  rm -rf "$REPO" "$BIN"
-  mkdir -p "$REPO/scripts" "$BIN"
+  rm -rf "$REPO" "$BIN" "$IOS"
+  mkdir -p "$REPO/scripts" "$BIN" "$IOS"
   cd "$REPO"
   git init -q
   git config user.email test@example.invalid
   git config user.name "intake test"
   git checkout -qb main
   printf 'x\n' > file.txt
-  printf 'scripts/.intake-runner-state/\nscripts/.printer-intake-out/\nscripts/.intake-run.lock\nscripts/notify-calls.log\n' > .gitignore
+  printf 'scripts/.intake-runner-state/\nscripts/.printer-intake-out/\nscripts/.intake-run.lock\nscripts/notify-calls.log\nscripts/preflight-args.log\n' > .gitignore
   cp "$ROOT/scripts/intake-run-wrapper.sh" scripts/intake-run-wrapper.sh
   cp "$ROOT/scripts/intake-post-run-invariants.sh" scripts/intake-post-run-invariants.sh 2>/dev/null || true
   cp "$ROOT/scripts/intake-run-kickoff.md" scripts/intake-run-kickoff.md
   chmod +x scripts/intake-run-wrapper.sh scripts/intake-post-run-invariants.sh 2>/dev/null || true
-  cat > scripts/intake-run-preflight.sh <<'EOF'
+cat > scripts/intake-run-preflight.sh <<'EOF'
 #!/bin/zsh
+printf '%s\n' "$*" > "${THREEDPA_INTAKE_REPO:-.}/scripts/preflight-args.log"
 echo "PREFLIGHT ok=true reason=none detail=stub"
 exit 0
 EOF
@@ -64,10 +66,12 @@ EOF
 # stub claude that completes the contract's terminal obligations: prints a
 # summary (session log), refreshes last-run-report.md (notify), ends on main
 make_good_claude() {
-  cat > "$BIN/claude" <<EOF
+  cat > "$BIN/claude" <<'EOF'
 #!/usr/bin/env bash
-mkdir -p "$STATE"
-printf '# 3dpa intake run — stub\n' > "$STATE/last-run-report.md"
+state="$THREEDPA_INTAKE_REPO/scripts/.intake-runner-state"
+mkdir -p "$state"
+printf '# 3dpa intake run — stub\n' > "$state/last-run-report.md"
+printf 'repo=%s ios=%s\n' "$THREEDPA_INTAKE_REPO" "$THREEDPA_IOS_REPO" > "$state/runtime-paths.log"
 echo "run complete: shipped 0 parked 0 errored 0"
 exit 0
 EOF
@@ -98,7 +102,7 @@ EOF
 run_wrapper() {
   set +e
   zsh "$REPO/scripts/intake-run-wrapper.sh" \
-    --repo "$REPO" --oauth-env "$TMP/oauth.env" --path-prepend "$BIN" \
+    --repo "$REPO" --ios-repo "$IOS" --oauth-env "$TMP/oauth.env" --path-prepend "$BIN" \
     > "$TMP/wrapper.out" 2>&1
   rc=$?
   set -e
@@ -134,6 +138,8 @@ if [[ $rc -ne 0 ]]; then
   exit 1
 fi
 grep -q 'POSTRUN ok=true' "$TMP/wrapper.out" || { cat "$TMP/wrapper.out" >&2; echo "FAIL: no POSTRUN ok line" >&2; exit 1; }
+grep -Fq -- "--repo $REPO --ios-repo $IOS" "$REPO/scripts/preflight-args.log" || { cat "$REPO/scripts/preflight-args.log" >&2; echo "FAIL: wrapper did not pass explicit runtime paths to preflight" >&2; exit 1; }
+grep -Fq "repo=$REPO ios=$IOS" "$STATE/runtime-paths.log" || { cat "$STATE/runtime-paths.log" >&2; echo "FAIL: wrapper did not export runtime paths to Claude" >&2; exit 1; }
 [[ ! -f "$REPO/scripts/.intake-run.lock" ]] || { echo "FAIL: lock not released" >&2; exit 1; }
 
 # 3 — crashing claude keeps the existing rc-propagation + shipped-unknown path
@@ -237,5 +243,16 @@ for token in \
   fi
 done
 [[ $evidence_contract_failures -eq 0 ]] || exit 1
+
+# 8 — the scheduled prompt must be checkout-independent. The dedicated clone
+# is not a sibling of the canonical iOS repo and must never point back at the
+# owner's development checkout.
+if grep -Fq '/Users/mustafaozturk-macmini/dev/Claude/Projects/3dprintassistant' "$ROOT/scripts/intake-run-kickoff.md"; then
+  echo "FAIL: kickoff hardcodes the development web checkout" >&2
+  exit 1
+fi
+grep -Fq 'THREEDPA_INTAKE_REPO' "$ROOT/scripts/intake-run-kickoff.md" || { echo "FAIL: kickoff missing THREEDPA_INTAKE_REPO" >&2; exit 1; }
+grep -Fq 'THREEDPA_IOS_REPO' "$ROOT/scripts/intake-run-kickoff.md" || { echo "FAIL: kickoff missing THREEDPA_IOS_REPO" >&2; exit 1; }
+grep -Fq -- '--out-dir scripts/.intake-runner-state/bridge-reviews' "$ROOT/scripts/intake-run-kickoff.md" || { echo "FAIL: kickoff Bridge output is not repo-relative" >&2; exit 1; }
 
 echo "intake-run-wrapper.test.sh: all tests passed"

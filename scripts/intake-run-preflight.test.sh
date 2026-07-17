@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 OUT="$TMP/preflight.out"
+IOS="$TMP/ios"
 
 copy_preflight() {
   mkdir -p "$TMP/repo/scripts"
@@ -13,7 +14,7 @@ copy_preflight() {
 }
 
 init_repo() {
-  rm -rf "$TMP/repo"
+  rm -rf "$TMP/repo" "$IOS"
   mkdir -p "$TMP/repo"
   cd "$TMP/repo"
   git init -q
@@ -27,11 +28,20 @@ init_repo() {
   git add .
   git commit -qm init
   git update-ref refs/remotes/origin/main HEAD
+
+  mkdir -p "$IOS"
+  git -C "$IOS" init -q -b main
+  git -C "$IOS" config user.email test@example.invalid
+  git -C "$IOS" config user.name "intake ios test"
+  printf 'ios\n' > "$IOS/project.yml"
+  git -C "$IOS" add project.yml
+  git -C "$IOS" commit -qm init
+  git -C "$IOS" update-ref refs/remotes/origin/main HEAD
 }
 
 expect_ok() {
   local output
-  if ! output=$("$TMP/repo/scripts/intake-run-preflight.sh" --repo "$TMP/repo" --dry-run 2>&1); then
+  if ! output=$("$TMP/repo/scripts/intake-run-preflight.sh" --repo "$TMP/repo" --ios-repo "$IOS" --dry-run 2>&1); then
     printf '%s\n' "$output" >&2
     echo "expected preflight success" >&2
     exit 1
@@ -43,7 +53,7 @@ expect_ok() {
 expect_fail() {
   local reason="$1"
   local output
-  if output=$("$TMP/repo/scripts/intake-run-preflight.sh" --repo "$TMP/repo" --dry-run 2>&1); then
+  if output=$("$TMP/repo/scripts/intake-run-preflight.sh" --repo "$TMP/repo" --ios-repo "$IOS" --dry-run 2>&1); then
     printf '%s\n' "$output" >&2
     echo "expected preflight failure" >&2
     exit 1
@@ -98,3 +108,13 @@ printf '{}\n' > "$TMP/repo/docs/printer-provenance.json"
 git -C "$TMP/repo" add docs/printer-provenance.json
 git -C "$TMP/repo" commit -qm "feat(intake): mutate custody path"
 expect_fail web-out-of-sync
+
+init_repo
+printf 'ios local\n' >> "$IOS/project.yml"
+git -C "$IOS" add project.yml
+git -C "$IOS" commit -qm ios-ahead
+expect_ok
+
+init_repo
+git -C "$IOS" update-ref refs/remotes/origin/main "$(git -C "$IOS" commit-tree 'HEAD^{tree}' -p HEAD -m remote-ahead)"
+expect_fail ios-behind-or-diverged

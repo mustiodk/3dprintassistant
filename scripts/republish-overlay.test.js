@@ -239,14 +239,29 @@ test('setEnabled false: PD8 emergency stop applies the SAME version rule', () =>
   assert.ok(validateOverlay(paths).ok);
 });
 
-function runCli(args) {
+function runCli(args, extraEnv = {}) {
   try {
-    const stdout = execFileSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8' });
+    const stdout = execFileSync(process.execPath, [SCRIPT, ...args], {
+      encoding: 'utf8',
+      env: { ...process.env, ...extraEnv },
+    });
     return { status: 0, out: stdout };
   } catch (error) {
     return { status: error.status, out: `${error.stdout || ''}${error.stderr || ''}` };
   }
 }
+
+test('CLI: THREEDPA_IOS_REPO supplies the default project.yml path', () => {
+  const { paths, dir } = makeFixture({ contentVersion: 2020010101 });
+  const args = [
+    '--bump-version',
+    '--overlay', paths.overlayPath,
+    '--baselines', paths.baselinesPath,
+    '--printers', paths.printersPath,
+  ];
+  const { status, out } = runCli(args, { THREEDPA_IOS_REPO: dir });
+  assert.strictEqual(status, 0, out);
+});
 
 function pathArgs(paths) {
   return [

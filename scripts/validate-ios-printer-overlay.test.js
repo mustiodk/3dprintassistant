@@ -11,6 +11,7 @@ const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { spawnSync } = require('child_process');
 
 const {
   validateOverlay,
@@ -203,6 +204,18 @@ test('(e) committed overlay validates GREEN against committed baselines (live sm
   }
   const result = validateOverlay(); // default paths = real catalog/ + iOS project.yml
   assert.strictEqual(result.ok, true, 'the committed overlay must validate green');
+});
+
+test('(e2) CLI resolves project.yml from THREEDPA_IOS_REPO', () => {
+  const iosRepo = fs.mkdtempSync(path.join(tmpRoot, 'ios-env-'));
+  fs.writeFileSync(path.join(iosRepo, 'project.yml'), 'settings:\n  base:\n    MARKETING_VERSION: "1.0.7"\n');
+  const result = spawnSync(process.execPath, [path.join(__dirname, 'validate-ios-printer-overlay.js')], {
+    cwd: path.resolve(__dirname, '..'),
+    env: { ...process.env, THREEDPA_IOS_REPO: iosRepo },
+    encoding: 'utf8',
+  });
+  assert.strictEqual(result.status, 0, `${result.stdout}${result.stderr}`);
+  assert.match(result.stdout, /\[ios-printer-overlay\] ok:/);
 });
 
 // ---------------------------------------------------------------------------

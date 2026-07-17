@@ -14,15 +14,27 @@
 export PATH="/Users/mustafaozturk-macmini/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 REPO="/Users/mustafaozturk-macmini/dev/Claude/Projects/3dprintassistant"
+IOS_REPO="/Users/mustafaozturk-macmini/dev/Claude/Projects/3dprintassistant-ios"
 OAUTH_ENV="$HOME/.config/claude-code/oauth.env"
 
 # Test seams (production launchd passes no arguments — defaults above hold):
-# --repo <path> · --oauth-env <path> · --path-prepend <dir> (stub claude/node).
+# --repo <path> · --ios-repo <path> · --oauth-env <path> ·
+# --path-prepend <dir> (stub claude/node).
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --repo)         REPO="$2"; shift 2 ;;
-    --oauth-env)    OAUTH_ENV="$2"; shift 2 ;;
-    --path-prepend) export PATH="$2:$PATH"; shift 2 ;;
+    --repo|--ios-repo|--oauth-env|--path-prepend)
+      if [[ $# -lt 2 || -z "$2" ]]; then
+        echo "WRAPPER $1 requires a value"
+        exit 64
+      fi
+      case "$1" in
+        --repo) REPO="$2" ;;
+        --ios-repo) IOS_REPO="$2" ;;
+        --oauth-env) OAUTH_ENV="$2" ;;
+        --path-prepend) export PATH="$2:$PATH" ;;
+      esac
+      shift 2
+      ;;
     *) echo "WRAPPER unknown argument $1"; exit 64 ;;
   esac
 done
@@ -31,6 +43,8 @@ LOCK="$REPO/scripts/.intake-run.lock"
 KICKOFF="$REPO/scripts/intake-run-kickoff.md"
 STATE_DIR="$REPO/scripts/.intake-runner-state"
 BRIDGE_OUT_DIR="$STATE_DIR/bridge-reviews"
+export THREEDPA_INTAKE_REPO="$REPO"
+export THREEDPA_IOS_REPO="$IOS_REPO"
 
 notify_failure() {
   # Never let a notification failure mask the run failure itself.
@@ -45,7 +59,8 @@ if ! mkdir -p "$STATE_DIR" "$BRIDGE_OUT_DIR" "$REPO/scripts/.printer-intake-out"
 fi
 
 # 1 — preflight (checks only; includes freeze/lock/repo/auth predicates)
-preflight_out=$("$REPO/scripts/intake-run-preflight.sh" 2>&1)
+preflight_out=$("$REPO/scripts/intake-run-preflight.sh" \
+  --repo "$REPO" --ios-repo "$IOS_REPO" 2>&1)
 preflight_rc=$?
 echo "$preflight_out"
 if [[ $preflight_rc -ne 0 ]]; then
