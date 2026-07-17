@@ -8,7 +8,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 | Gate | Status | Evidence |
 |---|---|---|
-| S1 sync-first isolated runner | ✅ local implementation + final review GO 2026-07-17; cutover pending | Plan review GO-WITH-PATCHES applied; implementation review GO-WITH-PATCHES, three material fixes one-per-commit, focused follow-up GO; fresh full suite green; not merged/pushed/installed/loaded yet; no candidate rerun and no iOS push |
+| S1 sync-first isolated runner | ✅ production cutover green 2026-07-17 | Reviewed implementation merged/pushed (web `67d7913`, ai-om `64f46c6`); automation-owned checkout installed and loaded; supervised zero-candidate run ended `PREFLIGHT`/`POSTRUN`/`SYNCBOOT ok=true` and launchd exit 0; i7 duplicate custody `6113f04`; U1 re-entry then parked fail-closed at evidence before review; no iOS push |
 | I1 parked-sidecar path ownership | ✅ 2026-07-16 | `run-20260715T100124Z` root cause reconstructed from the headless transcript; RED reproduced the unsafe raw writer, web `104251c` + ai-om `8151868` close it under contract v2.4; Claude hostile review PASS; focused suite green; see I1 row |
 | R8 final validation + ready state | ✅ 2026-07-10 | Expected test files exist; full R8 intake suite + project validators green; final review NO-GO on ai-om split-routing fixed by `a118bd5`; focused re-review GO; no push/PR/merge; see R8 row |
 | R7 K2 SE migration drill | ✅ 2026-07-10 | Existing R3 fixture drill re-run: `node scripts/intake-parked-store.test.js` **14/14**; K2 SE v1 sidecar migrates to `decision-required`, remains tainted, fixture byte-unchanged; no automatic reattempt; see R7 row |
@@ -30,7 +30,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 ## Rows (newest first)
 
-### S1 — sync-first isolated runner 🟡 local implementation (2026-07-17)
+### S1 — sync-first isolated runner ✅ production cutover (2026-07-17)
 
 **Root cause and decision:** the production LaunchAgent pointed at the owner's
 normal web checkout and called preflight before synchronization. Reproduction
@@ -59,9 +59,8 @@ idempotency cases green; kickoff + AI-OM v2.6 require deterministic
 bootstrap/plist rendering, SHA-verified state migration, verify-only byte
 stability, idempotency, and conflict refusal green.
 
-**Current boundary:** implementation remains on isolated local branches. The
-real LaunchAgent still points to the former checkout. Independent implementation
-review returned `GO-WITH-PATCHES`: wrapper fallback, owner-approval crash
+**Review boundary:** independent implementation review returned
+`GO-WITH-PATCHES`: wrapper fallback, owner-approval crash
 recovery, and duplicate-ledger replay landed one-per-commit (`baee2f5`,
 `daf815b`, `a9ef915`). The single focused follow-up returned **GO** on all
 three; the review loop stopped there. Fresh final verification passed:
@@ -70,10 +69,33 @@ Node suite **32/32**; taxonomy **11/11**; parked store **16/16**; candidate
 evidence **30/30**; reviewer output **14/14**; data **6/6**; live-path overlay
 validator green; plist lint green; both worktrees clean.
 
-Both parked candidates remain untouched and owner-gated; the repo-root `i7_i`
-artifact remains absent; iOS remains unpushed. Merge/push, installation,
-zero-candidate cutover proof, i7 duplicate closure, and U1 `U Series` re-entry
-are still pending and must occur in that order.
+**Production cutover:** the reviewed changes were fast-forwarded and pushed as
+web `67d7913` and ai-om `64f46c6`. The installer created the persistent
+automation-owned checkout at `~/.local/share/3dpa-intake/checkout/3dprintassistant`,
+migrated ignored state by SHA, rendered the launchd plist with explicit web/iOS
+paths, and replaced the old LaunchAgent. Supervised run
+`run-20260717T103753Z` found only the two owner-gated parked candidates, shipped
+zero, parked zero, errored zero, and ended with `PREFLIGHT ok=true`,
+`POSTRUN ok=true`, `SYNCBOOT ok=true reason=none detail=behind=0 ahead=0`, and
+launchd exit 0. The automation checkout was clean/current; the owner checkout's
+dirt could no longer block the scheduled run.
+
+**Owner decisions and fail-closed result:** the ambiguous `i7_i` request was
+verified as the already-live Creality `sparkx_i7` (`i7`, `i Series`), closed as
+`was-duplicate-missed`, and custody-pushed in `6113f04`; catalog and overlay were
+unchanged and the production picker was green. The owner-approved U1 decision
+bound `series_group:"U Series"` to candidate SHA `1979b40b…`, and
+`verify-reentry` passed. Production run `run-20260717T104818Z` materialized U1
+on preserved branch `intake/u1@3ff3811`; data, picker, all 18 walkthrough
+combos, matrix audit, guardrails, overlay generation, and diff guards passed.
+The single-shot evidence gate then failed before PD5 because the prior packet
+used `evidenceType:"manufacturer-spec-page"` instead of `"manufacturer"` for
+all 13 critical fields, had notes parity drift, and omitted
+`open_door_threshold_bed_temp`. The runner made no packet edit, spent no review
+turn, merged/pushed nothing, restored clean/current `main`, parked U1 as
+`research-defect` with its packet and branch preserved, and again ended
+`POSTRUN`/`SYNCBOOT ok=true` with launchd exit 0. iOS remained clean/eight ahead
+and unpushed; no 1.0.7/1.0.8 train started.
 
 ### I1 — parked-sidecar path ownership ✅ (2026-07-16; web `104251c` + ai-om `8151868`)
 
