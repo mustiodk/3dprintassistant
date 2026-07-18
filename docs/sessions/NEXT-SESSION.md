@@ -1,18 +1,22 @@
 # 3dpa — Next Session Kickoff
 
-**Purpose:** copy-paste kickoff prompt for a fresh session on the mac-mini.
+**Purpose:** copy-paste kickoff prompt for a fresh iOS 1.1.0 execution session
+on the mac-mini.
 
-**Last updated:** 2026-07-18 after Snapmaker U1 shipped live and its saved
-notification was recovered. The PD8 freeze remains owner-gated.
+**Last updated:** 2026-07-18 after owner ratification, hostile plan review, and
+selection of Tasks 0–9. Implementation has not started.
 
 Copy everything between the markers into the fresh session.
 
 >>> START >>>
 
-3dpa cold start on the mac-mini. Verify the completed U1 ship and the repaired
-isolated-checkout notifier configuration. Do not clear the PD8 autonomy freeze
-without explicit owner authorization; do not rerun U1 or `i7_i`, and do not
-start or push the iOS 1.0.7/1.0.8 trains during the audit.
+Cold start 3dpa.
+
+Execute the owner-ratified, hostile-reviewed iOS 1.1.0 notification release
+plan through Tasks 0–9, then stop at G0. Work as autonomously as possible inside
+that boundary. Do not ask me to repeat the Claude login/CAPTCHA flow; the
+protected headless auth path is already available for the required independent
+Claude review.
 
 Read in order:
 
@@ -22,16 +26,18 @@ Read in order:
 4. `3dprintassistant/docs/planning/ROADMAP.md` in full
 5. `3dprintassistant/docs/sessions/INDEX.md`
 6. These latest three session logs in full:
+   - `3dprintassistant/docs/sessions/2026-07-18-cowork-appdev-ios-1.1.0-plan-ratification.md`
    - `3dprintassistant/docs/sessions/2026-07-18-cowork-appdev-u1-owner-reentry-ship.md`
    - `3dprintassistant/docs/sessions/2026-07-16-cowork-appdev-intake-parked-path-root-cause.md`
-   - `3dprintassistant/docs/sessions/2026-07-14-cowork-appdev-sv06-ace-synthetic-e2e.md`
 7. This `NEXT-SESSION.md`
-8. Task-specific evidence:
-   - `ai-operating-model/docs/findings/2026-07-18-pd5-reviewers-split-on-u1-evidence.md`
-   - `3dprintassistant/scripts/install-intake-runner.sh`
-   - `3dprintassistant/scripts/install-intake-runner.test.sh`
+8. Task-specific sources:
+   - `3dprintassistant/docs/superpowers/specs/2026-07-18-ios-1.1.0-notification-release-design.md`
+   - `3dprintassistant/docs/superpowers/plans/2026-07-18-ios-1.1.0-notification-release-plan.md`
+   - `3dprintassistant/docs/reviews/2026-07-18-ios-1.1.0-notification-release/plan-review-disposition.md`
+   - `3dprintassistant/docs/reviews/2026-07-18-ios-1.1.0-notification-release/bridge-2026-07-18-221251-462143.md`
 
-Before any mutation:
+Before any mutation, run the cold-start sync gate and the complete Task 0
+baseline/custody checks from the plan. At minimum:
 
 ```bash
 cd ~/dev/Claude/Projects
@@ -41,55 +47,61 @@ cd ~/dev/Claude/Projects
 git -C 3dprintassistant fetch origin --prune
 git -C 3dprintassistant status --short --branch
 git -C 3dprintassistant rev-list --left-right --count main...origin/main
-git -C ai-operating-model status --short --branch
+git -C 3dprintassistant-ios fetch origin --prune
 git -C 3dprintassistant-ios status --short --branch
 git -C 3dprintassistant-ios rev-list --left-right --count main...origin/main
-test ! -e 3dprintassistant/i7_i
-test ! -e 3dprintassistant/scripts/.intake-run.lock
-test -f ~/.local/share/3dpa-intake/checkout/3dprintassistant/scripts/.intake-autonomy-freeze
-test -s ~/.local/share/3dpa-intake/checkout/3dprintassistant/scripts/.printer-intake.local.json
-stat -f '%Sp %N' ~/.local/share/3dpa-intake/checkout/3dprintassistant/scripts/.printer-intake.local.json
+git -C 3dprintassistant-ios log --oneline origin/main..main
 ```
 
-Expected state to verify, not assume:
+Expected history to verify, not assume:
 
-- Web is clean/current at custody `732cbc8`; U1 ship commit is `cc65622`.
-- U1 is live in the remote overlay and production picker at
-  `snapmaker / U Series / u1`, with nozzles `[0.2,0.4,0.6,0.8]` and corrected
-  prime/wiping-tower wording.
-- Production run `run-20260718T112636Z` reported
-  `1 shipped · 0 parked · 0 errored`, fresh `R1/R2 GO`, live overlay/picker
-  green, `POSTRUN ok=true`, and `SYNCBOOT ok=true`.
-- The installed checkout has the restored protected notifier config at mode
-  600, and replaying only the saved report returned `posted=true`. Never print
-  or parse out its webhook value.
-- The installed checkout still has the `shipped-and-unreported` PD8 freeze.
-  This is intentional owner custody, not a failed cleanup. The next daily
-  12:00 run will stop fail-closed until the owner authorizes deletion.
-- No U1 parked sidecar/candidate branch remains after custody; `i7_i` is already
-  resolved as duplicate `sparkx_i7`. Neither candidate should rerun.
-- iOS is clean and nine commits ahead locally; `cdf5906` is the U1 data mirror.
-  Preserve the push gate.
+- The wrap began with web clean and 38 commits ahead of `origin/main`; Trigger A
+  is required to push the final wrap commit too. Confirm the actual post-wrap
+  SHA/current state before editing.
+- iOS is clean and nine commits ahead locally. Preserve all nine in order; do
+  not squash, replay, or push them.
+- No notification/provider/iOS implementation, Apple/Cloudflare provisioning,
+  TestFlight dispatch, App Store submission, or public notification send has
+  started.
+- The plan has 13 tasks. This session is authorized for Tasks 0–9 only.
 
-Owner decision:
+Execution boundary:
 
-- Ask whether the owner authorizes clearing the exact installed PD8 freeze now.
-- If yes, re-verify its reason, successful saved-report delivery, mode-600
-  config, no intake lock, and clean/current installed checkout; then remove only
-  that freeze marker. Do not run a candidate as part of clearance.
-- Keep the installer hardening as the next implementation lane: TDD-add safe
-  migration/verification of the protected notifier config without printing the
-  secret. Use the normal work protocol and cross-model review for that change.
+- Use the plan exactly and track its checkboxes. Use
+  `superpowers:executing-plans`, TDD for behavior changes, and
+  `superpowers:verification-before-completion`. Do not use subagents unless I
+  explicitly change that boundary.
+- Task 1 is an isolated production security gate: TDD the assets exclusions and
+  Worker defense-in-depth denies, push/deploy that web fix alone, wait for the
+  exact commit, and prove the protected paths return non-200. Production was
+  same-session verified returning 200 for `/wrangler.toml`, `/worker.js`, and
+  `/functions/api/feedback.js`; do not add D1/Queue ids before this closes.
+- Tasks 2–8 build the local provider and iOS train in the reviewed commit
+  sequence. Keep one owner/review finding per commit and keep iOS local.
+- Task 9 runs every listed web/provider, overlay, walkthrough, export,
+  byte-identity, XCTest/XCUITest, dry-run, and diff check. Then run the hostile
+  independent Claude implementation review and close all P0/P1/P2 findings one
+  per commit.
+- For headless Claude/Bridge on this locked mac-mini, source
+  `~/.config/claude-code/oauth.env` only inside the review subprocess. Never
+  print, inspect, copy, commit, or paste its token. Preserve any invalid/empty
+  attempt as invalid evidence and use the plan's bounded fallback.
+- Stop at G0. Do not create Apple capabilities/APNs keys, Cloudflare D1/Queues/
+  secrets, push iOS, dispatch TestFlight, submit App Review, or send a public
+  notification. Report only the exact non-secret owner prerequisites listed in
+  Task 9 Step 3.
 
 Standing rules:
 
 - Show the progress tracker on multi-step work.
 - ROADMAP is truth; read it fully before status claims.
-- Preserve fail-closed intake semantics and one-finding-one-commit.
-- A successful notification replay does not itself authorize freeze deletion.
-- Future printer ships still require fresh semantic `{GO,GO}`, live
-  verification, custody, notification, and green POSTRUN/SYNCBOOT.
-- Preserve the iOS push gate; do not start either release train by inference.
+- Treat web + iOS as twin repos; web owns engine/data and both must stay
+  byte-identical where required.
+- Every data/logic change needs explicit web + iOS functional/UI/UX impact
+  evaluation.
+- Preserve unrelated work, the iOS push gate, and one-finding-one-commit.
+- A green review is evidence, not permission to provision or ship.
+- Do not mark the release ready until the exact plan gates prove it.
 
 <<< END <<<
 
