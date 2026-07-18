@@ -18,6 +18,9 @@
   returned HTTP 200. This is a current pre-existing security finding, not merely
   a future D1/Queue concern. Runtime remediation remains outside this spec-only
   session and is tracked as the first implementation gate.
+- Post-patch controller consistency review aligned the delivery ledger and
+  canary selector with the device table's APNs environment key; development and
+  production rows cannot collide or be guessed across environments.
 
 ## Findings
 
