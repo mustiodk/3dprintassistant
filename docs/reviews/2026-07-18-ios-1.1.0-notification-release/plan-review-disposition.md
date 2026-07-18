@@ -3,8 +3,9 @@
 **Pre-review plan commit:** `1a0015f`
 
 **State:** authenticated reviewer returned `GO-WITH-PATCHES`; all accepted
-P1/P2 corrections are committed one finding per commit; convergence review is
-pending. Implementation remains unauthorized.
+P1/P2 corrections are committed one finding per commit. First convergence
+confirmed the original nine fixes and found one new P2, now patched; final
+confirmation is pending. Implementation remains unauthorized.
 
 ## Attempts
 
@@ -25,6 +26,10 @@ pending. Implementation remains unauthorized.
    [`bridge-2026-07-18-215137-962163.md`](bridge-2026-07-18-215137-962163.md)
    exited 0 after 638.3 seconds with a non-empty Claude section and verdict
    `GO-WITH-PATCHES`: five P1, four P2, and four optional findings.
+6. Convergence review
+   [`bridge-2026-07-18-220943-262334.md`](bridge-2026-07-18-220943-262334.md)
+   confirmed every original P1/P2 correction and both controller technical
+   corrections, then found one new P2 in the formal coordinator interface.
 
 ## Required findings
 
@@ -39,6 +44,7 @@ pending. Implementation remains unauthorized.
 | Delivery paging index columns unnamed | P2-B | Accept | Patched | `4a05a3e` |
 | APNs JWT expiry test lacked injected clock | P2-C | Accept | Patched | `387e3a9` |
 | Simulator cannot prove file protection | P2-D | Accept | Patched with physical-device gate | `481d527` |
+| Pending-new-printer launch gate absent from formal interface | P2-E | Accept | Patched with launch gate and revision interfaces | `c6699f5` |
 
 Cloudflare primary documentation defines `namespace_id` as a developer-chosen
 positive-integer string unique within the account; the reviewer-proposed
