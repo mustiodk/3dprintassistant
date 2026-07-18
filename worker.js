@@ -31,6 +31,8 @@ import {
   onRequest        as analyticsQueryOnRequestFallback,
 } from "./functions/api/analytics-query.js";
 
+import { handlePushRequest } from "./functions/api/push/index.js";
+
 const PRIVATE_ASSET_ROOTS = [
   "/.assetsignore",
   "/.git",
@@ -93,6 +95,13 @@ export default {
       if (request.method === "POST")    return analyticsQueryOnRequestPost(context);
       if (request.method === "OPTIONS") return analyticsQueryOnRequestOptions(context);
       return analyticsQueryOnRequestFallback(context);
+    }
+
+    if (
+      url.pathname === "/api/push/register" ||
+      url.pathname === "/api/push/unregister"
+    ) {
+      return handlePushRequest(request, env);
     }
 
     // Static fallback. ASSETS resolves the request against the public site
