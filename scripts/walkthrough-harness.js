@@ -507,6 +507,8 @@ const COMBOS = [
 
   { id: 17, label: 'Sovol SV06 ACE + 0.4 std + PLA Basic + Standard/Balanced (High Speed bedslinger, 600mm/s, 20000mm/s², camera, 100°C bed cap)',
     state: stateDefault({ printer: 'sv06_ace', nozzle: 'std_0.4', material: 'pla_basic' }) },
+  { id: 18, label: 'Snapmaker U1 + 0.4 std + PLA Basic + Standard/Balanced (CoreXY toolchanger, 4-head SnapSwap, 500mm/s, 20000mm/s², 100°C bed, textured_pei)',
+    state: stateDefault({ printer: 'u1', nozzle: 'std_0.4', material: 'pla_basic' }) },
 ];
 
 // ─── Main ───────────────────────────────────────────────────────────────────

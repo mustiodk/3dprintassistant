@@ -1,7 +1,7 @@
 {
-  "content_version": 2026071402,
+  "content_version": 2026071801,
   "enabled": true,
-  "generated_at": "2026-07-14T10:48:38.475Z",
+  "generated_at": "2026-07-18T11:32:10.916Z",
   "min_app_version": "1.0.3",
   "payload": {
     "brands": [
@@ -269,9 +269,42 @@
           "600mm/s bedslinger, 20,000mm/s², direct drive, Klipper — see https://www.sovol3d.com/products/sovol-sv06-ace",
           "220×220×250mm build volume"
         ]
+      },
+      {
+        "id": "u1",
+        "name": "U1",
+        "manufacturer": "snapmaker",
+        "series": "corexy",
+        "series_group": "U Series",
+        "enclosure": "none",
+        "active_chamber_heating": false,
+        "extruder_type": "direct_drive",
+        "max_nozzle_temp": 300,
+        "max_bed_temp": 100,
+        "max_speed": 500,
+        "max_acceleration": 20000,
+        "has_lidar": false,
+        "has_camera": true,
+        "multi_color_systems": [
+          "toolchanger"
+        ],
+        "available_plates": [
+          "textured_pei"
+        ],
+        "available_nozzle_sizes": [
+          0.2,
+          0.4,
+          0.6,
+          0.8
+        ],
+        "notes": [
+          "Snapmaker U1: CoreXY toolchanger with 4 independent direct-drive print heads (SnapSwap system, 5-second toolchange). Multi-color via toolchanger reduces filament waste by up to 80% versus conventional single-nozzle systems; the U1 can still build a small prime/wiping tower during color changes. FDM only (dedicated 3D printer, not modular 3-in-1 like the 2.0 series).",
+          "Specs confirmed from manufacturer pages: 300°C nozzle, 100°C bed, 500mm/s, 20000mm/s² accel, CoreXY, direct-drive toolchanger (https://www.snapmaker.com/snapmaker-u1/specs); compatible 0.2, 0.4, 0.6 and 0.8mm U1 hot ends (https://shop.snapmaker.com/products/hot-end-for-snapmaker-u1).",
+          "Series_group “U Series” owner-approved; available_plates: textured_pei confirmed from manufacturer spec page (Flexible Steel Sheet with PEI Surface)."
+        ]
       }
     ]
   },
-  "payload_sha256": "2b5627a4a9b0dd6010f3d3c088b059f175559193bacc3e3103148ea17910cb3d",
+  "payload_sha256": "a8b8285d1b98636728fdb08cd4ce0ca81e15997b20c970042e718115e19d9a3d",
   "schema_version": 1
 }
