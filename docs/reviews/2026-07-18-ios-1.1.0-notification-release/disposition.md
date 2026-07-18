@@ -27,7 +27,7 @@
 | F2 | P1 | Accept | Patched | APNs 403/provider-auth errors block the campaign, DLQ the cursor, and preserve device rows. |
 | F3 | P1 | Accept | Patched | Live 200 paths are named; exact exclusions/denies and non-200 probes are gate zero. |
 | F4 | P2 | Accept with stronger fix | Patched | Signed rotation atomically upserts new token and deletes the retained previous route. |
-| F5 | P2 | Accept | Pending | Name Wrangler Cron config plus exported scheduled handler. |
+| F5 | P2 | Accept | Patched | `wrangler.toml` Cron plus exported/testable scheduled retention handler are explicit gates. |
 | F6 | P2 | Accept | Pending | DLQ recovery replays the same campaign/delivery ledger and does not bypass cadence. |
 | F7 | P2 | Accept | Pending | Add campaign cancellation; consumer rechecks it while in flight. |
 | F8 | P2 | Accept | Pending | Add provider-auth halt and register-disabled/unregister-open tests. |
