@@ -52,4 +52,4 @@ eight corrections; reviewer verdict remains evidence, not ship permission.
 
 | ID | Severity | Decision | Status | Required correction |
 |---|---|---|---|---|
-| F9 | P2 | Accept with stronger fix | Pending | Distinguish token rotation from explicit consent removal in the delivery ledger. |
+| F9 | P2 | Accept with stronger fix | Patched | `token_rotated` has distinct ledger/status/count semantics and wins races by compare-and-set. |
