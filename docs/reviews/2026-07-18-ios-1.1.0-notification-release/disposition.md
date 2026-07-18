@@ -57,3 +57,27 @@ eight corrections; reviewer verdict remains evidence, not ship permission.
 The final reviewer classified retry overcount as below P2. Final controller
 tightening nevertheless makes the aggregate increment equal the number of rows
 that actually transition, so a retry adds zero.
+
+- Final confirmation
+  [`bridge-2026-07-18-162715-485017.md`](bridge-2026-07-18-162715-485017.md)
+  returned **`GO`**: F1–F8 remained corrected, F9 is coherent with F1/F4/F6,
+  retention, and idempotency, and no remaining/new P0/P1/P2 was found.
+
+## Patch commits
+
+| Finding | Commit |
+|---|---|
+| F1 | `ea80b02` |
+| F2 | `d3a4fcd` |
+| F3 | `7abc6a4` |
+| F4 | `aa00da3` |
+| F5 | `7f61fd6` |
+| F6 | `af1563d` |
+| F7 | `31f249e` |
+| F8 | `fcee70e` |
+| Controller environment-key correction | `bf32511` |
+| F9 | `1869568` |
+| Below-P2 retry-count tightening | `5d331f9` |
+
+**Final state:** design review complete; owner ratification pending; no
+implementation, infrastructure, iOS push, TestFlight, or App Store action taken.
