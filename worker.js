@@ -31,15 +31,41 @@ import {
   onRequest        as analyticsQueryOnRequestFallback,
 } from "./functions/api/analytics-query.js";
 
+const PRIVATE_ASSET_ROOTS = [
+  "/.assetsignore",
+  "/.git",
+  "/.gitignore",
+  "/.claude",
+  "/.wrangler",
+  "/CLAUDE.md",
+  "/wrangler.toml",
+  "/worker.js",
+  "/functions",
+  "/migrations",
+  "/package.json",
+  "/package-lock.json",
+  "/vitest.config.mjs",
+];
+
+export function isPrivateAssetPath(pathname) {
+  let decoded;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return true;
+  }
+
+  const path = decoded.replace(/\/{2,}/g, "/");
+  return PRIVATE_ASSET_ROOTS.some(
+    (root) => path === root || path.startsWith(`${root}/`),
+  );
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    if (
-      url.pathname === "/.git" || url.pathname.startsWith("/.git/") ||
-      url.pathname === "/.claude" || url.pathname.startsWith("/.claude/") ||
-      url.pathname === "/.wrangler" || url.pathname.startsWith("/.wrangler/")
-    ) {
+    if (isPrivateAssetPath(url.pathname)) {
       return new Response(null, { status: 404 });
     }
 
