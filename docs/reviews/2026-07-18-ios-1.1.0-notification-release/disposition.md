@@ -79,5 +79,6 @@ that actually transition, so a retry adds zero.
 | F9 | `1869568` |
 | Below-P2 retry-count tightening | `5d331f9` |
 
-**Final state:** design review complete; owner ratification pending; no
-implementation, infrastructure, iOS push, TestFlight, or App Store action taken.
+**Final state:** design review complete and owner-ratified 2026-07-18;
+replacement implementation plan is in hostile review. No implementation,
+infrastructure, iOS push, TestFlight, or App Store action taken.
