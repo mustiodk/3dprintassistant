@@ -7,6 +7,11 @@ compatibility_flags = ["nodejs_compat"]
 # Variables & Secrets UI is locked and functions/ is never routed.
 main = "worker.js"
 
+[vars]
+PUSH_REGISTRATION_ENABLED = "false"
+PUSH_PUBLIC_SEND_ENABLED = "false"
+APNS_TOPIC = "dk.mragile.3DPrintAssistant"
+
 # Static site bindings. `directory = "."` serves everything in the repo root
 # as public assets. See .assetsignore for the exclusion list.
 [assets]
@@ -23,3 +28,29 @@ dataset = "3dpa_usage_v1"
 [[kv_namespaces]]
 binding = "PRINTER_INTAKE"
 id = "f3d89a4e70a34e3fab1c0f7676efebb5"
+
+[[queues.producers]]
+binding = "PUSH_FANOUT"
+queue = "3dpa-push-production"
+
+[[queues.producers]]
+binding = "PUSH_DLQ"
+queue = "3dpa-push-dlq"
+
+[[queues.consumers]]
+queue = "3dpa-push-production"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 4
+dead_letter_queue = "3dpa-push-dlq"
+
+[[ratelimits]]
+name = "PUSH_REGISTRATION_RATE_LIMITER"
+namespace_id = "11001"
+
+[ratelimits.simple]
+limit = 30
+period = 60
+
+[triggers]
+crons = ["0 3 * * *"]

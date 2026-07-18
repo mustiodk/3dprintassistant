@@ -19,16 +19,27 @@ export default defineConfig({
         miniflare: {
           bindings: {
             IOS_PUSH_REGISTRATION_SECRET: "test-registration-secret",
+            PUSH_ADMIN_TOKEN: "test-admin-token",
             PUSH_TOKEN_ENCRYPTION_KEY_V1:
               "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
             PUSH_REGISTRATION_ENABLED: "true",
+            PUSH_PUBLIC_SEND_ENABLED: "false",
             PUSH_TEST_RATE_LIMIT_BYPASS: "true",
+            APNS_TOPIC: "dk.mragile.3DPrintAssistant",
             TEST_MIGRATIONS: migrations,
           },
           d1Databases: { PUSH_DB: "push-db" },
           queueProducers: {
             PUSH_FANOUT: "push-fanout",
             PUSH_DLQ: "push-dlq",
+          },
+          queueConsumers: {
+            "push-fanout": {
+              maxBatchSize: 10,
+              maxBatchTimeout: 5,
+              maxRetries: 4,
+              deadLetterQueue: "push-dlq",
+            },
           },
           serviceBindings: {
             ASSETS: () => new Response("Not found", { status: 404 }),
