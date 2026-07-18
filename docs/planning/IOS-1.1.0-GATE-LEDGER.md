@@ -1,10 +1,11 @@
 # iOS 1.1.0 Notification Release Gate Ledger
 
-**State:** Tasks 0–8 complete; Task 9 verification and hostile implementation
-review in progress. Stop at G0. No Apple or Cloudflare resources have been
-provisioned, no iOS commit has been pushed, no TestFlight build has been
-dispatched, no App Review submission has been made, and no public notification
-has been sent.
+**State:** Tasks 0–8 and Task 9 Step 1 are complete. Task 9 Step 2 is blocked
+fail-closed because both authorized independent-Claude transports returned no
+review output within their 900-second bounds. **G0 was not reached.** No Apple
+or Cloudflare resources have been provisioned, no iOS commit has been pushed,
+no TestFlight build has been dispatched, no App Review submission has been
+made, and no public notification has been sent.
 
 ## Protected baselines
 
@@ -28,7 +29,7 @@ has been sent.
 | 6 | PASS | `1e6f7be` fixes unchanged Workshop re-save (#2); `6bdb73c` uses the permanent Discord invite (#3). |
 | 7 | PASS | Current web already contained the reviewed Workshop event contract; 30 web analytics tests passed without mutation. Local iOS commits `6391583`, `4720f12`, and `9f01f82` add selective backups, visible transfer actions, and privacy-safe successful-operation analytics. |
 | 8 | PASS | Local iOS commits `e870420` and `d52ab0f` add native Bambu/Orca/Prusa file exports and allowlisted intent analytics. Focused gate: 22 unit/integration tests and 4 UI tests, 0 failures. |
-| 9 | IN PROGRESS | Full cross-repo verification is green after two independently committed gate fixes; independent hostile Claude review is pending below. |
+| 9 | BLOCKED AT STEP 2 | Full cross-repo verification is green after two independently committed gate fixes. The required hostile Claude review has no valid verdict after the canonical Bridge attempt and its one authorized direct fallback both returned empty output at 900 seconds. |
 
 ## Task 9 verification matrix
 
@@ -45,7 +46,7 @@ has been sent.
 | `data/` recursive identity | PASS | `diff -qr` exit 0. |
 | Full XCTest/XCUITest | PASS | 175 unit/integration tests + 4 UI tests, 0 failures. |
 | Web and iOS diff checks | PASS | `git diff --check` clean in both repositories. |
-| Independent hostile implementation review | PENDING | |
+| Independent hostile implementation review | BLOCKED / INVALID | Bridge: exit 124 after 900 seconds, empty stdout/stderr. Direct read-only Claude fallback: terminated after 900 seconds, empty stdout/stderr. Neither attempt is review evidence. |
 
 Two Task 9 gate defects were fixed one per commit before review:
 
@@ -55,12 +56,23 @@ Two Task 9 gate defects were fixed one per commit before review:
   the 1.1.0 bump for Task 11, and the existing 1.0.7 bundled-catalog baseline
   is therefore the correct pre-G0 validation surface.
 
+## Independent-review blocker
+
+- Invalid canonical attempt:
+  [`bridge-invalid-2026-07-19.md`](../reviews/2026-07-18-ios-1.1.0-notification-release/implementation/bridge-invalid-2026-07-19.md)
+- Invalid authorized fallback:
+  [`direct-claude-invalid-2026-07-19.md`](../reviews/2026-07-18-ios-1.1.0-notification-release/implementation/direct-claude-invalid-2026-07-19.md)
+- Resume only Task 9 Step 2 in a fresh session. Do not repeat Tasks 0–8. If a
+  valid review returns findings, land each P0/P1/P2 correction separately,
+  rerun focused and full gates, and obtain final `GO`. Only then may Task 9
+  Step 3 declare G0.
+
 ## Web + iOS data/logic and UI/UX evaluation
 
 - Provider logic belongs to the web Worker; the iOS app consumes only its
   explicit signed registration contract and APNs payload schema.
 - No shared `engine.js` or `data/*.json` behavior changed in Tasks 0–8. Task 9
-  must still prove the web-owned engine/data mirrors remain byte-identical.
+  proved the web-owned engine/data mirrors remain byte-identical.
 - iOS functional/UI/UX changes are intentional and bounded: explicit opt-in
   Product Updates controls, safe notification routing, truthful Workshop
   transfer controls, and one slicer-honest native export action.
