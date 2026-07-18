@@ -30,7 +30,7 @@
 | F5 | P2 | Accept | Patched | `wrangler.toml` Cron plus exported/testable scheduled retention handler are explicit gates. |
 | F6 | P2 | Accept | Patched | Authenticated DLQ replay resumes the same campaign/cursor and ledger; no new cadence entry. |
 | F7 | P2 | Accept | Patched | Authenticated cancellation plus status checks before pages/sends stop in-flight fan-out. |
-| F8 | P2 | Accept | Pending | Add provider-auth halt and register-disabled/unregister-open tests. |
+| F8 | P2 | Accept | Patched | Both provider-auth mid-fan-out and register-off/unregister-open tests are explicit. |
 
 One accepted finding lands per commit. A convergence Bridge round follows all
 eight corrections; reviewer verdict remains evidence, not ship permission.
