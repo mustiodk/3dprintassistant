@@ -53,3 +53,7 @@ eight corrections; reviewer verdict remains evidence, not ship permission.
 | ID | Severity | Decision | Status | Required correction |
 |---|---|---|---|---|
 | F9 | P2 | Accept with stronger fix | Patched | `token_rotated` has distinct ledger/status/count semantics and wins races by compare-and-set. |
+
+The final reviewer classified retry overcount as below P2. Final controller
+tightening nevertheless makes the aggregate increment equal the number of rows
+that actually transition, so a retry adds zero.
