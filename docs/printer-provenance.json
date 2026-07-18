@@ -438,6 +438,69 @@
         "evidenceType": "manufacturer",
         "absenceRationale": null
       }
+    },
+    "u1": {
+      "candidateKey": "req:1784209551230:694d0fe6",
+      "runId": "run-20260718T100659Z",
+      "outcome": "auto-parked:review-split",
+      "source": "https://www.snapmaker.com/snapmaker-u1/specs",
+      "evidence": {
+        "series": {
+          "type": "manufacturer",
+          "source": "https://www.snapmaker.com/snapmaker-u1/specs"
+        },
+        "extruder_type": {
+          "type": "manufacturer",
+          "source": "https://www.snapmaker.com/snapmaker-u1/specs"
+        },
+        "enclosure": {
+          "type": "manufacturer",
+          "source": "https://www.snapmaker.com/snapmaker-u1/specs"
+        },
+        "max_nozzle_temp": {
+          "type": "manufacturer",
+          "source": "https://www.snapmaker.com/snapmaker-u1/specs"
+        },
+        "max_bed_temp": {
+          "type": "manufacturer",
+          "source": "https://www.snapmaker.com/snapmaker-u1/specs"
+        },
+        "max_speed": {
+          "type": "manufacturer",
+          "source": "https://www.snapmaker.com/snapmaker-u1/specs"
+        },
+        "max_acceleration": {
+          "type": "manufacturer",
+          "source": "https://www.snapmaker.com/snapmaker-u1/specs"
+        },
+        "available_nozzle_sizes": {
+          "type": "manufacturer",
+          "source": "https://www.snapmaker.com/snapmaker-u1/specs",
+          "note": "REVIEW-SPLIT: R2 objects [0.4] may be incomplete; hot-end page lists 0.2/0.4/0.6/0.8mm"
+        },
+        "multi_color_systems": {
+          "type": "manufacturer",
+          "source": "https://www.snapmaker.com/snapmaker-u1/specs"
+        },
+        "available_plates": {
+          "type": "manufacturer",
+          "source": "https://www.snapmaker.com/snapmaker-u1/specs"
+        },
+        "active_chamber_heating": {
+          "type": "absence-rationale",
+          "source": null
+        },
+        "has_camera": {
+          "type": "manufacturer",
+          "source": "https://www.snapmaker.com/snapmaker-u1/specs"
+        },
+        "has_lidar": {
+          "type": "absence-rationale",
+          "source": null
+        }
+      },
+      "parkedAt": "2026-07-18T10:29:34.399Z",
+      "note": "Repair-pass review-split: R1=GO (no objections), R2=NO-GO (available_nozzle_sizes possibly incomplete). decision-required."
     }
   }
 }
