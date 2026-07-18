@@ -37,3 +37,19 @@
 
 One accepted finding lands per commit. A convergence Bridge round follows all
 eight corrections; reviewer verdict remains evidence, not ship permission.
+
+## Convergence attempts
+
+- Web-repo retry
+  [`bridge-2026-07-18-161630-451842.md`](bridge-2026-07-18-161630-451842.md)
+  exited 0 but was **semantically incomplete**: Claude requested sibling iOS
+  permission and returned no required verdict. It is preserved but contributes
+  no review evidence. Retry runs from the narrowest common parent.
+- Common-parent retry
+  [`bridge-2026-07-18-162226-327511.md`](bridge-2026-07-18-162226-327511.md)
+  is valid: Claude read both repos, verified F1–F8 and the iOS starting-state
+  claims, and returned `GO-WITH-PATCHES` with one new P2.
+
+| ID | Severity | Decision | Status | Required correction |
+|---|---|---|---|---|
+| F9 | P2 | Accept with stronger fix | Pending | Distinguish token rotation from explicit consent removal in the delivery ledger. |
