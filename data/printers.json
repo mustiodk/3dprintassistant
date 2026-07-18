@@ -1695,6 +1695,30 @@
       ]
     },
     {
+      "id": "u1",
+      "name": "U1",
+      "manufacturer": "snapmaker",
+      "series": "corexy",
+      "series_group": "U Series",
+      "enclosure": "none",
+      "active_chamber_heating": false,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 300,
+      "max_bed_temp": 100,
+      "max_speed": 500,
+      "max_acceleration": 20000,
+      "has_lidar": false,
+      "has_camera": true,
+      "multi_color_systems": ["toolchanger"],
+      "available_plates": ["textured_pei"],
+      "available_nozzle_sizes": [0.2, 0.4, 0.6, 0.8],
+      "notes": [
+        "Snapmaker U1: CoreXY toolchanger with 4 independent direct-drive print heads (SnapSwap system, 5-second toolchange). Multi-color via toolchanger reduces filament waste by up to 80% versus conventional single-nozzle systems; the U1 can still build a small prime/wiping tower during color changes. FDM only (dedicated 3D printer, not modular 3-in-1 like the 2.0 series).",
+        "Specs confirmed from manufacturer pages: 300°C nozzle, 100°C bed, 500mm/s, 20000mm/s² accel, CoreXY, direct-drive toolchanger (https://www.snapmaker.com/snapmaker-u1/specs); compatible 0.2, 0.4, 0.6 and 0.8mm U1 hot ends (https://shop.snapmaker.com/products/hot-end-for-snapmaker-u1).",
+        "Series_group “U Series” owner-approved; available_plates: textured_pei confirmed from manufacturer spec page (Flexible Steel Sheet with PEI Surface)."
+      ]
+    },
+    {
       "id": "creator_5_pro",
       "name": "Creator 5 Pro",
       "manufacturer": "flashforge",
