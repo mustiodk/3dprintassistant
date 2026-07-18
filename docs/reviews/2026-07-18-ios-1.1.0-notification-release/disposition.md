@@ -79,6 +79,8 @@ that actually transition, so a retry adds zero.
 | F9 | `1869568` |
 | Below-P2 retry-count tightening | `5d331f9` |
 
-**Final state:** design review complete and owner-ratified 2026-07-18;
-replacement implementation plan is in hostile review. No implementation,
+**Final state:** design review complete and owner-ratified 2026-07-18. The
+replacement implementation plan is drafted, but its hostile review is
+`BLOCKED-AUTH`; see
+[`plan-review-disposition.md`](plan-review-disposition.md). No implementation,
 infrastructure, iOS push, TestFlight, or App Store action taken.
