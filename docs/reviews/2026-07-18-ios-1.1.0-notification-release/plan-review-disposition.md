@@ -27,4 +27,3 @@ unauthorized.
   900-second per-turn timeout.
 - Accept and land every P0/P1/P2 correction one finding per commit, then rerun
   until a preserved non-empty reviewer verdict has no unresolved P0/P1/P2.
-
