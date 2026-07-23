@@ -102,6 +102,15 @@ rate limiter, secrets, and daily `0 3 * * *` Cron all exist. Absence of any one
 is a stop. Existing web feedback/analytics and static-asset probes must remain
 green.
 
+> **Manual-deploy caveat (2026-07-23).** `wrangler deploy` uploads the entire
+> working tree minus `.assetsignore` — including *untracked* local dirs that the
+> git-connected `main` deploy never serves (`.superpowers/`, `.worktrees/`,
+> `ai-handoffs/` were caught leaking this way and added to `.assetsignore`).
+> After any manual deploy, re-probe those internal paths for non-200 too, not
+> only `/wrangler.toml`, `/worker.js`, `/functions/**`, `/migrations/**`. Note
+> also that a leaked URL, once fetched, is edge-cached until its short TTL
+> expires; verify origin with a cache-busting query string.
+
 ## Development/TestFlight canary
 
 Keep public send false. Enable registration only after the dark-deploy checks.

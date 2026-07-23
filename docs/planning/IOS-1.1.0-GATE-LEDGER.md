@@ -1,13 +1,16 @@
 # iOS 1.1.0 Notification Release Gate Ledger
 
-**State (2026-07-23):** **Tasks 0–9 are complete.** The independent hostile
-implementation review produced a valid verdict (NO-GO: 1 P1 + 6 P2), every
-accepted finding was closed one per commit, the full cross-repo gate battery
-was rerun green, and the confirmation review of the applied fixes returned
-**`GO` with no remaining or new P0/P1/P2**. **The train is stopped at G0
-awaiting the owner.** No Apple or Cloudflare resources have been provisioned,
-no iOS commit has been pushed, no TestFlight build has been dispatched, no App
-Review submission has been made, and no public notification has been sent.
+**State (2026-07-23):** **Tasks 0–9 complete; owner G0 given; Task 10 Steps 1–4
+complete (dark provider deployed); Step 5 device canary pending the owner's
+physical device.** The independent hostile implementation review produced a
+valid verdict (NO-GO: 1 P1 + 6 P2), every accepted finding was closed one per
+commit, the full cross-repo gate battery was rerun green, and the confirmation
+review returned **`GO` with no remaining or new P0/P1/P2**. Under G0 the dark
+Cloudflare provider is now provisioned and deployed with **both send flags
+`"false"`**. **Still not done (Task 12, own owner gates):** no iOS commit
+pushed, no TestFlight build dispatched, no App Review submission, and no public
+notification sent. Registration also remains disabled
+(`PUSH_REGISTRATION_ENABLED="false"`) until the Step 5 canary.
 
 ## Protected baselines
 
@@ -71,6 +74,55 @@ Two Task 9 gate defects were fixed one per commit before review:
   (`GO`, applied fixes verified, no remaining or new P0/P1/P2).
 - Full finding-by-finding record:
   [`implementation-review-disposition.md`](../reviews/2026-07-18-ios-1.1.0-notification-release/implementation/implementation-review-disposition.md).
+
+## Task 10 evidence (owner G0 given — Steps 1–4 complete, Step 5 pending)
+
+Step 1 — Apple (owner-side, controller-assisted in-browser): Push Notifications
+capability enabled on `dk.mragile.3DPrintAssistant` (verified persisted on
+reload); dedicated APNs Auth Key `3DPA APNs Push` created (Sandbox &
+Production, Team Scoped All Topics), Key ID `VL83ZC2PD7`, Team ID `76GG9356DU`;
+`.p8` stored by the owner outside the repo at mode 600. The prior ASC API key
+was not reused.
+
+Step 2 — Cloudflare provisioning (account `mustiodk@gmail.com`):
+- EU D1 `3dpa-push-production` created, `jurisdiction = eu` (running region
+  EEUR), bound as `PUSH_DB` in `wrangler.toml` (commit `0174d2c`).
+- Queues `3dpa-push-production` + `3dpa-push-dlq` created.
+- Rate-limit `namespace_id = 11001` collision-checked: the account has exactly
+  two Workers (Workers & Pages "Showing 1-2 of 2"); `personal-dashboard` has no
+  rate-limit binding, so `11001` is free — no change.
+
+Step 3 — Secrets (owner-entered interactively, values never printed): all six
+Worker secrets present via `wrangler secret list`
+(`IOS_PUSH_REGISTRATION_SECRET`, `PUSH_ADMIN_TOKEN`,
+`PUSH_TOKEN_ENCRYPTION_KEY_V1`, `APNS_KEY_ID`, `APNS_TEAM_ID`,
+`APNS_PRIVATE_KEY_P8`), distinct from `FEEDBACK_HMAC_SECRET`;
+`IOS_PUSH_REGISTRATION_SECRET` also set on GitHub repo
+`mustiodk/3dprintassistant-ios` with a matching value. Formats verified against
+Worker code: encryption key = base64 of exactly 32 bytes; registration secret =
+hex (xcconfig-safe, no `/`); `.p8` = raw PKCS#8 PEM via file stdin.
+
+Step 4 — Migrate + dark deploy:
+- `0001_push.sql` applied to remote EU `PUSH_DB` (17 statements ✅; re-list
+  clean; `push_devices` / `push_replay_cursors` / … tables present).
+- `wrangler deploy` succeeded; output confirms `PUSH_DB` (D1), producers
+  `PUSH_FANOUT`/`PUSH_DLQ`, **Consumer for 3dpa-push-production**,
+  `PUSH_REGISTRATION_RATE_LIMITER` (30/60s), cron `0 3 * * *`, and both send
+  flags `"false"`.
+- Exposure re-probe (production): `/wrangler.toml`, `/worker.js`,
+  `/functions/api/feedback.js`, `/migrations/0001_push.sql` all **404**; root
+  **200**; `POST /api/feedback` **403** (auth intact).
+- Exposure finding (controller-caught, fixed): a manual `wrangler deploy`
+  uploads the working tree including untracked dirs, so `.superpowers/`,
+  `.worktrees/`, and `ai-handoffs/` briefly served as public assets. Added all
+  three to `.assetsignore` (commit `bb49ccf`), redeployed, and confirmed all
+  three **404** at origin (cache-busted); edge-cached copies expired on their
+  own. `prototype/printer-picker.html` (tracked, pre-existing) was left in place
+  pending an owner decision.
+
+Step 5 — device canary + opt-out proof + 20-launch timing: **pending** the
+owner's development-signed build on the physical canary device. Registration
+stays disabled (`PUSH_REGISTRATION_ENABLED="false"`) until that gate begins.
 
 ## G0 owner prerequisites (Task 9 Step 3 — the exact, non-secret list)
 
