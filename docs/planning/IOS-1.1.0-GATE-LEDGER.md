@@ -1,8 +1,12 @@
 # iOS 1.1.0 Notification Release Gate Ledger
 
-**State (2026-07-23):** **Tasks 0–9 complete; owner G0 given; Task 10 Steps 1–4
-complete (dark provider deployed); Step 5 device canary pending the owner's
-physical device.** The independent hostile implementation review produced a
+**State (2026-07-23):** **Tasks 0–10 complete. Owner G0 given; the provider is
+live-dark (registration enabled, public send disabled), and the full Step 5
+device canary passed on the owner's physical iPhone — including two
+canary-caught iOS fixes (`0a8759a`, `76aca9e`), the opt-out persistence proof,
+on-device file-protection proof, and the 20-launch timing gate (p95 99.3 ms).
+Awaiting the owner's Task 10 authorization decision for release composition;
+Tasks 11 and 12 retain their own owner gates.** The independent hostile implementation review produced a
 valid verdict (NO-GO: 1 P1 + 6 P2), every accepted finding was closed one per
 commit, the full cross-repo gate battery was rerun green, and the confirmation
 review returned **`GO` with no remaining or new P0/P1/P2**. Under G0 the dark
@@ -34,6 +38,7 @@ notification sent. Registration also remains disabled
 | 6 | PASS | `1e6f7be` fixes unchanged Workshop re-save (#2); `6bdb73c` uses the permanent Discord invite (#3). |
 | 7 | PASS | Current web already contained the reviewed Workshop event contract; 30 web analytics tests passed without mutation. Local iOS commits `6391583`, `4720f12`, and `9f01f82` add selective backups, visible transfer actions, and privacy-safe successful-operation analytics. |
 | 8 | PASS | Local iOS commits `e870420` and `d52ab0f` add native Bambu/Orca/Prusa file exports and allowlisted intent analytics. Focused gate: 22 unit/integration tests and 4 UI tests, 0 failures. |
+| 10 | PASS | Owner G0 given 2026-07-23. Apple push capability + dedicated APNs key (owner, controller-assisted); EU D1/queues/rate-limit provisioned + six secrets entered interactively; `0001_push.sql` applied; dark deploy verified (all bindings + cron, 4 exposure probes 404, 3 caught internal-dir leaks fixed in `bb49ccf`); registration enabled `8a8f6ce`; full physical-device canary passed with two canary-caught iOS fixes (`0a8759a` registrar call-time resolution, `76aca9e` opt-out persistence), opt-out not-found proof, on-device file protection, 20-launch timing median 87.3 / p95 99.3 ms. Public send never enabled. Details in "Task 10 evidence" below. |
 | 9 | PASS | Step 1: full cross-repo verification green after two independently committed gate fixes. Step 2 (2026-07-23): valid canonical `bridge --mode claude-only` review (870.1 s, exit 0, non-empty) returned NO-GO with 1 P1 + 6 P2; accepted findings fixed one per commit (web `8682ab6`/`18c41ad`/`247bea7`/`8f8acce`/`29c3e94`, iOS `3f886bf`), P2-E refuted with code evidence; full gates rerun green (provider 62, Worker 33, XCTest 177, XCUITest 4, all validators/audits/dry-run/identity/diff); confirmation review of the applied fixes returned `GO`, no remaining or new P0/P1/P2. Step 3: stopped at G0 with the exact owner prerequisites reported. Disposition: [`implementation-review-disposition.md`](../reviews/2026-07-18-ios-1.1.0-notification-release/implementation/implementation-review-disposition.md). |
 
 ## Task 9 verification matrix
@@ -120,9 +125,51 @@ Step 4 — Migrate + dark deploy:
   own. `prototype/printer-picker.html` (tracked, pre-existing) was left in place
   pending an owner decision.
 
-Step 5 — device canary + opt-out proof + 20-launch timing: **pending** the
-owner's development-signed build on the physical canary device. Registration
-stays disabled (`PUSH_REGISTRATION_ENABLED="false"`) until that gate begins.
+Step 5 — device canary + opt-out proof + 20-launch timing: **COMPLETE
+(2026-07-23 evening)** on the owner's physical iPhone 17 Pro Max
+(development-signed Debug build, development APNs environment).
+
+- Registration enabled (`PUSH_REGISTRATION_ENABLED="true"`, commit `8a8f6ce`,
+  deployed); `PUSH_PUBLIC_SEND_ENABLED` stayed `"false"` throughout and
+  remains `"false"`.
+- **Two canary-blocking iOS defects found and fixed one per commit (TDD):**
+  - `0a8759a` — `SystemRemoteNotificationRegistrar` captured
+    `UIApplication.shared` at init inside `PrintAssistantApp.init`, before
+    UIApplicationMain creates it; every register call was a silent ObjC
+    message-to-nil no-op (device syslog: settings checks present, zero apsd
+    traffic; D1 0 rows). Fixed to resolve the application at call time.
+  - `76aca9e` — full opt-out left `selectedTopics` populated (owner-found: no
+    toggle feedback), and the next launch silently re-registered the device,
+    undoing consent. Genuine RED (re-register `1 != 0`) → GREEN; opt-out now
+    clears + persists the selection and survives relaunch.
+  - Unit bundle after both fixes: **179/179** (177 + 2 new).
+- Canary proofs (aggregate evidence only; campaign ids
+  `canary-20260723-newprinter-1/2/3-fg`, `canary-20260723-appupdate-1/2`, all
+  `complete`, `audience_mode=canary`, each `matching_count=1`,
+  `accepted_count=1`, 0 blocked/invalid/failed):
+  1. `new_printer` arrived on the lock screen and tap-routed to the
+     configurator at Step 2 (Printer) with Bambu Lab X1 Carbon selected.
+  2. `app_update` arrived and tap-opened the App Store product page.
+  3. Foreground presentation confirmed (banner over the open app).
+  4. Full in-app opt-out: device row deleted immediately; force-quit + relaunch
+     left 0 rows; canary preview against the opted-out Notification ID
+     returned `notification_id was not found`.
+  5. Provider status wording is APNs-accepted (`accepted_count`), never
+     delivered/opened.
+  6. Public send stayed disabled the whole time.
+- **File protection (physical device):** `NotificationTokenStoreTests` run on
+  the device (not simulator) passed —
+  `testProtectedStateRoundTripsWithDataProtectionAttribute` proves
+  `.completeUntilFirstUserAuthentication` under enforced data protection.
+- **20 controlled healthy-network launches (physical device, benchmark arg):**
+  median **87.3 ms**, p95 **99.3 ms**, max 111.7 ms — far below the 750 ms
+  blocking threshold (simulator baseline was 69.2/86.3). PASS; Task 11 is not
+  blocked. Operational note: `devicectl device process launch` passes app
+  arguments only after a `--` separator, and samples flush to the preferences
+  plist on the next terminate.
+- End state: the canary device is **opted out** (0 device rows — the owner can
+  re-enable in-app at any time); five completed canary campaigns remain in D1
+  as honest history.
 
 ## G0 owner prerequisites (Task 9 Step 3 — the exact, non-secret list)
 
@@ -156,6 +203,9 @@ stays disabled (`PUSH_REGISTRATION_ENABLED="false"`) until that gate begins.
 
 ## External-state boundary
 
-The following remain prohibited before owner G0: Apple capability or APNs-key
-creation, Cloudflare D1/Queue/DLQ/rate-limit/secrets provisioning, iOS push,
-TestFlight dispatch, App Review submission, and public notification delivery.
+Owner G0 was given 2026-07-23; Apple capability/APNs-key creation and
+Cloudflare D1/Queue/DLQ/rate-limit/secrets provisioning are complete under it.
+**Still prohibited behind their own owner gates (Task 12):** iOS push to
+GitHub `main`, TestFlight dispatch, App Review submission, and public
+notification delivery. `PUSH_PUBLIC_SEND_ENABLED` stays `"false"` until the
+owner's deliberate post-release send.
