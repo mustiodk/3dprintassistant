@@ -1,21 +1,17 @@
 # iOS 1.1.0 Notification Release Gate Ledger
 
-**State (2026-07-23):** **Tasks 0–10 complete. Owner G0 given; the provider is
-live-dark (registration enabled, public send disabled), and the full Step 5
-device canary passed on the owner's physical iPhone — including two
-canary-caught iOS fixes (`0a8759a`, `76aca9e`), the opt-out persistence proof,
-on-device file-protection proof, and the 20-launch timing gate (p95 99.3 ms).
-**Owner authorization GIVEN (2026-07-23 evening): Task 11 release
-composition is authorized for a fresh session.** Tasks 11 and 12 retain their
-own owner gates (Task 12: iOS push, TestFlight, App Review, public send).** The independent hostile implementation review produced a
-valid verdict (NO-GO: 1 P1 + 6 P2), every accepted finding was closed one per
-commit, the full cross-repo gate battery was rerun green, and the confirmation
-review returned **`GO` with no remaining or new P0/P1/P2**. Under G0 the dark
-Cloudflare provider is now provisioned and deployed with **both send flags
-`"false"`**. **Still not done (Task 12, own owner gates):** no iOS commit
-pushed, no TestFlight build dispatched, no App Review submission, and no public
-notification sent. Registration also remains disabled
-(`PUSH_REGISTRATION_ENABLED="false"`) until the Step 5 canary.
+**State (2026-07-23):** **Tasks 0–10 complete; owner authorization for Task 11
+GIVEN (2026-07-23 evening).** The Task 9 independent hostile review closed with
+a confirmation **`GO`** (no remaining or new P0/P1/P2). Under owner G0 the
+production provider is deployed **live-dark**: `PUSH_REGISTRATION_ENABLED` is
+`"true"` (enabled for the Step 5 canary, commit `8a8f6ce`) and
+`PUSH_PUBLIC_SEND_ENABLED` remains `"false"`. The full Step 5 device canary
+passed on the owner's physical iPhone — including two canary-caught iOS fixes
+(`0a8759a`, `76aca9e`), the opt-out persistence proof, the on-device
+file-protection proof, and the 20-launch timing gate (median 87.3 ms / p95
+99.3 ms). **Task 11 (compose 1.1.0) is authorized for a fresh session. Still
+not done (Task 12, own owner gates):** no iOS commit pushed, no TestFlight
+build dispatched, no App Review submission, no public notification sent.
 
 ## Protected baselines
 
