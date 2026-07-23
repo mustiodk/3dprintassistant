@@ -1,25 +1,15 @@
 # 3dpa — Next Session Kickoff
 
-**Purpose:** start the iOS 1.1.0 Task 10 execution session after the owner
-gives G0.
+**Purpose:** start the iOS 1.1.0 **Task 11** (compose 1.1.0) execution session.
+The owner authorized Task 11 at the end of the 2026-07-23 Task 10 session.
 
-**Last updated:** 2026-07-23 after Tasks 0–9 closed with a confirmation-reviewed
-`GO` and the 1.1.0 App Store submit package was prepared. **Locked entry point:
-Task 10 (owner G0, dark provider deployment, device canary, opt-out proof).**
-Do NOT re-run Tasks 0–9.
-
-**Owner G0 prerequisites (complete before or at the start of that session):**
-
-1. Apple: enable Push Notifications on the `dk.mragile.3DPrintAssistant`
-   App ID.
-2. Apple: create a dedicated APNs Auth Key; have Key ID + Team ID + `.p8`
-   ready for secure secret entry (never paste key text into chat or a file).
-3. Cloudflare: approve provisioning the EU D1 database, the
-   `3dpa-push-production` + `3dpa-push-dlq` queues, the registration
-   rate-limit binding, and the six Worker secrets via `wrangler secret put`.
-4. App Store Connect: confirm the physical canary Device ID and that App
-   Privacy may be updated for push-token processing (prepared answers:
-   `3dprintassistant-ios/docs/app-store-v1.1.0-submit.md`).
+**Last updated:** 2026-07-23 (evening) after Task 10 closed: G0 executed, dark
+provider live (registration `"true"`, public send `"false"`), physical-device
+canary passed all proofs, two canary-caught iOS fixes landed (`0a8759a`,
+`76aca9e`), owner authorization recorded (`fe654b5`). **Locked entry point:
+Task 11 — compose 1.1.0, refresh copy/privacy, pass the final ship gate.**
+Do NOT re-run Tasks 0–10. Task 12 (iOS push, TestFlight, App Review, public
+send) keeps its own explicit owner gates.
 
 Copy everything between the markers into the fresh session.
 
@@ -27,11 +17,13 @@ Copy everything between the markers into the fresh session.
 
 Cold start 3dpa.
 
-Owner G0 is given. Execute the owner-ratified iOS 1.1.0 notification release
-plan at Task 10 only (owner G0, dark provider deployment, device canary,
-opt-out proof). Tasks 0–9 are complete with a confirmation-reviewed GO — do
-not re-run them. Stop after Task 10's owner authorization decision; Tasks 11
-and 12 have their own explicit owner gates.
+Task 11 is owner-authorized (recorded in the gate ledger, `fe654b5`). Execute
+the owner-ratified iOS 1.1.0 notification release plan at Task 11 only —
+compose 1.1.0: bump MARKETING_VERSION, refresh copy/privacy from the prepared
+submit package, and pass the final full ship gate. Tasks 0–10 are complete —
+do not re-run them (the provider is already live-dark in production). Stop
+after Task 11's final gate report; Task 12 (single iOS push, TestFlight, App
+Review, first send) has its own explicit owner gates.
 
 Read in order:
 
@@ -40,14 +32,14 @@ Read in order:
 3. `3dprintassistant/docs/3dpa-context.md`
 4. `3dprintassistant/docs/planning/ROADMAP.md` in full
 5. `3dprintassistant/docs/sessions/INDEX.md`
-6. `3dprintassistant/docs/sessions/2026-07-23-cowork-appdev-ios-1.1.0-task9-review-g0.md`
+6. `3dprintassistant/docs/sessions/2026-07-23-cowork-appdev-ios-1.1.0-task10-canary.md`
 7. This `NEXT-SESSION.md`
 8. Task sources:
-   - `3dprintassistant/docs/superpowers/plans/2026-07-18-ios-1.1.0-notification-release-plan.md` (Task 10)
+   - `3dprintassistant/docs/superpowers/plans/2026-07-18-ios-1.1.0-notification-release-plan.md` (Task 11)
    - `3dprintassistant/docs/planning/IOS-1.1.0-GATE-LEDGER.md`
-   - `3dprintassistant/docs/reviews/2026-07-18-ios-1.1.0-notification-release/implementation/implementation-review-disposition.md`
+   - `3dprintassistant-ios/docs/app-store-v1.1.0-submit.md` (prepared release copy — consume, do not rewrite)
+   - `3dprintassistant-ios/docs/app-store-metadata.md` + `app-store-privacy-labels.md`
    - `3dprintassistant/docs/runbooks/ios-push.md`
-   - `3dprintassistant-ios/docs/app-store-v1.1.0-submit.md` (prepared release copy)
 
 Before mutation, verify rather than assume:
 
@@ -58,56 +50,59 @@ cd ~/dev/Claude/Projects
 ~/.claude/claude-sync.sh push-children --dry
 git -C 3dprintassistant fetch origin --prune
 git -C 3dprintassistant status --short --branch
-git -C 3dprintassistant log --oneline --decorate a0a8060..codex/ios-1.1.0-provider
 git -C 3dprintassistant rev-list --left-right --count main...origin/main
 git -C 3dprintassistant-ios fetch origin --prune
 git -C 3dprintassistant-ios status --short --branch
-git -C 3dprintassistant-ios log --oneline origin/main..codex/ios-1.1.0-release
+git -C 3dprintassistant-ios log --oneline origin/main..codex/ios-1.1.0-release | head -20
 git -C 3dprintassistant-ios rev-list --left-right --count main...origin/main
 ```
 
 Expected state to verify:
 
-- Web `main` == `origin/main`; the provider branch `codex/ios-1.1.0-provider`
-  is local-only and ends at `66e641f` (12 commits above baseline `a0a8060`:
-  5 original + 5 review fixes + 2 docs).
-- iOS `main` is exactly nine commits ahead of `origin/main`, unpushed; the
-  implementation branch `codex/ios-1.1.0-release` ends at the release-copy
-  docs commit (12 commits above `main`: 10 original + `3f886bf` P1-A fix +
-  docs). Nothing was pushed, squashed, or replayed.
-- Gate ledger shows Tasks 0–9 PASS, confirmation review `GO`
-  (`bridge-2026-07-23-142532-902585.md`), G0 owner prerequisites listed.
-- `MARKETING_VERSION` is still `1.0.7` (the 1.1.0 bump is Task 11 Step 1).
-- Both send flags in `wrangler.toml` are `"false"`; no D1 `database_id` or
-  secrets exist yet.
+- Web `main` == `origin/main`; provider branch `codex/ios-1.1.0-provider`
+  local-only, ending at the ledger state-paragraph repair `57ca3a5`
+  (session commits: `0174d2c` D1 binding → `bb49ccf` assetsignore →
+  `c420e7e` evidence → `8a8f6ce` registration flag → `413e7c9` Task 10
+  evidence → `fe654b5` owner authorization → `57ca3a5`, plus this wrap's
+  docs commit).
+- iOS `main` exactly nine commits ahead of `origin/main`, unpushed; branch
+  `codex/ios-1.1.0-release` is 14 commits above `main`, ending
+  `0a8759a` → `76aca9e` (the two canary fixes). Nothing pushed, squashed, or
+  replayed. `MARKETING_VERSION` still `1.0.7` (the bump is Task 11 Step 1).
+- Gate ledger: Tasks 0–10 PASS + owner Task 11 authorization recorded.
+- Live worker: `PUSH_REGISTRATION_ENABLED = "true"`,
+  `PUSH_PUBLIC_SEND_ENABLED = "false"` in `wrangler.toml`; EU D1 + queues +
+  six secrets exist (do NOT re-provision).
 
-Task 10 boundary:
+Task 11 boundary:
 
-- Provision ONLY what Task 10 lists, after confirming the owner's Apple-side
-  configuration: EU D1 (apply `migrations/0001_push.sql`), the two queues,
-  the rate-limit binding (account-wide `namespace_id` collision check first),
-  and the six secrets entered without printing (`wrangler secret put`).
-- Deploy dark: `PUSH_REGISTRATION_ENABLED`/`PUSH_PUBLIC_SEND_ENABLED` stay
-  `"false"` until the plan's exact flip points. Re-probe production source
-  denial (non-200 for `/wrangler.toml`, `/worker.js`,
-  `/functions/api/feedback.js`, `/migrations/0001_push.sql`) after deploy.
-- Device canary on the owner-confirmed physical device (development +
-  production paths per plan), including the opt-out proof.
-- On the mac-mini, source the protected mode-600
-  `~/.config/claude-code/oauth.env` only inside any review subprocess; never
-  print, inspect, copy, commit, or paste its token.
-- The iOS push gate stays closed: no iOS push, no TestFlight dispatch, no App
-  Review, no public notification send. Task 12 owns those behind their own
-  owner gates.
-- One finding = one commit; run `~/.claude/claude-sync.sh hold` for
-  review-gated work and release it after the deliberate commits land.
+- iOS work happens on `codex/ios-1.1.0-release`. Bump `MARKETING_VERSION` to
+  `1.1.0` (leave `CURRENT_PROJECT_VERSION` Fastlane-owned), run
+  `xcodegen generate`, commit per plan Step 1.
+- Consume the prepared, ratified release copy verbatim from
+  `app-store-v1.1.0-submit.md` (+ metadata/privacy-labels docs); recount
+  catalog totals from the exact archive only if data changed since the
+  78 printers / 14 brands count.
+- Update web `privacy.html` per the plan; web is otherwise frozen for this
+  task.
+- Final ship gate: rerun the full Task 9-scale battery (provider suite,
+  Worker analytics, data/overlay validators, walkthrough, export audit,
+  Wrangler dry-run, engine/data byte identity, full XCTest/XCUITest) plus a
+  Release archive; inspect the signed archive entitlements
+  (`aps-environment`) per plan.
+- One finding = one commit; `~/.claude/claude-sync.sh hold` for review-gated
+  work, release after deliberate commits land.
+- The iOS push gate stays closed: no push to `main`, no TestFlight dispatch,
+  no App Review, no public send — Task 12 owns those behind their own owner
+  gates. `PUSH_PUBLIC_SEND_ENABLED` stays `"false"`.
+- Known open owner item (non-blocking): decide whether tracked
+  `prototype/printer-picker.html` should stay publicly served or join
+  `.assetsignore`.
 
-Prepared release copy (do not rewrite): the ratified What's New, promotional
-text, review notes, WHAT'S INCLUDED block, and the Identifiers → Device ID
-privacy answers are already locked in
-`3dprintassistant-ios/docs/app-store-v1.1.0-submit.md` (+ metadata and
-privacy-labels updates). Task 11 consumes them; recount catalog totals from
-the exact archive if data changed.
+Device facts if a device step arises: owner iPhone 17 Pro Max UDID
+`26E44024-2A8A-591F-9D6F-2E6738269624`; `devicectl ... launch` app args need a
+`--` separator; the canary device is currently opted out of notifications
+(re-enable in-app if needed).
 
 <<< END <<<
 
