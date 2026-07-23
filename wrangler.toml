@@ -8,7 +8,7 @@ compatibility_flags = ["nodejs_compat"]
 main = "worker.js"
 
 [vars]
-PUSH_REGISTRATION_ENABLED = "false"
+PUSH_REGISTRATION_ENABLED = "true"
 PUSH_PUBLIC_SEND_ENABLED = "false"
 APNS_TOPIC = "dk.mragile.3DPrintAssistant"
 
