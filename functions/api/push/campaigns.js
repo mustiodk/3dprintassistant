@@ -226,27 +226,16 @@ export async function createCampaign(env, input, { now = Math.floor(Date.now() /
   ) {
     throw new CampaignError("public push send is disabled", 503);
   }
-  const duplicate = await env.PUSH_DB.prepare(
-    "SELECT campaign_id FROM push_campaigns WHERE campaign_id = ?",
-  ).bind(preview.campaign.campaign_id).first();
-  if (duplicate) throw new CampaignError("campaign_id already exists", 409);
-  if (preview.campaign.audience_mode === "public") {
-    const recent = await env.PUSH_DB.prepare(
-      `SELECT campaign_id FROM push_campaigns
-       WHERE audience_mode = 'public' AND status != 'cancelled' AND created_at > ?
-       LIMIT 1`,
-    ).bind(now - 7 * 86_400).first();
-    if (recent) throw new CampaignError("one public campaign is allowed per rolling seven days", 409);
-  }
-
   const campaign = preview.campaign;
-  const insertCampaign = env.PUSH_DB.prepare(
-    `INSERT INTO push_campaigns (
-      campaign_id, environment, topic, kind, title, body, brand_id, printer_id,
-      release_version, announcement_id, audience_mode, preview_digest, status,
-      created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?)`,
-  ).bind(
+  // The rolling-seven-days public cadence is enforced atomically inside the
+  // campaign INSERT (WHERE NOT EXISTS), not by a separate pre-read, so two
+  // concurrent creates can never both pass a check-then-insert window. The
+  // deliveries INSERT is conditioned on the campaign row existing so a
+  // cadence-rejected batch inserts nothing instead of aborting on the FK.
+  const campaignColumns = `campaign_id, environment, topic, kind, title, body,
+      brand_id, printer_id, release_version, announcement_id, audience_mode,
+      preview_digest, status, created_at`;
+  const campaignValues = [
     campaign.campaign_id,
     campaign.environment,
     campaign.topic,
@@ -260,23 +249,74 @@ export async function createCampaign(env, input, { now = Math.floor(Date.now() /
     campaign.audience_mode,
     preview.previewDigest,
     now,
-  );
+  ];
+  const insertCampaign =
+    campaign.audience_mode === "public"
+      ? env.PUSH_DB.prepare(
+          `INSERT INTO push_campaigns (${campaignColumns})
+           SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?
+           WHERE NOT EXISTS (
+             SELECT 1 FROM push_campaigns
+             WHERE audience_mode = 'public' AND status != 'cancelled'
+               AND created_at > ?
+           )`,
+        ).bind(...campaignValues, now - 7 * 86_400)
+      : env.PUSH_DB.prepare(
+          `INSERT INTO push_campaigns (${campaignColumns})
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?)`,
+        ).bind(...campaignValues);
   const topicMask = campaign.topic === "new_printers" ? 1 : 2;
+  const campaignExists =
+    "EXISTS (SELECT 1 FROM push_campaigns WHERE campaign_id = ?)";
   const insertDeliveries = preview.targetHash
     ? env.PUSH_DB.prepare(
         `INSERT INTO push_deliveries (
           campaign_id, environment, token_hash, status, attempts, updated_at
-        ) VALUES (?, ?, ?, 'pending', 0, ?)`,
-      ).bind(campaign.campaign_id, campaign.environment, preview.targetHash, now)
+        )
+        SELECT ?, ?, ?, 'pending', 0, ?
+        WHERE ${campaignExists}`,
+      ).bind(
+        campaign.campaign_id,
+        campaign.environment,
+        preview.targetHash,
+        now,
+        campaign.campaign_id,
+      )
     : env.PUSH_DB.prepare(
         `INSERT INTO push_deliveries (
           campaign_id, environment, token_hash, status, attempts, updated_at
         )
         SELECT ?, environment, token_hash, 'pending', 0, ?
         FROM push_devices
-        WHERE environment = ? AND (topics & ?) != 0`,
-      ).bind(campaign.campaign_id, now, campaign.environment, topicMask);
-  await env.PUSH_DB.batch([insertCampaign, insertDeliveries]);
+        WHERE environment = ? AND (topics & ?) != 0
+          AND ${campaignExists}`,
+      ).bind(
+        campaign.campaign_id,
+        now,
+        campaign.environment,
+        topicMask,
+        campaign.campaign_id,
+      );
+  let results;
+  try {
+    results = await env.PUSH_DB.batch([insertCampaign, insertDeliveries]);
+  } catch (error) {
+    // Concurrent duplicate create: the PRIMARY KEY aborts the batch atomically.
+    if (String(error?.message ?? error).includes("UNIQUE constraint failed")) {
+      throw new CampaignError("campaign_id already exists", 409);
+    }
+    throw error;
+  }
+  if (Number(results[0].meta.changes ?? 0) === 0) {
+    const duplicate = await env.PUSH_DB.prepare(
+      "SELECT campaign_id FROM push_campaigns WHERE campaign_id = ?",
+    ).bind(campaign.campaign_id).first();
+    if (duplicate) throw new CampaignError("campaign_id already exists", 409);
+    throw new CampaignError(
+      "one public campaign is allowed per rolling seven days",
+      409,
+    );
+  }
   const cursor = {
     schema_version: 1,
     campaign_id: campaign.campaign_id,
