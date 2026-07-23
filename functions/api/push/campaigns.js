@@ -400,16 +400,35 @@ export async function replayCampaignCursor(
     }
     return { row, cursor };
   });
+  // The campaign must be consumable before any replayed message can land, so
+  // 'queued' is set ahead of the sends. If a send then fails before ANY cursor
+  // was enqueued, restore 'blocked' with an explicit reason — otherwise a
+  // 'queued' campaign with zero in-flight messages would stall silently. After
+  // partial progress the campaign stays 'queued' (in-flight work exists) and
+  // the thrown error tells the operator to replay the remaining cursors.
   await env.PUSH_DB.prepare(
     `UPDATE push_campaigns SET status = 'queued', blocked_reason = NULL,
       completed_at = NULL WHERE campaign_id = ? AND status = 'blocked'`,
   ).bind(campaignId).run();
-  for (const { row, cursor } of validatedCursors) {
-    await env.PUSH_FANOUT.send(cursor);
-    await env.PUSH_DB.prepare(
-      `UPDATE push_replay_cursors SET status = 'replayed', replayed_at = ?
-       WHERE cursor_id = ? AND status = 'preserved'`,
-    ).bind(now, row.cursor_id).run();
+  let enqueued = 0;
+  try {
+    for (const { row, cursor } of validatedCursors) {
+      await env.PUSH_FANOUT.send(cursor);
+      enqueued += 1;
+      await env.PUSH_DB.prepare(
+        `UPDATE push_replay_cursors SET status = 'replayed', replayed_at = ?
+         WHERE cursor_id = ? AND status = 'preserved'`,
+      ).bind(now, row.cursor_id).run();
+    }
+  } catch (error) {
+    if (enqueued === 0) {
+      await env.PUSH_DB.prepare(
+        `UPDATE push_campaigns
+         SET status = 'blocked', blocked_reason = 'replay_incomplete'
+         WHERE campaign_id = ? AND status = 'queued'`,
+      ).bind(campaignId).run();
+    }
+    throw error;
   }
   return campaignStatus(env, campaignId);
 }

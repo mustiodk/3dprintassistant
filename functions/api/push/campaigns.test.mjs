@@ -266,4 +266,38 @@ describe("push campaign boundary", () => {
     await expect(cancelCampaign(env, "campaign-ops", { now: now + 2 })).resolves.toMatchObject({ status: "cancelled" });
     await expect(cancelCampaign(env, "campaign-ops", { now: now + 3 })).resolves.toMatchObject({ status: "cancelled" });
   });
+
+  it("restores blocked when no replay cursor could be enqueued", async () => {
+    await env.PUSH_DB.prepare(
+      `INSERT INTO push_campaigns (
+        campaign_id, environment, topic, kind, title, body, announcement_id,
+        audience_mode, preview_digest, status, blocked_reason, created_at
+      ) VALUES ('campaign-stall', 'development', 'new_printers', 'new_printer',
+        'Title', 'Body', 'announcement', 'canary', 'digest', 'blocked',
+        'provider_auth', ?)`,
+    ).bind(now).run();
+    await env.PUSH_DB.prepare(
+      `INSERT INTO push_replay_cursors (
+        cursor_id, campaign_id, cursor_json, reason, status, created_at
+      ) VALUES ('cursor-stall', 'campaign-stall', ?, 'provider_auth', 'preserved', ?)`,
+    ).bind(
+      JSON.stringify({ schema_version: 1, campaign_id: "campaign-stall", environment: "development", after_token_hash: null }),
+      now,
+    ).run();
+
+    const send = vi.fn(async () => { throw new Error("queue unavailable"); });
+    await expect(
+      replayCampaignCursor({ ...env, PUSH_FANOUT: { send } }, "campaign-stall", { now: now + 1 }),
+    ).rejects.toThrow("queue unavailable");
+    const campaign = await env.PUSH_DB.prepare(
+      "SELECT status, blocked_reason FROM push_campaigns WHERE campaign_id = 'campaign-stall'",
+    ).first();
+    expect(campaign.status).toBe("blocked");
+    expect(campaign.blocked_reason).toBe("replay_incomplete");
+    expect(
+      await env.PUSH_DB.prepare(
+        "SELECT status FROM push_replay_cursors WHERE cursor_id = 'cursor-stall'",
+      ).first("status"),
+    ).toBe("preserved");
+  });
 });
