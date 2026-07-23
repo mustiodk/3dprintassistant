@@ -196,6 +196,34 @@ describe("bounded APNs fan-out", () => {
     ).toBe(3);
   });
 
+  it("keeps the preserved cursor authoritative when the DLQ send fails", async () => {
+    await seedCampaign();
+    await addDelivery("0011");
+    const batch = makeBatch();
+    const ctx = createExecutionContext();
+    const runtimeEnv = testEnv({
+      PUSH_DLQ: { send: vi.fn(async () => { throw new Error("dlq unavailable"); }) },
+    });
+    await processQueueBatch(batch, runtimeEnv, ctx, {
+      apnsClient: {
+        send: vi.fn(async () => ({ classification: "blocked", status: 403, reason: "InvalidProviderToken" })),
+      },
+      now: () => now + 1,
+    });
+    const queueResult = await getQueueResult(batch, ctx);
+    // Recovery is driven from the D1 preserved cursor via the admin replay
+    // endpoint; the DLQ message is advisory. A DLQ transport failure must not
+    // convert an already-blocked campaign into a queue retry loop.
+    expect(queueResult.explicitAcks).toEqual(["message-1"]);
+    expect(queueResult.retryMessages).toEqual([]);
+    expect(
+      await env.PUSH_DB.prepare("SELECT status FROM push_campaigns").first("status"),
+    ).toBe("blocked");
+    expect(
+      await env.PUSH_DB.prepare("SELECT status FROM push_replay_cursors").first("status"),
+    ).toBe("preserved");
+  });
+
   it("completes a campaign when every delivery is accepted", async () => {
     await seedCampaign();
     await addDelivery("0011");

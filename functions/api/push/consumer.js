@@ -205,7 +205,14 @@ async function preserveCursor(env, cursor, reason, now) {
        WHERE campaign_id = ? AND status != 'cancelled'`,
     ).bind(reason, cursor.campaign_id),
   ]);
-  await env.PUSH_DLQ.send(cursor);
+  try {
+    await env.PUSH_DLQ.send(cursor);
+  } catch {
+    // The D1 preserved cursor is the authoritative recovery record consumed by
+    // the admin replay endpoint; the DLQ copy is advisory. A DLQ transport
+    // failure must not bubble up and convert the already-blocked campaign's
+    // message into a pointless retry cycle.
+  }
 }
 
 async function finishCampaign(database, campaignId, now) {
