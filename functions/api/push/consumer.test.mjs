@@ -196,6 +196,59 @@ describe("bounded APNs fan-out", () => {
     ).toBe(3);
   });
 
+  it("completes a campaign when every delivery is accepted", async () => {
+    await seedCampaign();
+    await addDelivery("0011");
+    await addDelivery("0022");
+    await run(makeBatch());
+    const row = await env.PUSH_DB.prepare(
+      "SELECT status, completed_at, accepted_count FROM push_campaigns",
+    ).first();
+    expect(row.status).toBe("complete");
+    expect(row.completed_at).not.toBeNull();
+    expect(row.accepted_count).toBe(2);
+  });
+
+  it("marks a campaign partial when some deliveries are invalid", async () => {
+    await seedCampaign();
+    await addDelivery("0011");
+    await addDelivery("0022");
+    const ctx = createExecutionContext();
+    const send = vi
+      .fn()
+      .mockResolvedValueOnce({ classification: "invalid", status: 410, reason: "Unregistered" })
+      .mockResolvedValue({ classification: "accepted", status: 200, reason: null });
+    await processQueueBatch(makeBatch(), testEnv(), ctx, {
+      apnsClient: { send },
+      now: () => now + 1,
+    });
+    await getQueueResult(makeBatch(), ctx);
+    const row = await env.PUSH_DB.prepare(
+      "SELECT status, invalid_count, accepted_count FROM push_campaigns",
+    ).first();
+    // RED demo verified 2026-07-23: asserting "complete" here fails with
+    // status "partial" — the invalid_count>0 branch is exercised for real.
+    expect(row.status).toBe("partial");
+    expect(row.invalid_count).toBe(1);
+    expect(row.accepted_count).toBe(1);
+  });
+
+  it("fails a campaign when no delivery is accepted", async () => {
+    await seedCampaign();
+    await addDelivery("0011");
+    await run(
+      makeBatch(),
+      {},
+      { classification: "failed", status: 400, reason: "BadCollapseId" },
+    );
+    const row = await env.PUSH_DB.prepare(
+      "SELECT status, failed_count, accepted_count FROM push_campaigns",
+    ).first();
+    expect(row.status).toBe("failed");
+    expect(row.failed_count).toBe(1);
+    expect(row.accepted_count).toBe(0);
+  });
+
   it("preserves exhausted retryable work before explicit DLQ", async () => {
     await seedCampaign();
     await addDelivery("0011");

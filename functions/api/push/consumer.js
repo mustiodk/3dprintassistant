@@ -209,32 +209,27 @@ async function preserveCursor(env, cursor, reason, now) {
 }
 
 async function finishCampaign(database, campaignId, now) {
-  const pending = Number(
-    await database
-      .prepare(
-        `SELECT COUNT(*) AS count FROM push_deliveries
-         WHERE campaign_id = ? AND status IN ('pending', 'retryable')`,
-      )
-      .bind(campaignId)
-      .first("count"),
-  );
-  if (pending > 0) return;
-  const counts = await database
-    .prepare(
-      `SELECT accepted_count, invalid_count, failed_count
-       FROM push_campaigns WHERE campaign_id = ?`,
-    )
-    .bind(campaignId)
-    .first();
-  let status = "complete";
-  if (counts.failed_count > 0 && counts.accepted_count === 0) status = "failed";
-  else if (counts.failed_count > 0 || counts.invalid_count > 0) status = "partial";
+  // Single atomic statement: the pending-work guard, the trigger-maintained
+  // counters, and the terminal-status write are evaluated together so a
+  // delivery transitioning concurrently can never yield a stale terminal
+  // status computed from an earlier read.
   await database
     .prepare(
-      `UPDATE push_campaigns SET status = ?, completed_at = ?
-       WHERE campaign_id = ? AND status = 'sending'`,
+      `UPDATE push_campaigns
+       SET status = CASE
+             WHEN failed_count > 0 AND accepted_count = 0 THEN 'failed'
+             WHEN failed_count > 0 OR invalid_count > 0 THEN 'partial'
+             ELSE 'complete'
+           END,
+           completed_at = ?
+       WHERE campaign_id = ? AND status = 'sending'
+         AND NOT EXISTS (
+           SELECT 1 FROM push_deliveries
+           WHERE push_deliveries.campaign_id = push_campaigns.campaign_id
+             AND push_deliveries.status IN ('pending', 'retryable')
+         )`,
     )
-    .bind(status, now, campaignId)
+    .bind(now, campaignId)
     .run();
 }
 
