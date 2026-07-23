@@ -1,6 +1,6 @@
 # iOS 1.1.0 Notification Release Gate Ledger
 
-**State (2026-07-23, later):** **Tasks 0–11 complete.** The Task 9 independent
+**State (2026-07-24):** **Tasks 0–11 complete; Task 12 Steps 1–5 complete — iOS 1.1.0 SUBMITTED for App Review (owner, Manual Release).** The Task 9 independent
 hostile review closed with a confirmation **`GO`**, and **Task 11 (compose
 1.1.0) is now done and cross-model reviewed.** `MARKETING_VERSION` is `1.1.0`
 (iOS `9a0197f`), web `privacy.html` discloses the opt-in APNs token (`d012cc8`),
@@ -14,12 +14,21 @@ engine+data byte-identical; iOS **183/183** = 179 unit + 4 UI) and the final
 defects only (no P0/P1) — all fixed one per commit (`edf8466`, `aa0c8a6`),
 converging to no open P0/P1/P2. Under owner G0 the production provider stays
 **live-dark**: `PUSH_REGISTRATION_ENABLED="true"` (Task 10 canary, `8a8f6ce`),
-`PUSH_PUBLIC_SEND_ENABLED="false"`. **Still not done (Task 12, own owner
-gates):** no iOS commit pushed, no TestFlight build dispatched, no App Review
-submission, no public notification sent. One release-gate check is
-CI/Task-12-deferred: the distribution-signed archive `codesign` inspection of
-`aps-environment=production` (no local distribution cert; the Release build
-setting was proven to resolve to `production` deterministically instead).
+`PUSH_PUBLIC_SEND_ENABLED="false"`. **Task 12 (2026-07-24, under explicit owner
+GO):** web ff-merged provider→`main` + pushed `df9aa8e..21fca0e` → Cloudflare
+prod verified (server paths 404, `/api/push/register` routes, privacy live,
+public-send `"false"`); iOS ff-merged release→`main` + single push
+`f2f1f3b..aa0c8a6`; one TestFlight run `30035346767` built `aa0c8a6` (= reviewed
+HEAD, success); **all nine owner acceptance gates green** (①②③⑤⑦ owner on the
+TestFlight build, ④⑥⑧⑨ controller on a sim build from the same HEAD + signed
+canary sends); owner completed ASC (App Privacy Identifiers→Device ID
+opt-in/not-tracking/not-linked/App-Functionality, owner-revised What's New, build
+`202607231851`, Manual Release) and submitted 1.1.0 for review. **Still pending
+(owner-gated):** Apple approval → manual release → DK-storefront 1.1.0 confirm;
+then the separately-gated first public notification (Step 6) — public send stays
+`"false"`. The distribution-signed archive `codesign aps-environment=production`
+inspection runs in CI (no local distribution cert; the Release build setting was
+proven to resolve to `production` deterministically).
 
 ## Protected baselines
 
