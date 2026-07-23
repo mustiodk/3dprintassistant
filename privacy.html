@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Privacy Policy — 3D Print Assistant</title>
-  <meta name="description" content="Privacy policy for 3D Print Assistant. We collect crash diagnostics and anonymous product usage events to improve the app. No personal information, user IDs, or tracking."/>
+  <meta name="description" content="Privacy policy for 3D Print Assistant. We collect crash diagnostics, anonymous product usage events, and — only if you opt in — a push notification token. No personal information, user accounts, or tracking."/>
   <link rel="canonical" href="https://3dprintassistant.com/privacy"/>
   <meta name="robots" content="index, follow"/>
 
@@ -125,7 +125,7 @@
     <a href="/" class="privacy-back">← 3D Print Assistant</a>
 
     <h1 class="privacy-title">Privacy Policy</h1>
-    <p class="privacy-date">Last updated: May 8, 2026</p>
+    <p class="privacy-date">Last updated: July 23, 2026</p>
 
     <div class="privacy-section">
       <p>3D Print Assistant is a hobby project developed by Musti. This policy explains what data the app and website collect and why.</p>
@@ -154,6 +154,19 @@
     </div>
 
     <div class="privacy-section">
+      <h2>Notifications (optional)</h2>
+      <p>The iOS app can send optional push notifications about newly supported printers and meaningful app updates. Notifications are <strong>off by default</strong>. They are sent only after you open <strong>Product updates</strong>, select at least one topic, and explicitly enable them — and you can turn them off again at any time.</p>
+      <p>If you opt in, your device's Apple Push Notification service (APNs) token is sent to a <strong>first-party Cloudflare Worker</strong> and stored <strong>encrypted (AES-GCM) at rest</strong> in a Cloudflare <strong>D1 database hosted in the EU</strong>. The token is used only to deliver the notification topics you selected, and delivery is carried out by <strong>Apple's APNs</strong>. Notification content contains public product information only (for example, a printer name or an app version).</p>
+      <p>This push token:</p>
+      <ul>
+        <li>is <strong>not linked to your identity</strong> and is <strong>never used for tracking</strong>;</li>
+        <li>is <strong>never sent to product analytics</strong> or shared with advertisers;</li>
+        <li>is <strong>deleted immediately</strong> when you turn notifications off (unregister);</li>
+        <li>is otherwise pruned automatically — delivery records after 30 days, and inactive device tokens after 180 days.</li>
+      </ul>
+    </div>
+
+    <div class="privacy-section">
       <h2>What we do NOT collect</h2>
       <table class="privacy-table">
         <thead>
@@ -165,8 +178,9 @@
         <tbody>
           <tr><td>Name, email, or contact info</td><td><span class="badge-no">No</span></td></tr>
           <tr><td>Location data</td><td><span class="badge-no">No</span></td></tr>
-          <tr><td>User ID or device identifier</td><td><span class="badge-no">No</span></td></tr>
+          <tr><td>User account, login, or user ID</td><td><span class="badge-no">No</span></td></tr>
           <tr><td>Anonymous product usage events</td><td><span class="badge-yes">Yes</span></td></tr>
+          <tr><td>Push notification token (iOS)</td><td><span class="badge-yes">Opt-in only</span></td></tr>
           <tr><td>User/session tracking identifiers</td><td><span class="badge-no">No</span></td></tr>
           <tr><td>Advertising identifiers</td><td><span class="badge-no">No</span></td></tr>
           <tr><td>Purchase history</td><td><span class="badge-no">No</span></td></tr>
@@ -185,6 +199,7 @@
     <div class="privacy-section">
       <h2>Data retention</h2>
       <p>Crash data is retained in Sentry according to <a href="https://sentry.io/privacy/" target="_blank" rel="noopener">Sentry's standard data retention policy</a>. You can request deletion by contacting the developer.</p>
+      <p>Push notification tokens (if you opt in) are deleted immediately when you turn notifications off, and are otherwise pruned automatically — delivery records after 30 days and inactive device tokens after 180 days.</p>
     </div>
 
     <hr class="privacy-divider"/>
