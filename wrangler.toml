@@ -54,3 +54,8 @@ period = 60
 
 [triggers]
 crons = ["0 3 * * *"]
+
+[[d1_databases]]
+binding = "PUSH_DB"
+database_name = "3dpa-push-production"
+database_id = "6b366855-790f-4961-9bd3-1b45f253abda"
