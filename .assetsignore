@@ -29,3 +29,12 @@ docs
 docs/**
 codex
 codex/**
+# Untracked local tooling artifacts, git worktrees, and internal AI handoff docs.
+# A manual `wrangler deploy` uploads the working tree (including untracked dirs),
+# so these must be excluded explicitly or they leak as public assets.
+.superpowers
+.superpowers/**
+.worktrees
+.worktrees/**
+ai-handoffs
+ai-handoffs/**
