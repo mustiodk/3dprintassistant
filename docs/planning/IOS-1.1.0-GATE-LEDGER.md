@@ -1,17 +1,25 @@
 # iOS 1.1.0 Notification Release Gate Ledger
 
-**State (2026-07-23):** **Tasks 0–10 complete; owner authorization for Task 11
-GIVEN (2026-07-23 evening).** The Task 9 independent hostile review closed with
-a confirmation **`GO`** (no remaining or new P0/P1/P2). Under owner G0 the
-production provider is deployed **live-dark**: `PUSH_REGISTRATION_ENABLED` is
-`"true"` (enabled for the Step 5 canary, commit `8a8f6ce`) and
-`PUSH_PUBLIC_SEND_ENABLED` remains `"false"`. The full Step 5 device canary
-passed on the owner's physical iPhone — including two canary-caught iOS fixes
-(`0a8759a`, `76aca9e`), the opt-out persistence proof, the on-device
-file-protection proof, and the 20-launch timing gate (median 87.3 ms / p95
-99.3 ms). **Task 11 (compose 1.1.0) is authorized for a fresh session. Still
-not done (Task 12, own owner gates):** no iOS commit pushed, no TestFlight
-build dispatched, no App Review submission, no public notification sent.
+**State (2026-07-23, later):** **Tasks 0–11 complete.** The Task 9 independent
+hostile review closed with a confirmation **`GO`**, and **Task 11 (compose
+1.1.0) is now done and cross-model reviewed.** `MARKETING_VERSION` is `1.1.0`
+(iOS `9a0197f`), web `privacy.html` discloses the opt-in APNs token (`d012cc8`),
+the 1.1.0 iOS bundled-catalog baseline was registered so the overlay validator
+passes (`60d32ea`), and the ratified §11 copy/metadata/privacy-labels are
+verbatim (78 printers / 14 brands recounted from the exact archive). The full
+Task 9-scale battery reran green (web provider 62, Worker/analytics 33,
+validators/walkthrough/export-audit, wrangler dry-run public-send `"false"`,
+engine+data byte-identical; iOS **183/183** = 179 unit + 4 UI) and the final
+`bridge --mode codex-only` review returned NO-GO on 3 P2 release-doc accuracy
+defects only (no P0/P1) — all fixed one per commit (`edf8466`, `aa0c8a6`),
+converging to no open P0/P1/P2. Under owner G0 the production provider stays
+**live-dark**: `PUSH_REGISTRATION_ENABLED="true"` (Task 10 canary, `8a8f6ce`),
+`PUSH_PUBLIC_SEND_ENABLED="false"`. **Still not done (Task 12, own owner
+gates):** no iOS commit pushed, no TestFlight build dispatched, no App Review
+submission, no public notification sent. One release-gate check is
+CI/Task-12-deferred: the distribution-signed archive `codesign` inspection of
+`aps-environment=production` (no local distribution cert; the Release build
+setting was proven to resolve to `production` deterministically instead).
 
 ## Protected baselines
 
@@ -37,6 +45,7 @@ build dispatched, no App Review submission, no public notification sent.
 | 8 | PASS | Local iOS commits `e870420` and `d52ab0f` add native Bambu/Orca/Prusa file exports and allowlisted intent analytics. Focused gate: 22 unit/integration tests and 4 UI tests, 0 failures. |
 | 10 | PASS | Owner G0 given 2026-07-23. Apple push capability + dedicated APNs key (owner, controller-assisted); EU D1/queues/rate-limit provisioned + six secrets entered interactively; `0001_push.sql` applied; dark deploy verified (all bindings + cron, 4 exposure probes 404, 3 caught internal-dir leaks fixed in `bb49ccf`); registration enabled `8a8f6ce`; full physical-device canary passed with two canary-caught iOS fixes (`0a8759a` registrar call-time resolution, `76aca9e` opt-out persistence), opt-out not-found proof, on-device file protection, 20-launch timing median 87.3 / p95 99.3 ms. Public send never enabled. Details in "Task 10 evidence" below. |
 | 9 | PASS | Step 1: full cross-repo verification green after two independently committed gate fixes. Step 2 (2026-07-23): valid canonical `bridge --mode claude-only` review (870.1 s, exit 0, non-empty) returned NO-GO with 1 P1 + 6 P2; accepted findings fixed one per commit (web `8682ab6`/`18c41ad`/`247bea7`/`8f8acce`/`29c3e94`, iOS `3f886bf`), P2-E refuted with code evidence; full gates rerun green (provider 62, Worker 33, XCTest 177, XCUITest 4, all validators/audits/dry-run/identity/diff); confirmation review of the applied fixes returned `GO`, no remaining or new P0/P1/P2. Step 3: stopped at G0 with the exact owner prerequisites reported. Disposition: [`implementation-review-disposition.md`](../reviews/2026-07-18-ios-1.1.0-notification-release/implementation/implementation-review-disposition.md). |
+| 11 | PASS | `9a0197f` bumps `MARKETING_VERSION` to 1.1.0 (Release resolves `aps-environment=production`, `CURRENT_PROJECT_VERSION` unchanged, no UIBackgroundModes); web `d012cc8` adds the opt-in push-token privacy disclosure, `60d32ea` registers the 1.1.0 bundled-catalog baseline (overlay validator PASS). Ratified §11 copy + metadata + privacy-labels verbatim (78 printers / 14 brands recounted from the exact archive). Full Task 9-scale battery green (web provider 62, Worker/analytics 33, validators/walkthrough/export-audit/dry-run/identity; iOS 183/183 = 179 unit + 4 UI). Final `bridge --mode codex-only` review returned NO-GO on 3 P2 release-doc accuracy defects only (no P0/P1); all fixed one per commit (`edf8466`, `aa0c8a6`) → no open P0/P1/P2. Details in "Task 11 evidence" below. |
 
 ## Task 9 verification matrix
 
@@ -184,6 +193,70 @@ Step 5 — device canary + opt-out proof + 20-launch timing: **COMPLETE
 4. **App Store Connect:** confirm the physical canary Device ID to use for the
    Task 10 device gate, and confirm the App Privacy answers may be updated for
    push-token processing when Task 11 composes the release.
+
+## Task 11 evidence (compose 1.1.0 — 2026-07-23)
+
+Step 1 — Version bump: iOS `9a0197f` sets `MARKETING_VERSION` 1.0.7→1.1.0 in
+`project.yml` + regenerated `project.pbxproj` (both configs); `CURRENT_PROJECT_VERSION`
+left `1` (Fastlane-owned). Diff is version-only, no team-id/device noise.
+
+Step 2 — Privacy truth: web `d012cc8` adds a "Notifications (optional)" section
+to `privacy.html` (Cloudflare + Apple/APNs processors, opt-in purpose, AES-GCM
+at rest, EU-jurisdiction D1, the two topics, immediate unregister deletion,
+30-day delivery / 180-day stale-device retention, not linked / not tracking),
+removes the false "device identifier: No" table claim, and adds an "Opt-in only"
+push-token row. iOS `app-store-privacy-labels.md` already carried the
+Identifiers → Device ID declaration (Task 9 prep); the stale Device ID row in
+the NOT-collected table was removed in `edf8466`.
+
+Step 3 — Copy + counts: submit doc + metadata + privacy-labels were committed
+in Task 9 prep (`6742b8e`); all §11 copy verified **verbatim** (What's New,
+Promotional 114 chars ≤170, Review Notes, WHAT'S INCLUDED). Catalog totals
+recounted from the exact release-branch bundled `printers.json`: **78 printers /
+14 brands** (matches ratified). Overlay-validator anti-staleness gate required a
+1.1.0 bundled-catalog baseline (the version bump RED'd it) — added additively in
+`60d32ea` (78/14, snapmaker present, existing 1.0.3–1.0.7 baselines untouched),
+validator now PASS. Submit-doc status + rollback text corrected to the live-dark
+Task-10 reality in `aa0c8a6`.
+
+Step 4 — Screenshots + a11y: iPhone 17 Pro + iPad Pro 11" matrix captured via
+`ScreenCaptureUITests`; Home shows `v1.1.0` + the "Product updates" opt-in row
+(Off), Output shows the single native "Export for Bambu Studio" action. New
+controls carry accessibility identifiers; dark-theme contrast strong.
+Observation (non-blocking, not a 1.1.0 regression): `ProductUpdatesView` uses
+fixed-point `.system(size:)` fonts — the app-wide established idiom, not Dynamic
+Type; full Dynamic Type support would be an out-of-scope app redesign. No iPhone
+SE simulator available (17-series/Air only) → smallest-screen clipping is an
+owner on-device check. App Store screenshot replacement remains owner-gated
+(exact-build images).
+
+Step 5 — Full gate battery + archive: web validate-data / overlay (PASS after
+1.1.0 baseline) / walkthrough / export-audit (0 FAIL) / provider push 62 /
+Worker+analytics 33 / wrangler dry-run (public-send `"false"`) / engine + data
+byte-identical; iOS full **183/183** (179 unit + 4 UI). Production source
+exposure probes 404 (Task-10 dark state, non-regressed). Copy 114 chars.
+No-secret static sweep clean; `Config.xcconfig` gitignored. Both repos clean.
+Release config resolves `APS_ENVIRONMENT = production` and the entitlements file
+wires `aps-environment=$(APS_ENVIRONMENT)`; `UIBackgroundModes` absent.
+**Limitation:** the distribution-signed archive `codesign -d --entitlements`
+check could not run locally (only an Apple Development cert is installed; the
+Distribution cert lives in CI via `DISTRIBUTION_CERT_BASE64`). `aps-environment=production`
+was proven deterministically from the resolved Release build settings; the
+signed-archive entitlement inspection is completed in CI at Task 12 dispatch.
+
+Step 6 — Final cross-model review: `bridge --mode codex-only` (Codex is the
+independent model since the controller is Claude — the plan's literal
+"claude-only" wording assumed a Codex controller). Verdict: **NO-GO, no P0/P1,
+3 P2 release-doc accuracy defects** (Device ID still in the NOT-collected table;
+submit-doc status stale at "Tasks 0–9"; submit-doc rollback claimed both flags
+`"false"`). All three fixed one per commit (`edf8466`, `aa0c8a6`) and
+self-verified against ledger reality → **no open P0/P1/P2**. Codex explicitly
+confirmed privacy.html completeness, catalog-baseline exact match, version-bump
+correctness, and §11 copy verbatim. Transcript:
+[`bridge-2026-07-23-203105-230309.md`](../reviews/2026-07-18-ios-1.1.0-notification-release/implementation/bridge-2026-07-23-203105-230309.md).
+
+Step 7 — Owner gate: pending. No iOS push, no TestFlight dispatch, no App
+Review, no public send. `PUSH_PUBLIC_SEND_ENABLED` stays `"false"`.
 
 ## Web + iOS data/logic and UI/UX evaluation
 
