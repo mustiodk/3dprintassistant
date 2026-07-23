@@ -91,7 +91,10 @@ export async function classifyAPNsResponse(response) {
   ) {
     return { classification: "invalid", status: response.status, reason };
   }
-  if (response.status === 403) {
+  // TopicDisallowed is a provider-level misconfiguration (wrong apns-topic for
+  // the credential); like 403 auth failures it must halt the campaign instead
+  // of marking every delivery failed.
+  if (response.status === 403 || reason === "TopicDisallowed") {
     return { classification: "blocked", status: response.status, reason };
   }
   if (response.status === 429 || response.status >= 500) {

@@ -81,6 +81,7 @@ describe("APNs provider client", () => {
     [429, { reason: "TooManyRequests" }, "retryable"],
     [500, { reason: "InternalServerError" }, "retryable"],
     [403, { reason: "Anything" }, "blocked"],
+    [400, { reason: "TopicDisallowed" }, "blocked"],
     [400, { reason: "BadCollapseId" }, "failed"],
   ])("classifies APNs %s as %s", async (status, body, classification) => {
     const response = new Response(body ? JSON.stringify(body) : null, {
