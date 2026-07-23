@@ -66,11 +66,32 @@ XCTest/XCUITest) recorded in
 is rerun after the fix train; the canary round-trip is a designed post-G0 Task
 10 gate.
 
+## Confirmation round
+
+[`bridge-2026-07-23-142532-902585.md`](bridge-2026-07-23-142532-902585.md)
+(canonical `bridge --mode claude-only`, 329.6 s, exit 0): **`VERDICT: GO`** —
+every applied fix verified against the actual diffs (web `8682ab6`, `18c41ad`,
+`247bea7`, `8f8acce`, `29c3e94`; iOS `3f886bf`), the P2-E refutation upheld
+with file/line evidence, the unchanged `didFinishLaunchingWithOptions`
+endorsed as correct for the UN-delegate tap path, and **no remaining or new
+P0/P1/P2**. One new optional, O-1 (a replay double-call after preserved
+cursors drained can strand a campaign `queued`), was recorded as an operator
+note in `docs/runbooks/ios-push.md` and not promoted.
+
+Post-fix full gate rerun (same session): provider 62/62 (56 + 6 new tests),
+Worker/analytics 33/33, data validation clean, overlay 2 brands / 9 printers,
+walkthrough 18 combinations clean, export audit 0 FAIL / 0 warn, Wrangler
+dry-run compiled with both send flags `"false"`, `engine.js` `cmp` exit 0,
+`data/` `diff -qr` exit 0, iOS XCTest 177/177 (175 + 2 new) + XCUITest 4/4,
+`git diff --check` clean in both repositories. One full-suite attempt before
+the green run failed entirely on simulator SpringBoard launch denial
+(`Busy / Application failed preflight checks`, xcresult 5/5 launch failures,
+zero code failures) and was rerun after `simctl bootstatus`; recorded here so
+the flake signature is findable.
+
 ## Stop rule
 
-- A follow-up confirmation review must verify the applied fixes before Task 9
-  Step 2 closes (a reviewer's proposed fix carries no authority; the applied
-  diff is the review surface).
-- `GO` with no open P0/P1/P2 completes Task 9 Step 2 only. Provisioning, iOS
-  push, TestFlight, App Review, and any public send stay prohibited until
-  owner G0.
+- Task 9 Step 2 is complete: valid independent review obtained, all accepted
+  P0/P1/P2 closed one per commit, applied fixes confirmation-reviewed `GO`.
+- `GO` completes Task 9 Step 2 only. Provisioning, iOS push, TestFlight, App
+  Review, and any public send stay prohibited until owner G0.

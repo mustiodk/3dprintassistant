@@ -1,11 +1,13 @@
 # iOS 1.1.0 Notification Release Gate Ledger
 
-**State:** Tasks 0–8 and Task 9 Step 1 are complete. Task 9 Step 2 is blocked
-fail-closed because both authorized independent-Claude transports returned no
-review output within their 900-second bounds. **G0 was not reached.** No Apple
-or Cloudflare resources have been provisioned, no iOS commit has been pushed,
-no TestFlight build has been dispatched, no App Review submission has been
-made, and no public notification has been sent.
+**State (2026-07-23):** **Tasks 0–9 are complete.** The independent hostile
+implementation review produced a valid verdict (NO-GO: 1 P1 + 6 P2), every
+accepted finding was closed one per commit, the full cross-repo gate battery
+was rerun green, and the confirmation review of the applied fixes returned
+**`GO` with no remaining or new P0/P1/P2**. **The train is stopped at G0
+awaiting the owner.** No Apple or Cloudflare resources have been provisioned,
+no iOS commit has been pushed, no TestFlight build has been dispatched, no App
+Review submission has been made, and no public notification has been sent.
 
 ## Protected baselines
 
@@ -29,7 +31,7 @@ made, and no public notification has been sent.
 | 6 | PASS | `1e6f7be` fixes unchanged Workshop re-save (#2); `6bdb73c` uses the permanent Discord invite (#3). |
 | 7 | PASS | Current web already contained the reviewed Workshop event contract; 30 web analytics tests passed without mutation. Local iOS commits `6391583`, `4720f12`, and `9f01f82` add selective backups, visible transfer actions, and privacy-safe successful-operation analytics. |
 | 8 | PASS | Local iOS commits `e870420` and `d52ab0f` add native Bambu/Orca/Prusa file exports and allowlisted intent analytics. Focused gate: 22 unit/integration tests and 4 UI tests, 0 failures. |
-| 9 | BLOCKED AT STEP 2 | Full cross-repo verification is green after two independently committed gate fixes. The required hostile Claude review has no valid verdict after the canonical Bridge attempt and its one authorized direct fallback both returned empty output at 900 seconds. |
+| 9 | PASS | Step 1: full cross-repo verification green after two independently committed gate fixes. Step 2 (2026-07-23): valid canonical `bridge --mode claude-only` review (870.1 s, exit 0, non-empty) returned NO-GO with 1 P1 + 6 P2; accepted findings fixed one per commit (web `8682ab6`/`18c41ad`/`247bea7`/`8f8acce`/`29c3e94`, iOS `3f886bf`), P2-E refuted with code evidence; full gates rerun green (provider 62, Worker 33, XCTest 177, XCUITest 4, all validators/audits/dry-run/identity/diff); confirmation review of the applied fixes returned `GO`, no remaining or new P0/P1/P2. Step 3: stopped at G0 with the exact owner prerequisites reported. Disposition: [`implementation-review-disposition.md`](../reviews/2026-07-18-ios-1.1.0-notification-release/implementation/implementation-review-disposition.md). |
 
 ## Task 9 verification matrix
 
@@ -46,7 +48,7 @@ made, and no public notification has been sent.
 | `data/` recursive identity | PASS | `diff -qr` exit 0. |
 | Full XCTest/XCUITest | PASS | 175 unit/integration tests + 4 UI tests, 0 failures. |
 | Web and iOS diff checks | PASS | `git diff --check` clean in both repositories. |
-| Independent hostile implementation review | BLOCKED / INVALID | Bridge: exit 124 after 900 seconds, empty stdout/stderr. Direct read-only Claude fallback: terminated after 900 seconds, empty stdout/stderr. Neither attempt is review evidence. |
+| Independent hostile implementation review | PASS (2026-07-23) | Valid `bridge --mode claude-only` verdict after the 2026-07-19 invalid attempts: initial NO-GO (1 P1, 6 P2, 5 optionals) → all accepted findings fixed one per commit → gates rerun green (provider 62, XCTest 177) → confirmation review of the applied diffs: `GO`, no remaining or new P0/P1/P2. Transcripts: `bridge-2026-07-23-140114-042091.md` + `bridge-2026-07-23-142532-902585.md`. |
 
 Two Task 9 gate defects were fixed one per commit before review:
 
@@ -56,16 +58,36 @@ Two Task 9 gate defects were fixed one per commit before review:
   the 1.1.0 bump for Task 11, and the existing 1.0.7 bundled-catalog baseline
   is therefore the correct pre-G0 validation surface.
 
-## Independent-review blocker
+## Independent review — resolved 2026-07-23
 
-- Invalid canonical attempt:
+- The 2026-07-19 blocker is closed. Invalid attempts (preserved as evidence):
   [`bridge-invalid-2026-07-19.md`](../reviews/2026-07-18-ios-1.1.0-notification-release/implementation/bridge-invalid-2026-07-19.md)
-- Invalid authorized fallback:
-  [`direct-claude-invalid-2026-07-19.md`](../reviews/2026-07-18-ios-1.1.0-notification-release/implementation/direct-claude-invalid-2026-07-19.md)
-- Resume only Task 9 Step 2 in a fresh session. Do not repeat Tasks 0–8. If a
-  valid review returns findings, land each P0/P1/P2 correction separately,
-  rerun focused and full gates, and obtain final `GO`. Only then may Task 9
-  Step 3 declare G0.
+  + [`direct-claude-invalid-2026-07-19.md`](../reviews/2026-07-18-ios-1.1.0-notification-release/implementation/direct-claude-invalid-2026-07-19.md).
+- Valid review round:
+  [`bridge-2026-07-23-140114-042091.md`](../reviews/2026-07-18-ios-1.1.0-notification-release/implementation/bridge-2026-07-23-140114-042091.md)
+  (NO-GO, 1 P1 + 6 P2 + 5 optionals) → six one-finding-one-commit fixes + one
+  refutation → full gate rerun green → confirmation round
+  [`bridge-2026-07-23-142532-902585.md`](../reviews/2026-07-18-ios-1.1.0-notification-release/implementation/bridge-2026-07-23-142532-902585.md)
+  (`GO`, applied fixes verified, no remaining or new P0/P1/P2).
+- Full finding-by-finding record:
+  [`implementation-review-disposition.md`](../reviews/2026-07-18-ios-1.1.0-notification-release/implementation/implementation-review-disposition.md).
+
+## G0 owner prerequisites (Task 9 Step 3 — the exact, non-secret list)
+
+1. **Apple — Push Notifications capability:** enable Push Notifications on the
+   `dk.mragile.3DPrintAssistant` App ID in the developer portal.
+2. **Apple — dedicated APNs key:** create a dedicated APNs Auth Key; have the
+   Key ID, Team ID, and the `.p8` ready for secure secret entry (never paste
+   the key text into chat or a file in this repo).
+3. **Cloudflare — approval to provision:** approve creating the EU D1
+   database, the `3dpa-push-production` and `3dpa-push-dlq` queues, the
+   registration rate-limit binding, and the Worker secrets
+   (`IOS_PUSH_REGISTRATION_SECRET`, `PUSH_TOKEN_ENCRYPTION_KEY_V1`,
+   `PUSH_ADMIN_TOKEN`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY_P8`)
+   via `wrangler secret put` (values entered without printing).
+4. **App Store Connect:** confirm the physical canary Device ID to use for the
+   Task 10 device gate, and confirm the App Privacy answers may be updated for
+   push-token processing when Task 11 composes the release.
 
 ## Web + iOS data/logic and UI/UX evaluation
 

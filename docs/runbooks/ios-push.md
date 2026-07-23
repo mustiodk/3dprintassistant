@@ -158,6 +158,14 @@ node scripts/send-ios-push.mjs replay CAMPAIGN_ID
 Never create a replacement campaign to bypass cadence. Replay uses preserved
 cursors and skips already terminal delivery rows.
 
+Replay exactly once per blocked state, then poll aggregate status. A second
+replay call after the preserved cursors were already drained (for example a
+double-invocation after a partial replay) finds nothing to enqueue, flips the
+campaign to `queued` with no in-flight queue message, and stalls silently —
+confirmation review optional O-1. If aggregate status shows `queued` with no
+progress after a replay, cancel the campaign and diagnose instead of replaying
+again.
+
 ## APNs key rotation
 
 1. Disable public send and cancel active work.
