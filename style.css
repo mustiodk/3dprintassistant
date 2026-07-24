@@ -938,6 +938,17 @@ body, header, .top-nav, .filters, .panel, .chip,
 .nav-home              { text-decoration: none; margin-right: 8px; padding-right: 16px; border-right: 1px solid var(--border2); }
 .nav-ios               { text-decoration: none; color: var(--green); }
 .nav-ios:hover         { color: var(--green); opacity: 0.85; }
+.nav-support {
+  text-decoration: none;
+  color: var(--green);
+  margin-left: 4px;
+  border-left: 1px solid var(--border2);
+}
+.nav-support:hover,
+.nav-support:focus-visible {
+  color: var(--green);
+  opacity: 0.85;
+}
 
 /* ── Troubleshooter view ── */
 .trouble-hero {

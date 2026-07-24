@@ -294,6 +294,7 @@ function applyLang() {
   document.getElementById('navWorkshop').textContent       = T('navWorkshop');
   document.getElementById('navFeedback').textContent       = T('navFeedback');
   document.getElementById('navIOS').textContent            = T('navIOS') + ' ↗';
+  document.getElementById('navSupport').textContent        = T('navSupport') + ' ♥';
 
   // Lang toggle active state
   document.getElementById('langEN').classList.toggle('active', lang === 'en');
