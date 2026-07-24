@@ -1,6 +1,9 @@
 # 2026-07-11 — Monetization: strategy decision + Phase 1 tip-jar plan
 
-**Status:** APPROVED by owner 2026-07-11 (brainstorm session, matrix + recommendation accepted).
+**Status:** SUPERSEDED 2026-07-25 by `2026-07-25-visible-tip-jar-design.md`,
+`2026-07-25-web-visible-tip-jar-plan.md`, and
+`2026-07-25-ios-visible-tip-jar-1.1.1-plan.md`. The strategy decision remains
+valid; the old hidden entry points and 10th-profile prompt do not.
 **Scope:** decision record + Phase 1 executable outline. No code in this session. Phase 1 iOS work is its own release train (1.0.8) AFTER the locked export sequence + iOS 1.0.7 issue-fix release. Web track is independent and can ship anytime.
 
 ---
