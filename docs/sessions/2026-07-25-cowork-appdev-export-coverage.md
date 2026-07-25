@@ -89,9 +89,8 @@ iOS `main`, local only under the push gate:
 
 ## Open questions / Follow-up
 
-- **iOS partial exports are not labelled.** 747 combos produce process settings
-  only; iOS gives no hint that the filament preset is missing (web does). Same
-  defect family as the reported bug — queue for the next iOS train.
+- ~~iOS partial exports are not labelled.~~ **Done same session** — web
+  `3f1acae` (live), iOS `c202255` (local, ships with the next train).
 - **`-uitest` is a no-op.** Every UITest passes the flag; no app code acts on
   it, so `testWorkshopTransferActionsStayVisibleWhenEmpty` depends on a clean
   container and fails after any manual use of the simulator. Either honour the
@@ -161,6 +160,27 @@ web disables the Filament button with a tooltip, but **iOS still labels the row
 "Export for <slicer>" and silently delivers one file instead of two**. Not
 changed in 1.1.2 — a TestFlight build was already in flight for owner
 verification and each build costs ~10 min at the 10× macOS runner rate.
+
+## Addendum 2 — partial exports labelled on both surfaces
+
+Owner: "lets do it" on the 747 process-only combos flagged above.
+
+- **Web `3f1acae` (live):** the reason moved out of the `title` tooltip and into
+  the export hint (EN + DA), for both the JSON and INI paths. A tooltip is not
+  reachable on touch, so on a phone the greyed Filament button just looked
+  broken.
+- **iOS `c202255` (local, next train):** `exportRowNote` now owns the subtitle
+  for both states the row can be in — no preset at all, and no *filament*
+  preset. The download is unchanged; a process-only export is still a real,
+  importable export. 19 tests in OutputViewModelTests (+3), including an
+  engine-backed check that Ender-3 V3 SE + PC reports process-only.
+
+Verified on both surfaces with that exact selection (Ender-3 V3 SE + PC + 0.4)
+and confirmed a complete export (K1 + PLA + 0.4) still carries no note.
+
+Deliberately not cut as a new TestFlight build: 1.1.2 (`202607251102`) is
+already distributed for owner verification of the actual reported bug, and
+swapping the build mid-verification would only muddy which one was tested.
 
 ## verify-before-mutate ledger (v2 M3 — owner reads this, not my self-assessment)
 
