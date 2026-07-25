@@ -81,6 +81,33 @@ const rankLess = (a, b) => {
   return false;
 };
 
+// Preference order for competing Orca process presets at the same layer
+// height. Lower is better; the trailing name/length terms make it total.
+const PROCESS_STYLE_ORDER = [
+  /support|soluble|interface|purge|calibrat/i,  // never a general-purpose base
+  /standard/i,
+  /optimal/i,
+  /quality|fine|detail/i,
+  /draft|fast|speed/i,
+];
+function processStyleRank(name, machine = '') {
+  const special = PROCESS_STYLE_ORDER[0].test(name) ? 1 : 0;
+  let style = PROCESS_STYLE_ORDER.length;
+  for (let i = 1; i < PROCESS_STYLE_ORDER.length; i++) {
+    if (PROCESS_STYLE_ORDER[i].test(name)) { style = i; break; }
+  }
+  // Prefer the preset scoped to this exact machine over a family-wide one
+  // ("0.20mm Standard @Sovol SV08 0.4 nozzle" beats "… @Sovol SV08").
+  const nozzleTag = (machine.match(/(\d\.\d)\s*(mm)?\s*nozzle/i) || [])[1];
+  const specific = nozzleTag && name.includes(nozzleTag) ? 0 : 1;
+  return [special, style, specific, name.length, name];
+}
+
+// Orca ships abstract bases ("fdm_process_…") that presets inherit from. They
+// are not selectable system presets, so they can never be a valid `inherits`
+// target for a user profile.
+const ABSTRACT_PRESET = /^fdm_/i;
+
 const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 const stripNozzle = m => m.replace(/\s*\(?\s*\d\.\d\s*(mm)?\s*nozzle\s*\)?\s*$/i, '');
 const nozzleOf = m => (m.match(/(\d\.\d)\s*(mm)?\s*nozzle/i) || [])[1] || null;
@@ -94,15 +121,29 @@ function readPrinters() {
 
 // ── OrcaSlicer ───────────────────────────────────────────────────────────────
 
+// Traversal is sorted so the generated table depends only on the registry
+// contents, never on filesystem enumeration order — otherwise `--check` would
+// report phantom drift between machines, and a tie between two presets at the
+// same layer height could resolve differently per checkout.
+//
+// A malformed profile is fatal rather than skipped: silently dropping it would
+// shrink coverage invisibly, and `--check` re-reads the same bad input so it
+// could not catch the loss.
 function readJSONTree(dir) {
   const out = [];
   const walk = d => {
     if (!fs.existsSync(d)) return;
-    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+    const entries = fs.readdirSync(d, { withFileTypes: true })
+      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    for (const e of entries) {
       const full = path.join(d, e.name);
       if (e.isDirectory()) walk(full);
       else if (e.name.endsWith('.json')) {
-        try { out.push(JSON.parse(fs.readFileSync(full, 'utf8'))); } catch { /* skip malformed */ }
+        try {
+          out.push(JSON.parse(fs.readFileSync(full, 'utf8')));
+        } catch (err) {
+          throw new Error(`malformed profile ${full}: ${err.message} — refusing to generate a table with missing coverage`);
+        }
       }
     }
   };
@@ -178,9 +219,27 @@ function buildOrca(profilesDir, printers) {
         if (!p?.name) continue;
         const compatible = idx.processField(p.name, 'compatible_printers');
         if (!Array.isArray(compatible) || !compatible.includes(machine)) continue;
+        if (ABSTRACT_PRESET.test(p.name)) continue;
+        // Upstream naming is not always consistent with upstream compatibility:
+        // "0.32mm Standard @FF C5 0.8 nozzle" lists the Creator 5 Pro *0.6*
+        // machines as compatible. Inheriting a preset tuned for a different
+        // nozzle is worse than having no parent at that layer height, so a
+        // name that carries a nozzle tag must agree with the machine we picked.
+        const taggedNozzle = (p.name.match(/(\d\.\d)\s*(mm)?\s*nozzle/i) || [])[1];
+        if (taggedNozzle && taggedNozzle !== nz) continue;
         const height = lh2(idx.processField(p.name, 'layer_height'))
                     || lh2((p.name.match(/^(\d\.\d+)mm/) || [])[1]);
-        if (height && !processParents[height]) processParents[height] = p.name;
+        if (!height) continue;
+        // Explicit, total ordering so two presets at the same layer height
+        // always resolve the same way. 3dpa decides quality-vs-speed itself and
+        // overrides the mapped fields, so the most neutral preset is the right
+        // base; special-purpose ones are hard-demoted. Relying on name length
+        // alone had silently picked "0.20 Bambu Support W @Snapmaker U1" as the
+        // general 0.20 parent.
+        const previous = processParents[height];
+        if (!previous || rankLess(processStyleRank(p.name, machine), processStyleRank(previous, machine))) {
+          processParents[height] = p.name;
+        }
       }
 
       const filamentParents = {};

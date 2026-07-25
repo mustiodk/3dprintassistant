@@ -463,6 +463,41 @@ async function main() {
       && prusaFlex.includes('filament_type = FLEX'),
     JSON.stringify(prusaFlex && prusaFlex.slice(0, 300)));
 
+  // Table-wide invariants. These hold for every generated row, so a future
+  // registry refresh cannot quietly reintroduce a wrong-nozzle or abstract
+  // parent (both were live in the first generated table — Codex 2026-07-25 P2).
+  const engineSource = fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8');
+  const orcaTable = (() => {
+    const at = engineSource.indexOf('const ORCA_VERIFIED_PROFILES = ');
+    const open = engineSource.indexOf('{', at);
+    let depth = 0;
+    for (let i = open; i < engineSource.length; i++) {
+      if (engineSource[i] === '{') depth++;
+      else if (engineSource[i] === '}' && --depth === 0) return JSON.parse(engineSource.slice(open, i + 1));
+    }
+    return null;
+  })();
+  checkFail('ORCA_VERIFIED_PROFILES parses as strict JSON (keeps --check honest)', !!orcaTable);
+  if (orcaTable) {
+    const violations = { nozzle: [], abstract: [], zero: [] };
+    Object.entries(orcaTable).forEach(([printerId, entry]) => {
+      Object.entries(entry.nozzles).forEach(([nz, variant]) => {
+        Object.entries(variant.processParents).forEach(([height, parent]) => {
+          const tagged = (parent.match(/(\d\.\d)\s*(mm)?\s*nozzle/i) || [])[1];
+          if (tagged && tagged !== nz) violations.nozzle.push(`${printerId}/${nz}/${height}: ${parent}`);
+          if (/^fdm_/i.test(parent)) violations.abstract.push(`${printerId}/${nz}: ${parent}`);
+          if (Number(height) <= 0) violations.zero.push(`${printerId}/${nz}: ${height}`);
+        });
+      });
+    });
+    checkFail('no Orca parent is tagged for a different nozzle than its machine',
+      violations.nozzle.length === 0, violations.nozzle.join(' | '));
+    checkFail('no Orca parent is an abstract fdm_ base preset',
+      violations.abstract.length === 0, violations.abstract.join(' | '));
+    checkFail('no Orca parent is keyed at a non-positive layer height',
+      violations.zero.length === 0, violations.zero.join(' | '));
+  }
+
   // ═══ Native-export availability contract (shared by web + iOS) ═════════
   console.log('\n# Export audit — getNativeExportSupport (UI gating contract)\n');
   const hasSupportApi = typeof Engine.getNativeExportSupport === 'function';

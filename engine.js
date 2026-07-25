@@ -3993,7 +3993,6 @@ const Engine = (() => {
           "processParents": {
             "0.18": "0.18mm Standard @FF C5 0.6 nozzle",
             "0.30": "0.30mm Standard @FF C5 0.6 nozzle",
-            "0.32": "0.32mm Standard @FF C5 0.8 nozzle",
             "0.42": "0.42mm Standard @FF C5 0.6 nozzle"
           }
         },
@@ -4493,7 +4492,7 @@ const Engine = (() => {
             "TPU": "Generic TPU @K2-all"
           },
           "processParents": {
-            "0.08": "0.08mm HueForge @Creality K2 0.4 nozzle",
+            "0.08": "0.08mm SuperDetail @Creality K2 0.4 nozzle",
             "0.12": "0.12mm Detail @Creality K2 0.4 nozzle",
             "0.16": "0.16mm Optimal @Creality K2 0.4 nozzle",
             "0.20": "0.20mm Standard @Creality K2 0.4 nozzle",
@@ -4573,10 +4572,10 @@ const Engine = (() => {
             "TPU": "Generic TPU @K2 Plus-all"
           },
           "processParents": {
-            "0.08": "0.08mm HueForge @Creality K2 Plus 0.4 nozzle",
+            "0.08": "0.08mm SuperDetail @Creality K2 Plus 0.4 nozzle",
             "0.12": "0.12mm Detail @Creality K2 Plus 0.4 nozzle",
             "0.16": "0.16mm Optimal @Creality K2 Plus 0.4 nozzle",
-            "0.20": "0.20mm High Quality @Creality K2 Plus 0.4 nozzle",
+            "0.20": "0.20mm Standard @Creality K2 Plus 0.4 nozzle",
             "0.24": "0.24mm Draft @Creality K2 Plus 0.4 nozzle",
             "0.28": "0.28mm SuperDraft @Creality K2 Plus 0.4 nozzle"
           }
@@ -4652,7 +4651,7 @@ const Engine = (() => {
             "TPU": "Generic TPU @K2 Pro-all"
           },
           "processParents": {
-            "0.08": "0.08mm HueForge @Creality K2 Pro 0.4 nozzle",
+            "0.08": "0.08mm SuperDetail @Creality K2 Pro 0.4 nozzle",
             "0.12": "0.12mm Detail @Creality K2 Pro 0.4 nozzle",
             "0.16": "0.16mm Optimal @Creality K2 Pro 0.4 nozzle",
             "0.20": "0.20mm Standard @Creality K2 Pro 0.4 nozzle",
@@ -4882,8 +4881,8 @@ const Engine = (() => {
           "processParents": {
             "0.08": "0.08mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
             "0.12": "0.12mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
-            "0.16": "0.16mm High Quality @Anycubic Kobra S1 Max 0.4 nozzle",
-            "0.20": "0.20mm High Quality @Anycubic Kobra S1 Max 0.4 nozzle",
+            "0.16": "0.16mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
+            "0.20": "0.20mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
             "0.24": "0.24mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
             "0.28": "0.28mm Standard @Anycubic Kobra S1 Max 0.4 nozzle"
           }
@@ -4944,9 +4943,9 @@ const Engine = (() => {
           },
           "processParents": {
             "0.08": "0.08mm Standard @Anycubic Kobra X",
-            "0.12": "0.12mm High Quality @Anycubic Kobra X",
-            "0.16": "0.16mm High Quality @Anycubic Kobra X",
-            "0.20": "0.20mm High Quality @Anycubic Kobra X",
+            "0.12": "0.12mm Standard @Anycubic Kobra X",
+            "0.16": "0.16mm Standard @Anycubic Kobra X",
+            "0.20": "0.20mm Standard @Anycubic Kobra X",
             "0.24": "0.24mm Standard @Anycubic Kobra X",
             "0.28": "0.28mm Standard @Anycubic Kobra X"
           }
@@ -4965,7 +4964,6 @@ const Engine = (() => {
             "PLA": "Anker Generic PLA 0.2 nozzle"
           },
           "processParents": {
-            "0.00": "fdm_process_anker_common_0_2",
             "0.05": "0.05mm Optimal 0.2 nozzle @Anker",
             "0.10": "0.10mm Standard 0.2 nozzle @Anker",
             "0.15": "0.15mm Draft 0.2 nozzle @Anker"
@@ -4982,12 +4980,11 @@ const Engine = (() => {
             "TPU": "Anker Generic TPU"
           },
           "processParents": {
-            "0.00": "fdm_process_anker_common",
             "0.05": "0.05mm Ultradetail @Anker",
             "0.10": "0.10mm Detail @Anker",
-            "0.15": "0.15mm Fast @Anker",
-            "0.20": "0.20mm Fast @Anker",
-            "0.25": "0.25mm Draft @Anker",
+            "0.15": "0.15mm Optimal @Anker",
+            "0.20": "0.20mm Standard @Anker",
+            "0.25": "0.25mm Fast @Anker",
             "0.30": "0.30mm Superdraft @Anker"
           }
         },
@@ -5002,7 +4999,6 @@ const Engine = (() => {
             "TPU": "Anker Generic TPU"
           },
           "processParents": {
-            "0.00": "fdm_process_anker_common_0_6",
             "0.15": "0.15mm Detail 0.6 nozzle @Anker",
             "0.20": "0.20mm Optimal 0.6 nozzle @Anker",
             "0.30": "0.30mm Standard 0.6mm nozzle @Anker",
@@ -5026,7 +5022,6 @@ const Engine = (() => {
             "PLA": "Anker Generic PLA 0.2 nozzle"
           },
           "processParents": {
-            "0.00": "fdm_process_anker_common_0_2",
             "0.05": "0.05mm Optimal 0.2 nozzle @Anker",
             "0.10": "0.10mm Standard 0.2 nozzle @Anker",
             "0.15": "0.15mm Draft 0.2 nozzle @Anker"
@@ -5045,12 +5040,11 @@ const Engine = (() => {
             "TPU": "Anker Generic TPU"
           },
           "processParents": {
-            "0.00": "fdm_process_anker_common",
             "0.05": "0.05mm Ultradetail @Anker",
             "0.10": "0.10mm Detail @Anker",
-            "0.15": "0.15mm Fast @Anker",
-            "0.20": "0.20mm Fast @Anker",
-            "0.25": "0.25mm Draft @Anker",
+            "0.15": "0.15mm Optimal @Anker",
+            "0.20": "0.20mm Standard @Anker",
+            "0.25": "0.25mm Fast @Anker",
             "0.30": "0.30mm Superdraft @Anker"
           }
         },
@@ -5067,7 +5061,6 @@ const Engine = (() => {
             "TPU": "Anker Generic TPU"
           },
           "processParents": {
-            "0.00": "fdm_process_anker_common_0_6",
             "0.15": "0.15mm Detail 0.6 nozzle @Anker",
             "0.20": "0.20mm Optimal 0.6 nozzle @Anker",
             "0.30": "0.30mm Standard 0.6mm nozzle @Anker",
@@ -5748,9 +5741,9 @@ const Engine = (() => {
           "compatiblePrinter": "Snapmaker U1 (0.2 nozzle)",
           "filamentParents": {},
           "processParents": {
-            "0.06": "0.06 High Quality @Snapmaker U1 (0.2 nozzle)",
-            "0.08": "0.08 High Quality @Snapmaker U1 (0.2 nozzle)",
-            "0.10": "0.10 High Quality @Snapmaker U1 (0.2 nozzle)",
+            "0.06": "0.06 Standard @Snapmaker U1 (0.2 nozzle)",
+            "0.08": "0.08 Standard @Snapmaker U1 (0.2 nozzle)",
+            "0.10": "0.10 Standard @Snapmaker U1 (0.2 nozzle)",
             "0.12": "0.12 Standard @Snapmaker U1 (0.2 nozzle)",
             "0.14": "0.14 Standard @Snapmaker U1 (0.2 nozzle)"
           }
@@ -5769,8 +5762,8 @@ const Engine = (() => {
           "processParents": {
             "0.08": "0.08 Extra Fine @Snapmaker U1 (0.4 nozzle)",
             "0.12": "0.12 Fine @Snapmaker U1 (0.4 nozzle)",
-            "0.16": "0.16 High Quality @Snapmaker U1 (0.4 nozzle)",
-            "0.20": "0.20 Bambu Support W @Snapmaker U1 (0.4 nozzle)",
+            "0.16": "0.16 Optimal @Snapmaker U1 (0.4 nozzle)",
+            "0.20": "0.20 Standard @Snapmaker U1 (0.4 nozzle)",
             "0.24": "0.24 Draft @Snapmaker U1 (0.4 nozzle)",
             "0.25": "0.25 Benchy @Snapmaker U1 (0.4 nozzle)",
             "0.28": "0.28 Extra Draft @Snapmaker U1 (0.4 nozzle)"
@@ -5785,7 +5778,7 @@ const Engine = (() => {
             "0.20": "0.20 Standard @Snapmaker U1 (0.6 nozzle)",
             "0.24": "0.24 Standard @Snapmaker U1 (0.6 nozzle)",
             "0.25": "0.18 Standard @Snapmaker U1 (0.6 nozzle)",
-            "0.30": "0.30 Draft @Snapmaker U1 (0.6 nozzle)",
+            "0.30": "0.30 Standard @Snapmaker U1 (0.6 nozzle)",
             "0.36": "0.36 Standard @Snapmaker U1 (0.6 nozzle)",
             "0.40": "0.40 Extra Draft @Snapmaker U1 (0.6 nozzle)",
             "0.42": "0.42 Standard @Snapmaker U1 (0.6 nozzle)"
@@ -5819,7 +5812,7 @@ const Engine = (() => {
           "processParents": {
             "0.08": "0.08mm Extra Fine @Artillery X4Plus 0.4 nozzle",
             "0.12": "0.12mm Fine @Artillery X4Plus 0.4 nozzle",
-            "0.16": "0.16mm High Quality @Artillery X4Plus 0.4 nozzle",
+            "0.16": "0.16mm Optimal @Artillery X4Plus 0.4 nozzle",
             "0.20": "0.20mm Standard @Artillery X4Plus 0.4 nozzle",
             "0.24": "0.24mm Draft @Artillery X4Plus 0.4 nozzle",
             "0.28": "0.28mm Extra Draft @Artillery X4Plus 0.4 nozzle"
@@ -5840,7 +5833,7 @@ const Engine = (() => {
           "processParents": {
             "0.08": "0.08mm Extra Fine @Artillery X4Pro 0.4 nozzle",
             "0.12": "0.12mm Fine @Artillery X4Pro 0.4 nozzle",
-            "0.16": "0.16mm High Quality @Artillery X4Pro 0.4 nozzle",
+            "0.16": "0.16mm Optimal @Artillery X4Pro 0.4 nozzle",
             "0.20": "0.20mm Standard @Artillery X4Pro 0.4 nozzle",
             "0.24": "0.24mm Draft @Artillery X4Pro 0.4 nozzle",
             "0.28": "0.28mm Extra Draft @Artillery X4Pro 0.4 nozzle"
