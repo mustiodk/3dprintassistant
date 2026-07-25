@@ -1,8 +1,17 @@
 # Export coverage fix — gate ledger (2026-07-25)
 
-> Status: **implemented, reviewed GO, all automated gates green — HELD at merge
-> pending one owner import test.** Branch `fix/export-coverage-20260725` (web),
-> local commits on iOS `main` under the push gate.
+> Status: **SHIPPED.** Web `main` `5962bad` is production-live and verified on
+> 3dprintassistant.com; iOS `main` `10fff47` (`MARKETING_VERSION` 1.1.2) is
+> pushed and dispatched to TestFlight as run
+> [`30155517579`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/30155517579).
+>
+> **Owner decision 2026-07-25:** asked whether "unverified" should mean "no
+> registry parent" or "not import-tested by a human", the owner chose
+> **registry-derived is verified enough** — a name copied verbatim from the
+> vendor's own registry counts as verified, and all 62 printers ship with
+> export enabled and no Beta distinction. The pre-merge import test below was
+> therefore **not** treated as a blocker; the sentinel bundles remain committed
+> as a spot-check if a specific printer is ever suspected.
 
 ## What was reported
 
@@ -121,12 +130,12 @@ that the automated gates had passed.
 Transcript is a scratchpad artefact, not committed; findings and dispositions
 are recorded above and in `def4988`.
 
-## OWNER-VERIFY — REQUIRED, NOT YET RUN
+## OWNER-VERIFY — OPTIONAL SPOT-CHECK (owner ruled it non-blocking)
 
-This is the one gate a machine cannot close: whether the emitted presets
-actually resolve inside the real slicers. Phase 3 and Phase 4 each gated on the
-same check, and Phase 3's diagnostic is precisely that an unresolvable parent
-imports *silently wrong* rather than failing.
+Kept because it is still the only check that proves a preset resolves inside a
+real slicer, and Phase 3's diagnostic is that an unresolvable parent imports
+*silently wrong* rather than failing. Run it if a specific printer is ever
+suspected.
 
 **1. OrcaSlicer → File → Import → Import Configs…**
 
@@ -145,11 +154,8 @@ nozzle)** profile — *not* under a duplicate custom printer — with
 PASS = `ZZ PRUSA COREONE TEST` + `ZZ PRUSA COREONE FIL TEST` appear for
 **CORE One** with a standard 0.4 mm nozzle.
 
-On PASS: fast-forward `fix/export-coverage-20260725` into web `main` and push
-(Cloudflare auto-deploys). iOS stays local under the push gate until a version
-is composed for TestFlight.
-
-On FAIL: capture what OrcaSlicer/PrusaSlicer logged about the unresolved parent
+Both surfaces already shipped, so a FAIL here is a bug report rather than a
+merge gate. On FAIL: capture what OrcaSlicer/PrusaSlicer logged about the unresolved parent
 — that names the exact generator rule to correct, and the fix applies to the
 whole vendor family at once, not just that printer.
 

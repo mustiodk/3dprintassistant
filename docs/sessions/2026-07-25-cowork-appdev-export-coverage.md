@@ -89,8 +89,16 @@ iOS `main`, local only under the push gate:
 
 ## Open questions / Follow-up
 
-- **Blocking the merge:** owner imports the two sentinel bundles (ledger
-  §OWNER-VERIFY). Everything else is green.
+- **iOS partial exports are not labelled.** 747 combos produce process settings
+  only; iOS gives no hint that the filament preset is missing (web does). Same
+  defect family as the reported bug — queue for the next iOS train.
+- **`-uitest` is a no-op.** Every UITest passes the flag; no app code acts on
+  it, so `testWorkshopTransferActionsStayVisibleWhenEmpty` depends on a clean
+  container and fails after any manual use of the simulator. Either honour the
+  flag (reset Workshop/persistence on launch) or make the test seed and clear
+  its own state.
+- Owner import spot-check of the two sentinel bundles is now optional, not a
+  gate (owner decision, this session).
 - 16 printers still have no native export. Voron / RatRig / VzBot need a 3dpa
   build-volume field to disambiguate; the rest are absent upstream. `--check`
   will surface them automatically on a registry refresh.
@@ -109,6 +117,50 @@ iOS `main`, local only under the push gate:
   finding file, this is the fourth confirming instance rather than a new
   pattern. No K3 (no skill produced a surprising outcome) and no K4 (no tool
   overruled a controller call).
+
+## Addendum — same session, owner directive: ship it
+
+Owner asked for a TestFlight build to verify on device and for web to go live,
+plus "disable export for printers that have not been verified".
+
+Asked which meaning of *verified* should gate export — human import evidence, a
+Beta label on registry-derived rows, or registry-derived being sufficient. Owner
+chose **registry-derived is verified enough**, so all 62 printers ship with
+export enabled and no Beta distinction, and the pre-merge import test became an
+optional spot-check rather than a blocker.
+
+Shipped:
+
+- Web: ff-merged `fix/export-coverage-20260725` → `main` `5962bad`, pushed.
+  Cloudflare deploy confirmed by polling `engine.js` for
+  `getNativeExportSupport`, then verified in the browser **against production**:
+  K1 shows `↓ Orca Process` + `↓ Orca Filament` and inherits
+  `0.20mm Standard @Creality K1 (0.4 nozzle)`.
+- iOS: `MARKETING_VERSION` 1.1.2 (`10fff47`), pushed to `main`, TestFlight run
+  [`30155517579`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/30155517579)
+  dispatched on that exact HEAD.
+
+**iOS gate battery, clean container:** 196/196 unit, 6/6 ScreenCaptureUITests,
+engine + all seven data files byte-identical to live web `main`.
+
+`testWorkshopTransferActionsStayVisibleWhenEmpty` failed on the first full run.
+Root-caused before assuming a regression: it asserts the Workshop *backup*
+export button is disabled when empty, and my manual K1 walkthrough had left a
+profile in the store. `-uitest` is passed by every UITest but **no app code
+reads it**, so nothing resets state — the test silently depends on a clean
+container. Passes after `simctl uninstall`. Real fragility, filed below.
+
+### Coverage measured across the full matrix
+
+3401 printer × nozzle × material combinations: **1970 export both files, 747
+export process settings only** (upstream ships no generic filament preset for
+that material on that printer), **684 unavailable** (fallback).
+
+The 747 are the remaining honesty gap in the same family as the reported bug:
+web disables the Filament button with a tooltip, but **iOS still labels the row
+"Export for <slicer>" and silently delivers one file instead of two**. Not
+changed in 1.1.2 — a TestFlight build was already in flight for owner
+verification and each build costs ~10 min at the 10× macOS runner rate.
 
 ## verify-before-mutate ledger (v2 M3 — owner reads this, not my self-assessment)
 
