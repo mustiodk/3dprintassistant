@@ -321,21 +321,53 @@ async function main() {
       JSON.stringify(candidate?.filament?.compatible_printers));
   });
 
+  // Registry-derived coverage (2026-07-25). The allowlist is no longer the four
+  // hand-written Ender rows — it is generated from the OrcaSlicer registry, so
+  // these assertions pin the *boundaries* of that table rather than a fixed
+  // printer count.
+  [
+    ['k1',    '0.20mm Standard @Creality K1 (0.4 nozzle)', 'Creality K1 (0.4 nozzle)'],
+    ['k1c',   '0.20mm Standard @Creality K1C',             'Creality K1C 0.4 nozzle'],
+    ['k2_se', '0.20mm Standard @Creality K2 SE 0.4 nozzle', 'Creality K2 SE 0.4 nozzle'],
+  ].forEach(([printerId, parent, compatible]) => {
+    const candidate = hasOrcaExport
+      ? Engine.exportOrcaJSON(stateFor(printerId, 'pla_basic', 'std_0.4')) : null;
+    checkFail(`${printerId} exact registry process parent`,
+      candidate?.process?.inherits === parent, candidate?.process?.inherits || 'null');
+    checkFail(`${printerId} exact compatible_printers`,
+      candidate?.filament?.compatible_printers?.[0] === compatible,
+      JSON.stringify(candidate?.filament?.compatible_printers));
+  });
+
+  // Non-0.4 nozzles are supported wherever the registry ships a machine for
+  // them — the old blanket 0.4-only gate is gone.
+  const orcaWideNozzle = hasOrcaExport
+    ? Engine.exportOrcaJSON(stateFor('k1', 'pla_basic', 'std_0.6')) : null;
+  checkFail('registry-backed non-0.4 nozzle exports against its own machine',
+    orcaWideNozzle?.filament?.compatible_printers?.[0] === 'Creality K1 (0.6 nozzle)',
+    JSON.stringify(orcaWideNozzle?.filament?.compatible_printers));
+
+  // K2 SE ships a 0.4 machine only.
   const orcaUnsupportedNozzle = hasOrcaExport
-    ? Engine.exportOrcaJSON(stateFor('ender3_v3_se', 'pla_basic', 'std_0.6')) : null;
-  checkFail('unverified Orca nozzle returns null (Copy fallback stays active)',
+    ? Engine.exportOrcaJSON(stateFor('k2_se', 'pla_basic', 'std_0.8')) : null;
+  checkFail('nozzle with no registry machine returns null (Copy fallback stays active)',
     orcaUnsupportedNozzle === null, JSON.stringify(orcaUnsupportedNozzle));
 
+  // Ender-3 V3 SE has no generic PC filament preset upstream.
   const orcaProcessOnly = hasOrcaExport
-    ? Engine.exportOrcaJSON(stateFor('ender3_v3_se', 'petg_basic', 'std_0.4')) : null;
+    ? Engine.exportOrcaJSON(stateFor('ender3_v3_se', 'pc', 'std_0.4')) : null;
   checkFail('verified printer + unverified filament parent keeps process-only export',
     !!orcaProcessOnly?.process && orcaProcessOnly.filament === null,
     JSON.stringify(orcaProcessOnly));
 
-  const orcaUnverified = hasOrcaExport
-    ? Engine.exportOrcaJSON(stateFor('k2_se', 'pla_basic', 'std_0.4')) : null;
-  checkFail('unverified Orca printer returns null (Copy fallback stays active)',
-    orcaUnverified === null, JSON.stringify(orcaUnverified));
+  // Voron machine names encode build volume ("Voron 2.4 250"), so there is no
+  // unambiguous 3dpa counterpart — these must stay on Copy, never guess.
+  ['voron_2_4', 'ratrig_vcore4', 'plus4'].forEach(printerId => {
+    const candidate = hasOrcaExport
+      ? Engine.exportOrcaJSON(stateFor(printerId, 'pla_basic', 'std_0.4')) : null;
+    checkFail(`${printerId} has no registry counterpart → null (Copy fallback stays active)`,
+      candidate === null, JSON.stringify(candidate));
+  });
 
   // ═══ PrusaSlicer (fixture validation only — .ini export is Phase 4) ═════
   console.log('\n# Export audit — PrusaSlicer (fixture parse + inventory; serializer is Phase 4)\n');
@@ -388,12 +420,75 @@ async function main() {
       !prusaExport.includes('[object Object]') && !prusaExport.includes('undefined'));
   }
 
-  checkFail('unverified Prusa nozzle keeps Copy fallback',
-    !hasPrusaExport || Engine.exportPrusaINI(stateFor('core_one_l', 'pla_basic', 'std_0.6')) === null);
-  checkFail('unverified Prusa printer keeps Copy fallback',
-    !hasPrusaExport || Engine.exportPrusaINI(stateFor('mk4s', 'pla_basic', 'std_0.4')) === null);
-  checkFail('unverified Prusa material parent keeps Copy fallback',
-    !hasPrusaExport || Engine.exportPrusaINI(stateFor('core_one_l', 'petg_basic', 'std_0.4')) === null);
+  // Registry-derived Prusa coverage (2026-07-25): CORE One, MK4S, MK4, MINI+
+  // and XL joined CORE One L, each pinned to its own printer_model code.
+  const prusaCoreOne = hasPrusaExport
+    ? Engine.exportPrusaINI(stateFor('core_one', 'pla_basic', 'std_0.4')) : null;
+  checkFail('CORE One (non-L) emits its own COREONE parents + condition',
+    typeof prusaCoreOne === 'string'
+      && prusaCoreOne.includes('inherits = 0.20mm SPEED @COREONE 0.4')
+      && prusaCoreOne.includes('printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/')
+      && prusaCoreOne.includes('inherits = Generic PLA @COREONE'),
+    JSON.stringify(prusaCoreOne && prusaCoreOne.slice(0, 400)));
+  checkFail('MK4S emits its own MK4S parents',
+    !hasPrusaExport || (Engine.exportPrusaINI(stateFor('mk4s', 'pla_basic', 'std_0.4')) || '')
+      .includes('inherits = 0.20mm SPEED @MK4S 0.4'));
+
+  // Prusa ships no `Generic … @MK4IS` filament line, and no generic PC/ASA line
+  // for CORE One — both cases must degrade to a process-only bundle rather than
+  // inherit from a preset that does not exist.
+  const prusaNoFilamentModel = hasPrusaExport
+    ? Engine.exportPrusaINI(stateFor('mk4', 'pla_basic', 'std_0.4')) : null;
+  checkFail('Prusa model without a generic filament line exports process-only',
+    typeof prusaNoFilamentModel === 'string'
+      && prusaNoFilamentModel.includes('[print:') && !prusaNoFilamentModel.includes('[filament:'),
+    JSON.stringify(prusaNoFilamentModel && prusaNoFilamentModel.slice(0, 200)));
+  const prusaNoFilamentGroup = hasPrusaExport
+    ? Engine.exportPrusaINI(stateFor('core_one', 'pc', 'std_0.4')) : null;
+  checkFail('Prusa material group without a generic parent exports process-only',
+    typeof prusaNoFilamentGroup === 'string'
+      && prusaNoFilamentGroup.includes('[print:') && !prusaNoFilamentGroup.includes('[filament:'),
+    JSON.stringify(prusaNoFilamentGroup && prusaNoFilamentGroup.slice(0, 200)));
+
+  // Prusa ships no 0.2 mm profiles (its smallest is 0.25) — that nozzle keeps Copy.
+  checkFail('Prusa nozzle with no registry profile keeps Copy fallback',
+    !hasPrusaExport || Engine.exportPrusaINI(stateFor('core_one_l', 'pla_basic', 'std_0.2')) === null);
+
+  // TPU is FLEX in PrusaSlicer's vocabulary.
+  const prusaFlex = hasPrusaExport
+    ? Engine.exportPrusaINI(stateFor('core_one', 'tpu_95a', 'std_0.4')) : null;
+  checkFail('Prusa maps the TPU group to the FLEX filament vocabulary',
+    typeof prusaFlex === 'string'
+      && prusaFlex.includes('inherits = Generic FLEX @COREONE')
+      && prusaFlex.includes('filament_type = FLEX'),
+    JSON.stringify(prusaFlex && prusaFlex.slice(0, 300)));
+
+  // ═══ Native-export availability contract (shared by web + iOS) ═════════
+  console.log('\n# Export audit — getNativeExportSupport (UI gating contract)\n');
+  const hasSupportApi = typeof Engine.getNativeExportSupport === 'function';
+  checkFail('getNativeExportSupport public API exists', hasSupportApi);
+  if (hasSupportApi) {
+    const supported = Engine.getNativeExportSupport(stateFor('k1', 'pla_basic', 'std_0.4'));
+    checkFail('supported Orca selection reports available + both files',
+      supported.available && supported.hasProcess && supported.hasFilament
+        && supported.slicer === 'orcaslicer' && supported.format === 'json',
+      JSON.stringify(supported));
+    const unsupported = Engine.getNativeExportSupport(stateFor('voron_2_4', 'pla_basic', 'std_0.4'));
+    checkFail('unsupported printer reports unavailable instead of throwing',
+      unsupported.available === false && unsupported.slicer === 'orcaslicer',
+      JSON.stringify(unsupported));
+    const prusaSupport = Engine.getNativeExportSupport(stateFor('core_one', 'pla_basic', 'std_0.4'));
+    checkFail('supported Prusa selection reports the ini format',
+      prusaSupport.available && prusaSupport.format === 'ini' && prusaSupport.hasFilament,
+      JSON.stringify(prusaSupport));
+    const processOnly = Engine.getNativeExportSupport(stateFor('mk4', 'pla_basic', 'std_0.4'));
+    checkFail('process-only Prusa selection reports hasFilament false',
+      processOnly.available && processOnly.hasFilament === false,
+      JSON.stringify(processOnly));
+    const incomplete = Engine.getNativeExportSupport({ printer: 'k1', nozzle: '', material: '' });
+    checkFail('incomplete selection reports unavailable',
+      incomplete.available === false, JSON.stringify(incomplete));
+  }
 
   const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
   const indexSource = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

@@ -3638,57 +3638,2472 @@ const Engine = (() => {
     });
   }
 
-  // Orca fixture schema is owner-captured X1C (2026-07-06). Non-Bambu live
-  // support is deliberately allowlisted to exact vendor-parent names verified
-  // against OrcaSlicer/OrcaSlicer registry commit 4b7182b (2026-07-11).
-  // Unknown printer/nozzle combinations return null so the web keeps Copy.
+  // ── OrcaSlicer native export — verified vendor parents ─────────────────────
+  // ORCA_VERIFIED_PROFILES is GENERATED, never hand-edited. Every machine,
+  // process and filament name below is copied verbatim from the OrcaSlicer
+  // profile registry (SoftFever/OrcaSlicer `resources/profiles`) at commit
+  // d6cb667b894f71f68a180861b549f49258cf3a2a (2026-07-24). A parent name that
+  // does not exist upstream imports as an unresolvable preset — Orca then files
+  // it under a duplicate custom printer instead of erroring (see the 2026-07-11
+  // diagnostic in EXPORT-PHASE3-GATE-LEDGER.md), so exact strings are load-
+  // bearing and guessing is not acceptable.
+  //
+  // Regenerate + verify with:
+  //   node scripts/gen-slicer-parents.mjs --orca <profiles> --prusa <ini> --check
+  //
+  // Printers with no exact registry counterpart (Voron / RatRig / VzBot encode
+  // build volume in the machine name; Qidi Plus4 / Max4 and a few others are
+  // absent upstream) are deliberately missing here and keep the text-copy
+  // fallback — see getNativeExportSupport.
   const ORCA_VERSION = '2.1.0.18';
   const ORCA_SINGLE_VARIANT_FIELDS = new Set();
   const ORCA_VERIFIED_PROFILES = {
-    ender3_v3: {
-      printerName: 'Creality Ender-3 V3',
-      compatiblePrinter: 'Creality Ender-3 V3 0.4 nozzle',
-      processParents: {
-        '0.12': '0.12mm Fine @Creality Ender-3 V3',
-        '0.16': '0.16mm Optimal @Creality Ender-3 V3',
-        '0.20': '0.20mm Standard @Creality Ender-3 V3',
-        '0.24': '0.24mm Draft @Creality Ender-3 V3',
+    "ad5x": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Flashforge AD5X 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Flashforge Generic ABS",
+            "ASA": "Flashforge Generic ASA",
+            "PETG": "Flashforge Generic PETG",
+            "PLA": "Flashforge Generic PLA",
+            "TPU": "Generic TPU 85A @FF AD5X"
+          },
+          "processParents": {
+            "0.16": "0.16mm Standard @FF AD5X",
+            "0.20": "0.20mm Standard @FF AD5X",
+            "0.24": "0.24mm Draft @FF AD5X"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Flashforge AD5X 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Flashforge Generic ABS",
+            "ASA": "Flashforge Generic ASA",
+            "PETG": "Flashforge Generic PETG",
+            "PLA": "Flashforge Generic PLA",
+            "TPU": "Generic TPU 85A @FF AD5X 0.6 nozzle"
+          },
+          "processParents": {
+            "0.18": "0.18mm Fine @FF AD5X 0.6 nozzle",
+            "0.30": "0.30mm Standard @FF AD5X 0.6 nozzle",
+            "0.42": "0.42mm Draft @FF AD5X 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Flashforge AD5X 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Flashforge Generic ABS",
+            "ASA": "Flashforge Generic ASA",
+            "PETG": "Flashforge Generic PETG",
+            "PLA": "Flashforge Generic PLA",
+            "TPU": "Generic TPU 85A @FF AD5X 0.8 nozzle"
+          },
+          "processParents": {
+            "0.24": "0.24mm Fine @FF AD5X 0.8 nozzle",
+            "0.40": "0.40mm Standard @FF AD5X 0.8 nozzle",
+            "0.56": "0.56mm Draft @FF AD5X 0.8 nozzle"
+          }
+        }
       },
-      filamentParents: { PLA: 'Creality Generic PLA @Ender-3V3-all' },
+      "printerName": "Flashforge AD5X"
     },
-    ender3_v3_ke: {
-      printerName: 'Creality Ender-3 V3 KE',
-      compatiblePrinter: 'Creality Ender-3 V3 KE 0.4 nozzle',
-      processParents: {
-        '0.12': '0.12mm Fine @Creality Ender3V3KE',
-        '0.16': '0.16mm Optimal @Creality Ender3V3KE',
-        '0.20': '0.20mm Standard @Creality Ender3V3KE',
-        '0.24': '0.24mm Draft @Creality Ender3V3KE',
+    "adv_5m": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Flashforge Adventurer 5M 0.4 Nozzle",
+          "filamentParents": {
+            "ABS": "Flashforge Generic ABS",
+            "ASA": "Flashforge Generic ASA",
+            "PETG": "Flashforge Generic PETG",
+            "PLA": "Flashforge Generic PLA",
+            "TPU": "Flashforge Generic TPU"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Flashforge AD5M 0.4 Nozzle",
+            "0.20": "0.20mm Standard @Flashforge AD5M 0.4 Nozzle",
+            "0.24": "0.24mm Draft @Flashforge AD5M 0.4 Nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Flashforge Adventurer 5M 0.6 Nozzle",
+          "filamentParents": {
+            "ABS": "Flashforge Generic ABS",
+            "ASA": "Flashforge Generic ASA",
+            "PETG": "Flashforge Generic PETG",
+            "PLA": "Flashforge Generic PLA",
+            "TPU": "Flashforge Generic TPU"
+          },
+          "processParents": {
+            "0.18": "0.18mm Fine @Flashforge AD5M 0.6 Nozzle",
+            "0.30": "0.30mm Standard @Flashforge AD5M 0.6 Nozzle",
+            "0.42": "0.42mm Draft @Flashforge AD5M 0.6 Nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Flashforge Adventurer 5M 0.8 Nozzle",
+          "filamentParents": {
+            "ABS": "Flashforge Generic ABS",
+            "ASA": "Flashforge Generic ASA",
+            "PETG": "Flashforge Generic PETG",
+            "PLA": "Flashforge Generic PLA",
+            "TPU": "Flashforge Generic TPU"
+          },
+          "processParents": {
+            "0.24": "0.24mm Fine @Flashforge AD5M 0.8 Nozzle",
+            "0.40": "0.40mm Standard @Flashforge AD5M 0.8 Nozzle",
+            "0.56": "0.56mm Draft @Flashforge AD5M 0.8 Nozzle"
+          }
+        }
       },
-      filamentParents: { PLA: 'Creality Generic PLA @Ender-3V3-all' },
+      "printerName": "Flashforge Adventurer 5M"
     },
-    ender3_v3_plus: {
-      printerName: 'Creality Ender-3 V3 Plus',
-      compatiblePrinter: 'Creality Ender-3 V3 Plus 0.4 nozzle',
-      processParents: {
-        '0.12': '0.12mm Fine @Creality Ender-3 V3 Plus',
-        '0.16': '0.16mm Optimal @Creality Ender-3 V3 Plus',
-        '0.20': '0.20mm Standard @Creality Ender-3 V3 Plus',
-        '0.24': '0.24mm Draft @Creality Ender-3 V3 Plus',
+    "adv_5m_pro": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Flashforge Adventurer 5M Pro 0.4 Nozzle",
+          "filamentParents": {
+            "ABS": "Flashforge Generic ABS",
+            "ASA": "Flashforge Generic ASA",
+            "PETG": "Flashforge Generic PETG",
+            "PLA": "Flashforge Generic PLA",
+            "TPU": "Flashforge Generic TPU"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Flashforge AD5M Pro 0.4 Nozzle",
+            "0.20": "0.20mm Standard @Flashforge AD5M Pro 0.4 Nozzle",
+            "0.24": "0.24mm Draft @Flashforge AD5M Pro 0.4 Nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Flashforge Adventurer 5M Pro 0.6 Nozzle",
+          "filamentParents": {
+            "ABS": "Flashforge Generic ABS",
+            "ASA": "Flashforge Generic ASA",
+            "PETG": "Flashforge Generic PETG",
+            "PLA": "Flashforge Generic PLA",
+            "TPU": "Flashforge Generic TPU"
+          },
+          "processParents": {
+            "0.18": "0.18mm Fine @Flashforge AD5M Pro 0.6 Nozzle",
+            "0.30": "0.30mm Standard @Flashforge AD5M Pro 0.6 Nozzle",
+            "0.42": "0.42mm Draft @Flashforge AD5M Pro 0.6 Nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Flashforge Adventurer 5M Pro 0.8 Nozzle",
+          "filamentParents": {
+            "ABS": "Flashforge Generic ABS",
+            "ASA": "Flashforge Generic ASA",
+            "PETG": "Flashforge Generic PETG",
+            "PLA": "Flashforge Generic PLA",
+            "TPU": "Flashforge Generic TPU"
+          },
+          "processParents": {
+            "0.24": "0.24mm Fine @Flashforge AD5M Pro 0.8 Nozzle",
+            "0.40": "0.40mm Standard @Flashforge AD5M Pro 0.8 Nozzle",
+            "0.56": "0.56mm Draft @Flashforge AD5M Pro 0.8 Nozzle"
+          }
+        }
       },
-      filamentParents: { PLA: 'Creality Generic PLA @Ender-3V3-all' },
+      "printerName": "Flashforge Adventurer 5M Pro"
     },
-    ender3_v3_se: {
-      printerName: 'Creality Ender-3 V3 SE',
-      compatiblePrinter: 'Creality Ender-3 V3 SE 0.4 nozzle',
-      processParents: {
-        '0.12': '0.12mm Fine @Creality Ender3V3SE 0.4',
-        '0.16': '0.16mm Optimal @Creality Ender3V3SE 0.4',
-        '0.20': '0.20mm Standard @Creality Ender3V3SE 0.4',
-        '0.24': '0.24mm Draft @Creality Ender3V3SE 0.4',
+    "centauri_carbon": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Elegoo Centauri Carbon 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Elegoo ABS @ECC",
+            "ASA": "Elegoo ASA @ECC",
+            "PC": "Elegoo PC @ECC",
+            "PETG": "Elegoo PETG @ECC",
+            "PLA": "Elegoo PLA @ECC",
+            "TPU": "Elegoo TPU 95A @ECC"
+          },
+          "processParents": {
+            "0.08": "0.08mm Optimal @Elegoo CC 0.2 nozzle",
+            "0.10": "0.10mm Standard @Elegoo CC 0.2 nozzle",
+            "0.12": "0.12mm Draft @Elegoo CC 0.2 nozzle",
+            "0.14": "0.14mm Extra Draft @Elegoo CC 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Elegoo Centauri Carbon 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo Centauri",
+            "ASA": "Elegoo ASA @ECC",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PET": "Generic PET @Elegoo Centauri",
+            "PETG": "Elegoo PETG @ECC",
+            "PLA": "Generic PLA @Elegoo Centauri",
+            "TPU": "Elegoo TPU 95A @ECC"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Elegoo CC 0.4 nozzle",
+            "0.16": "0.16mm Optimal @Elegoo CC 0.4 nozzle",
+            "0.20": "0.20mm Standard @Elegoo CC 0.4 nozzle",
+            "0.24": "0.24mm Draft @Elegoo CC 0.4 nozzle",
+            "0.28": "0.28mm Extra Draft @Elegoo CC 0.4 nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Elegoo Centauri Carbon 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo Centauri",
+            "ASA": "Elegoo ASA @ECC",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PET": "Generic PET @Elegoo Centauri",
+            "PETG": "Elegoo PETG @ECC",
+            "PLA": "Generic PLA @Elegoo Centauri",
+            "TPU": "Elegoo TPU 95A @ECC"
+          },
+          "processParents": {
+            "0.18": "0.18mm Fine @Elegoo CC 0.6 nozzle",
+            "0.24": "0.24mm Optimal @Elegoo CC 0.6 nozzle",
+            "0.30": "0.30mm Standard @Elegoo CC 0.6 nozzle",
+            "0.36": "0.36mm Draft @Elegoo CC 0.6 nozzle",
+            "0.42": "0.42mm Extra Draft @Elegoo CC 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Elegoo Centauri Carbon 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo Centauri",
+            "ASA": "Elegoo ASA @ECC",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PET": "Generic PET @Elegoo Centauri",
+            "PETG": "Elegoo PETG @ECC",
+            "PLA": "Generic PLA @Elegoo Centauri",
+            "TPU": "Elegoo TPU 95A @ECC"
+          },
+          "processParents": {
+            "0.16": "0.16mm Extra Fine @Elegoo CC 0.8 nozzle",
+            "0.24": "0.24mm Fine @Elegoo CC 0.8 nozzle",
+            "0.32": "0.32mm Optimal @Elegoo CC 0.8 nozzle",
+            "0.40": "0.40mm Standard @Elegoo CC 0.8 nozzle",
+            "0.48": "0.48mm Draft @Elegoo CC 0.8 nozzle"
+          }
+        }
       },
-      filamentParents: { PLA: 'Creality Generic PLA @Ender-3V3-all' },
+      "printerName": "Elegoo Centauri Carbon"
     },
+    "centauri_carbon_2": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Elegoo Centauri Carbon 2 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Elegoo ABS @ECC2",
+            "ASA": "Elegoo ASA @ECC2",
+            "PC": "Elegoo PC @ECC2",
+            "PETG": "Elegoo PETG @ECC2",
+            "PLA": "Elegoo PLA @ECC2",
+            "TPU": "Elegoo TPU 95A @ECC2"
+          },
+          "processParents": {
+            "0.08": "0.08mm Optimal @Elegoo CC2 0.2 nozzle",
+            "0.10": "0.10mm Standard @Elegoo CC2 0.2 nozzle",
+            "0.12": "0.12mm Draft @Elegoo CC2 0.2 nozzle",
+            "0.14": "0.14mm Extra Draft @Elegoo CC2 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Elegoo Centauri Carbon 2 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo Centauri",
+            "ASA": "Elegoo ASA @ECC2",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PET": "Generic PET @Elegoo Centauri",
+            "PETG": "Elegoo PETG @ECC2",
+            "PLA": "Generic PLA @Elegoo Centauri",
+            "TPU": "Elegoo TPU 95A @ECC2"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Elegoo CC2 0.4 nozzle",
+            "0.16": "0.16mm Optimal @Elegoo CC2 0.4 nozzle",
+            "0.20": "0.20mm Standard @Elegoo CC2 0.4 nozzle",
+            "0.24": "0.24mm Draft @Elegoo CC2 0.4 nozzle",
+            "0.28": "0.28mm Extra Draft @Elegoo CC2 0.4 nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Elegoo Centauri Carbon 2 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo Centauri",
+            "ASA": "Elegoo ASA @ECC2",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PET": "Generic PET @Elegoo Centauri",
+            "PETG": "Elegoo PETG @ECC2",
+            "PLA": "Generic PLA @Elegoo Centauri",
+            "TPU": "Elegoo TPU 95A @ECC2"
+          },
+          "processParents": {
+            "0.18": "0.18mm Fine @Elegoo CC2 0.6 nozzle",
+            "0.24": "0.24mm Optimal @Elegoo CC2 0.6 nozzle",
+            "0.30": "0.30mm Standard @Elegoo CC2 0.6 nozzle",
+            "0.36": "0.36mm Draft @Elegoo CC2 0.6 nozzle",
+            "0.42": "0.42mm Extra Draft @Elegoo CC2 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Elegoo Centauri Carbon 2 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo Centauri",
+            "ASA": "Elegoo ASA @ECC2",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PET": "Generic PET @Elegoo Centauri",
+            "PETG": "Elegoo PETG @ECC2",
+            "PLA": "Generic PLA @Elegoo Centauri",
+            "TPU": "Elegoo TPU 95A @ECC2"
+          },
+          "processParents": {
+            "0.16": "0.16mm Extra Fine @Elegoo CC2 0.8 nozzle",
+            "0.24": "0.24mm Fine @Elegoo CC2 0.8 nozzle",
+            "0.32": "0.32mm Optimal @Elegoo CC2 0.8 nozzle",
+            "0.40": "0.40mm Standard @Elegoo CC2 0.8 nozzle",
+            "0.48": "0.48mm Draft @Elegoo CC2 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Elegoo Centauri Carbon 2"
+    },
+    "creator_5_pro": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Flashforge Creator 5 Pro 0.4 nozzle",
+          "filamentParents": {
+            "ASA": "Flashforge ASA Basic @FF C5P"
+          },
+          "processParents": {
+            "0.12": "0.12mm Standard @FF C5",
+            "0.20": "0.20mm Standard @FF C5",
+            "0.24": "0.24mm Standard @FF C5"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Flashforge Creator 5 Pro 0.6 nozzle",
+          "filamentParents": {
+            "ASA": "Flashforge ASA Basic @FF C5P"
+          },
+          "processParents": {
+            "0.18": "0.18mm Standard @FF C5 0.6 nozzle",
+            "0.30": "0.30mm Standard @FF C5 0.6 nozzle",
+            "0.32": "0.32mm Standard @FF C5 0.8 nozzle",
+            "0.42": "0.42mm Standard @FF C5 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Flashforge Creator 5 Pro 0.8 nozzle",
+          "filamentParents": {
+            "ASA": "Flashforge ASA Basic @FF C5P"
+          },
+          "processParents": {
+            "0.40": "0.4mm Standard @FF C5 0.8 nozzle",
+            "0.48": "0.48mm Standard @FF C5 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Flashforge Creator 5 Pro"
+    },
+    "ender3_v3": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Creality Ender-3 V3 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @Ender-3V3-all",
+            "ASA": "Creality Generic ASA @Ender-3V3-all",
+            "PETG": "Creality Generic PETG @Ender-3V3-all",
+            "PLA": "Creality Generic PLA @Ender-3V3-all",
+            "TPU": "Creality Generic TPU @Ender-3V3-all"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Creality Ender-3 V3",
+            "0.16": "0.16mm Optimal @Creality Ender-3 V3",
+            "0.20": "0.20mm Standard @Creality Ender-3 V3",
+            "0.24": "0.24mm Draft @Creality Ender-3 V3"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Creality Ender-3 V3 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @Ender-3V3-all",
+            "ASA": "Creality Generic ASA @Ender-3V3-all",
+            "PETG": "Creality Generic PETG @Ender-3V3-all",
+            "PLA": "Creality Generic PLA @Ender-3V3-all",
+            "TPU": "Creality Generic TPU @Ender-3V3-all"
+          },
+          "processParents": {
+            "0.24": "0.24mm Optimal @Creality Ender-3 V3",
+            "0.30": "0.30mm Standard @Creality Ender-3 V3",
+            "0.36": "0.36mm Draft @Creality Ender-3 V3"
+          }
+        }
+      },
+      "printerName": "Creality Ender-3 V3"
+    },
+    "ender3_v3_ke": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Creality Ender-3 V3 KE 0.2 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.12": "0.12mm Fine @Creality Ender3V3KE",
+            "0.16": "0.16mm Optimal @Creality Ender3V3KE",
+            "0.20": "0.20mm Standard @Creality Ender3V3KE",
+            "0.24": "0.24mm Draft @Creality Ender3V3KE"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Creality Ender-3 V3 KE 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @Ender-3V3-all",
+            "ASA": "Creality Generic ASA @Ender-3V3-all",
+            "PETG": "Creality Generic PETG @Ender-3V3-all",
+            "PLA": "Creality Generic PLA @Ender-3V3-all",
+            "TPU": "Creality Generic TPU @Ender-3V3-all"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Creality Ender3V3KE",
+            "0.16": "0.16mm Optimal @Creality Ender3V3KE",
+            "0.20": "0.20mm Standard @Creality Ender3V3KE",
+            "0.24": "0.24mm Draft @Creality Ender3V3KE"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Creality Ender-3 V3 KE 0.6 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.12": "0.12mm Fine @Creality Ender3V3KE",
+            "0.16": "0.16mm Optimal @Creality Ender3V3KE",
+            "0.20": "0.20mm Standard @Creality Ender3V3KE",
+            "0.24": "0.24mm Draft @Creality Ender3V3KE"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Creality Ender-3 V3 KE 0.8 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.16": "0.16mm Optimal @Creality Ender3V3KE",
+            "0.20": "0.20mm Standard @Creality Ender3V3KE",
+            "0.24": "0.24mm Draft @Creality Ender3V3KE"
+          }
+        }
+      },
+      "printerName": "Creality Ender-3 V3 KE"
+    },
+    "ender3_v3_plus": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Creality Ender-3 V3 Plus 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @Ender-3V3-all",
+            "ASA": "Creality Generic ASA @Ender-3V3-all",
+            "PETG": "Creality Generic PETG @Ender-3V3-all",
+            "PLA": "Creality Generic PLA @Ender-3V3-all",
+            "TPU": "Creality Generic TPU @Ender-3V3-all"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Creality Ender-3 V3 Plus",
+            "0.16": "0.16mm Optimal @Creality Ender-3 V3 Plus",
+            "0.20": "0.20mm Standard @Creality Ender-3 V3 Plus",
+            "0.24": "0.24mm Draft @Creality Ender-3 V3 Plus"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Creality Ender-3 V3 Plus 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @Ender-3V3-all",
+            "ASA": "Creality Generic ASA @Ender-3V3-all",
+            "PETG": "Creality Generic PETG @Ender-3V3-all",
+            "PLA": "Creality Generic PLA @Ender-3V3-all",
+            "TPU": "Creality Generic TPU @Ender-3V3-all"
+          },
+          "processParents": {
+            "0.24": "0.24mm Optimal @Creality Ender-3 V3 Plus",
+            "0.30": "0.30mm Standard @Creality Ender-3 V3 Plus",
+            "0.36": "0.36mm Draft @Creality Ender-3 V3 Plus"
+          }
+        }
+      },
+      "printerName": "Creality Ender-3 V3 Plus"
+    },
+    "ender3_v3_se": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Creality Ender-3 V3 SE 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @Ender-3V3-all",
+            "ASA": "Creality Generic ASA @Ender-3V3-all",
+            "PETG": "Creality Generic PETG @Ender-3V3-all",
+            "PLA": "Creality Generic PLA @Ender-3V3-all",
+            "TPU": "Creality Generic TPU @Ender-3V3-all"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Creality Ender3V3SE 0.2",
+            "0.16": "0.16mm Optimal @Creality Ender3V3SE 0.2",
+            "0.20": "0.20mm Standard @Creality Ender3V3SE 0.2",
+            "0.24": "0.24mm Draft @Creality Ender3V3SE 0.2"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Creality Ender-3 V3 SE 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @Ender-3V3-all",
+            "ASA": "Creality Generic ASA @Ender-3V3-all",
+            "PETG": "Creality Generic PETG @Ender-3V3-all",
+            "PLA": "Creality Generic PLA @Ender-3V3-all",
+            "TPU": "Creality Generic TPU @Ender-3V3-all"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Creality Ender3V3SE 0.4",
+            "0.16": "0.16mm Optimal @Creality Ender3V3SE 0.4",
+            "0.20": "0.20mm Standard @Creality Ender3V3SE 0.4",
+            "0.24": "0.24mm Draft @Creality Ender3V3SE 0.4"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Creality Ender-3 V3 SE 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @Ender-3V3-all",
+            "ASA": "Creality Generic ASA @Ender-3V3-all",
+            "PETG": "Creality Generic PETG @Ender-3V3-all",
+            "PLA": "Creality Generic PLA @Ender-3V3-all",
+            "TPU": "Creality Generic TPU @Ender-3V3-all"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Creality Ender3V3SE 0.6",
+            "0.16": "0.16mm Optimal @Creality Ender3V3SE 0.6",
+            "0.20": "0.20mm Standard @Creality Ender3V3SE 0.6",
+            "0.24": "0.24mm Draft @Creality Ender3V3SE 0.6"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Creality Ender-3 V3 SE 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @Ender-3V3-all",
+            "ASA": "Creality Generic ASA @Ender-3V3-all",
+            "PETG": "Creality Generic PETG @Ender-3V3-all",
+            "PLA": "Creality Generic PLA @Ender-3V3-all",
+            "TPU": "Creality Generic TPU @Ender-3V3-all"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Creality Ender3V3SE 0.8",
+            "0.16": "0.16mm Optimal @Creality Ender3V3SE 0.8",
+            "0.20": "0.20mm Standard @Creality Ender3V3SE 0.8",
+            "0.24": "0.24mm Draft @Creality Ender3V3SE 0.8"
+          }
+        }
+      },
+      "printerName": "Creality Ender-3 V3 SE"
+    },
+    "guider_3_ultra": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Flashforge Guider 3 Ultra 0.4 Nozzle",
+          "filamentParents": {
+            "ABS": "Flashforge Generic ABS @G3U",
+            "ASA": "Flashforge Generic ASA @G3U",
+            "HIPS": "Flashforge Generic HIPS",
+            "PA": "Polymaker Generic S1",
+            "PETG": "Flashforge Generic PETG @G3U",
+            "PLA": "Flashforge Generic PLA @G3U",
+            "PVA": "Flashforge Generic PVA"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Flashforge G3U 0.4 Nozzle",
+            "0.20": "0.20mm Standard @Flashforge G3U 0.4 Nozzle",
+            "0.24": "0.24mm Draft @Flashforge G3U 0.4 Nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Flashforge Guider 3 Ultra 0.6 Nozzle",
+          "filamentParents": {
+            "ABS": "Flashforge Generic ABS @G3U",
+            "ASA": "Flashforge Generic ASA @G3U",
+            "HIPS": "Flashforge Generic HIPS @G3U 0.6 Nozzle",
+            "PETG": "Flashforge Generic PETG @G3U",
+            "PLA": "Flashforge Generic PLA @G3U",
+            "PVA": "Flashforge Generic PVA"
+          },
+          "processParents": {
+            "0.18": "0.18mm Standard @Flashforge G3U 0.6 Nozzle",
+            "0.30": "0.30mm Standard @Flashforge G3U 0.6 Nozzle",
+            "0.42": "0.42mm Standard @Flashforge G3U 0.6 Nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Flashforge Guider 3 Ultra 0.8 Nozzle",
+          "filamentParents": {
+            "ABS": "Flashforge Generic ABS @G3U",
+            "ASA": "Flashforge Generic ASA @G3U",
+            "HIPS": "Flashforge Generic HIPS",
+            "PETG": "Flashforge Generic PETG @G3U",
+            "PLA": "Flashforge Generic PLA @G3U",
+            "PVA": "Flashforge Generic PVA"
+          },
+          "processParents": {
+            "0.40": "0.40mm Standard @Flashforge G3U 0.8 Nozzle"
+          }
+        }
+      },
+      "printerName": "Flashforge Guider 3 Ultra"
+    },
+    "k1": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Creality K1 (0.4 nozzle)",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS",
+            "ASA": "Creality Generic ASA",
+            "PC": "Creality Generic PC @K1-all",
+            "PETG": "Creality Generic PETG",
+            "PLA": "Creality Generic PLA",
+            "TPU": "Creality Generic TPU"
+          },
+          "processParents": {
+            "0.08": "0.08mm SuperDetail @Creality K1 (0.4 nozzle)",
+            "0.12": "0.12mm Fine @Creality K1 (0.4 nozzle)",
+            "0.16": "0.16mm Optimal @Creality K1 (0.4 nozzle)",
+            "0.20": "0.20mm Standard @Creality K1 (0.4 nozzle)",
+            "0.24": "0.24mm Draft @Creality K1 (0.4 nozzle)"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Creality K1 (0.6 nozzle)",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS",
+            "ASA": "Creality Generic ASA",
+            "PC": "Creality Generic PC @K1-all",
+            "PETG": "Creality Generic PETG",
+            "PLA": "Creality Generic PLA",
+            "TPU": "Creality Generic TPU"
+          },
+          "processParents": {
+            "0.24": "0.24mm Optimal @Creality K1 (0.6 nozzle)",
+            "0.30": "0.30mm Standard @Creality K1 (0.6 nozzle)",
+            "0.36": "0.36mm Draft @Creality K1 (0.6 nozzle)"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Creality K1 (0.8 nozzle)",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS",
+            "ASA": "Creality Generic ASA",
+            "PC": "Creality Generic PC @K1-all",
+            "PETG": "Creality Generic PETG",
+            "PLA": "Creality Generic PLA",
+            "TPU": "Creality Generic TPU"
+          },
+          "processParents": {
+            "0.32": "0.32mm Optimal @Creality K1 (0.8 nozzle)",
+            "0.40": "0.40mm Standard @Creality K1 (0.8 nozzle)",
+            "0.48": "0.48mm Draft @Creality K1 (0.8 nozzle)"
+          }
+        }
+      },
+      "printerName": "Creality K1"
+    },
+    "k1_max": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Creality K1 Max (0.4 nozzle)",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS",
+            "ASA": "Creality Generic ASA",
+            "PC": "Creality Generic PC @K1-all",
+            "PETG": "Creality Generic PETG",
+            "PLA": "Creality Generic PLA",
+            "TPU": "Creality Generic TPU"
+          },
+          "processParents": {
+            "0.08": "0.08mm SuperDetail @Creality K1Max (0.4 nozzle)",
+            "0.12": "0.12mm Fine @Creality K1Max (0.4 nozzle)",
+            "0.16": "0.16mm Optimal @Creality K1Max (0.4 nozzle)",
+            "0.20": "0.20mm Standard @Creality K1Max (0.4 nozzle)",
+            "0.24": "0.24mm Draft @Creality K1Max (0.4 nozzle)"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Creality K1 Max (0.6 nozzle)",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS",
+            "ASA": "Creality Generic ASA",
+            "PC": "Creality Generic PC @K1-all",
+            "PETG": "Creality Generic PETG",
+            "PLA": "Creality Generic PLA",
+            "TPU": "Creality Generic TPU"
+          },
+          "processParents": {
+            "0.24": "0.24mm Optimal @Creality K1Max (0.6 nozzle)",
+            "0.30": "0.30mm Standard @Creality K1Max (0.6 nozzle)",
+            "0.36": "0.36mm Draft @Creality K1Max (0.6 nozzle)"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Creality K1 Max (0.8 nozzle)",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS",
+            "ASA": "Creality Generic ASA",
+            "PC": "Creality Generic PC @K1-all",
+            "PETG": "Creality Generic PETG",
+            "PLA": "Creality Generic PLA",
+            "TPU": "Creality Generic TPU"
+          },
+          "processParents": {
+            "0.32": "0.32mm Optimal @Creality K1Max (0.8 nozzle)",
+            "0.40": "0.40mm Standard @Creality K1Max (0.8 nozzle)",
+            "0.48": "0.48mm Draft @Creality K1Max (0.8 nozzle)"
+          }
+        }
+      },
+      "printerName": "Creality K1 Max"
+    },
+    "k1_se": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Creality K1 SE 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @K1 SE-all",
+            "ASA": "Generic ASA @K1 SE-all",
+            "PC": "Creality Generic PC @K1-all",
+            "PETG": "Generic PETG @K1 SE-all",
+            "PLA": "Generic PLA @K1 SE-all",
+            "TPU": "Generic TPU @K1 SE-all"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Creality K1 SE",
+            "0.16": "0.16mm Optimal @Creality K1 SE",
+            "0.20": "0.20mm Standard @Creality K1 SE",
+            "0.24": "0.24mm Draft @Creality K1 SE"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Creality K1 SE 0.6 nozzle",
+          "filamentParents": {
+            "PLA": "Hyper PLA @K1 SE-all"
+          },
+          "processParents": {
+            "0.30": "0.30mm Standard @Creality K1 SE 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Creality K1 SE 0.8 nozzle",
+          "filamentParents": {
+            "PLA": "Hyper PLA @K1 SE-all"
+          },
+          "processParents": {
+            "0.40": "0.40mm Standard @Creality K1 SE 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Creality K1 SE"
+    },
+    "k1c": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Creality K1C 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @K1C-all",
+            "ASA": "Generic ASA @K1C-all",
+            "HIPS": "Generic HIPS @K1C-all",
+            "PA": "Generic PA @K1C-all",
+            "PC": "Generic PC @K1C-all",
+            "PET": "Generic PET @K1C-all",
+            "PETG": "Generic PETG @K1C-all",
+            "PLA": "Generic PLA @K1C-all",
+            "PVA": "Generic PVA @K1C-all",
+            "TPU": "Generic TPU @K1C-all"
+          },
+          "processParents": {
+            "0.08": "0.08mm SuperDetail @Creality K1C 0.4 nozzle",
+            "0.12": "0.12mm Fine @Creality K1C",
+            "0.16": "0.16mm Optimal @Creality K1C",
+            "0.20": "0.20mm Standard @Creality K1C",
+            "0.24": "0.24mm Draft @Creality K1C"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Creality K1C 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @K1-all",
+            "ASA": "Creality Generic ASA @K1-all",
+            "PC": "Creality Generic PC @K1-all",
+            "PETG": "Creality Generic PETG @K1-all",
+            "PLA": "Creality Generic PLA @K1-all",
+            "TPU": "Creality Generic TPU @K1-all"
+          },
+          "processParents": {
+            "0.24": "0.24mm Optimal @Creality K1C",
+            "0.30": "0.30mm Standard @Creality K1C",
+            "0.36": "0.36mm Draft @Creality K1C"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Creality K1C 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @K1-all",
+            "ASA": "Creality Generic ASA @K1-all",
+            "PC": "Creality Generic PC @K1-all",
+            "PETG": "Creality Generic PETG @K1-all",
+            "PLA": "Creality Generic PLA @K1-all",
+            "TPU": "Creality Generic TPU @K1-all"
+          },
+          "processParents": {
+            "0.32": "0.32mm Optimal @Creality K1C",
+            "0.40": "0.40mm Standard @Creality K1C",
+            "0.48": "0.48mm Draft @Creality K1C"
+          }
+        }
+      },
+      "printerName": "Creality K1C"
+    },
+    "k2": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Creality K2 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @K2-all",
+            "ASA": "Creality Generic ASA @K2-all",
+            "PETG": "Creality Generic PETG @K2-all",
+            "PLA": "Creality Generic PLA @K2-all",
+            "TPU": "Creality Generic TPU @K2-all"
+          },
+          "processParents": {
+            "0.08": "0.08mm SuperDetail @Creality K2 0.2 nozzle",
+            "0.10": "0.10mm HighDetail @Creality K2 0.2 nozzle",
+            "0.12": "0.12mm Detail @Creality K2 0.2 nozzle",
+            "0.14": "0.14mm Optimal @Creality K2 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Creality K2 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @K2-all",
+            "ASA": "Generic ASA @K2-all",
+            "PA": "Generic PA @K2-all",
+            "PET": "Generic PET @K2-all",
+            "PETG": "Generic PETG @K2-all",
+            "PLA": "Generic PLA @K2-all",
+            "PVA": "Generic PVA @K2-all",
+            "TPU": "Generic TPU @K2-all"
+          },
+          "processParents": {
+            "0.08": "0.08mm HueForge @Creality K2 0.4 nozzle",
+            "0.12": "0.12mm Detail @Creality K2 0.4 nozzle",
+            "0.16": "0.16mm Optimal @Creality K2 0.4 nozzle",
+            "0.20": "0.20mm Standard @Creality K2 0.4 nozzle",
+            "0.24": "0.24mm Draft @Creality K2 0.4 nozzle",
+            "0.28": "0.28mm SuperDraft @Creality K2 0.4 nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Creality K2 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @K2-all",
+            "ASA": "Creality Generic ASA @K2-all",
+            "PETG": "Creality Generic PETG @K2-all",
+            "PLA": "Creality Generic PLA @K2-all",
+            "TPU": "Creality Generic TPU @K2-all"
+          },
+          "processParents": {
+            "0.18": "0.18mm Detail @Creality K2 0.6 nozzle",
+            "0.24": "0.24mm Optimal @Creality K2 0.6 nozzle",
+            "0.30": "0.30mm Standard @Creality K2 0.6 nozzle",
+            "0.36": "0.36mm Draft @Creality K2 0.6 nozzle",
+            "0.42": "0.42mm SuperDraft @Creality K2 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Creality K2 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @K2-all",
+            "ASA": "Creality Generic ASA @K2-all",
+            "PETG": "Creality Generic PETG @K2-all",
+            "PLA": "Creality Generic PLA @K2-all",
+            "TPU": "Creality Generic TPU @K2-all"
+          },
+          "processParents": {
+            "0.24": "0.24mm Detail @Creality K2 0.8 nozzle",
+            "0.32": "0.32mm Optimal @Creality K2 0.8 nozzle",
+            "0.40": "0.40mm Standard @Creality K2 0.8 nozzle",
+            "0.48": "0.48mm Draft @Creality K2 0.8 nozzle",
+            "0.56": "0.56mm SuperDraft @Creality K2 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Creality K2"
+    },
+    "k2_plus": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Creality K2 Plus 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @K2-all",
+            "ASA": "Creality Generic ASA @K2-all",
+            "PC": "Hyper PC @K2 Plus-all",
+            "PETG": "Creality Generic PETG @K2-all",
+            "PLA": "Creality Generic PLA @K2-all",
+            "TPU": "Creality Generic TPU @K2-all"
+          },
+          "processParents": {
+            "0.06": "0.06mm SuperDetail @Creality K2 Plus 0.2 nozzle",
+            "0.08": "0.08mm SuperDetail @Creality K2 Plus 0.2 nozzle",
+            "0.10": "0.10mm HighDetail @Creality K2 Plus 0.2 nozzle",
+            "0.12": "0.12mm Detail @Creality K2 Plus 0.2 nozzle",
+            "0.14": "0.14mm Optimal @Creality K2 Plus 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Creality K2 Plus 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @K2 Plus-all",
+            "ASA": "Generic ASA @K2 Plus-all",
+            "HIPS": "Generic HIPS @K2 Plus-all",
+            "PA": "Generic PA @K2 Plus-all",
+            "PC": "Generic PC @K2 Plus-all",
+            "PET": "Generic PET @K2 Plus-all",
+            "PETG": "Generic PETG @K2 Plus-all",
+            "PLA": "Generic PLA @K2 Plus-all",
+            "PVA": "Generic PVA @K2 Plus-all",
+            "TPU": "Generic TPU @K2 Plus-all"
+          },
+          "processParents": {
+            "0.08": "0.08mm HueForge @Creality K2 Plus 0.4 nozzle",
+            "0.12": "0.12mm Detail @Creality K2 Plus 0.4 nozzle",
+            "0.16": "0.16mm Optimal @Creality K2 Plus 0.4 nozzle",
+            "0.20": "0.20mm High Quality @Creality K2 Plus 0.4 nozzle",
+            "0.24": "0.24mm Draft @Creality K2 Plus 0.4 nozzle",
+            "0.28": "0.28mm SuperDraft @Creality K2 Plus 0.4 nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Creality K2 Plus 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @K2 Plus-all",
+            "ASA": "Creality Generic ASA @K2-all",
+            "PC": "Hyper PC @K2 Plus-all",
+            "PETG": "Generic PETG @K2 Plus-all",
+            "PLA": "Generic PLA @K2 Plus-all",
+            "TPU": "Creality Generic TPU @K2-all"
+          },
+          "processParents": {
+            "0.18": "0.18mm Detail @Creality K2 Plus 0.6 nozzle",
+            "0.24": "0.24mm Optimal @Creality K2 Plus 0.6 nozzle",
+            "0.30": "0.30mm Standard @Creality K2 Plus 0.6 nozzle",
+            "0.36": "0.36mm Draft @Creality K2 Plus 0.6 nozzle",
+            "0.42": "0.42mm SuperDraft @Creality K2 Plus 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Creality K2 Plus 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @K2 Plus-all",
+            "ASA": "Creality Generic ASA @K2-all",
+            "PC": "Hyper PC @K2 Plus-all",
+            "PETG": "Generic PETG @K2 Plus-all",
+            "PLA": "Generic PLA @K2 Plus-all",
+            "TPU": "Creality Generic TPU @K2-all"
+          },
+          "processParents": {
+            "0.24": "0.24mm Detail @Creality K2 Plus 0.8 nozzle",
+            "0.32": "0.32mm Optimal @Creality K2 Plus 0.8 nozzle",
+            "0.40": "0.40mm Standard @Creality K2 Plus 0.8 nozzle",
+            "0.48": "0.48mm Draft @Creality K2 Plus 0.8 nozzle",
+            "0.56": "0.56mm SuperDraft @Creality K2 Plus 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Creality K2 Plus"
+    },
+    "k2_pro": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Creality K2 Pro 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @K2-all",
+            "ASA": "Creality Generic ASA @K2-all",
+            "PETG": "Creality Generic PETG @K2-all",
+            "PLA": "Creality Generic PLA @K2-all",
+            "TPU": "Creality Generic TPU @K2-all"
+          },
+          "processParents": {
+            "0.08": "0.08mm SuperDetail @Creality K2 Pro 0.2 nozzle",
+            "0.10": "0.10mm HighDetail @Creality K2 Pro 0.2 nozzle",
+            "0.12": "0.12mm Detail @Creality K2 Pro 0.2 nozzle",
+            "0.14": "0.14mm Optimal @Creality K2 Pro 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Creality K2 Pro 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @K2 Pro-all",
+            "ASA": "Generic ASA @K2 Pro-all",
+            "PA": "Generic PA @K2 Pro-all",
+            "PC": "Generic PC @K2 Pro-all",
+            "PET": "Generic PET @K2 Pro-all",
+            "PETG": "Generic PETG @K2 Pro-all",
+            "PLA": "Generic PLA @K2 Pro-all",
+            "PVA": "Generic PVA @K2 Pro-all",
+            "TPU": "Generic TPU @K2 Pro-all"
+          },
+          "processParents": {
+            "0.08": "0.08mm HueForge @Creality K2 Pro 0.4 nozzle",
+            "0.12": "0.12mm Detail @Creality K2 Pro 0.4 nozzle",
+            "0.16": "0.16mm Optimal @Creality K2 Pro 0.4 nozzle",
+            "0.20": "0.20mm Standard @Creality K2 Pro 0.4 nozzle",
+            "0.24": "0.24mm Draft @Creality K2 Pro 0.4 nozzle",
+            "0.28": "0.28mm SuperDraft @Creality K2 Pro 0.4 nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Creality K2 Pro 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @K2-all",
+            "ASA": "Creality Generic ASA @K2-all",
+            "PETG": "Creality Generic PETG @K2-all",
+            "PLA": "Creality Generic PLA @K2-all",
+            "TPU": "Creality Generic TPU @K2-all"
+          },
+          "processParents": {
+            "0.18": "0.18mm Detail @Creality K2 Pro 0.6 nozzle",
+            "0.24": "0.24mm Optimal @Creality K2 Pro 0.6 nozzle",
+            "0.30": "0.30mm Standard @Creality K2 Pro 0.6 nozzle",
+            "0.36": "0.36mm Draft @Creality K2 Pro 0.6 nozzle",
+            "0.42": "0.42mm SuperDraft @Creality K2 Pro 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Creality K2 Pro 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Creality Generic ABS @K2-all",
+            "ASA": "Creality Generic ASA @K2-all",
+            "PETG": "Creality Generic PETG @K2-all",
+            "PLA": "Creality Generic PLA @K2-all",
+            "TPU": "Creality Generic TPU @K2-all"
+          },
+          "processParents": {
+            "0.24": "0.24mm Detail @Creality K2 Pro 0.8 nozzle",
+            "0.32": "0.32mm Optimal @Creality K2 Pro 0.8 nozzle",
+            "0.40": "0.40mm Standard @Creality K2 Pro 0.8 nozzle",
+            "0.48": "0.48mm Draft @Creality K2 Pro 0.8 nozzle",
+            "0.56": "0.56mm SuperDraft @Creality K2 Pro 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Creality K2 Pro"
+    },
+    "k2_se": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Creality K2 SE 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @K2 SE-all",
+            "ASA": "Generic ASA @K2 SE-all",
+            "PETG": "Generic PETG @K2 SE-all",
+            "PLA": "Generic PLA @K2 SE-all",
+            "TPU": "Generic TPU @K2 SE-all"
+          },
+          "processParents": {
+            "0.16": "0.16mm Standard @Creality K2 SE 0.4 nozzle",
+            "0.20": "0.20mm Standard @Creality K2 SE 0.4 nozzle",
+            "0.24": "0.24mm Standard @Creality K2 SE 0.4 nozzle"
+          }
+        }
+      },
+      "printerName": "Creality K2 SE"
+    },
+    "kobra_2": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Anycubic Kobra 2 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Anycubic Generic ABS",
+            "ASA": "Anycubic Generic ASA",
+            "PA": "Anycubic Generic PA",
+            "PC": "Anycubic Generic PC",
+            "PETG": "Anycubic Generic PETG",
+            "PLA": "Anycubic Generic PLA",
+            "PVA": "Anycubic Generic PVA",
+            "TPU": "Anycubic Generic TPU"
+          },
+          "processParents": {
+            "0.15": "0.15mm Optimal @Anycubic Kobra2",
+            "0.20": "0.20mm Standard @Anycubic Kobra2",
+            "0.30": "0.30mm Draft @Anycubic Kobra2"
+          }
+        }
+      },
+      "printerName": "Anycubic Kobra 2"
+    },
+    "kobra_3": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Anycubic Kobra 3 0.2 nozzle",
+          "filamentParents": {
+            "PLA": "Anycubic Generic PLA"
+          },
+          "processParents": {
+            "0.10": "0.10mm Detail @Anycubic Kobra 3 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Anycubic Kobra 3 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Anycubic Kobra 3 0.4 nozzle",
+            "ASA": "Anycubic Generic ASA",
+            "PETG": "Anycubic Generic PETG",
+            "PLA": "Anycubic Generic PLA",
+            "TPU": "Generic TPU @Anycubic Kobra 3 0.4 nozzle"
+          },
+          "processParents": {
+            "0.08": "0.08mm HighDetail @Anycubic Kobra 3 0.4 nozzle",
+            "0.12": "0.12mm Detail @Anycubic Kobra 3 0.4 nozzle",
+            "0.16": "0.16mm Optimal @Anycubic Kobra 3 0.4 nozzle",
+            "0.20": "0.20mm Standard @Anycubic Kobra 3 0.4 nozzle",
+            "0.24": "0.24mm Draft @Anycubic Kobra 3 0.4 nozzle",
+            "0.28": "0.28mm SuperDraft @Anycubic Kobra 3 0.4 nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Anycubic Kobra 3 0.6 nozzle",
+          "filamentParents": {
+            "PLA": "Anycubic Generic PLA"
+          },
+          "processParents": {
+            "0.30": "0.30mm Standard @Anycubic Kobra 3 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Anycubic Kobra 3 0.8 nozzle",
+          "filamentParents": {
+            "PLA": "Anycubic Generic PLA"
+          },
+          "processParents": {
+            "0.40": "0.40mm Standard @Anycubic Kobra 3 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Anycubic Kobra 3"
+    },
+    "kobra_3_max": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Anycubic Kobra 3 Max 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Anycubic Generic ABS",
+            "ASA": "Anycubic Generic ASA",
+            "PETG": "Generic PETG Basic @Anycubic Kobra 3 Max 0.4 nozzle",
+            "PLA": "Anycubic Generic PLA",
+            "TPU": "Anycubic Generic TPU"
+          },
+          "processParents": {
+            "0.08": "0.08mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
+            "0.12": "0.12mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
+            "0.16": "0.16mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
+            "0.20": "0.20mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
+            "0.24": "0.24mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
+            "0.28": "0.28mm Standard @Anycubic Kobra 3 Max 0.4 nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Anycubic Kobra 3 Max 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Anycubic ABS @Anycubic Kobra 3 Max 0.6 nozzle",
+            "ASA": "Anycubic ASA @Anycubic Kobra 3 Max 0.6 nozzle",
+            "PETG": "Anycubic PETG @Anycubic Kobra 3 Max 0.6 nozzle",
+            "PLA": "Anycubic PLA @Anycubic Kobra 3 Max 0.6 nozzle",
+            "TPU": "Anycubic TPU @Anycubic Kobra 3 Max 0.6 nozzle"
+          },
+          "processParents": {
+            "0.18": "0.18mm Standard @Anycubic Kobra 3 Max 0.6 nozzle",
+            "0.24": "0.24mm Standard @Anycubic Kobra 3 Max 0.6 nozzle",
+            "0.30": "0.30mm Standard @Anycubic Kobra 3 Max 0.6 nozzle",
+            "0.36": "0.36mm Standard @Anycubic Kobra 3 Max 0.6 nozzle",
+            "0.42": "0.42mm Standard @Anycubic Kobra 3 Max 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Anycubic Kobra 3 Max 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Anycubic ABS @Anycubic Kobra 3 Max 0.8 nozzle",
+            "ASA": "Anycubic ASA @Anycubic Kobra 3 Max 0.8 nozzle",
+            "PETG": "Anycubic PETG @Anycubic Kobra 3 Max 0.8 nozzle",
+            "PLA": "Anycubic PLA @Anycubic Kobra 3 Max 0.8 nozzle",
+            "TPU": "Anycubic TPU @Anycubic Kobra 3 Max 0.8 nozzle"
+          },
+          "processParents": {
+            "0.20": "0.20mm Standard @Anycubic Kobra 3 Max 0.8 nozzle",
+            "0.24": "0.24mm Standard @Anycubic Kobra 3 Max 0.8 nozzle",
+            "0.32": "0.32mm Standard @Anycubic Kobra 3 Max 0.8 nozzle",
+            "0.40": "0.40mm Standard @Anycubic Kobra 3 Max 0.8 nozzle",
+            "0.48": "0.48mm Standard @Anycubic Kobra 3 Max 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Anycubic Kobra 3 Max"
+    },
+    "kobra_s1": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Anycubic Kobra S1 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Anycubic ABS @Anycubic Kobra S1 0.4 nozzle",
+            "ASA": "Anycubic ASA @Anycubic Kobra S1 0.4 nozzle",
+            "PETG": "Anycubic PETG @Anycubic Kobra S1 0.4 nozzle",
+            "PLA": "Panchroma PLA @Anycubic Kobra S1",
+            "TPU": "Anycubic TPU @Anycubic Kobra S1 0.4 nozzle"
+          },
+          "processParents": {
+            "0.20": "0.20mm Standard @Anycubic Kobra S1 0.4 nozzle"
+          }
+        }
+      },
+      "printerName": "Anycubic Kobra S1"
+    },
+    "kobra_s1_max": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Anycubic Kobra S1 Max 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Anycubic ABS @Anycubic Kobra S1 Max 0.4 nozzle",
+            "ASA": "Anycubic ASA @Anycubic Kobra S1 Max 0.4 nozzle",
+            "PA": "Anycubic PA @Anycubic Kobra S1 Max 0.4 nozzle",
+            "PC": "Anycubic PC @Anycubic Kobra S1 Max 0.4 nozzle",
+            "PETG": "Generic PETG @Anycubic Kobra S1 Max 0.4 nozzle",
+            "PLA": "Anycubic PLA @Anycubic Kobra S1 Max 0.4 nozzle",
+            "PVA": "Anycubic PVA @Anycubic Kobra S1 Max 0.4 nozzle",
+            "TPU": "Anycubic TPU 95A @Anycubic Kobra S1 Max 0.4 nozzle"
+          },
+          "processParents": {
+            "0.08": "0.08mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
+            "0.12": "0.12mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
+            "0.16": "0.16mm High Quality @Anycubic Kobra S1 Max 0.4 nozzle",
+            "0.20": "0.20mm High Quality @Anycubic Kobra S1 Max 0.4 nozzle",
+            "0.24": "0.24mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
+            "0.28": "0.28mm Standard @Anycubic Kobra S1 Max 0.4 nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Anycubic Kobra S1 Max 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Anycubic ABS @Anycubic Kobra S1 Max 0.6 nozzle",
+            "ASA": "Anycubic ASA @Anycubic Kobra S1 Max 0.6 nozzle",
+            "PA": "Anycubic PA @Anycubic Kobra S1 Max 0.6 nozzle",
+            "PC": "Anycubic PC @Anycubic Kobra S1 Max 0.6 nozzle",
+            "PETG": "Anycubic PETG @Anycubic Kobra S1 Max 0.6 nozzle",
+            "PLA": "Anycubic PLA @Anycubic Kobra S1 Max 0.6 nozzle",
+            "PVA": "Anycubic PVA @Anycubic Kobra S1 Max 0.6 nozzle"
+          },
+          "processParents": {
+            "0.18": "0.18mm Standard @Anycubic Kobra S1 Max 0.6 nozzle",
+            "0.24": "0.24mm Standard @Anycubic Kobra S1 Max 0.6 nozzle",
+            "0.30": "0.30mm Standard @Anycubic Kobra S1 Max 0.6 nozzle",
+            "0.36": "0.36mm Standard @Anycubic Kobra S1 Max 0.6 nozzle",
+            "0.42": "0.42mm Standard @Anycubic Kobra S1 Max 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Anycubic Kobra S1 Max 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Anycubic ABS @Anycubic Kobra S1 Max 0.8 nozzle",
+            "ASA": "Anycubic ASA @Anycubic Kobra S1 Max 0.8 nozzle",
+            "PA": "Anycubic PA @Anycubic Kobra S1 Max 0.8 nozzle",
+            "PC": "Anycubic PC @Anycubic Kobra S1 Max 0.8 nozzle",
+            "PETG": "Anycubic PETG @Anycubic Kobra S1 Max 0.8 nozzle",
+            "PLA": "Anycubic PLA @Anycubic Kobra S1 Max 0.8 nozzle",
+            "PVA": "Anycubic PVA @Anycubic Kobra S1 Max 0.8 nozzle",
+            "TPU": "Anycubic TPU 95A @Anycubic Kobra S1 Max 0.8 nozzle"
+          },
+          "processParents": {
+            "0.24": "0.24mm Standard @Anycubic Kobra S1 Max 0.8 nozzle",
+            "0.32": "0.32mm Standard @Anycubic Kobra S1 Max 0.8 nozzle",
+            "0.40": "0.40mm Standard @Anycubic Kobra S1 Max 0.8 nozzle",
+            "0.48": "0.48mm Standard @Anycubic Kobra S1 Max 0.8 nozzle",
+            "0.56": "0.56mm Standard @Anycubic Kobra S1 Max 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Anycubic Kobra S1 Max"
+    },
+    "kobra_x": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Anycubic Kobra X 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Anycubic ABS @Anycubic Kobra X 0.4 nozzle",
+            "ASA": "Anycubic ASA @Anycubic Kobra X 0.4 nozzle",
+            "PETG": "Generic PETG @Anycubic Kobra X 0.4 nozzle",
+            "PLA": "Anycubic PLA @Anycubic Kobra X 0.4 nozzle",
+            "PVA": "Anycubic PVA @Anycubic Kobra X 0.4 nozzle",
+            "TPU": "Anycubic TPU 95A @Anycubic Kobra X 0.4 nozzle"
+          },
+          "processParents": {
+            "0.08": "0.08mm Standard @Anycubic Kobra X",
+            "0.12": "0.12mm High Quality @Anycubic Kobra X",
+            "0.16": "0.16mm High Quality @Anycubic Kobra X",
+            "0.20": "0.20mm High Quality @Anycubic Kobra X",
+            "0.24": "0.24mm Standard @Anycubic Kobra X",
+            "0.28": "0.28mm Standard @Anycubic Kobra X"
+          }
+        }
+      },
+      "printerName": "Anycubic Kobra X"
+    },
+    "m5": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Anker M5 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Anker Generic ABS 0.2 nozzle",
+            "ASA": "Anker Generic ASA 0.2 nozzle",
+            "PETG": "Anker Generic PETG 0.2 nozzle",
+            "PLA": "Anker Generic PLA 0.2 nozzle"
+          },
+          "processParents": {
+            "0.00": "fdm_process_anker_common_0_2",
+            "0.05": "0.05mm Optimal 0.2 nozzle @Anker",
+            "0.10": "0.10mm Standard 0.2 nozzle @Anker",
+            "0.15": "0.15mm Draft 0.2 nozzle @Anker"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Anker M5 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Anker Generic ABS",
+            "ASA": "Anker Generic ASA",
+            "PETG": "Anker Generic PETG",
+            "PLA": "Anker Generic PLA",
+            "PVA": "Anker Generic PVA",
+            "TPU": "Anker Generic TPU"
+          },
+          "processParents": {
+            "0.00": "fdm_process_anker_common",
+            "0.05": "0.05mm Ultradetail @Anker",
+            "0.10": "0.10mm Detail @Anker",
+            "0.15": "0.15mm Fast @Anker",
+            "0.20": "0.20mm Fast @Anker",
+            "0.25": "0.25mm Draft @Anker",
+            "0.30": "0.30mm Superdraft @Anker"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Anker M5 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Anker Generic ABS",
+            "ASA": "Anker Generic ASA",
+            "PETG": "Anker Generic PETG",
+            "PLA": "Anker Generic PLA",
+            "PVA": "Anker Generic PVA",
+            "TPU": "Anker Generic TPU"
+          },
+          "processParents": {
+            "0.00": "fdm_process_anker_common_0_6",
+            "0.15": "0.15mm Detail 0.6 nozzle @Anker",
+            "0.20": "0.20mm Optimal 0.6 nozzle @Anker",
+            "0.30": "0.30mm Standard 0.6mm nozzle @Anker",
+            "0.35": "0.35mm Draft 0.6mm nozzle @Anker",
+            "0.40": "0.40mm Superdraft 0.6mm nozzle @Anker"
+          }
+        }
+      },
+      "printerName": "Anker M5"
+    },
+    "m5c": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Anker M5C 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Anker Generic ABS 0.2 nozzle",
+            "ASA": "Anker Generic ASA 0.2 nozzle",
+            "PA": "Anker Generic PA 0.2 nozzle",
+            "PC": "Anker Generic PC 0.2 nozzle",
+            "PETG": "Anker Generic PETG 0.2 nozzle",
+            "PLA": "Anker Generic PLA 0.2 nozzle"
+          },
+          "processParents": {
+            "0.00": "fdm_process_anker_common_0_2",
+            "0.05": "0.05mm Optimal 0.2 nozzle @Anker",
+            "0.10": "0.10mm Standard 0.2 nozzle @Anker",
+            "0.15": "0.15mm Draft 0.2 nozzle @Anker"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Anker M5C 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Anker Generic ABS",
+            "ASA": "Anker Generic ASA",
+            "PA": "Anker Generic PA",
+            "PC": "Anker Generic PC",
+            "PETG": "Anker Generic PETG",
+            "PLA": "Anker Generic PLA",
+            "PVA": "Anker Generic PVA",
+            "TPU": "Anker Generic TPU"
+          },
+          "processParents": {
+            "0.00": "fdm_process_anker_common",
+            "0.05": "0.05mm Ultradetail @Anker",
+            "0.10": "0.10mm Detail @Anker",
+            "0.15": "0.15mm Fast @Anker",
+            "0.20": "0.20mm Fast @Anker",
+            "0.25": "0.25mm Draft @Anker",
+            "0.30": "0.30mm Superdraft @Anker"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Anker M5C 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Anker Generic ABS",
+            "ASA": "Anker Generic ASA",
+            "PA": "Anker Generic PA",
+            "PC": "Anker Generic PC",
+            "PETG": "Anker Generic PETG",
+            "PLA": "Anker Generic PLA",
+            "PVA": "Anker Generic PVA",
+            "TPU": "Anker Generic TPU"
+          },
+          "processParents": {
+            "0.00": "fdm_process_anker_common_0_6",
+            "0.15": "0.15mm Detail 0.6 nozzle @Anker",
+            "0.20": "0.20mm Optimal 0.6 nozzle @Anker",
+            "0.30": "0.30mm Standard 0.6mm nozzle @Anker",
+            "0.35": "0.35mm Draft 0.6mm nozzle @Anker",
+            "0.40": "0.40mm Superdraft 0.6mm nozzle @Anker"
+          }
+        }
+      },
+      "printerName": "Anker M5C"
+    },
+    "neptune_4": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Elegoo Neptune 4 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PC": "Elegoo PC @0.2 nozzle",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo"
+          },
+          "processParents": {
+            "0.08": "0.08mm Optimal @Elegoo N4 0.2 nozzle",
+            "0.10": "0.10mm Standard @Elegoo N4 0.2 nozzle",
+            "0.12": "0.12mm Draft @Elegoo N4 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Elegoo Neptune 4 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Elegoo N4 0.4 nozzle",
+            "0.16": "0.16mm Optimal @Elegoo N4 0.4 nozzle",
+            "0.20": "0.20mm Standard @Elegoo N4 0.4 nozzle",
+            "0.24": "0.24mm Draft @Elegoo N4 0.4 nozzle",
+            "0.28": "0.28mm Extra Draft @Elegoo N4 0.4 nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Elegoo Neptune 4 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.24": "0.24mm Optimal @Elegoo N4 0.6 nozzle",
+            "0.30": "0.30mm Standard @Elegoo N4 0.6 nozzle",
+            "0.36": "0.36mm Draft @Elegoo N4 0.6 nozzle",
+            "0.42": "0.42mm Extra Draft @Elegoo N4 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Elegoo Neptune 4 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.24": "0.24mm Fine @Elegoo N4 0.8 nozzle",
+            "0.32": "0.32mm Optimal @Elegoo N4 0.8 nozzle",
+            "0.40": "0.40mm Standard @Elegoo N4 0.8 nozzle",
+            "0.48": "0.48mm Draft @Elegoo N4 0.8 nozzle"
+          }
+        },
+        "1.0": {
+          "compatiblePrinter": "Elegoo Neptune 4 1.0 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.30": "0.30mm Fine @Elegoo N4 1.0 nozzle",
+            "0.40": "0.40mm Optimal @Elegoo N4 1.0 nozzle",
+            "0.50": "0.50mm Standard @Elegoo N4 1.0 nozzle",
+            "0.60": "0.60mm Draft @Elegoo N4 1.0 nozzle"
+          }
+        }
+      },
+      "printerName": "Elegoo Neptune 4"
+    },
+    "neptune_4_max": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Elegoo Neptune 4 Max 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PC": "Elegoo PC @0.2 nozzle",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo"
+          },
+          "processParents": {
+            "0.08": "0.08mm Optimal @Elegoo N4Max 0.2 nozzle",
+            "0.10": "0.10mm Standard @Elegoo N4Max 0.2 nozzle",
+            "0.12": "0.12mm Draft @Elegoo N4Max 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Elegoo Neptune 4 Max 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Elegoo N4Max 0.4 nozzle",
+            "0.16": "0.16mm Optimal @Elegoo N4Max 0.4 nozzle",
+            "0.20": "0.20mm Standard @Elegoo N4Max 0.4 nozzle",
+            "0.24": "0.24mm Draft @Elegoo N4Max 0.4 nozzle",
+            "0.28": "0.28mm Extra Draft @Elegoo N4Max 0.4 nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Elegoo Neptune 4 Max 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.24": "0.24mm Optimal @Elegoo N4Max 0.6 nozzle",
+            "0.30": "0.30mm Standard @Elegoo N4Max 0.6 nozzle",
+            "0.36": "0.36mm Draft @Elegoo N4Max 0.6 nozzle",
+            "0.42": "0.42mm Extra Draft @Elegoo N4Max 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Elegoo Neptune 4 Max 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.24": "0.24mm Fine @Elegoo N4Max 0.8 nozzle",
+            "0.32": "0.32mm Optimal @Elegoo N4Max 0.8 nozzle",
+            "0.40": "0.40mm Standard @Elegoo N4Max 0.8 nozzle",
+            "0.48": "0.48mm Draft @Elegoo N4Max 0.8 nozzle"
+          }
+        },
+        "1.0": {
+          "compatiblePrinter": "Elegoo Neptune 4 Max 1.0 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.30": "0.30mm Fine @Elegoo N4Max 1.0 nozzle",
+            "0.40": "0.40mm Optimal @Elegoo N4Max 1.0 nozzle",
+            "0.50": "0.50mm Standard @Elegoo N4Max 1.0 nozzle",
+            "0.60": "0.60mm Draft @Elegoo N4Max 1.0 nozzle"
+          }
+        }
+      },
+      "printerName": "Elegoo Neptune 4 Max"
+    },
+    "neptune_4_plus": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Elegoo Neptune 4 Plus 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PC": "Elegoo PC @0.2 nozzle",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo"
+          },
+          "processParents": {
+            "0.08": "0.08mm Optimal @Elegoo N4Plus 0.2 nozzle",
+            "0.10": "0.10mm Standard @Elegoo N4Plus 0.2 nozzle",
+            "0.12": "0.12mm Draft @Elegoo N4Plus 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Elegoo Neptune 4 Plus 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Elegoo N4Plus 0.4 nozzle",
+            "0.16": "0.16mm Optimal @Elegoo N4Plus 0.4 nozzle",
+            "0.20": "0.20mm Standard @Elegoo N4Plus 0.4 nozzle",
+            "0.24": "0.24mm Draft @Elegoo N4Plus 0.4 nozzle",
+            "0.28": "0.28mm Extra Draft @Elegoo N4Plus 0.4 nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Elegoo Neptune 4 Plus 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.24": "0.24mm Optimal @Elegoo N4Plus 0.6 nozzle",
+            "0.30": "0.30mm Standard @Elegoo N4Plus 0.6 nozzle",
+            "0.36": "0.36mm Draft @Elegoo N4Plus 0.6 nozzle",
+            "0.42": "0.42mm Extra Draft @Elegoo N4Plus 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Elegoo Neptune 4 Plus 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.24": "0.24mm Fine @Elegoo N4Plus 0.8 nozzle",
+            "0.32": "0.32mm Optimal @Elegoo N4Plus 0.8 nozzle",
+            "0.40": "0.40mm Standard @Elegoo N4Plus 0.8 nozzle",
+            "0.48": "0.48mm Draft @Elegoo N4Plus 0.8 nozzle"
+          }
+        },
+        "1.0": {
+          "compatiblePrinter": "Elegoo Neptune 4 Plus 1.0 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.30": "0.30mm Fine @Elegoo N4Plus 1.0 nozzle",
+            "0.40": "0.40mm Optimal @Elegoo N4Plus 1.0 nozzle",
+            "0.50": "0.50mm Standard @Elegoo N4Plus 1.0 nozzle",
+            "0.60": "0.60mm Draft @Elegoo N4Plus 1.0 nozzle"
+          }
+        }
+      },
+      "printerName": "Elegoo Neptune 4 Plus"
+    },
+    "neptune_4_pro": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Elegoo Neptune 4 Pro 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PC": "Elegoo PC @0.2 nozzle",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo"
+          },
+          "processParents": {
+            "0.08": "0.08mm Optimal @Elegoo N4Pro 0.2 nozzle",
+            "0.10": "0.10mm Standard @Elegoo N4Pro 0.2 nozzle",
+            "0.12": "0.12mm Draft @Elegoo N4Pro 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Elegoo Neptune 4 Pro 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Elegoo N4Pro 0.4 nozzle",
+            "0.16": "0.16mm Optimal @Elegoo N4Pro 0.4 nozzle",
+            "0.20": "0.20mm Standard @Elegoo N4Pro 0.4 nozzle",
+            "0.24": "0.24mm Draft @Elegoo N4Pro 0.4 nozzle",
+            "0.28": "0.28mm Extra Draft @Elegoo N4Pro 0.4 nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Elegoo Neptune 4 Pro 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.24": "0.24mm Optimal @Elegoo N4Pro 0.6 nozzle",
+            "0.30": "0.30mm Standard @Elegoo N4Pro 0.6 nozzle",
+            "0.36": "0.36mm Draft @Elegoo N4Pro 0.6 nozzle",
+            "0.42": "0.42mm Extra Draft @Elegoo N4Pro 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Elegoo Neptune 4 Pro 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.24": "0.24mm Fine @Elegoo N4Pro 0.8 nozzle",
+            "0.32": "0.32mm Optimal @Elegoo N4Pro 0.8 nozzle",
+            "0.40": "0.40mm Standard @Elegoo N4Pro 0.8 nozzle",
+            "0.48": "0.48mm Draft @Elegoo N4Pro 0.8 nozzle"
+          }
+        },
+        "1.0": {
+          "compatiblePrinter": "Elegoo Neptune 4 Pro 1.0 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Elegoo",
+            "ASA": "Generic ASA @Elegoo",
+            "PA": "Generic PA @Elegoo",
+            "PC": "Generic PC @Elegoo",
+            "PETG": "Generic PETG @Elegoo",
+            "PLA": "Generic PLA @Elegoo",
+            "TPU": "Elegoo TPU 95A @EN4 Series"
+          },
+          "processParents": {
+            "0.30": "0.30mm Fine @Elegoo N4Pro 1.0 nozzle",
+            "0.40": "0.40mm Optimal @Elegoo N4Pro 1.0 nozzle",
+            "0.50": "0.50mm Standard @Elegoo N4Pro 1.0 nozzle",
+            "0.60": "0.60mm Draft @Elegoo N4Pro 1.0 nozzle"
+          }
+        }
+      },
+      "printerName": "Elegoo Neptune 4 Pro"
+    },
+    "q1_pro": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Qidi Q1 Pro 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS @Qidi Q1 Pro 0.2 nozzle",
+            "ASA": "Qidi Generic ASA @Qidi Q1 Pro 0.2 nozzle",
+            "PC": "Qidi Generic PC @Qidi Q1 Pro 0.2 nozzle",
+            "PETG": "Qidi Generic PETG @Qidi Q1 Pro 0.2 nozzle",
+            "PLA": "Qidi Generic PLA @Qidi Q1 Pro 0.2 nozzle",
+            "PVA": "Qidi Generic PVA"
+          },
+          "processParents": {
+            "0.06": "0.06mm Standard @Qidi Q1 Pro 0.2 nozzle",
+            "0.08": "0.08mm Standard @Qidi Q1 Pro 0.2 nozzle",
+            "0.10": "0.10mm Standard @Qidi Q1 Pro 0.2 nozzle",
+            "0.12": "0.12mm Standard @Qidi Q1 Pro 0.2 nozzle",
+            "0.14": "0.14mm Standard @Qidi Q1 Pro 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Qidi Q1 Pro 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS @Qidi Q1 Pro 0.4 nozzle",
+            "ASA": "Qidi Generic ASA @Qidi Q1 Pro 0.4 nozzle",
+            "PA": "Qidi Generic PA",
+            "PC": "Qidi Generic PC @Qidi Q1 Pro 0.4 nozzle",
+            "PETG": "Qidi Generic PETG @Qidi Q1 Pro 0.4 nozzle",
+            "PLA": "Qidi Generic PLA @Qidi Q1 Pro 0.4 nozzle",
+            "PVA": "Qidi Generic PVA",
+            "TPU": "Qidi Generic TPU @Qidi Q1 Pro 0.4 nozzle"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Qidi Q1 Pro",
+            "0.16": "0.16mm Optimal @Qidi Q1 Pro",
+            "0.20": "0.20mm Standard @Qidi Q1 Pro",
+            "0.24": "0.24mm Draft @Qidi Q1 Pro",
+            "0.25": "0.25mm Draft @Qidi Q1 Pro",
+            "0.28": "0.28mm Extra Draft @Qidi Q1 Pro",
+            "0.30": "0.30mm Extra Draft @Qidi Q1 Pro"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Qidi Q1 Pro 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS @Qidi Q1 Pro 0.6 nozzle",
+            "ASA": "Qidi Generic ASA @Qidi Q1 Pro 0.6 nozzle",
+            "PA": "Qidi Generic PA",
+            "PC": "Qidi Generic PC @Qidi Q1 Pro 0.6 nozzle",
+            "PETG": "Qidi Generic PETG @Qidi Q1 Pro 0.6 nozzle",
+            "PLA": "Qidi Generic PLA @Qidi Q1 Pro 0.6 nozzle",
+            "PVA": "Qidi Generic PVA",
+            "TPU": "Qidi Generic TPU"
+          },
+          "processParents": {
+            "0.18": "0.18mm Standard @Qidi Q1 Pro 0.6 nozzle",
+            "0.24": "0.24mm Standard @Qidi Q1 Pro 0.6 nozzle",
+            "0.30": "0.30mm Standard @Qidi Q1 Pro 0.6 nozzle",
+            "0.36": "0.36mm Standard @Qidi Q1 Pro 0.6 nozzle",
+            "0.42": "0.42mm Standard @Qidi Q1 Pro 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Qidi Q1 Pro 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS @Qidi Q1 Pro 0.8 nozzle",
+            "ASA": "Qidi Generic ASA @Qidi Q1 Pro 0.8 nozzle",
+            "PA": "Qidi Generic PA",
+            "PC": "Qidi Generic PC @Qidi Q1 Pro 0.8 nozzle",
+            "PETG": "Qidi Generic PETG @Qidi Q1 Pro 0.8 nozzle",
+            "PLA": "Qidi Generic PLA @Qidi Q1 Pro 0.8 nozzle",
+            "PVA": "Qidi Generic PVA",
+            "TPU": "Qidi Generic TPU 95A @Qidi Q1 Pro 0.8 nozzle"
+          },
+          "processParents": {
+            "0.24": "0.24mm Standard @Qidi Q1 Pro 0.8 nozzle",
+            "0.32": "0.32mm Standard @Qidi Q1 Pro 0.8 nozzle",
+            "0.40": "0.40mm Standard @Qidi Q1 Pro 0.8 nozzle",
+            "0.48": "0.48mm Standard @Qidi Q1 Pro 0.8 nozzle",
+            "0.56": "0.56mm Standard @Qidi Q1 Pro 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Qidi Q1 Pro"
+    },
+    "q2": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Qidi Q2 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Qidi Q2 0.2 nozzle",
+            "ASA": "QIDI ASA @Qidi Q2 0.2 nozzle",
+            "PC": "Generic PC @Qidi Q2 0.2 nozzle",
+            "PETG": "Generic PETG @Qidi Q2 0.2 nozzle",
+            "PLA": "Generic PLA @Qidi Q2 0.2 nozzle",
+            "PVA": "Qidi Generic PVA"
+          },
+          "processParents": {
+            "0.06": "0.06mm Standard @Qidi Q2 0.2 nozzle",
+            "0.08": "0.08mm Standard @Qidi Q2 0.2 nozzle",
+            "0.10": "0.10mm Standard @Qidi Q2 0.2 nozzle",
+            "0.12": "0.12mm Standard @Qidi Q2 0.2 nozzle",
+            "0.14": "0.14mm Standard @Qidi Q2 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Qidi Q2 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Qidi Q2 0.4 nozzle",
+            "ASA": "QIDI ASA @Qidi Q2 0.4 nozzle",
+            "PA": "Qidi Generic PA",
+            "PC": "Generic PC @Qidi Q2 0.4 nozzle",
+            "PETG": "Generic PETG @Qidi Q2 0.4 nozzle",
+            "PLA": "Generic PLA @Qidi Q2 0.4 nozzle",
+            "PVA": "Qidi Generic PVA",
+            "TPU": "Generic TPU 95A @Qidi Q2 0.4 nozzle"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Qidi Q2",
+            "0.16": "0.16mm Optimal @Qidi Q2",
+            "0.20": "0.20mm Standard @Qidi Q2",
+            "0.24": "0.24mm Draft @Qidi Q2",
+            "0.25": "0.25mm Draft @Qidi Q2",
+            "0.28": "0.28mm Extra Draft @Qidi Q2",
+            "0.30": "0.30mm Extra Draft @Qidi Q2"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Qidi Q2 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Qidi Q2 0.6 nozzle",
+            "ASA": "QIDI ASA @Qidi Q2 0.6 nozzle",
+            "PA": "Qidi Generic PA",
+            "PC": "Generic PC @Qidi Q2 0.6 nozzle",
+            "PETG": "Generic PETG @Qidi Q2 0.6 nozzle",
+            "PLA": "Generic PLA @Qidi Q2 0.6 nozzle",
+            "PVA": "Qidi Generic PVA",
+            "TPU": "Generic TPU 95A @Qidi Q2 0.6 nozzle"
+          },
+          "processParents": {
+            "0.18": "0.18mm Standard @Qidi Q2 0.6 nozzle",
+            "0.24": "0.24mm Standard @Qidi Q2 0.6 nozzle",
+            "0.30": "0.30mm Standard @Qidi Q2 0.6 nozzle",
+            "0.36": "0.36mm Standard @Qidi Q2 0.6 nozzle",
+            "0.42": "0.42mm Standard @Qidi Q2 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Qidi Q2 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Generic ABS @Qidi Q2 0.8 nozzle",
+            "ASA": "QIDI ASA @Qidi Q2 0.8 nozzle",
+            "PA": "Qidi Generic PA",
+            "PC": "Generic PC @Qidi Q2 0.8 nozzle",
+            "PETG": "Generic PETG @Qidi Q2 0.8 nozzle",
+            "PLA": "Generic PLA @Qidi Q2 0.8 nozzle",
+            "PVA": "Qidi Generic PVA",
+            "TPU": "Generic TPU 95A @Qidi Q2 0.8 nozzle"
+          },
+          "processParents": {
+            "0.24": "0.24mm Standard @Qidi Q2 0.8 nozzle",
+            "0.32": "0.32mm Standard @Qidi Q2 0.8 nozzle",
+            "0.40": "0.40mm Standard @Qidi Q2 0.8 nozzle",
+            "0.48": "0.48mm Standard @Qidi Q2 0.8 nozzle",
+            "0.56": "0.56mm Standard @Qidi Q2 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Qidi Q2"
+    },
+    "sv06_ace": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Sovol SV06 ACE 0.2 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.12": "0.12mm Standard @Sovol SV06 ACE 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Sovol SV06 ACE 0.4 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.08": "0.08mm High Quality @Sovol SV06 ACE",
+            "0.12": "0.12mm Quality @Sovol SV06 ACE",
+            "0.20": "0.20mm Standard @Sovol SV06 ACE",
+            "0.28": "0.28mm Fast @Sovol SV06 ACE"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Sovol SV06 ACE 0.6 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.30": "0.30mm Standard @Sovol SV06 ACE 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Sovol SV06 ACE 0.8 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.40": "0.40mm Standard @Sovol SV06 ACE 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Sovol SV06 ACE"
+    },
+    "sv06_plus": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Sovol SV06 Plus 0.4 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.18": "0.18mm Optimal @Sovol SV06Plus",
+            "0.20": "0.20mm Standard @Sovol SV06Plus"
+          }
+        }
+      },
+      "printerName": "Sovol SV06 Plus"
+    },
+    "sv07_plus": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Sovol SV07 Plus 0.4 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.18": "0.18mm Optimal @Sovol SV07 Plus",
+            "0.20": "0.20mm Standard @Sovol SV07 Plus"
+          }
+        }
+      },
+      "printerName": "Sovol SV07 Plus"
+    },
+    "sv08": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Sovol SV08 0.2 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.10": "0.10mm Standard @Sovol SV08 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Sovol SV08 0.4 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.18": "0.18mm Optimal @Sovol SV08",
+            "0.20": "0.20mm Standard @Sovol SV08 0.4 nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Sovol SV08 0.6 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.30": "0.30mm Standard @Sovol SV08 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Sovol SV08 0.8 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.40": "0.40mm Standard @Sovol SV08 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Sovol SV08"
+    },
+    "sv08_max": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Sovol SV08 MAX 0.4 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.20": "0.20mm Standard @Sovol SV08 MAX 0.4 nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Sovol SV08 MAX 0.6 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.30": "0.30mm Standard @Sovol SV08 MAX 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Sovol SV08 MAX 0.8 nozzle",
+          "filamentParents": {},
+          "processParents": {
+            "0.40": "0.40mm Standard @Sovol SV08 MAX 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Sovol SV08 MAX"
+    },
+    "u1": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Snapmaker U1 (0.2 nozzle)",
+          "filamentParents": {},
+          "processParents": {
+            "0.06": "0.06 High Quality @Snapmaker U1 (0.2 nozzle)",
+            "0.08": "0.08 High Quality @Snapmaker U1 (0.2 nozzle)",
+            "0.10": "0.10 High Quality @Snapmaker U1 (0.2 nozzle)",
+            "0.12": "0.12 Standard @Snapmaker U1 (0.2 nozzle)",
+            "0.14": "0.14 Standard @Snapmaker U1 (0.2 nozzle)"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Snapmaker U1 (0.4 nozzle)",
+          "filamentParents": {
+            "ABS": "Snapmaker ABS @U1",
+            "ASA": "Snapmaker ASA @U1",
+            "PET": "Snapmaker PET @U1",
+            "PETG": "Snapmaker PETG @U1",
+            "PLA": "Snapmaker PLA @U1",
+            "PVA": "Snapmaker PVA @U1",
+            "TPU": "Snapmaker TPE @U1"
+          },
+          "processParents": {
+            "0.08": "0.08 Extra Fine @Snapmaker U1 (0.4 nozzle)",
+            "0.12": "0.12 Fine @Snapmaker U1 (0.4 nozzle)",
+            "0.16": "0.16 High Quality @Snapmaker U1 (0.4 nozzle)",
+            "0.20": "0.20 Bambu Support W @Snapmaker U1 (0.4 nozzle)",
+            "0.24": "0.24 Draft @Snapmaker U1 (0.4 nozzle)",
+            "0.25": "0.25 Benchy @Snapmaker U1 (0.4 nozzle)",
+            "0.28": "0.28 Extra Draft @Snapmaker U1 (0.4 nozzle)"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Snapmaker U1 (0.6 nozzle)",
+          "filamentParents": {
+            "TPU": "Snapmaker TPU @U1"
+          },
+          "processParents": {
+            "0.20": "0.20 Standard @Snapmaker U1 (0.6 nozzle)",
+            "0.24": "0.24 Standard @Snapmaker U1 (0.6 nozzle)",
+            "0.25": "0.18 Standard @Snapmaker U1 (0.6 nozzle)",
+            "0.30": "0.30 Draft @Snapmaker U1 (0.6 nozzle)",
+            "0.36": "0.36 Standard @Snapmaker U1 (0.6 nozzle)",
+            "0.40": "0.40 Extra Draft @Snapmaker U1 (0.6 nozzle)",
+            "0.42": "0.42 Standard @Snapmaker U1 (0.6 nozzle)"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Snapmaker U1 (0.8 nozzle)",
+          "filamentParents": {
+            "TPU": "Snapmaker TPU @U1"
+          },
+          "processParents": {
+            "0.24": "0.24 Standard @Snapmaker U1 (0.8 nozzle)",
+            "0.32": "0.32 Standard @Snapmaker U1 (0.8 nozzle)",
+            "0.40": "0.40 Standard @Snapmaker U1 (0.8 nozzle)",
+            "0.48": "0.48 Standard @Snapmaker U1 (0.8 nozzle)",
+            "0.56": "0.56 Standard @Snapmaker U1 (0.8 nozzle)"
+          }
+        }
+      },
+      "printerName": "Snapmaker U1"
+    },
+    "x4_plus": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Artillery Sidewinder X4 Plus 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Artillery ABS",
+            "PETG": "Artillery PETG",
+            "TPU": "Artillery TPU"
+          },
+          "processParents": {
+            "0.08": "0.08mm Extra Fine @Artillery X4Plus 0.4 nozzle",
+            "0.12": "0.12mm Fine @Artillery X4Plus 0.4 nozzle",
+            "0.16": "0.16mm High Quality @Artillery X4Plus 0.4 nozzle",
+            "0.20": "0.20mm Standard @Artillery X4Plus 0.4 nozzle",
+            "0.24": "0.24mm Draft @Artillery X4Plus 0.4 nozzle",
+            "0.28": "0.28mm Extra Draft @Artillery X4Plus 0.4 nozzle"
+          }
+        }
+      },
+      "printerName": "Artillery Sidewinder X4 Plus"
+    },
+    "x4_pro": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Artillery Sidewinder X4 Pro 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Artillery ABS",
+            "PETG": "Artillery PETG",
+            "TPU": "Artillery TPU"
+          },
+          "processParents": {
+            "0.08": "0.08mm Extra Fine @Artillery X4Pro 0.4 nozzle",
+            "0.12": "0.12mm Fine @Artillery X4Pro 0.4 nozzle",
+            "0.16": "0.16mm High Quality @Artillery X4Pro 0.4 nozzle",
+            "0.20": "0.20mm Standard @Artillery X4Pro 0.4 nozzle",
+            "0.24": "0.24mm Draft @Artillery X4Pro 0.4 nozzle",
+            "0.28": "0.28mm Extra Draft @Artillery X4Pro 0.4 nozzle"
+          }
+        }
+      },
+      "printerName": "Artillery Sidewinder X4 Pro"
+    },
+    "x_max_3": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Qidi X-Max 3 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS @Qidi X-Max 3 0.2 nozzle",
+            "ASA": "Qidi Generic ASA @Qidi X-Max 3 0.2 nozzle",
+            "PC": "Qidi Generic PC @0.2 nozzle",
+            "PETG": "Qidi Generic PETG @Qidi X-Max 3 0.2 nozzle",
+            "PLA": "Qidi Generic PLA @Qidi X-Max 3 0.2 nozzle",
+            "PVA": "Qidi Generic PVA"
+          },
+          "processParents": {
+            "0.06": "0.06mm Standard @Qidi XMax3 0.2 nozzle",
+            "0.08": "0.08mm Standard @Qidi XMax3 0.2 nozzle",
+            "0.10": "0.10mm Standard @Qidi XMax3 0.2 nozzle",
+            "0.12": "0.12mm Standard @Qidi XMax3 0.2 nozzle",
+            "0.14": "0.14mm Standard @Qidi XMax3 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Qidi X-Max 3 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS",
+            "ASA": "Qidi Generic ASA",
+            "PA": "Qidi Generic PA",
+            "PC": "Qidi Generic PC",
+            "PETG": "Qidi Generic PETG",
+            "PLA": "Qidi Generic PLA",
+            "PVA": "Qidi Generic PVA",
+            "TPU": "Qidi Generic TPU"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Qidi XMax3",
+            "0.16": "0.16mm Optimal @Qidi XMax3",
+            "0.20": "0.20mm Standard @Qidi XMax3",
+            "0.24": "0.24mm Draft @Qidi XMax3",
+            "0.25": "0.25mm Draft @Qidi XMax3",
+            "0.28": "0.28mm Extra Draft @Qidi XMax3",
+            "0.30": "0.30mm Extra Draft @Qidi XMax3"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Qidi X-Max 3 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS",
+            "ASA": "Qidi Generic ASA",
+            "PA": "Qidi Generic PA",
+            "PC": "Qidi Generic PC",
+            "PETG": "Qidi Generic PETG",
+            "PLA": "Qidi Generic PLA @Qidi X-Max 3 0.6 nozzle",
+            "PVA": "Qidi Generic PVA",
+            "TPU": "Qidi Generic TPU"
+          },
+          "processParents": {
+            "0.18": "0.18mm Standard @Qidi XMax3 0.6 nozzle",
+            "0.24": "0.24mm Standard @Qidi XMax3 0.6 nozzle",
+            "0.30": "0.30mm Standard @Qidi XMax3 0.6 nozzle",
+            "0.36": "0.36mm Standard @Qidi XMax3 0.6 nozzle",
+            "0.42": "0.42mm Standard @Qidi XMax3 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Qidi X-Max 3 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS",
+            "ASA": "Qidi Generic ASA",
+            "PA": "Qidi Generic PA",
+            "PC": "Qidi Generic PC @0.8 nozzle",
+            "PETG": "Qidi Generic PETG",
+            "PLA": "Qidi Generic PLA @Qidi X-Max 3 0.8 nozzle",
+            "PVA": "Qidi Generic PVA",
+            "TPU": "Qidi Generic TPU"
+          },
+          "processParents": {
+            "0.24": "0.24mm Standard @Qidi XMax3 0.8 nozzle",
+            "0.32": "0.32mm Standard @Qidi XMax3 0.8 nozzle",
+            "0.40": "0.40mm Standard @Qidi XMax3 0.8 nozzle",
+            "0.48": "0.48mm Standard @Qidi XMax3 0.8 nozzle",
+            "0.56": "0.56mm Standard @Qidi XMax3 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Qidi X-Max 3"
+    },
+    "x_plus_3": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Qidi X-Plus 3 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS @Qidi X-Plus 3 0.2 nozzle",
+            "ASA": "Qidi Generic ASA @Qidi X-Plus 3 0.2 nozzle",
+            "PC": "Qidi Generic PC @0.2 nozzle",
+            "PETG": "Qidi Generic PETG @Qidi X-Plus 3 0.2 nozzle",
+            "PLA": "Qidi Generic PLA @Qidi X-Plus 3 0.2 nozzle",
+            "PVA": "Qidi Generic PVA"
+          },
+          "processParents": {
+            "0.06": "0.06mm Standard @Qidi XPlus3 0.2 nozzle",
+            "0.08": "0.08mm Standard @Qidi XPlus3 0.2 nozzle",
+            "0.10": "0.10mm Standard @Qidi XPlus3 0.2 nozzle",
+            "0.12": "0.12mm Standard @Qidi XPlus3 0.2 nozzle",
+            "0.14": "0.14mm Standard @Qidi XPlus3 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Qidi X-Plus 3 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS",
+            "ASA": "Qidi Generic ASA",
+            "PA": "Qidi Generic PA",
+            "PC": "Qidi Generic PC",
+            "PETG": "Qidi Generic PETG",
+            "PLA": "Qidi Generic PLA",
+            "PVA": "Qidi Generic PVA",
+            "TPU": "Qidi Generic TPU"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Qidi XPlus3",
+            "0.16": "0.16mm Optimal @Qidi XPlus3",
+            "0.20": "0.20mm Standard @Qidi XPlus3",
+            "0.24": "0.24mm Draft @Qidi XPlus3",
+            "0.25": "0.25mm Draft @Qidi XPlus3",
+            "0.28": "0.28mm Extra Draft @Qidi XPlus3",
+            "0.30": "0.30mm Extra Draft @Qidi XPlus3"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Qidi X-Plus 3 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS",
+            "ASA": "Qidi Generic ASA",
+            "PA": "Qidi Generic PA",
+            "PC": "Qidi Generic PC",
+            "PETG": "Qidi Generic PETG",
+            "PLA": "Qidi Generic PLA @Qidi X-Plus 3 0.6 nozzle",
+            "PVA": "Qidi Generic PVA",
+            "TPU": "Qidi Generic TPU"
+          },
+          "processParents": {
+            "0.18": "0.18mm Standard @Qidi XPlus3 0.6 nozzle",
+            "0.24": "0.24mm Standard @Qidi XPlus3 0.6 nozzle",
+            "0.30": "0.30mm Standard @Qidi XPlus3 0.6 nozzle",
+            "0.36": "0.36mm Standard @Qidi XPlus3 0.6 nozzle",
+            "0.42": "0.42mm Standard @Qidi XPlus3 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Qidi X-Plus 3 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS",
+            "ASA": "Qidi Generic ASA",
+            "PA": "Qidi Generic PA",
+            "PC": "Qidi Generic PC @0.8 nozzle",
+            "PETG": "Qidi Generic PETG",
+            "PLA": "Qidi Generic PLA @Qidi X-Plus 3 0.8 nozzle",
+            "PVA": "Qidi Generic PVA",
+            "TPU": "Qidi Generic TPU"
+          },
+          "processParents": {
+            "0.24": "0.24mm Standard @Qidi XPlus3 0.8 nozzle",
+            "0.32": "0.32mm Standard @Qidi XPlus3 0.8 nozzle",
+            "0.40": "0.40mm Standard @Qidi XPlus3 0.8 nozzle",
+            "0.48": "0.48mm Standard @Qidi XPlus3 0.8 nozzle",
+            "0.56": "0.56mm Standard @Qidi XPlus3 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Qidi X-Plus 3"
+    },
+    "x_smart_3": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Qidi X-Smart 3 0.2 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS @Qidi X-Smart 3 0.2 nozzle",
+            "ASA": "Qidi Generic ASA @Qidi X-Smart 3 0.2 nozzle",
+            "PC": "Qidi Generic PC @0.2 nozzle",
+            "PETG": "Qidi Generic PETG @Qidi X-Smart 3 0.2 nozzle",
+            "PLA": "Qidi Generic PLA @Qidi X-Smart 3 0.2 nozzle",
+            "PVA": "Qidi Generic PVA"
+          },
+          "processParents": {
+            "0.06": "0.06mm Standard @Qidi XSmart3 0.2 nozzle",
+            "0.08": "0.08mm Standard @Qidi XSmart3 0.2 nozzle",
+            "0.10": "0.10mm Standard @Qidi XSmart3 0.2 nozzle",
+            "0.12": "0.12mm Standard @Qidi XSmart3 0.2 nozzle",
+            "0.14": "0.14mm Standard @Qidi XSmart3 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Qidi X-Smart 3 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS",
+            "ASA": "Qidi Generic ASA",
+            "PA": "Qidi Generic PA",
+            "PC": "Qidi Generic PC",
+            "PETG": "Qidi Generic PETG",
+            "PLA": "Qidi Generic PLA",
+            "PVA": "Qidi Generic PVA",
+            "TPU": "Qidi Generic TPU"
+          },
+          "processParents": {
+            "0.12": "0.12mm Fine @Qidi XSmart3",
+            "0.16": "0.16mm Optimal @Qidi XSmart3",
+            "0.20": "0.20mm Standard @Qidi XSmart3",
+            "0.24": "0.24mm Draft @Qidi XSmart3",
+            "0.25": "0.25mm Draft @Qidi XSmart3",
+            "0.28": "0.28mm Extra Draft @Qidi XSmart3",
+            "0.30": "0.30mm Extra Draft @Qidi XSmart3"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Qidi X-Smart 3 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS",
+            "ASA": "Qidi Generic ASA",
+            "PA": "Qidi Generic PA",
+            "PC": "Qidi Generic PC",
+            "PETG": "Qidi Generic PETG",
+            "PLA": "Qidi Generic PLA @Qidi X-Smart 3 0.6 nozzle",
+            "PVA": "Qidi Generic PVA",
+            "TPU": "Qidi Generic TPU"
+          },
+          "processParents": {
+            "0.18": "0.18mm Standard @Qidi XSmart3 0.6 nozzle",
+            "0.24": "0.24mm Standard @Qidi XSmart3 0.6 nozzle",
+            "0.30": "0.30mm Standard @Qidi XSmart3 0.6 nozzle",
+            "0.36": "0.36mm Standard @Qidi XSmart3 0.6 nozzle",
+            "0.42": "0.42mm Standard @Qidi XSmart3 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Qidi X-Smart 3 0.8 nozzle",
+          "filamentParents": {
+            "ABS": "Qidi Generic ABS",
+            "ASA": "Qidi Generic ASA",
+            "PA": "Qidi Generic PA",
+            "PC": "Qidi Generic PC @0.8 nozzle",
+            "PETG": "Qidi Generic PETG",
+            "PLA": "Qidi Generic PLA @Qidi X-Smart 3 0.8 nozzle",
+            "PVA": "Qidi Generic PVA",
+            "TPU": "Qidi Generic TPU"
+          },
+          "processParents": {
+            "0.24": "0.24mm Standard @Qidi XSmart3 0.8 nozzle",
+            "0.32": "0.32mm Standard @Qidi XSmart3 0.8 nozzle",
+            "0.40": "0.40mm Standard @Qidi XSmart3 0.8 nozzle",
+            "0.48": "0.48mm Standard @Qidi XSmart3 0.8 nozzle",
+            "0.56": "0.56mm Standard @Qidi XSmart3 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Qidi X-Smart 3"
+    }
   };
 
   function _closestParent(parents, layerHeight) {
@@ -3704,41 +6119,43 @@ const Engine = (() => {
 
   function exportOrcaJSON(state) {
     const nozzle = getNozzle(state.nozzle);
+    if (!nozzle) return null;
+    const nozzleKey = String(nozzle.size);
     let verified = ORCA_VERIFIED_PROFILES[state.printer];
+    let variant  = verified && verified.nozzles ? verified.nozzles[nozzleKey] : null;
 
     // Owner X1C fixtures are the schema/version truth, but X1C still routes to
     // Bambu Studio in the UI. This explicit-only row exists for audit/import
     // fixture regeneration; it never changes web routing.
-    if (state.printer === 'x1c' && nozzle && String(nozzle.size) === '0.4'
-        && state.strength === 'strong') {
-      verified = {
-        printerName: 'Bambu Lab X1 Carbon',
+    if (state.printer === 'x1c' && nozzleKey === '0.4' && state.strength === 'strong') {
+      verified = { printerName: 'Bambu Lab X1 Carbon' };
+      variant  = {
         compatiblePrinter: 'Bambu Lab X1 Carbon 0.4 nozzle',
         processParents: { '0.20': '0.20mm Strength @BBL X1C' },
         filamentParents: { PLA: 'Bambu PLA Basic @BBL X1C' },
       };
     }
 
-    if (!verified || !nozzle || String(nozzle.size) !== '0.4') return null;
+    if (!variant) return null;
     return _exportBambuLikeJSON(state, {
       printerName: verified.printerName,
       processVersion: ORCA_VERSION,
       filamentVersion: ORCA_VERSION,
       dualVariantFields: ORCA_SINGLE_VARIANT_FIELDS,
-      compatiblePrinter: verified.compatiblePrinter,
-      findProcessParent: layerHeight => _closestParent(verified.processParents, layerHeight),
-      findFilamentParent: material => verified.filamentParents[material.group] || null,
+      compatiblePrinter: variant.compatiblePrinter,
+      findProcessParent: layerHeight => _closestParent(variant.processParents, layerHeight),
+      findFilamentParent: material => variant.filamentParents[material.group] || null,
     });
   }
 
   // ── PrusaSlicer config-bundle export — IMPL-043 Phase 4 ───────────────────
-  // Initial native support is intentionally allowlisted to the exact profile
-  // parents verified in PrusaSlicer 2.9.4: CORE One L, standard 0.4 mm, PLA.
-  // Other Prusa-routed combinations return null so the web keeps Copy fallback.
-  const PRUSA_PRINT_PARENT_COREONEL_04 = '0.20mm SPEED @COREONEL 0.4';
-  const PRUSA_FILAMENT_PARENT_COREONE_PLA = 'Generic PLA @COREONE';
-  const PRUSA_COREONEL_04_CONDITION =
-    'printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.4 and ! nozzle_high_flow[0]';
+  // PRUSA_VERIFIED_PROFILES is GENERATED alongside ORCA_VERIFIED_PROFILES, from
+  // prusa3d/PrusaSlicer `resources/profiles/PrusaResearch.ini` config_version
+  // 2.4.14. Each print parent carries its OWN `compatible_printers_condition`
+  // because the MMU, high-flow and standard variants of the same layer height
+  // differ — copying a sibling's condition silently mis-scopes the preset.
+  // Models Prusa ships no `Generic … @<model>` filament line for (MK4 IS) get a
+  // process-only bundle rather than a guessed filament parent.
   const PRUSA_PRINT_MAP = {
     layer_height:                   'layer_height',
     initial_layer_height:           'first_layer_height',
@@ -3759,6 +6176,827 @@ const Engine = (() => {
     initial_layer_acceleration:     'first_layer_acceleration',
     brim_width:                     'brim_width',
   };
+  // PrusaSlicer's filament_type vocabulary differs from the 3dpa material group
+  // for flexibles only.
+  const PRUSA_FILAMENT_TYPES = { TPU: 'FLEX' };
+  const PRUSA_VERIFIED_PROFILES = {
+    "core_one": {
+      "model": "COREONE",
+      "nozzles": {
+        "0.25": {
+          "filamentParents": {
+            "ABS": "Generic ABS @COREONE",
+            "HIPS": "Generic HIPS @COREONE",
+            "PETG": "Generic PETG @COREONE",
+            "PLA": "Generic PLA @COREONE",
+            "TPU": "Generic FLEX @COREONE"
+          },
+          "printParents": {
+            "0.05": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.25",
+              "name": "0.05mm DETAIL @COREONE 0.25"
+            },
+            "0.07": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.25",
+              "name": "0.07mm DETAIL @COREONE 0.25"
+            },
+            "0.12": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.25",
+              "name": "0.12mm SPEED @COREONE 0.25"
+            },
+            "0.15": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.25",
+              "name": "0.15mm SPEED @COREONE 0.25"
+            }
+          }
+        },
+        "0.3": {
+          "filamentParents": {
+            "ABS": "Generic ABS @COREONE",
+            "HIPS": "Generic HIPS @COREONE",
+            "PETG": "Generic PETG @COREONE",
+            "PLA": "Generic PLA @COREONE",
+            "TPU": "Generic FLEX @COREONE"
+          },
+          "printParents": {
+            "0.12": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.3",
+              "name": "0.12mm STRUCTURAL @COREONE 0.3"
+            },
+            "0.16": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.3",
+              "name": "0.16mm SPEED @COREONE 0.3"
+            },
+            "0.20": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.3",
+              "name": "0.20mm SPEED @COREONE 0.3"
+            }
+          }
+        },
+        "0.4": {
+          "filamentParents": {
+            "ABS": "Generic ABS @COREONE",
+            "HIPS": "Generic HIPS @COREONE",
+            "PETG": "Generic PETG @COREONE",
+            "PLA": "Generic PLA @COREONE",
+            "TPU": "Generic FLEX @COREONE"
+          },
+          "printParents": {
+            "0.10": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.4",
+              "name": "0.10mm FAST DETAIL @COREONE 0.4"
+            },
+            "0.15": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.4 and ! nozzle_high_flow[0]",
+              "name": "0.15mm SPEED @COREONE 0.4"
+            },
+            "0.20": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.4 and ! nozzle_high_flow[0]",
+              "name": "0.20mm SPEED @COREONE 0.4"
+            }
+          }
+        },
+        "0.5": {
+          "filamentParents": {
+            "ABS": "Generic ABS @COREONE",
+            "HIPS": "Generic HIPS @COREONE",
+            "PETG": "Generic PETG @COREONE",
+            "PLA": "Generic PLA @COREONE",
+            "TPU": "Generic FLEX @COREONE"
+          },
+          "printParents": {
+            "0.10": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.5",
+              "name": "0.10mm STRUCTURAL @COREONE 0.5"
+            },
+            "0.15": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.5",
+              "name": "0.15mm STRUCTURAL @COREONE 0.5"
+            },
+            "0.20": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.5 and ! nozzle_high_flow[0]",
+              "name": "0.20mm SPEED @COREONE 0.5"
+            },
+            "0.25": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.5 and ! nozzle_high_flow[0]",
+              "name": "0.25mm SPEED @COREONE 0.5"
+            }
+          }
+        },
+        "0.6": {
+          "filamentParents": {
+            "ABS": "Generic ABS @COREONE 0.6",
+            "HIPS": "Generic HIPS @COREONE 0.6",
+            "PETG": "Generic PETG @COREONE 0.6",
+            "PLA": "Generic PLA @COREONE 0.6",
+            "TPU": "Generic FLEX @COREONE 0.6"
+          },
+          "printParents": {
+            "0.15": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.6",
+              "name": "0.15mm STRUCTURAL @COREONE 0.6"
+            },
+            "0.20": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.6 and ! nozzle_high_flow[0]",
+              "name": "0.20mm SPEED @COREONE 0.6"
+            },
+            "0.25": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.6 and ! nozzle_high_flow[0]",
+              "name": "0.25mm SPEED @COREONE 0.6"
+            },
+            "0.32": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.6 and ! nozzle_high_flow[0]",
+              "name": "0.32mm SPEED @COREONE 0.6"
+            }
+          }
+        },
+        "0.8": {
+          "filamentParents": {
+            "ABS": "Generic ABS @COREONE 0.8",
+            "HIPS": "Generic HIPS @COREONE 0.8",
+            "PETG": "Generic PETG @COREONE 0.8",
+            "PLA": "Generic PLA @COREONE 0.8",
+            "TPU": "Generic FLEX @COREONE 0.8"
+          },
+          "printParents": {
+            "0.30": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.8 and ! nozzle_high_flow[0]",
+              "name": "0.30mm DETAIL @COREONE 0.8"
+            },
+            "0.40": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.8 and ! nozzle_high_flow[0]",
+              "name": "0.40mm QUALITY @COREONE 0.8"
+            },
+            "0.55": {
+              "condition": "printer_model=~/(COREONE|COREONEOAK|COREONEMMU3)/ and nozzle_diameter[0]==0.8 and ! nozzle_high_flow[0]",
+              "name": "0.55mm DRAFT @COREONE 0.8"
+            }
+          }
+        }
+      }
+    },
+    "core_one_l": {
+      "model": "COREONEL",
+      "nozzles": {
+        "0.25": {
+          "filamentParents": {
+            "ABS": "Generic ABS @COREONE",
+            "HIPS": "Generic HIPS @COREONE",
+            "PETG": "Generic PETG @COREONE",
+            "PLA": "Generic PLA @COREONE",
+            "TPU": "Generic FLEX @COREONE"
+          },
+          "printParents": {
+            "0.05": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.25",
+              "name": "0.05mm DETAIL @COREONEL 0.25"
+            },
+            "0.07": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.25",
+              "name": "0.07mm DETAIL @COREONEL 0.25"
+            },
+            "0.12": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.25",
+              "name": "0.12mm SPEED @COREONEL 0.25"
+            },
+            "0.15": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.25",
+              "name": "0.15mm SPEED @COREONEL 0.25"
+            }
+          }
+        },
+        "0.3": {
+          "filamentParents": {
+            "ABS": "Generic ABS @COREONE",
+            "HIPS": "Generic HIPS @COREONE",
+            "PETG": "Generic PETG @COREONE",
+            "PLA": "Generic PLA @COREONE",
+            "TPU": "Generic FLEX @COREONE"
+          },
+          "printParents": {
+            "0.12": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.3",
+              "name": "0.12mm STRUCTURAL @COREONEL 0.3"
+            },
+            "0.16": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.3",
+              "name": "0.16mm SPEED @COREONEL 0.3"
+            },
+            "0.20": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.3",
+              "name": "0.20mm SPEED @COREONEL 0.3"
+            }
+          }
+        },
+        "0.4": {
+          "filamentParents": {
+            "ABS": "Generic ABS @COREONE",
+            "HIPS": "Generic HIPS @COREONE",
+            "PETG": "Generic PETG @COREONE",
+            "PLA": "Generic PLA @COREONE",
+            "TPU": "Generic FLEX @COREONE"
+          },
+          "printParents": {
+            "0.10": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.4",
+              "name": "0.10mm FAST DETAIL @COREONEL 0.4"
+            },
+            "0.15": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.4 and ! nozzle_high_flow[0]",
+              "name": "0.15mm SPEED @COREONEL 0.4"
+            },
+            "0.20": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.4 and ! nozzle_high_flow[0]",
+              "name": "0.20mm SPEED @COREONEL 0.4"
+            }
+          }
+        },
+        "0.5": {
+          "filamentParents": {
+            "ABS": "Generic ABS @COREONE",
+            "HIPS": "Generic HIPS @COREONE",
+            "PETG": "Generic PETG @COREONE",
+            "PLA": "Generic PLA @COREONE",
+            "TPU": "Generic FLEX @COREONE"
+          },
+          "printParents": {
+            "0.10": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.5",
+              "name": "0.10mm STRUCTURAL @COREONEL 0.5"
+            },
+            "0.15": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.5",
+              "name": "0.15mm STRUCTURAL @COREONEL 0.5"
+            },
+            "0.20": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.5 and ! nozzle_high_flow[0]",
+              "name": "0.20mm SPEED @COREONEL 0.5"
+            },
+            "0.25": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.5 and ! nozzle_high_flow[0]",
+              "name": "0.25mm SPEED @COREONEL 0.5"
+            }
+          }
+        },
+        "0.6": {
+          "filamentParents": {
+            "ABS": "Generic ABS @COREONE 0.6",
+            "HIPS": "Generic HIPS @COREONE 0.6",
+            "PETG": "Generic PETG @COREONE 0.6",
+            "PLA": "Generic PLA @COREONE 0.6",
+            "TPU": "Generic FLEX @COREONE 0.6"
+          },
+          "printParents": {
+            "0.15": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.6",
+              "name": "0.15mm STRUCTURAL @COREONEL 0.6"
+            },
+            "0.20": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.6 and ! nozzle_high_flow[0]",
+              "name": "0.20mm SPEED @COREONEL 0.6"
+            },
+            "0.25": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.6 and ! nozzle_high_flow[0]",
+              "name": "0.25mm SPEED @COREONEL 0.6"
+            },
+            "0.32": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.6 and ! nozzle_high_flow[0]",
+              "name": "0.32mm SPEED @COREONEL 0.6"
+            }
+          }
+        },
+        "0.8": {
+          "filamentParents": {
+            "ABS": "Generic ABS @COREONE 0.8",
+            "HIPS": "Generic HIPS @COREONE 0.8",
+            "PETG": "Generic PETG @COREONE 0.8",
+            "PLA": "Generic PLA @COREONE 0.8",
+            "TPU": "Generic FLEX @COREONE 0.8"
+          },
+          "printParents": {
+            "0.30": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.8 and ! nozzle_high_flow[0]",
+              "name": "0.30mm DETAIL @COREONEL 0.8"
+            },
+            "0.40": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.8 and ! nozzle_high_flow[0]",
+              "name": "0.40mm QUALITY @COREONEL 0.8"
+            },
+            "0.55": {
+              "condition": "printer_model=~/(COREONEL|COREONELMMU3)/ and nozzle_diameter[0]==0.8 and ! nozzle_high_flow[0]",
+              "name": "0.55mm DRAFT @COREONEL 0.8"
+            }
+          }
+        }
+      }
+    },
+    "mini_plus": {
+      "model": "MINIIS",
+      "nozzles": {
+        "0.25": {
+          "filamentParents": {
+            "ABS": "Generic ABS @MINIIS",
+            "PETG": "Generic PETG @MINIIS",
+            "PLA": "Generic PLA @MINIIS"
+          },
+          "printParents": {
+            "0.05": {
+              "condition": "printer_notes=~/.*MINIIS.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.05mm DETAIL @MINIIS 0.25"
+            },
+            "0.07": {
+              "condition": "printer_notes=~/.*MINIIS.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.07mm DETAIL @MINIIS 0.25"
+            },
+            "0.12": {
+              "condition": "printer_notes=~/.*MINIIS.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.12mm SPEED @MINIIS 0.25"
+            },
+            "0.15": {
+              "condition": "printer_notes=~/.*MINIIS.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.15mm SPEED @MINIIS 0.25"
+            }
+          }
+        },
+        "0.4": {
+          "filamentParents": {
+            "ABS": "Generic ABS @MINIIS",
+            "PETG": "Generic PETG @MINIIS",
+            "PLA": "Generic PLA @MINIIS"
+          },
+          "printParents": {
+            "0.10": {
+              "condition": "printer_notes=~/.*MINIIS.*/ and nozzle_diameter[0]==0.4",
+              "name": "0.10mm FAST DETAIL @MINIIS 0.4"
+            },
+            "0.15": {
+              "condition": "printer_notes=~/.*MINIIS.*/ and nozzle_diameter[0]==0.4",
+              "name": "0.15mm SPEED @MINIIS 0.4"
+            },
+            "0.20": {
+              "condition": "printer_notes=~/.*MINIIS.*/ and nozzle_diameter[0]==0.4",
+              "name": "0.20mm SPEED @MINIIS 0.4"
+            }
+          }
+        },
+        "0.6": {
+          "filamentParents": {
+            "ABS": "Generic ABS @MINIIS",
+            "PETG": "Generic PETG @MINIIS",
+            "PLA": "Generic PLA @MINIIS"
+          },
+          "printParents": {
+            "0.15": {
+              "condition": "printer_notes=~/.*MINIIS.*/ and nozzle_diameter[0]==0.6",
+              "name": "0.15mm STRUCTURAL @MINIIS 0.6"
+            },
+            "0.20": {
+              "condition": "printer_notes=~/.*MINIIS.*/ and nozzle_diameter[0]==0.6",
+              "name": "0.20mm SPEED @MINIIS 0.6"
+            },
+            "0.25": {
+              "condition": "printer_notes=~/.*MINIIS.*/ and nozzle_diameter[0]==0.6",
+              "name": "0.25mm SPEED @MINIIS 0.6"
+            },
+            "0.35": {
+              "condition": "printer_notes=~/.*MINIIS.*/ and nozzle_diameter[0]==0.6",
+              "name": "0.35mm STRUCTURAL @MINIIS 0.6"
+            }
+          }
+        },
+        "0.8": {
+          "filamentParents": {
+            "ABS": "Generic ABS @MINIIS",
+            "PETG": "Generic PETG @MINIIS",
+            "PLA": "Generic PLA @MINIIS"
+          },
+          "printParents": {
+            "0.30": {
+              "condition": "printer_notes=~/.*MINIIS.*/ and nozzle_diameter[0]==0.8",
+              "name": "0.30mm DETAIL @MINIIS 0.8"
+            },
+            "0.40": {
+              "condition": "printer_notes=~/.*MINIIS.*/ and nozzle_diameter[0]==0.8",
+              "name": "0.40mm QUALITY @MINIIS 0.8"
+            },
+            "0.50": {
+              "condition": "printer_notes=~/.*MINIIS.*/ and nozzle_diameter[0]==0.8",
+              "name": "0.5mm DRAFT @MINIIS 0.8"
+            }
+          }
+        }
+      }
+    },
+    "mk4": {
+      "model": "MK4IS",
+      "nozzles": {
+        "0.25": {
+          "filamentParents": {},
+          "printParents": {
+            "0.05": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.05mm DETAIL @MK4IS 0.25"
+            },
+            "0.07": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.07mm DETAIL @MK4IS 0.25"
+            },
+            "0.12": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.12mm SPEED @MK4IS 0.25"
+            },
+            "0.15": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.15mm SPEED @MK4IS 0.25"
+            }
+          }
+        },
+        "0.3": {
+          "filamentParents": {},
+          "printParents": {
+            "0.12": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.3",
+              "name": "0.12mm STRUCTURAL @MK4IS 0.3"
+            },
+            "0.16": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.3",
+              "name": "0.16mm SPEED @MK4IS 0.3"
+            },
+            "0.20": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.3",
+              "name": "0.20mm SPEED @MK4IS 0.3"
+            }
+          }
+        },
+        "0.4": {
+          "filamentParents": {},
+          "printParents": {
+            "0.10": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.4",
+              "name": "0.10mm FAST DETAIL @MK4IS 0.4"
+            },
+            "0.15": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.4 and ! nozzle_high_flow[0]",
+              "name": "0.15mm SPEED @MK4IS 0.4"
+            },
+            "0.20": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.4 and ! nozzle_high_flow[0]",
+              "name": "0.20mm SPEED @MK4IS 0.4"
+            }
+          }
+        },
+        "0.5": {
+          "filamentParents": {},
+          "printParents": {
+            "0.10": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.5",
+              "name": "0.10mm STRUCTURAL @MK4IS 0.5"
+            },
+            "0.15": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.5",
+              "name": "0.15mm STRUCTURAL @MK4IS 0.5"
+            },
+            "0.20": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.5 and ! nozzle_high_flow[0]",
+              "name": "0.20mm SPEED @MK4IS 0.5"
+            },
+            "0.25": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.5 and ! nozzle_high_flow[0]",
+              "name": "0.25mm SPEED @MK4IS 0.5"
+            }
+          }
+        },
+        "0.6": {
+          "filamentParents": {},
+          "printParents": {
+            "0.15": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.6",
+              "name": "0.15mm STRUCTURAL @MK4IS 0.6"
+            },
+            "0.20": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.6 and ! nozzle_high_flow[0]",
+              "name": "0.20mm SPEED @MK4IS 0.6"
+            },
+            "0.25": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.6 and ! nozzle_high_flow[0]",
+              "name": "0.25mm SPEED @MK4IS 0.6"
+            },
+            "0.32": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.6 and ! nozzle_high_flow[0]",
+              "name": "0.32mm SPEED @MK4IS 0.6"
+            }
+          }
+        },
+        "0.8": {
+          "filamentParents": {},
+          "printParents": {
+            "0.30": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.8 and ! nozzle_high_flow[0]",
+              "name": "0.30mm DETAIL @MK4IS 0.8"
+            },
+            "0.40": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.8 and ! nozzle_high_flow[0]",
+              "name": "0.40mm QUALITY @MK4IS 0.8"
+            },
+            "0.55": {
+              "condition": "printer_notes=~/.*MK4IS.*/ and nozzle_diameter[0]==0.8 and ! nozzle_high_flow[0]",
+              "name": "0.55mm DRAFT @MK4IS 0.8"
+            }
+          }
+        }
+      }
+    },
+    "mk4s": {
+      "model": "MK4S",
+      "nozzles": {
+        "0.25": {
+          "filamentParents": {
+            "ABS": "Generic ABS @MK4S",
+            "HIPS": "Generic HIPS @MK4S",
+            "PETG": "Generic PETG @MK4S",
+            "PLA": "Generic PLA @MK4S",
+            "TPU": "Generic FLEX @MK4S"
+          },
+          "printParents": {
+            "0.05": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.05mm DETAIL @MK4S 0.25"
+            },
+            "0.07": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.07mm DETAIL @MK4S 0.25"
+            },
+            "0.12": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.12mm SPEED @MK4S 0.25"
+            },
+            "0.15": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.15mm SPEED @MK4S 0.25"
+            }
+          }
+        },
+        "0.3": {
+          "filamentParents": {
+            "ABS": "Generic ABS @MK4S",
+            "HIPS": "Generic HIPS @MK4S",
+            "PETG": "Generic PETG @MK4S",
+            "PLA": "Generic PLA @MK4S",
+            "TPU": "Generic FLEX @MK4S"
+          },
+          "printParents": {
+            "0.12": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.3",
+              "name": "0.12mm STRUCTURAL @MK4S 0.3"
+            },
+            "0.16": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.3",
+              "name": "0.16mm SPEED @MK4S 0.3"
+            },
+            "0.20": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.3",
+              "name": "0.20mm SPEED @MK4S 0.3"
+            }
+          }
+        },
+        "0.4": {
+          "filamentParents": {
+            "ABS": "Generic ABS @MK4S",
+            "HIPS": "Generic HIPS @MK4S",
+            "PETG": "Generic PETG @MK4S",
+            "PLA": "Generic PLA @MK4S",
+            "TPU": "Generic FLEX @MK4S"
+          },
+          "printParents": {
+            "0.10": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.4",
+              "name": "0.10mm FAST DETAIL @MK4S 0.4"
+            },
+            "0.15": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.4 and ! nozzle_high_flow[0]",
+              "name": "0.15mm SPEED @MK4S 0.4"
+            },
+            "0.20": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.4 and ! nozzle_high_flow[0]",
+              "name": "0.20mm SPEED @MK4S 0.4"
+            }
+          }
+        },
+        "0.5": {
+          "filamentParents": {
+            "ABS": "Generic ABS @MK4S",
+            "HIPS": "Generic HIPS @MK4S",
+            "PETG": "Generic PETG @MK4S",
+            "PLA": "Generic PLA @MK4S",
+            "TPU": "Generic FLEX @MK4S"
+          },
+          "printParents": {
+            "0.10": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.5",
+              "name": "0.10mm STRUCTURAL @MK4S 0.5"
+            },
+            "0.15": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.5",
+              "name": "0.15mm STRUCTURAL @MK4S 0.5"
+            },
+            "0.20": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.5 and ! nozzle_high_flow[0]",
+              "name": "0.20mm SPEED @MK4S 0.5"
+            },
+            "0.25": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.5 and ! nozzle_high_flow[0]",
+              "name": "0.25mm SPEED @MK4S 0.5"
+            }
+          }
+        },
+        "0.6": {
+          "filamentParents": {
+            "ABS": "Generic ABS @MK4S 0.6",
+            "HIPS": "Generic HIPS @MK4S 0.6",
+            "PETG": "Generic PETG @MK4S 0.6",
+            "PLA": "Generic PLA @MK4S 0.6",
+            "TPU": "Generic FLEX @MK4S 0.6"
+          },
+          "printParents": {
+            "0.15": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.6",
+              "name": "0.15mm STRUCTURAL @MK4S 0.6"
+            },
+            "0.20": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.6 and ! nozzle_high_flow[0]",
+              "name": "0.20mm SPEED @MK4S 0.6"
+            },
+            "0.25": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.6 and ! nozzle_high_flow[0]",
+              "name": "0.25mm SPEED @MK4S 0.6"
+            },
+            "0.32": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.6 and ! nozzle_high_flow[0]",
+              "name": "0.32mm SPEED @MK4S 0.6"
+            }
+          }
+        },
+        "0.8": {
+          "filamentParents": {
+            "ABS": "Generic ABS @MK4S 0.8",
+            "HIPS": "Generic HIPS @MK4S 0.8",
+            "PETG": "Generic PETG @MK4S 0.8",
+            "PLA": "Generic PLA @MK4S 0.8",
+            "TPU": "Generic FLEX @MK4S 0.8"
+          },
+          "printParents": {
+            "0.30": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.8 and ! nozzle_high_flow[0]",
+              "name": "0.30mm DETAIL @MK4S 0.8"
+            },
+            "0.40": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.8 and ! nozzle_high_flow[0]",
+              "name": "0.40mm QUALITY @MK4S 0.8"
+            },
+            "0.55": {
+              "condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.8 and ! nozzle_high_flow[0]",
+              "name": "0.55mm DRAFT @MK4S 0.8"
+            }
+          }
+        }
+      }
+    },
+    "xl": {
+      "model": "XLIS",
+      "nozzles": {
+        "0.25": {
+          "filamentParents": {
+            "PLA": "Generic PLA @XLIS"
+          },
+          "printParents": {
+            "0.05": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.05mm DETAIL @XLIS 0.25"
+            },
+            "0.07": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.07mm DETAIL @XLIS 0.25"
+            },
+            "0.12": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.12mm SPEED @XLIS 0.25"
+            },
+            "0.15": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.25",
+              "name": "0.15mm SPEED @XLIS 0.25"
+            }
+          }
+        },
+        "0.3": {
+          "filamentParents": {
+            "PLA": "Generic PLA @XLIS"
+          },
+          "printParents": {
+            "0.12": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.3",
+              "name": "0.12mm STRUCTURAL @XLIS 0.3"
+            },
+            "0.16": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.3",
+              "name": "0.16mm SPEED @XLIS 0.3"
+            },
+            "0.20": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.3",
+              "name": "0.20mm SPEED @XLIS 0.3"
+            }
+          }
+        },
+        "0.4": {
+          "filamentParents": {
+            "PLA": "Generic PLA @XLIS"
+          },
+          "printParents": {
+            "0.10": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.4 and printer_notes!~/.*HF_NOZZLE.*/",
+              "name": "0.10mm FAST DETAIL @XLIS 0.4"
+            },
+            "0.15": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.4 and printer_notes!~/.*HF_NOZZLE.*/",
+              "name": "0.15mm SPEED @XLIS 0.4"
+            },
+            "0.20": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.4 and printer_notes!~/.*HF_NOZZLE.*/",
+              "name": "0.20mm SPEED @XLIS 0.4"
+            },
+            "0.25": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.4",
+              "name": "0.25mm STRUCTURAL @XLIS 0.4"
+            }
+          }
+        },
+        "0.5": {
+          "filamentParents": {
+            "PLA": "Generic PLA @XLIS"
+          },
+          "printParents": {
+            "0.10": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.5",
+              "name": "0.10mm STRUCTURAL @XLIS 0.5"
+            },
+            "0.15": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.5",
+              "name": "0.15mm STRUCTURAL @XLIS 0.5"
+            },
+            "0.20": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.5 and printer_notes!~/.*HF_NOZZLE.*/",
+              "name": "0.20mm SPEED @XLIS 0.5"
+            },
+            "0.25": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.5 and printer_notes!~/.*HF_NOZZLE.*/",
+              "name": "0.25mm SPEED @XLIS 0.5"
+            }
+          }
+        },
+        "0.6": {
+          "filamentParents": {
+            "PLA": "Generic PLA @XLIS"
+          },
+          "printParents": {
+            "0.15": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.6",
+              "name": "0.15mm STRUCTURAL @XLIS 0.6"
+            },
+            "0.20": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.6 and printer_notes!~/.*HF_NOZZLE.*/",
+              "name": "0.20mm SPEED @XLIS 0.6"
+            },
+            "0.25": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.6 and printer_notes!~/.*HF_NOZZLE.*/",
+              "name": "0.25mm SPEED @XLIS 0.6"
+            },
+            "0.32": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.6 and printer_notes!~/.*HF_NOZZLE.*/",
+              "name": "0.32mm SPEED @XLIS 0.6"
+            }
+          }
+        },
+        "0.8": {
+          "filamentParents": {
+            "PLA": "Generic PLA @XLIS"
+          },
+          "printParents": {
+            "0.30": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.8 and printer_notes!~/.*HF_NOZZLE.*/",
+              "name": "0.30mm DETAIL @XLIS 0.8"
+            },
+            "0.40": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.8 and printer_notes!~/.*HF_NOZZLE.*/",
+              "name": "0.40mm QUALITY @XLIS 0.8"
+            },
+            "0.55": {
+              "condition": "printer_notes=~/.*XLIS.*/ and nozzle_diameter[0]==0.8 and printer_notes!~/.*HF_NOZZLE.*/",
+              "name": "0.55mm DRAFT @XLIS 0.8"
+            }
+          }
+        }
+      }
+    }
+  };
 
   function _prusaParamValue(param) {
     if (!param) return null;
@@ -3767,14 +7005,16 @@ const Engine = (() => {
   }
 
   function exportPrusaINI(state) {
-    const printer = getPrinter(state.printer);
+    const printer  = getPrinter(state.printer);
     const material = getMaterial(state.material);
-    const nozzle = getNozzle(state.nozzle);
+    const nozzle   = getNozzle(state.nozzle);
     if (!printer || !material || !nozzle) return null;
-    if (getSlicerForPrinter(state.printer) !== 'prusaslicer'
-        || state.printer !== 'core_one_l'
-        || state.nozzle !== 'std_0.4'
-        || material.group !== 'PLA') return null;
+    if (getSlicerForPrinter(state.printer) !== 'prusaslicer') return null;
+
+    const entry   = PRUSA_VERIFIED_PROFILES[state.printer];
+    const nozzleKey = String(nozzle.size);
+    const variant = entry && entry.nozzles ? entry.nozzles[nozzleKey] : null;
+    if (!variant) return null;
 
     const exportState = Object.assign({}, state, {
       surface:     state.surface     || 'standard',
@@ -3788,16 +7028,20 @@ const Engine = (() => {
     if (!profile || !adv) return null;
 
     const layerHeight = _prusaParamValue(profile.layer_height) || '0.2';
-    const printName = `3DPA ${material.name} ${layerHeight}mm @COREONEL 0.4`;
-    const filamentName = `3DPA ${material.name} @COREONE`;
+    const printParent = _closestParent(variant.printParents, layerHeight);
+    if (!printParent) return null;
+    const condition = printParent.condition;
+    const filamentParent = variant.filamentParents[material.group] || null;
+
+    const printName = `3DPA ${material.name} ${layerHeight}mm @${entry.model} ${nozzleKey}`;
     const lines = [
       '; Generated by 3D Print Assistant for PrusaSlicer 2.9.4+',
-      '; Verified scope: Prusa CORE One L, standard 0.4 mm nozzle, PLA',
+      `; Verified scope: ${printer.name}, ${nozzle.name}, ${material.name}`,
       '; Unmapped canonical settings are omitted (for example pressure advance).',
       '',
       `[print:${printName}]`,
-      `inherits = ${PRUSA_PRINT_PARENT_COREONEL_04}`,
-      `compatible_printers_condition = ${PRUSA_COREONEL_04_CONDITION}`,
+      `inherits = ${printParent.name}`,
+      `compatible_printers_condition = ${condition}`,
     ];
 
     Object.entries(PRUSA_PRINT_MAP).forEach(([engineKey, prusaKey]) => {
@@ -3805,13 +7049,22 @@ const Engine = (() => {
       if (value != null) lines.push(`${prusaKey} = ${value}`);
     });
 
+    // Prusa ships no generic filament line for every model. Emitting a print
+    // block alone is honest and still imports; inventing a filament parent
+    // would not resolve.
+    if (!filamentParent) return `${lines.join('\n')}\n`;
+
+    // The filament preset is named after the parent's model tag, which is not
+    // always the printer's own model (CORE One L inherits the CORE One line).
+    const filamentModelTag = (filamentParent.match(/@(.+)$/) || [])[1] || entry.model;
+    const filamentName = `3DPA ${material.name} @${filamentModelTag}`;
     lines.push(
       '',
       `[filament:${filamentName}]`,
-      `inherits = ${PRUSA_FILAMENT_PARENT_COREONE_PLA}`,
-      `compatible_printers_condition = ${PRUSA_COREONEL_04_CONDITION}`,
+      `inherits = ${filamentParent}`,
+      `compatible_printers_condition = ${condition}`,
       `filament_settings_id = ${filamentName}`,
-      `filament_type = ${material.group}`,
+      `filament_type = ${PRUSA_FILAMENT_TYPES[material.group] || material.group}`,
       `temperature = ${parseInt(adv.other_layers_temp, 10)}`,
       `first_layer_temperature = ${parseInt(adv.initial_layer_temp, 10)}`,
       `bed_temperature = ${parseInt(adv.other_layers_bed_temp, 10)}`,
@@ -3830,6 +7083,37 @@ const Engine = (() => {
     if (bs.slow_layer_time != null) lines.push(`slowdown_below_layer_time = ${parseInt(bs.slow_layer_time, 10) || 0}`);
 
     return `${lines.join('\n')}\n`;
+  }
+
+  // ── Native-export availability ──────────────────────────────────────────────
+  // Single source of truth for "can this selection produce importable slicer
+  // files?". Both surfaces MUST gate their export affordance on this instead of
+  // on the slicer id: a printer routes to OrcaSlicer long before OrcaSlicer's
+  // registry has a parent profile we can inherit from, and offering an export
+  // that cannot be produced is what made iOS report a scary write failure for
+  // every non-Bambu printer (2026-07-25).
+  //
+  // Returns `available: false` rather than throwing — the caller falls back to
+  // formatProfileAsText (the Copy path), which works for every printer.
+  function getNativeExportSupport(state) {
+    const slicer = state && state.printer ? getSlicerForPrinter(state.printer) : null;
+    const empty = { slicer, slicerName: slicer ? getSlicerDisplayName(slicer) : null,
+                    available: false, hasProcess: false, hasFilament: false, format: null };
+    if (!slicer || !state.printer || !state.nozzle || !state.material) return empty;
+
+    if (slicer === 'prusaslicer') {
+      const ini = exportPrusaINI(state);
+      if (!ini) return empty;
+      return { ...empty, available: true, format: 'ini',
+               hasProcess: true, hasFilament: /\n\[filament:/.test(ini) };
+    }
+
+    const result = slicer === 'bambu_studio' ? exportBambuStudioJSON(state)
+                 : slicer === 'orcaslicer'   ? exportOrcaJSON(state)
+                 :                             null;
+    if (!result || !result.process) return empty;
+    return { ...empty, available: true, format: 'json',
+             hasProcess: true, hasFilament: !!result.filament };
   }
 
   // ── Format profile as shareable text ────────────────────────────────────────
@@ -4182,6 +7466,7 @@ const Engine = (() => {
     exportBambuStudioJSON,
     exportOrcaJSON,
     exportPrusaINI,
+    getNativeExportSupport,
     formatProfileAsText,
     calcPurgeVolumes,
     calcPrintTime,
