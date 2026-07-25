@@ -339,6 +339,7 @@ data-only waiver) run only in post-merge PD6 after live verify.
 From the **web repo** (`Projects/3dprintassistant/`):
 
 ```bash
+node scripts/export-coverage.js --check   # every printer exports or is recorded
 node scripts/validate-data.js
 node scripts/picker-dry-run.js <brand_id> <series_group> <printer_id> [wrong_brand_id]
 node scripts/walkthrough-harness.js
@@ -365,7 +366,7 @@ for a printer add **only** when **all** of these hold:
   validator or spec file;
 - the iOS bundled `printers.json` is **byte-identical** to web
   (`diff -q web iOS` exit 0);
-- every web engine gate is green (`validate-data`, `picker-dry-run`,
+- every web engine gate is green (`validate-data`, `export-coverage --check`, `picker-dry-run`,
   `walkthrough-harness`, `profile-matrix-audit`), plus the overlay validator when
   the overlay is touched.
 
@@ -496,6 +497,9 @@ the wrap-up is blocked.
 - [ ] Overlay commit (if any): `content_version` bumped, `payload_sha256`
       recomputed, validator green.
 - [ ] `validate-data` + `walkthrough-harness` + `profile-matrix-audit` green.
+- [ ] `export-audit` 0 FAIL — the new printer either exports natively or has a
+      `scripts/fixtures/export-coverage-ledger.json` entry saying why not.
+      Add one with `node scripts/export-coverage.js --add <id> --reason awaiting-registry`.
       Manual mode: iOS XCTest is green at HEAD, OR the **data-only iOS XCTest
       waiver** is invoked and logged. Autonomous mode: the same iOS XCTest/waiver
       check is deferred to post-merge PD6 with the local-only mirror.
@@ -580,3 +584,59 @@ aligns with the risk-based second-model rule in
 - Standing rules: [`../3dpa-context.md`](../3dpa-context.md) (rule 10)
 - Vault trigger: `Obsidian Vault/20-Areas/Development/ai-collaboration/trigger-cheatsheet.md` → "Printer Addition Gate"
 - v1 → v2 simplification trail: [`../../codex/printer-addition-protocol-review/codex-2026-05-15-printer-addition-protocol-packet.md`](../../codex/printer-addition-protocol-review/codex-2026-05-15-printer-addition-protocol-packet.md)
+
+## Native export coverage (2026-07-25)
+
+A printer can be fully live — picker, profile, warnings, iOS overlay — and still
+have **no importable slicer export**, because the export tables in `engine.js`
+are keyed by printer id and derived from the OrcaSlicer / PrusaSlicer profile
+registries. Intake never touches `engine.js`, so an intaked printer is uncovered
+by construction until the tables are regenerated.
+
+This is invisible to a user by design: the fallback is a clean "copy/share as
+text" affordance, not an error. So it has to be visible to *us* instead.
+
+**The rule:** every printer in `data/printers.json` either produces a native
+export or has an entry in `scripts/fixtures/export-coverage-ledger.json`.
+`scripts/export-audit.js` fails otherwise, and it fails just as loudly on a
+stale entry — a printer that has gained coverage must be removed from the
+ledger.
+
+**When adding a printer (manual or intake):**
+
+```bash
+node scripts/export-coverage.js --add <printer-id> --reason awaiting-registry
+node scripts/export-audit.js        # must be 0 FAIL
+```
+
+`--add` is idempotent and non-blocking: a printer whose slicer has no profile
+yet must still ship that day. Commit the ledger entry alongside the printer row.
+
+**Gaining coverage later** — the upstream registries add printers on their own
+schedule, so a gap usually closes weeks after the printer ships. Re-derive the
+tables:
+
+```bash
+git clone --filter=blob:none --no-checkout --depth 1 \
+  https://github.com/SoftFever/OrcaSlicer.git /tmp/OrcaSlicer
+git -C /tmp/OrcaSlicer sparse-checkout set resources/profiles
+git -C /tmp/OrcaSlicer checkout
+curl -L -o /tmp/PrusaResearch.ini \
+  https://raw.githubusercontent.com/prusa3d/PrusaSlicer/master/resources/profiles/PrusaResearch.ini
+
+node scripts/gen-slicer-parents.mjs --orca /tmp/OrcaSlicer/resources/profiles \
+  --prusa /tmp/PrusaResearch.ini --check
+```
+
+`--check` reports drift per printer. Splice the regenerated tables into
+`engine.js`, update the `_registry` commit pins in the ledger, delete the
+entries that are now covered, and mirror `engine.js` to iOS byte-identically.
+The full gate battery (`export-audit`, `walkthrough-harness`,
+`engine-golden-snapshot --check`, iOS XCTest) applies as for any engine change.
+
+**Ledger reasons** are a closed set: `awaiting-registry` (new, upstream has not
+published yet), `absent-upstream` (checked, genuinely not there),
+`alias-candidate` (a machine that is probably this printer exists under another
+name — needs a human to confirm identity, since 3dpa stores no build volume to
+verify it mechanically), `ambiguous-variant` (upstream splits the model by build
+volume and we have no field to pick one).

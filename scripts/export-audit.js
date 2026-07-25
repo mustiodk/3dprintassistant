@@ -498,6 +498,19 @@ async function main() {
       violations.zero.length === 0, violations.zero.join(' | '));
   }
 
+  // ═══ Coverage ledger — no printer ships with a silent export gap ═══════
+  // The graceful copy/text fallback means an uncovered printer looks fine to a
+  // user and invisible to us. Intake adds printers without touching engine.js,
+  // so this is the gate that makes such a gap loud. See export-coverage.js.
+  console.log('\n# Export audit — coverage ledger\n');
+  const { check: coverageCheck } = require('./export-coverage.js');
+  const coverageResult = coverageCheck();
+  checkFail('every printer either exports natively or has a recorded reason',
+    coverageResult.problems.length === 0,
+    coverageResult.problems.map(p => `[${p.kind}] ${p.detail}`).join(' | '));
+  INFO('native export coverage',
+    `${coverageResult.covered.length} covered, ${coverageResult.uncovered.length} recorded gaps`);
+
   // ═══ Native-export availability contract (shared by web + iOS) ═════════
   console.log('\n# Export audit — getNativeExportSupport (UI gating contract)\n');
   const hasSupportApi = typeof Engine.getNativeExportSupport === 'function';

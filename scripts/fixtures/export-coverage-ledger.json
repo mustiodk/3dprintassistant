@@ -1,0 +1,73 @@
+{
+  "_comment": "Printers with no native slicer export, and why. Maintained by scripts/export-coverage.js; enforced by scripts/export-audit.js. A printer that is neither exportable nor listed here FAILS the audit — see the header of export-coverage.js for the reasoning.",
+  "_registry": {
+    "orcaslicer": "SoftFever/OrcaSlicer resources/profiles @ d6cb667b894f71f68a180861b549f49258cf3a2a (2026-07-24)",
+    "prusaslicer": "prusa3d/PrusaSlicer resources/profiles/PrusaResearch.ini config_version 2.4.14"
+  },
+  "entries": {
+    "aries": {
+      "reason": "absent-upstream",
+      "note": "Voxelab ships only 'Voxelab Aquila X2' upstream; no Aries machine at the pinned commit."
+    },
+    "ender3_v4_combo": {
+      "reason": "alias-candidate",
+      "note": "Upstream has 'Creality Ender-3 V4 0.4 nozzle' (220x220x235). The Combo is the same printer bundled with the CFS, so this is very likely the same machine — needs a human to confirm before mapping."
+    },
+    "guider_3": {
+      "reason": "absent-upstream",
+      "note": "Upstream has Guider 2s, Guider 3 Ultra and Guider4, but no plain Guider 3."
+    },
+    "kobra_3_v2": {
+      "reason": "absent-upstream",
+      "note": "Upstream has 'Anycubic Kobra 3' and 'Kobra 3 Max' but no V2 revision at the pinned commit."
+    },
+    "max4": {
+      "reason": "alias-candidate",
+      "note": "Upstream 'Qidi X-Max 4' (390x390x340) may or may not be the machine QIDI sells as Max4 — 3dpa stores no build volume, so identity cannot be confirmed mechanically. Do not map on name resemblance alone."
+    },
+    "mega_x": {
+      "reason": "absent-upstream",
+      "note": "Upstream Anycubic Mega line stops at 'i3 Mega S'."
+    },
+    "plus4": {
+      "reason": "alias-candidate",
+      "note": "Upstream 'Qidi X-Plus 4' (305x305x280) is plausibly the machine QIDI sells as Plus4, but 3dpa stores no build volume to confirm it. Needs a human check."
+    },
+    "ratrig_vcore4": {
+      "reason": "ambiguous-variant",
+      "note": "Upstream ships V-Core 4 in 300/400/500 sizes; 3dpa has one entry and no build-volume field, so the size cannot be resolved."
+    },
+    "snapmaker_2_a350": {
+      "reason": "alias-candidate",
+      "note": "Upstream 'Snapmaker A350 (0.4 nozzle)' is almost certainly this printer (3dpa calls it '2.0 A350'). Straightforward alias once confirmed."
+    },
+    "sparkx_i7": {
+      "reason": "alias-candidate",
+      "note": "Upstream 'Creality SPARKX i7' matches this entry — the 3dpa id is already sparkx_i7, only the display name ('i7') differs, so the generator's exact-name match missed it. Highest-confidence alias of the set."
+    },
+    "sv04": {
+      "reason": "absent-upstream",
+      "note": "Sovol SV04 IDEX has no upstream machine at the pinned commit."
+    },
+    "voron_0_2": {
+      "reason": "ambiguous-variant",
+      "note": "Upstream splits Voron 0.x by revision and bed size; 3dpa has no field to pick one."
+    },
+    "voron_2_4": {
+      "reason": "ambiguous-variant",
+      "note": "Upstream ships Voron 2.4 in 250/300/350 sizes; 3dpa has one entry and no build-volume field."
+    },
+    "voron_trident": {
+      "reason": "ambiguous-variant",
+      "note": "Same as voron_2_4 — upstream splits Trident by bed size."
+    },
+    "vzbot_235": {
+      "reason": "alias-candidate",
+      "note": "Upstream 'Vzbot 235 AWD' (235x235x200) is the only 235 in the registry, so the AWD suffix is not actually ambiguous. Likely mappable once someone confirms 3dpa's VzBot 235 is the AWD build."
+    },
+    "vzbot_330": {
+      "reason": "alias-candidate",
+      "note": "Upstream 'Vzbot 330 AWD' (330x330x400) is the only 330 in the registry. Same call as vzbot_235."
+    }
+  }
+}
