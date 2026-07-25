@@ -1374,6 +1374,9 @@ function bindControls() {
     return { slicer, result: null };
   }
 
+  // The Orca filename prefix is chosen by slicer, and Orca now covers far more
+  // than the four Ender rows it launched with.
+
   function _nativeJSONFilename(kind, slicer) {
     const prefix = slicer === 'orcaslicer' ? 'orca_' : '';
     return `3DPA_${prefix}${kind}_${state.printer}_${state.material}.json`;
@@ -1596,15 +1599,14 @@ function render() {
   const prusaBtn = document.getElementById('exportPrusaBtn');
   const hasMin = state.printer && state.nozzle && state.material;
   if (hasMin && state.printer) {
-    const slicer = Engine.getSlicerForPrinter(state.printer);
-    const nativeResult = slicer === 'bambu_studio' ? Engine.exportBambuStudioJSON(state)
-                       : slicer === 'orcaslicer'   ? Engine.exportOrcaJSON(state)
-                       :                            null;
-    const prusaResult = slicer === 'prusaslicer' ? Engine.exportPrusaINI(state) : null;
-    if (nativeResult || prusaResult) {
+    // Engine owns the "can this actually produce importable files?" decision —
+    // never re-derive it from the slicer id here (see getNativeExportSupport).
+    const support = Engine.getNativeExportSupport(state);
+    const slicer = support.slicer;
+    if (support.available) {
       exportGroup.style.display  = 'flex';
       exportCopyBtn.style.display = 'none';
-      if (prusaResult) {
+      if (support.format === 'ini') {
         processBtn.style.display = 'none';
         filamentBtn.style.display = 'none';
         prusaBtn.style.display = '';
@@ -1623,15 +1625,20 @@ function render() {
         exportHint.textContent = T(isOrca ? 'exportHintOrca' : 'exportHintBambu');
         exportHint.style.display = '';
         // Grey out filament button if no filament export available
-        filamentBtn.disabled = !nativeResult.filament;
-        filamentBtn.title = nativeResult.filament
+        filamentBtn.disabled = !support.hasFilament;
+        filamentBtn.title = support.hasFilament
           ? `Download filament profile (temperatures, cooling, PA) for ${isOrca ? 'OrcaSlicer' : 'Bambu Studio'}`
           : 'Filament export not available for this material/printer combination';
       }
     } else {
+      // No vendor preset to inherit from. Copy still works for every printer —
+      // say why the download buttons are missing instead of silently hiding
+      // them, which reads as "export is broken".
       exportGroup.style.display  = 'none';
       exportCopyBtn.style.display = 'block';
-      exportHint.style.display = 'none';
+      exportHint.textContent = T('exportHintCopyOnly')
+        .replace(/\{slicer\}/g, support.slicerName || Engine.getSlicerDisplayName(slicer));
+      exportHint.style.display = '';
     }
   } else {
     exportGroup.style.display  = 'none';
