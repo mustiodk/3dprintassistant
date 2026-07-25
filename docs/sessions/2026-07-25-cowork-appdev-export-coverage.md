@@ -110,6 +110,39 @@ iOS `main`, local only under the push gate:
   pattern. No K3 (no skill produced a surprising outcome) and no K4 (no tool
   overruled a controller call).
 
+## verify-before-mutate ledger (v2 M3 — owner reads this, not my self-assessment)
+
+`python3 ~/.claude/hooks/verify_before_mutate.py summary`:
+
+```
+verify-before-mutate ledger: 3 flags (0 resolved_same_turn, 0 resolved_late,
+3 unresolved_by_session_end), 1 destructive-core, 35 unclassified, 0 generated-write
+  - [unresolved_by_session_end] Bash  …/3dprintassistant/OrcaSlicer (delete)
+  - [unresolved_by_session_end] Edit  …/3dprintassistant/scripts/export-audit.js (edit)
+  - [unresolved_by_session_end] Edit  …/3dprintassistant-ios/3DPrintAssistant/Utils/Strings.swift (edit)
+```
+
+All three were verified inline in the same turn; the ledger did not register the
+resolutions, so it reports them unresolved. Verbatim, for the owner's own
+false-flag read:
+
+1. **`3dprintassistant/OrcaSlicer` (delete)** — **false flag.** The command was
+   `cd <scratchpad> && rm -rf OrcaSlicer && git clone …`; the hook resolved the
+   relative path against the session cwd. Verified: `ls -d
+   .../3dprintassistant/OrcaSlicer` → *No such file or directory*, and web
+   `git status` was clean. Nothing in the repo was touched.
+2. **`scripts/export-audit.js` (edit)** — **correct premise, wrong evidence
+   channel.** The premise (six assertions encode the old narrow allowlist) had
+   been verified before the edit by `sed -n '246,270p;300,410p'` on the file
+   plus the audit run printing those six as FAILs. The flag fired because the
+   read was a Bash `sed` rather than the Read tool.
+3. **`Strings.swift` (edit)** — same shape. `sed -n '160,180p'` had shown the
+   exact three lines being replaced.
+
+Calibration note: 3 flags, 0 true catches, 2 of 3 attributable to Bash-based
+reads not counting as `direct_file_read`, 1 to relative-path resolution against
+session cwd rather than the command's own `cd`.
+
 ## Next session
 
 Owner runs the two imports. On PASS: ff-merge the web branch to `main`, push,
