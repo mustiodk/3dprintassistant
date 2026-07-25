@@ -55,6 +55,26 @@ const ORCA_VENDOR_DIRS = {
   artillery: 'Artillery', anker: 'Anker', voxelab: 'Voxelab',
 };
 
+// Exact-name matching is the default because a wrong machine imports silently
+// wrong. These four are the cases where the SAME machine is published under a
+// different string, confirmed one at a time and approved by the owner
+// (2026-07-25); everything else stays unmatched and recorded in the coverage
+// ledger instead of guessed at.
+//
+// `vendor` is required because two of these live under 3dpa manufacturer `diy`,
+// which has no single upstream vendor directory.
+const ORCA_MACHINE_ALIASES = {
+  // 3dpa display name is just "i7"; upstream publishes the same printer as
+  // "Creality SPARKX i7". Our own printer id is already `sparkx_i7`.
+  sparkx_i7:        { vendor: 'Creality',  machine: 'Creality SPARKX i7' },
+  // 3dpa calls it "2.0 A350" (the Snapmaker 2.0 line); upstream drops the 2.0.
+  snapmaker_2_a350: { vendor: 'Snapmaker', machine: 'Snapmaker A350' },
+  // Upstream ships exactly one 330 and one 235, both AWD — the suffix names the
+  // drive train, not a competing variant, so there is nothing to disambiguate.
+  vzbot_330:        { vendor: 'Vzbot',     machine: 'Vzbot 330 AWD' },
+  vzbot_235:        { vendor: 'Vzbot',     machine: 'Vzbot 235 AWD' },
+};
+
 // 3dpa printer id → PrusaSlicer `printer_model` code.
 const PRUSA_MODELS = {
   core_one: 'COREONE', core_one_l: 'COREONEL', mk4s: 'MK4S',
@@ -191,7 +211,8 @@ function buildOrca(profilesDir, printers) {
 
   for (const printer of printers) {
     if (printer.slicer !== 'orcaslicer') continue;
-    const dir = ORCA_VENDOR_DIRS[printer.manufacturer];
+    const alias = ORCA_MACHINE_ALIASES[printer.id];
+    const dir = alias ? alias.vendor : ORCA_VENDOR_DIRS[printer.manufacturer];
     const idx = dir ? vendorIndex(dir) : null;
     if (!idx) { skipped.push([printer.id, dir ? 'no-vendor-dir' : 'no-vendor-mapping']); continue; }
 
@@ -199,12 +220,15 @@ function buildOrca(profilesDir, printers) {
     // never to "Creality K1 Max". Registries that encode build volume in the
     // machine name (Voron 2.4 250 / RatRig V-Core 4 300) have no unambiguous
     // 3dpa counterpart and are deliberately left unmatched.
-    const wanted = norm(printer.name);
+    // An alias matches on the upstream machine string instead of our display
+    // name; both sides still go through the same normalisation and the same
+    // nozzle-tag and process-parent checks below.
+    const wanted = norm(alias ? alias.machine : printer.name);
     const vendorPrefix = norm(dir);
     const machines = {};
     for (const m of idx.machines) {
       let base = norm(stripNozzle(m));
-      if (base.startsWith(vendorPrefix)) base = base.slice(vendorPrefix.length);
+      if (!alias && base.startsWith(vendorPrefix)) base = base.slice(vendorPrefix.length);
       const nz = nozzleOf(m);
       if (base === wanted && nz && !machines[nz]) machines[nz] = m;
     }

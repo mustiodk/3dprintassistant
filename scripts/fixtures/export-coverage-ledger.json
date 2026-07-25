@@ -37,14 +37,6 @@
       "reason": "ambiguous-variant",
       "note": "Upstream ships V-Core 4 in 300/400/500 sizes; 3dpa has one entry and no build-volume field, so the size cannot be resolved."
     },
-    "snapmaker_2_a350": {
-      "reason": "alias-candidate",
-      "note": "Upstream 'Snapmaker A350 (0.4 nozzle)' is almost certainly this printer (3dpa calls it '2.0 A350'). Straightforward alias once confirmed."
-    },
-    "sparkx_i7": {
-      "reason": "alias-candidate",
-      "note": "Upstream 'Creality SPARKX i7' matches this entry — the 3dpa id is already sparkx_i7, only the display name ('i7') differs, so the generator's exact-name match missed it. Highest-confidence alias of the set."
-    },
     "sv04": {
       "reason": "absent-upstream",
       "note": "Sovol SV04 IDEX has no upstream machine at the pinned commit."
@@ -60,14 +52,6 @@
     "voron_trident": {
       "reason": "ambiguous-variant",
       "note": "Same as voron_2_4 — upstream splits Trident by bed size."
-    },
-    "vzbot_235": {
-      "reason": "alias-candidate",
-      "note": "Upstream 'Vzbot 235 AWD' (235x235x200) is the only 235 in the registry, so the AWD suffix is not actually ambiguous. Likely mappable once someone confirms 3dpa's VzBot 235 is the AWD build."
-    },
-    "vzbot_330": {
-      "reason": "alias-candidate",
-      "note": "Upstream 'Vzbot 330 AWD' (330x330x400) is the only 330 in the registry. Same call as vzbot_235."
     }
   }
 }

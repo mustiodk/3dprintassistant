@@ -5613,6 +5613,137 @@ const Engine = (() => {
       },
       "printerName": "Qidi Q2"
     },
+    "snapmaker_2_a350": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Snapmaker A350 (0.2 nozzle)",
+          "filamentParents": {
+            "ABS": "Snapmaker ABS @0.2 nozzle",
+            "ASA": "Snapmaker ASA @0.2 nozzle",
+            "PETG": "Snapmaker PETG @0.2 nozzle",
+            "PLA": "PolyLite PLA @0.2 nozzle"
+          },
+          "processParents": {
+            "0.06": "0.06 Standard @Snapmaker (0.2 nozzle)",
+            "0.10": "0.10 Standard @Snapmaker (0.2 nozzle)",
+            "0.14": "0.14 Standard @Snapmaker (0.2 nozzle)"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Snapmaker A350 (0.4 nozzle)",
+          "filamentParents": {
+            "ABS": "Snapmaker ABS",
+            "ASA": "Snapmaker ASA",
+            "PET": "Snapmaker PET",
+            "PETG": "Snapmaker PETG",
+            "PLA": "Snapmaker PLA",
+            "PVA": "Snapmaker PVA",
+            "TPU": "Snapmaker TPE"
+          },
+          "processParents": {
+            "0.08": "0.08 Extra Fine @Snapmaker (0.4 nozzle)",
+            "0.12": "0.12 Fine @Snapmaker (0.4 nozzle)",
+            "0.16": "0.16 Optimal @Snapmaker (0.4 nozzle)",
+            "0.20": "0.20 Standard @Snapmaker (0.4 nozzle)",
+            "0.24": "0.24 Draft @Snapmaker (0.4 nozzle)",
+            "0.28": "0.28 Extra Draft @Snapmaker (0.4 nozzle)"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Snapmaker A350 (0.6 nozzle)",
+          "filamentParents": {
+            "ABS": "Snapmaker ABS",
+            "ASA": "Snapmaker ASA",
+            "PET": "Snapmaker PET",
+            "PETG": "Snapmaker PETG",
+            "PLA": "Snapmaker PLA",
+            "PVA": "Snapmaker PVA",
+            "TPU": "Snapmaker TPE"
+          },
+          "processParents": {
+            "0.18": "0.18 Standard @Snapmaker (0.6 nozzle)",
+            "0.24": "0.24 Standard @Snapmaker (0.6 nozzle)",
+            "0.30": "0.30 Standard @Snapmaker (0.6 nozzle)",
+            "0.34": "0.34 Standard @Snapmaker (0.6 nozzle)",
+            "0.38": "0.38 Standard @Snapmaker (0.6 nozzle)",
+            "0.42": "0.42 Draft @Snapmaker (0.6 nozzle)"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Snapmaker A350 (0.8 nozzle)",
+          "filamentParents": {
+            "ABS": "Snapmaker ABS",
+            "ASA": "Snapmaker ASA",
+            "PET": "Snapmaker PET",
+            "PETG": "Snapmaker PETG",
+            "PLA": "Snapmaker PLA",
+            "PVA": "Snapmaker PVA",
+            "TPU": "Snapmaker TPE"
+          },
+          "processParents": {
+            "0.24": "0.24 Standard @Snapmaker (0.8 nozzle)",
+            "0.32": "0.32 Standard @Snapmaker (0.8 nozzle)",
+            "0.36": "0.36 Standard @Snapmaker (0.8 nozzle)",
+            "0.40": "0.40 Standard @Snapmaker (0.8 nozzle)",
+            "0.48": "0.48 Draft @Snapmaker (0.8 nozzle)"
+          }
+        }
+      },
+      "printerName": "Snapmaker A350"
+    },
+    "sparkx_i7": {
+      "nozzles": {
+        "0.2": {
+          "compatiblePrinter": "Creality SPARKX i7 0.2 nozzle",
+          "filamentParents": {
+            "PETG": "CR-PETG @SPARKX i7-all",
+            "PLA": "Generic PLA @SPARKX i7-all"
+          },
+          "processParents": {
+            "0.10": "0.10mm HighDetail @Creality SPARKX i7 0.2 nozzle"
+          }
+        },
+        "0.4": {
+          "compatiblePrinter": "Creality SPARKX i7 0.4 nozzle",
+          "filamentParents": {
+            "PETG": "Generic PETG @SPARKX i7-all",
+            "PLA": "Generic PLA @SPARKX i7-all",
+            "TPU": "Generic TPU @SPARKX i7-all"
+          },
+          "processParents": {
+            "0.08": "0.08mm SuperDetail @Creality SPARKX i7 0.4 nozzle",
+            "0.12": "0.12mm Fine @Creality SPARKX i7 0.4 nozzle",
+            "0.16": "0.16mm Optimal @Creality SPARKX i7 0.4 nozzle",
+            "0.20": "0.20mm Standard @Creality SPARKX i7 0.4 nozzle",
+            "0.24": "0.24mm Draft @Creality SPARKX i7 0.4 nozzle",
+            "0.28": "0.28mm SuperDraft @Creality SPARKX i7 0.4 nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Creality SPARKX i7 0.6 nozzle",
+          "filamentParents": {
+            "PETG": "Generic PETG @SPARKX i7-all",
+            "PLA": "Generic PLA @SPARKX i7-all",
+            "TPU": "HP-TPU @SPARKX i7-all"
+          },
+          "processParents": {
+            "0.30": "0.30mm Standard @Creality SPARKX i7 0.6 nozzle"
+          }
+        },
+        "0.8": {
+          "compatiblePrinter": "Creality SPARKX i7 0.8 nozzle",
+          "filamentParents": {
+            "PETG": "Generic PETG @SPARKX i7-all",
+            "PLA": "Generic PLA @SPARKX i7-all",
+            "TPU": "HP-TPU @SPARKX i7-all"
+          },
+          "processParents": {
+            "0.40": "0.40mm Standard @Creality SPARKX i7 0.8 nozzle"
+          }
+        }
+      },
+      "printerName": "Creality SPARKX i7"
+    },
     "sv06_ace": {
       "nozzles": {
         "0.2": {
@@ -5799,6 +5930,138 @@ const Engine = (() => {
         }
       },
       "printerName": "Snapmaker U1"
+    },
+    "vzbot_235": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Vzbot 235 AWD 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Vzbot Generic ABS",
+            "ASA": "Vzbot Generic ASA",
+            "PA": "Vzbot Generic PA",
+            "PC": "Vzbot Generic PC",
+            "PETG": "Vzbot Generic PETG",
+            "PLA": "Vzbot Generic PLA",
+            "PVA": "Vzbot Generic PVA",
+            "TPU": "Vzbot Generic TPU"
+          },
+          "processParents": {
+            "0.08": "0.08mm Extra Fine @Vzbot",
+            "0.12": "0.12mm Fine @Vzbot",
+            "0.15": "0.15mm Optimal @Vzbot",
+            "0.20": "0.20mm Standard @Vzbot",
+            "0.24": "0.24mm Draft @Vzbot",
+            "0.28": "0.28mm Extra Draft @Vzbot"
+          }
+        },
+        "0.5": {
+          "compatiblePrinter": "Vzbot 235 AWD 0.5 nozzle",
+          "filamentParents": {
+            "ABS": "Vzbot Generic ABS",
+            "ASA": "Vzbot Generic ASA",
+            "PA": "Vzbot Generic PA",
+            "PC": "Vzbot Generic PC",
+            "PETG": "Vzbot Generic PETG",
+            "PLA": "Vzbot Generic PLA",
+            "PVA": "Vzbot Generic PVA",
+            "TPU": "Vzbot Generic TPU"
+          },
+          "processParents": {
+            "0.08": "0.08mm Extra Fine @Vzbot 0.5nozzle",
+            "0.12": "0.12mm Fine @Vzbot 0.5nozzle",
+            "0.15": "0.15mm Optimal @Vzbot 0.5nozzle",
+            "0.20": "0.20mm Standard @Vzbot 0.5nozzle",
+            "0.24": "0.24mm Draft @Vzbot 0.5nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Vzbot 235 AWD 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Vzbot Generic ABS",
+            "ASA": "Vzbot Generic ASA",
+            "PA": "Vzbot Generic PA",
+            "PC": "Vzbot Generic PC",
+            "PETG": "Vzbot Generic PETG",
+            "PLA": "Vzbot Generic PLA",
+            "PVA": "Vzbot Generic PVA",
+            "TPU": "Vzbot Generic TPU"
+          },
+          "processParents": {
+            "0.08": "0.08mm Extra Fine @Vzbot 0.6nozzle",
+            "0.12": "0.12mm Fine @Vzbot 0.6nozzle",
+            "0.15": "0.15mm Optimal @Vzbot 0.6nozzle",
+            "0.20": "0.20mm Standard @Vzbot 0.6nozzle",
+            "0.24": "0.24mm Draft @Vzbot 0.6nozzle"
+          }
+        }
+      },
+      "printerName": "Vzbot 235 AWD"
+    },
+    "vzbot_330": {
+      "nozzles": {
+        "0.4": {
+          "compatiblePrinter": "Vzbot 330 AWD 0.4 nozzle",
+          "filamentParents": {
+            "ABS": "Vzbot Generic ABS",
+            "ASA": "Vzbot Generic ASA",
+            "PA": "Vzbot Generic PA",
+            "PC": "Vzbot Generic PC",
+            "PETG": "Vzbot Generic PETG",
+            "PLA": "Vzbot Generic PLA",
+            "PVA": "Vzbot Generic PVA",
+            "TPU": "Vzbot Generic TPU"
+          },
+          "processParents": {
+            "0.08": "0.08mm Extra Fine @Vzbot",
+            "0.12": "0.12mm Fine @Vzbot",
+            "0.15": "0.15mm Optimal @Vzbot",
+            "0.20": "0.20mm Standard @Vzbot",
+            "0.24": "0.24mm Draft @Vzbot",
+            "0.28": "0.28mm Extra Draft @Vzbot"
+          }
+        },
+        "0.5": {
+          "compatiblePrinter": "Vzbot 330 AWD 0.5 nozzle",
+          "filamentParents": {
+            "ABS": "Vzbot Generic ABS",
+            "ASA": "Vzbot Generic ASA",
+            "PA": "Vzbot Generic PA",
+            "PC": "Vzbot Generic PC",
+            "PETG": "Vzbot Generic PETG",
+            "PLA": "Vzbot Generic PLA",
+            "PVA": "Vzbot Generic PVA",
+            "TPU": "Vzbot Generic TPU"
+          },
+          "processParents": {
+            "0.08": "0.08mm Extra Fine @Vzbot 0.5nozzle",
+            "0.12": "0.12mm Fine @Vzbot 0.5nozzle",
+            "0.15": "0.15mm Optimal @Vzbot 0.5nozzle",
+            "0.20": "0.20mm Standard @Vzbot 0.5nozzle",
+            "0.24": "0.24mm Draft @Vzbot 0.5nozzle"
+          }
+        },
+        "0.6": {
+          "compatiblePrinter": "Vzbot 330 AWD 0.6 nozzle",
+          "filamentParents": {
+            "ABS": "Vzbot Generic ABS",
+            "ASA": "Vzbot Generic ASA",
+            "PA": "Vzbot Generic PA",
+            "PC": "Vzbot Generic PC",
+            "PETG": "Vzbot Generic PETG",
+            "PLA": "Vzbot Generic PLA",
+            "PVA": "Vzbot Generic PVA",
+            "TPU": "Vzbot Generic TPU"
+          },
+          "processParents": {
+            "0.08": "0.08mm Extra Fine @Vzbot 0.6nozzle",
+            "0.12": "0.12mm Fine @Vzbot 0.6nozzle",
+            "0.15": "0.15mm Optimal @Vzbot 0.6nozzle",
+            "0.20": "0.20mm Standard @Vzbot 0.6nozzle",
+            "0.24": "0.24mm Draft @Vzbot 0.6nozzle"
+          }
+        }
+      },
+      "printerName": "Vzbot 330 AWD"
     },
     "x4_plus": {
       "nozzles": {
