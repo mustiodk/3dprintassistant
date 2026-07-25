@@ -291,9 +291,107 @@ Calibration note: 3 flags, 0 true catches, 2 of 3 attributable to Bash-based
 reads not counting as `direct_file_read`, 1 to relative-path resolution against
 session cwd rather than the command's own `cd`.
 
+## Addendum 4 — version discipline corrected, then 1.1.3 submitted to App Review
+
+Two things happened after the coverage work shipped, and the first caused the
+second.
+
+**The version-per-build mistake.** I bumped `MARKETING_VERSION` 1.1.1 → 1.1.2 →
+1.1.3 across three verification builds in a single day. The owner asked why:
+*"Why are you increasing the version number for each patch instead of keeping it
+and just creating a new build?"* He was right and I had no defence. Fastlane
+stamps the build number as `Time.now.strftime("%Y%m%d%H%M")`
+([`fastlane/Fastfile:20`](../../../3dprintassistant-ios/fastlane/Fastfile:20)),
+so every upload is already unique — the version string contributes nothing to
+TestFlight's uniqueness requirement. Only 1.1.0 had ever reached the App Store,
+so users would have jumped 1.1.0 → 1.1.3 past two versions that never existed
+for them, each carrying its own ASC version entity and "What's New" field.
+
+Root cause was the iOS push gate in `Projects/CLAUDE.md`, which listed
+"`MARKETING_VERSION` is bumped" as a precondition for pushing iOS. That was
+written for shipping a release and I applied it mechanically to a verification
+build. Reworded in both `CLAUDE.md` and `AGENTS.md`: **version = release train,
+build number = iteration.** Owner chose to keep 1.1.3 rather than roll back —
+rolling back is cosmetic history and costs a ~10-min runner build. Memory:
+`feedback_version_per_release_train_not_per_build`.
+
+**A StoreKit test configuration was attempted and abandoned.** Goal was a
+simulator screenshot of the tip sheet with real prices, for the IAP review
+screenshots. Three distinct failures: the `.storekit` file landed in the app's
+Resources build phase (would have shipped in the binary); XcodeGen 2.46 emits
+`storeKitConfiguration` only on the Run action, not Test; and a hand-injected
+TestAction reference plus `fileGroups` registration still returned no products.
+Per the 3-failure rule I stopped and reverted all of it rather than attempt a
+fourth. Tree left clean — this is why the IAP review screenshot ended up being
+the Home-screen entry point rather than the price list.
+
+### App Store submission (ASC, browser-driven)
+
+Submitted **1.1.3 / build `202607251240`** together with the three consumables.
+ASC requires a first consumable to ship with a new app version, so they had to
+go as one submission — the tips alone stayed blocked with *"Unable to Submit for
+Review"* until the version joined the same draft.
+
+The non-obvious step: **Add for Review on the version page is a dropdown**, and
+it offers "add to existing draft submission" vs "create new submission". Picking
+the existing draft is what merges the version with the three tips; creating a
+new one would have kept them separate and kept the block in place.
+
+Metadata corrections caught while filling it in — both were live inaccuracies,
+not polish:
+
+- **Review Notes claimed "There is no account, login, or in-app purchase."**
+  False as of this submission. A reviewer reading that and then seeing three
+  consumables has a contradiction to resolve; that is a realistic Guideline 2.1
+  round trip. Rewritten to state the tips explicitly, name the entry point
+  ("Support 3DPA" card on Home), and pre-explain that the tip sheet shows
+  *"tip options are unavailable"* until the products are approved.
+- **Description said "64 printers across 12 brands", "18 filament types".**
+  Counted against the data files: **78 printers, 14 brands, 19 filament
+  profiles**, 9 nozzle types (the only accurate number). Rewritten, and an
+  EXPORT STRAIGHT TO YOUR SLICER section added — the description still described
+  the pre-export copy-paste workflow and never mentioned the feature this whole
+  session was about.
+
+The IAP review screenshot was rejected once for dimensions: the simulator
+capture is **1206 × 2622** (iPhone 16 Pro native), which is not on ASC's
+accepted list for IAP review screenshots. Resampled to **1242 × 2688** (6.5"
+display) — 0.4% aspect difference, not visible — and it took.
+
+Per-product review notes were written to all three tips via the browser. Worth
+recording the mechanism: ASC's fields are React-controlled, so `value`
+assignment from JS does not stick. What works is click the field, then
+`focus()` + `setSelectionRange(0, len)` from JS, then synthetic typing — and the
+textarea will still display the *old* value after Save; only a reload proves
+what was actually persisted.
+
+**Final state, verified in ASC:** iOS App 1.1.3 *Waiting for Review*; In-App
+Purchases *In Review (3)* — `tip.spool`, `tip.nice`, `tip.small`. Release is set
+to **automatically release after approval**, phased release off. Approval
+therefore both publishes 1.1.3 and switches the tip jar on for everyone, with no
+second step from the owner.
+
 ## Next session
 
-Owner runs the two imports. On PASS: ff-merge the web branch to `main`, push,
-verify live, and fold the iOS commits into the next TestFlight train. On FAIL:
-the slicer's log names the unresolved parent, which points at the generator rule
-to correct — and that correction applies to the whole vendor family at once.
+Nothing is blocked. 1.1.3 and the three tips are in Apple's queue with automatic
+release, so the next real event is an approval or a rejection notice.
+
+Carried follow-ups, none urgent:
+
+- **Three alias-candidates remain unmapped** — `plus4`, `max4`,
+  `ender3_v4_combo`. Each needs either a build-volume field in
+  `data/printers.json` or a human identity call to disambiguate against the
+  upstream registry. They are recorded in
+  `scripts/fixtures/export-coverage-ledger.json`, so the audit gate will keep
+  failing loudly if anyone adds a printer without resolving its coverage.
+- **`-uitest` is a no-op.** Every UI test passes the flag and no app code reads
+  it, so `testWorkshopTransferActionsStayVisibleWhenEmpty` depends on a clean
+  simulator container. It failed once this session purely from state left by a
+  manual walkthrough. Either honour the flag with a reset, or drop it.
+- **CI knows about broken IAPs and says so quietly.**
+  `scripts/configure_tip_products.rb:163` allows `MISSING_METADATA` for
+  TestFlight uploads, which is correct, but a build in that state shows every
+  tester a broken tip jar. Worth a loud warning now that the screenshots exist.
+
+If approval lands: confirm the tip jar resolves on a real device, since that path
+has never once worked end-to-end outside of code review.
