@@ -102,6 +102,7 @@
   "exportHintOrca":            "Import in OrcaSlicer: File → Import → Import Configs… — the presets appear under your User presets for this printer/nozzle.",
   "exportHintPrusa":           "Import in PrusaSlicer 2.9.4+: File → Import → Import Config Bundle… — adds the 3DPA print (and where PrusaSlicer ships one, filament) preset for this printer and nozzle.",
   "exportCopied":              "✓ Copied to clipboard",
+  "exportHintProcessOnly":     "Only the print profile can be exported here — {slicer} publishes no matching filament preset for this printer and material. Use the filament temperatures shown above.",
   "exportHintCopyOnly":        "{slicer} has no published preset for this printer and nozzle yet, so 3DPA can't generate an importable file it would inherit from. Use Copy Profile and paste the values into {slicer} by hand.",
   "exportSaved":               "✓ Saved",
   "shareBtn":                  "⤴ Share",

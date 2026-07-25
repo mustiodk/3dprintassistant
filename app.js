@@ -1606,11 +1606,17 @@ function render() {
     if (support.available) {
       exportGroup.style.display  = 'flex';
       exportCopyBtn.style.display = 'none';
+      // A missing filament preset is communicated in the hint, not only in a
+      // `title` tooltip — tooltips do not exist on touch, which is most of the
+      // traffic.
+      const processOnlyNote = support.hasFilament
+        ? ''
+        : ' ' + T('exportHintProcessOnly').replace(/\{slicer\}/g, support.slicerName);
       if (support.format === 'ini') {
         processBtn.style.display = 'none';
         filamentBtn.style.display = 'none';
         prusaBtn.style.display = '';
-        exportHint.textContent = T('exportHintPrusa');
+        exportHint.textContent = T('exportHintPrusa') + processOnlyNote;
         exportHint.style.display = '';
       } else {
         processBtn.style.display = '';
@@ -1622,7 +1628,7 @@ function render() {
         processBtn.title = isOrca
           ? 'Download process profile (print settings) for OrcaSlicer'
           : 'Download process profile (print settings) for Bambu Studio';
-        exportHint.textContent = T(isOrca ? 'exportHintOrca' : 'exportHintBambu');
+        exportHint.textContent = T(isOrca ? 'exportHintOrca' : 'exportHintBambu') + processOnlyNote;
         exportHint.style.display = '';
         // Grey out filament button if no filament export available
         filamentBtn.disabled = !support.hasFilament;

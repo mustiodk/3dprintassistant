@@ -102,6 +102,7 @@
   "exportHintOrca":            "Importér i OrcaSlicer: File → Import → Import Configs… — profilerne dukker op under dine User-presets for denne printer/dyse.",
   "exportHintPrusa":           "Importér i PrusaSlicer 2.9.4+: File → Import → Import Config Bundle… — tilføjer 3DPA print-profilen (og filament-profilen hvor PrusaSlicer har en) til denne printer og dyse.",
   "exportCopied":              "✓ Kopieret til udklipsholder",
+  "exportHintProcessOnly":     "Kun print-profilen kan eksporteres her — {slicer} har ingen matchende filament-preset til denne printer og dette materiale. Brug filament-temperaturerne ovenfor.",
   "exportHintCopyOnly":        "{slicer} har endnu ingen offentliggjort preset til denne printer og dyse, så 3DPA kan ikke generere en fil, der kan arve fra den. Brug Kopiér profil og indsæt værdierne manuelt i {slicer}.",
   "exportSaved":               "✓ Gemt",
   "shareBtn":                  "⤴ Del",
