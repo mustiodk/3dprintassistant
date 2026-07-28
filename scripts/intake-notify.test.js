@@ -501,6 +501,26 @@ test('recovery: a freeze replaced during the POST is never deleted (TOCTOU guard
   assert.strictEqual(survivor.runId, 'run-newer', 'replacement freeze must survive a stale recovery');
 });
 
+test('recovery: a hybrid freeze with structured fields missing must not fall through to the legacy parser', async () => {
+  const legacyDetail = 'run run-20260718T112636Z shipped 1 candidate(s) but the Discord run report could not be delivered';
+  for (const freeze of [
+    // Truncated CURRENT freeze: has shipped but lost runId AND shipState.
+    { reason: 'shipped-and-unreported', shipped: 1, detail: legacyDetail, at: '2026-07-18T11:30:00Z' },
+    // Legacy shape plus an unexpected extra field is not the legacy shape.
+    { reason: 'shipped-and-unreported', detail: legacyDetail, at: '2026-07-18T11:30:00Z', extra: true },
+  ]) {
+    const env = makeEnv();
+    const bytes = writeFreeze(env, freeze);
+    writeSavedReport(env, shippedReport({ runId: 'run-20260718T112636Z' }));
+    const fetchImpl = okFetch();
+    const result = await recoverFreeze({ ...env, fetchImpl, log: () => {} });
+    assert.strictEqual(result.recovered, false, `must not recover hybrid freeze: ${JSON.stringify(Object.keys(freeze))}`);
+    assert.notStrictEqual(result.exitCode, 0);
+    assert.strictEqual(fetchImpl.calls.length, 0);
+    assert.strictEqual(fs.readFileSync(env.freezePath, 'utf8'), bytes);
+  }
+});
+
 test('recovery: a held freeze-mutation lock blocks deletion and fails closed', async () => {
   const env = makeEnv();
   const bytes = writeFreeze(env, knownFreeze());

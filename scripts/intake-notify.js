@@ -329,6 +329,14 @@ function parseRecoverableFreeze(rawFreeze) {
     return { runId: freeze.runId };
   }
 
+  // The legacy branch applies ONLY to the exact pre-schema shape
+  // {reason, detail, at} — a hybrid freeze that lost runId/shipState but
+  // still carries other structured fields (or any unexpected key) is a
+  // truncated CURRENT freeze, not legacy evidence (re-review P2).
+  const keys = Object.keys(freeze).sort();
+  if (keys.length !== 3 || keys[0] !== 'at' || keys[1] !== 'detail' || keys[2] !== 'reason') {
+    return { reason: 'freeze-invalid-fields' };
+  }
   const match = typeof freeze.detail === 'string' ? freeze.detail.match(LEGACY_KNOWN_DETAIL) : null;
   if (!match) return { reason: 'legacy-detail-unrecognized' };
   return { runId: match[1] };
