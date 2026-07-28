@@ -9,7 +9,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { notify } = require('./intake-notify.js');
+const { notify, recoverFreeze } = require('./intake-notify.js');
 
 function makeEnv({ webhook = 'https://discord.test/webhook/abc123' } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'notify-'));
@@ -233,6 +233,227 @@ test('monthly digest: appears when the run date is the 1st, covers auto-shipped 
   body = fs.readFileSync(path.join(env.stateDir, 'last-run-report.md'), 'utf8');
   assert.match(body, /sept_row/);
   assert.ok(!body.includes('old_one'), 'already-digested rows must not repeat');
+});
+
+// --- Freeze auto-recovery (PD8 exact-run recovery; design 2026-07-28) -------
+
+function writeSavedReport(env, reportObj) {
+  fs.mkdirSync(env.stateDir, { recursive: true });
+  fs.writeFileSync(path.join(env.stateDir, 'last-run-report.json'), `${JSON.stringify(reportObj, null, 2)}\n`);
+}
+
+function writeFreeze(env, freeze) {
+  const body = typeof freeze === 'string' ? freeze : `${JSON.stringify(freeze, null, 2)}\n`;
+  fs.writeFileSync(env.freezePath, body);
+  return body;
+}
+
+function knownFreeze(overrides = {}) {
+  return {
+    reason: 'shipped-and-unreported',
+    runId: 'run-2026-07-15',
+    shipState: 'known',
+    shipped: 1,
+    detail: 'run run-2026-07-15 shipped 1 candidate(s) but the Discord run report could not be delivered',
+    at: '2026-07-15T12:21:00Z',
+    ...overrides,
+  };
+}
+
+function shippedReport(overrides = {}) {
+  return report({ shipped: 1, candidates: [{ id: 'k2_se', outcome: 'auto-shipped' }], ...overrides });
+}
+
+test('recovery API exists', () => {
+  assert.strictEqual(typeof recoverFreeze, 'function', 'intake-notify.js must export recoverFreeze');
+});
+
+test('new shipped-and-unreported freeze records structured runId, known shipState, and shipped count', async () => {
+  const env = makeEnv();
+  await notify(shippedReport(), { ...env, fetchImpl: failFetch(), log: () => {} });
+  const frozen = JSON.parse(fs.readFileSync(env.freezePath, 'utf8'));
+  assert.strictEqual(frozen.reason, 'shipped-and-unreported');
+  assert.strictEqual(frozen.runId, 'run-2026-07-15');
+  assert.strictEqual(frozen.shipState, 'known');
+  assert.strictEqual(frozen.shipped, 1);
+});
+
+test('new shippedUnknown freeze records structured runId and unknown shipState', async () => {
+  const env = makeEnv();
+  await notify(report({ runId: 'run-crash', shipped: 0, shippedUnknown: true, failed: true }), {
+    ...env, fetchImpl: failFetch(), log: () => {},
+  });
+  const frozen = JSON.parse(fs.readFileSync(env.freezePath, 'utf8'));
+  assert.strictEqual(frozen.runId, 'run-crash');
+  assert.strictEqual(frozen.shipState, 'unknown');
+});
+
+test('recovery: exact known run + matching saved report + successful POST clears the freeze once', async () => {
+  const env = makeEnv();
+  writeFreeze(env, knownFreeze());
+  writeSavedReport(env, shippedReport());
+  const fetchImpl = okFetch();
+  const logged = [];
+  const result = await recoverFreeze({ ...env, fetchImpl, log: (l) => logged.push(l) });
+  assert.strictEqual(result.recovered, true);
+  assert.strictEqual(result.applicable, true);
+  assert.strictEqual(result.exitCode, 0);
+  assert.ok(!fs.existsSync(env.freezePath), 'freeze must be deleted after successful delivery');
+  assert.strictEqual(fetchImpl.calls.length, 1);
+  const allLogs = logged.join('\n');
+  assert.match(allLogs, /RECOVERY recovered=true applicable=true/);
+  assert.ok(!allLogs.includes('discord.test'), 'webhook URL must never be logged');
+});
+
+test('recovery: no freeze is a no-op success', async () => {
+  const env = makeEnv();
+  const fetchImpl = okFetch();
+  const result = await recoverFreeze({ ...env, fetchImpl, log: () => {} });
+  assert.strictEqual(result.recovered, false);
+  assert.strictEqual(result.applicable, false);
+  assert.strictEqual(result.exitCode, 0);
+  assert.strictEqual(fetchImpl.calls.length, 0, 'nothing to recover must not POST');
+});
+
+test('recovery: run-ID mismatch does not POST and preserves the freeze bytes', async () => {
+  const env = makeEnv();
+  const bytes = writeFreeze(env, knownFreeze({ runId: 'run-a' }));
+  writeSavedReport(env, shippedReport({ runId: 'run-b' }));
+  const fetchImpl = okFetch();
+  const result = await recoverFreeze({ ...env, fetchImpl, log: () => {} });
+  assert.strictEqual(result.recovered, false);
+  assert.notStrictEqual(result.exitCode, 0);
+  assert.strictEqual(fetchImpl.calls.length, 0, 'mismatched evidence must not POST');
+  assert.strictEqual(fs.readFileSync(env.freezePath, 'utf8'), bytes, 'freeze must stay byte-identical');
+});
+
+test('recovery: unknown shipState stays permanently fail-closed', async () => {
+  const env = makeEnv();
+  const bytes = writeFreeze(env, knownFreeze({ shipState: 'unknown' }));
+  writeSavedReport(env, shippedReport());
+  const fetchImpl = okFetch();
+  const result = await recoverFreeze({ ...env, fetchImpl, log: () => {} });
+  assert.strictEqual(result.recovered, false);
+  assert.notStrictEqual(result.exitCode, 0);
+  assert.strictEqual(fetchImpl.calls.length, 0);
+  assert.strictEqual(fs.readFileSync(env.freezePath, 'utf8'), bytes);
+});
+
+test('recovery: zero-shipped, missing, and malformed saved reports preserve the freeze', async () => {
+  for (const setup of [
+    (env) => writeSavedReport(env, report({ shipped: 0, candidates: [] })),
+    () => { /* missing report */ },
+    (env) => { fs.mkdirSync(env.stateDir, { recursive: true }); fs.writeFileSync(path.join(env.stateDir, 'last-run-report.json'), 'not-json{{{'); },
+  ]) {
+    const env = makeEnv();
+    const bytes = writeFreeze(env, knownFreeze());
+    setup(env);
+    const fetchImpl = okFetch();
+    const result = await recoverFreeze({ ...env, fetchImpl, log: () => {} });
+    assert.strictEqual(result.recovered, false);
+    assert.notStrictEqual(result.exitCode, 0);
+    assert.strictEqual(fetchImpl.calls.length, 0, 'invalid evidence must not POST');
+    assert.strictEqual(fs.readFileSync(env.freezePath, 'utf8'), bytes);
+  }
+});
+
+test('recovery: malformed freeze JSON stays frozen without a POST', async () => {
+  const env = makeEnv();
+  const bytes = writeFreeze(env, 'not-json{{{');
+  writeSavedReport(env, shippedReport());
+  const fetchImpl = okFetch();
+  const result = await recoverFreeze({ ...env, fetchImpl, log: () => {} });
+  assert.strictEqual(result.recovered, false);
+  assert.notStrictEqual(result.exitCode, 0);
+  assert.strictEqual(fetchImpl.calls.length, 0);
+  assert.strictEqual(fs.readFileSync(env.freezePath, 'utf8'), bytes);
+});
+
+test('recovery: failed POST preserves the freeze bytes', async () => {
+  const env = makeEnv();
+  const bytes = writeFreeze(env, knownFreeze());
+  writeSavedReport(env, shippedReport());
+  const result = await recoverFreeze({ ...env, fetchImpl: failFetch(), log: () => {} });
+  assert.strictEqual(result.recovered, false);
+  assert.notStrictEqual(result.exitCode, 0);
+  assert.strictEqual(fs.readFileSync(env.freezePath, 'utf8'), bytes, 'no delivery proof means no deletion');
+});
+
+test('recovery: absent webhook configuration stays frozen', async () => {
+  const env = makeEnv({ webhook: null });
+  const bytes = writeFreeze(env, knownFreeze());
+  writeSavedReport(env, shippedReport());
+  const result = await recoverFreeze({ ...env, fetchImpl: okFetch(), log: () => {} });
+  assert.strictEqual(result.recovered, false);
+  assert.notStrictEqual(result.exitCode, 0);
+  assert.strictEqual(fs.readFileSync(env.freezePath, 'utf8'), bytes);
+});
+
+test('recovery: strict legacy known-shipment freeze recovers against the matching saved report', async () => {
+  const env = makeEnv();
+  // Exact legacy shape written by the pre-recovery notifier: no runId/shipState fields.
+  writeFreeze(env, {
+    reason: 'shipped-and-unreported',
+    detail: 'run run-20260718T112636Z shipped 1 candidate(s) but the Discord run report could not be delivered',
+    at: '2026-07-18T11:30:00Z',
+  });
+  writeSavedReport(env, shippedReport({ runId: 'run-20260718T112636Z' }));
+  const fetchImpl = okFetch();
+  const result = await recoverFreeze({ ...env, fetchImpl, log: () => {} });
+  assert.strictEqual(result.recovered, true);
+  assert.strictEqual(result.exitCode, 0);
+  assert.ok(!fs.existsSync(env.freezePath));
+  assert.strictEqual(fetchImpl.calls.length, 1);
+});
+
+test('recovery: legacy unknown-shipment and free-form freezes never recover', async () => {
+  for (const detail of [
+    'run run-x FAILED mid-session (ship state unknown) and the run report could not be delivered',
+    'manually frozen by owner pending investigation',
+    'run run-20260718T112636Z shipped 0 candidate(s) but the Discord run report could not be delivered',
+  ]) {
+    const env = makeEnv();
+    const bytes = writeFreeze(env, { reason: 'shipped-and-unreported', detail, at: '2026-07-18T11:30:00Z' });
+    writeSavedReport(env, shippedReport({ runId: 'run-20260718T112636Z' }));
+    const fetchImpl = okFetch();
+    const result = await recoverFreeze({ ...env, fetchImpl, log: () => {} });
+    assert.strictEqual(result.recovered, false, `must not recover legacy detail: ${detail}`);
+    assert.notStrictEqual(result.exitCode, 0);
+    assert.strictEqual(fetchImpl.calls.length, 0);
+    assert.strictEqual(fs.readFileSync(env.freezePath, 'utf8'), bytes);
+  }
+});
+
+test('recovery: a wrong reason field never recovers even with matching evidence', async () => {
+  const env = makeEnv();
+  const bytes = writeFreeze(env, knownFreeze({ reason: 'owner-hold' }));
+  writeSavedReport(env, shippedReport());
+  const fetchImpl = okFetch();
+  const result = await recoverFreeze({ ...env, fetchImpl, log: () => {} });
+  assert.strictEqual(result.recovered, false);
+  assert.notStrictEqual(result.exitCode, 0);
+  assert.strictEqual(fetchImpl.calls.length, 0);
+  assert.strictEqual(fs.readFileSync(env.freezePath, 'utf8'), bytes);
+});
+
+test('recovery: never advances the monthly digest cursor even on a 1st-of-month report', async () => {
+  const env = makeEnv();
+  fs.writeFileSync(env.ledgerPath, `${JSON.stringify({ candidateKey: 'row_a', ownerResolution: 'auto-shipped' })}\n`);
+  writeFreeze(env, knownFreeze({ runId: 'run-aug1' }));
+  writeSavedReport(env, shippedReport({ runId: 'run-aug1', finishedAt: '2026-08-01T12:20:00Z' }));
+  const result = await recoverFreeze({ ...env, fetchImpl: okFetch(), log: () => {} });
+  assert.strictEqual(result.recovered, true);
+  assert.ok(!fs.existsSync(path.join(env.stateDir, 'digest-state.json')),
+    'recovery must not advance the digest cursor');
+});
+
+test('recovery: does not create a new freeze while recovering', async () => {
+  const env = makeEnv();
+  writeFreeze(env, knownFreeze());
+  writeSavedReport(env, shippedReport());
+  await recoverFreeze({ ...env, fetchImpl: failFetch(), log: () => {} });
+  const frozen = JSON.parse(fs.readFileSync(env.freezePath, 'utf8'));
+  assert.strictEqual(frozen.runId, 'run-2026-07-15', 'original freeze must survive, not be replaced');
 });
 
 test('discord payload truncated to the 2000-char content cap with a truncation note', async () => {
