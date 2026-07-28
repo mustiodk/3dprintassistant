@@ -222,10 +222,12 @@ fi
 # BEFORE it lands at the final path); an existing byte-identical destination
 # only gets its mode normalized.
 if [[ ! -e "$CONFIG_DEST" ]]; then
-  config_tmp="$CONFIG_DEST.tmp.$$"
-  # umask 077: the temp copy must never transiently inherit a broader source
-  # mode before the explicit chmod (review P3).
-  (umask 077; cp "$CONFIG_SOURCE" "$config_tmp")
+  # mktemp: exclusive create at mode 0600 with an unpredictable name in the
+  # destination directory (same filesystem for the rename) — no window where
+  # the secret bytes sit at a predictable or broader-mode path, and a stale
+  # attacker-placed temp file cannot be reused (re-review P3).
+  config_tmp="$(mktemp "$CONFIG_DEST.tmp.XXXXXX")" || fail protected-config-tmp-failed "$CONFIG_RELATIVE"
+  cat "$CONFIG_SOURCE" > "$config_tmp"
   chmod 600 "$config_tmp"
   mv -f "$config_tmp" "$CONFIG_DEST"
 else
