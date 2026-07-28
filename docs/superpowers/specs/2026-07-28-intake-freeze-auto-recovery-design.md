@@ -1,7 +1,7 @@
 # Intake freeze auto-recovery design
 
-**Date:** 2026-07-28  
-**Status:** Owner-approved for autonomous implementation  
+**Date:** 2026-07-28
+**Status:** Owner-approved for autonomous implementation
 **Mode / lane:** Work Protocol Code / Full
 
 ## 1. Scope
