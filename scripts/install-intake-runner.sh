@@ -223,7 +223,9 @@ fi
 # only gets its mode normalized.
 if [[ ! -e "$CONFIG_DEST" ]]; then
   config_tmp="$CONFIG_DEST.tmp.$$"
-  cp "$CONFIG_SOURCE" "$config_tmp"
+  # umask 077: the temp copy must never transiently inherit a broader source
+  # mode before the explicit chmod (review P3).
+  (umask 077; cp "$CONFIG_SOURCE" "$config_tmp")
   chmod 600 "$config_tmp"
   mv -f "$config_tmp" "$CONFIG_DEST"
 else

@@ -175,4 +175,14 @@ run_installer --verify-only --no-launchctl
 run_installer --no-launchctl
 [[ "$INSTALL_RC" != 0 ]] || { echo 'FAIL: install ran without the required migration source' >&2; exit 1; }
 
+# 10 — a broader-mode source still lands at exactly 0600 through the copy
+#      path (temp file must never be world-readable; review P3: umask guard).
+chmod 644 "$OLD/scripts/.printer-intake.local.json"
+rm -f "$CONFIG_DEST"
+run_installer --migrate-state-from "$OLD" --no-launchctl
+[[ "$INSTALL_RC" == 0 ]] || { cat "$OUT" >&2; echo 'FAIL: install failed with a 644-mode source config' >&2; exit 1; }
+[[ "$(file_mode "$CONFIG_DEST")" == 600 ]] || { echo "FAIL: copy path produced mode $(file_mode "$CONFIG_DEST"), not 600" >&2; exit 1; }
+grep -q 'SECRETMARKER' "$OUT" && { echo 'FAIL: installer printed the webhook secret' >&2; exit 1; }
+chmod 600 "$OLD/scripts/.printer-intake.local.json"
+
 echo "install-intake-runner.test.sh: all tests passed"
