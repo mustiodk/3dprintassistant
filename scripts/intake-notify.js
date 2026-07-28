@@ -152,6 +152,34 @@ function writeFileAtomic(filePath, contents) {
   fs.renameSync(tmpPath, filePath);
 }
 
+// Freeze-mutation lock (review round-2 P1): freeze creation (notify) and
+// freeze deletion (recovery) serialize on <freezePath>.mutation-lock so a
+// replacement can never land between recovery's validate-compare and unlink.
+// Asymmetry is deliberate: the DELETER fails closed when it cannot acquire
+// the lock; the CREATOR only waits briefly and then writes anyway — PD8
+// freeze creation must never be blocked, and the deleter's critical section
+// is microseconds long, so a timeout bypass cannot overlap it in practice.
+const FREEZE_LOCK_STALE_MS = 60000;
+
+function freezeLockPath(freezePath) { return `${freezePath}.mutation-lock`; }
+
+function tryAcquireFreezeLock(lockPath) {
+  try {
+    const stat = fs.statSync(lockPath);
+    if (Date.now() - stat.mtimeMs > FREEZE_LOCK_STALE_MS) fs.rmSync(lockPath, { force: true });
+  } catch (_) { /* no lock */ }
+  try {
+    fs.writeFileSync(lockPath, `${process.pid}\n`, { flag: 'wx' });
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function releaseFreezeLock(lockPath) {
+  fs.rmSync(lockPath, { force: true });
+}
+
 // One POST path for normal notification AND recovery — same truncation, same
 // allowed_mentions guard, same redacted logging.
 async function postToWebhook(webhookUrl, markdown, fetchImpl, log) {
@@ -231,6 +259,16 @@ async function notify(report, opts = {}) {
     // Structured fields let recovery validate the exact run without parsing
     // the human-facing detail string; shipState "unknown" is permanently
     // fail-closed for auto-recovery.
+    //
+    // Serialize with a concurrent recovery via the mutation lock, but only
+    // briefly: creating the freeze always wins over waiting (PD8).
+    const lockPath = freezeLockPath(freezePath);
+    const lockDeadline = Date.now() + (opts.freezeLockWaitMs ?? 2000);
+    let holdingLock = tryAcquireFreezeLock(lockPath);
+    while (!holdingLock && Date.now() < lockDeadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      holdingLock = tryAcquireFreezeLock(lockPath);
+    }
     writeFileAtomic(freezePath, `${JSON.stringify({
       reason: 'shipped-and-unreported',
       runId: typeof terminalReport.runId === 'string' ? terminalReport.runId : '',
@@ -241,6 +279,7 @@ async function notify(report, opts = {}) {
         : `run ${terminalReport.runId || '?'} shipped ${shipped} candidate(s) but the Discord run report could not be delivered`,
       at: new Date().toISOString(),
     }, null, 2)}\n`);
+    if (holdingLock) releaseFreezeLock(lockPath);
     frozen = true;
     log('FREEZE created: shipped-and-unreported');
   }
@@ -357,15 +396,20 @@ async function recoverFreeze(opts = {}) {
   // than deleting without delivery proof.
   //
   // TOCTOU guard: recovery runs before the wrapper lock, so a concurrent
-  // process may have replaced the freeze while the POST was in flight. Delete
-  // only if the bytes on disk are still exactly the bytes this recovery
-  // validated; otherwise the newer freeze wins and this attempt fails closed.
-  // (The compare-to-unlink window is process-local and microseconds wide —
-  // the network-length window is what this closes.)
-  let currentFreeze = null;
-  try { currentFreeze = fs.readFileSync(freezePath, 'utf8'); } catch (_) { /* vanished */ }
-  if (currentFreeze !== rawFreeze) return finish(false, true, 'freeze-changed', runId, 3);
-  fs.unlinkSync(freezePath);
+  // process may have replaced the freeze while the POST was in flight.
+  // Deletion happens inside the freeze-mutation lock (shared with freeze
+  // creators) and only if the bytes on disk are still exactly the bytes this
+  // recovery validated; anything else fails closed and the newer freeze wins.
+  const lockPath = freezeLockPath(freezePath);
+  if (!tryAcquireFreezeLock(lockPath)) return finish(false, true, 'freeze-lock-unavailable', runId, 3);
+  try {
+    let currentFreeze = null;
+    try { currentFreeze = fs.readFileSync(freezePath, 'utf8'); } catch (_) { /* vanished */ }
+    if (currentFreeze !== rawFreeze) return finish(false, true, 'freeze-changed', runId, 3);
+    fs.unlinkSync(freezePath);
+  } finally {
+    releaseFreezeLock(lockPath);
+  }
   return finish(true, true, 'recovered', runId, 0);
 }
 

@@ -501,6 +501,41 @@ test('recovery: a freeze replaced during the POST is never deleted (TOCTOU guard
   assert.strictEqual(survivor.runId, 'run-newer', 'replacement freeze must survive a stale recovery');
 });
 
+test('recovery: a held freeze-mutation lock blocks deletion and fails closed', async () => {
+  const env = makeEnv();
+  const bytes = writeFreeze(env, knownFreeze());
+  writeSavedReport(env, shippedReport());
+  fs.writeFileSync(`${env.freezePath}.mutation-lock`, 'held\n');
+  const result = await recoverFreeze({ ...env, fetchImpl: okFetch(), log: () => {} });
+  assert.strictEqual(result.recovered, false);
+  assert.notStrictEqual(result.exitCode, 0);
+  assert.strictEqual(fs.readFileSync(env.freezePath, 'utf8'), bytes, 'freeze must survive a contended delete');
+});
+
+test('recovery: a stale freeze-mutation lock is taken over', async () => {
+  const env = makeEnv();
+  writeFreeze(env, knownFreeze());
+  writeSavedReport(env, shippedReport());
+  const lockPath = `${env.freezePath}.mutation-lock`;
+  fs.writeFileSync(lockPath, 'stale\n');
+  const old = (Date.now() - 120000) / 1000;
+  fs.utimesSync(lockPath, old, old);
+  const result = await recoverFreeze({ ...env, fetchImpl: okFetch(), log: () => {} });
+  assert.strictEqual(result.recovered, true);
+  assert.ok(!fs.existsSync(env.freezePath));
+  assert.ok(!fs.existsSync(lockPath), 'lock must be released after recovery');
+});
+
+test('freeze creation is never blocked by a stuck mutation lock (PD8 must always freeze)', async () => {
+  const env = makeEnv();
+  fs.writeFileSync(`${env.freezePath}.mutation-lock`, 'stuck\n');
+  const result = await notify(shippedReport(), {
+    ...env, fetchImpl: failFetch(), log: () => {}, freezeLockWaitMs: 100,
+  });
+  assert.strictEqual(result.frozen, true, 'a stuck lock must never prevent the freeze');
+  assert.ok(fs.existsSync(env.freezePath));
+});
+
 test('recovery: does not create a new freeze while recovering', async () => {
   const env = makeEnv();
   writeFreeze(env, knownFreeze());
