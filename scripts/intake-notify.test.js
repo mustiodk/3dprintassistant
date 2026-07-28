@@ -447,6 +447,23 @@ test('recovery: never advances the monthly digest cursor even on a 1st-of-month 
     'recovery must not advance the digest cursor');
 });
 
+test('recovery: a freeze replaced during the POST is never deleted (TOCTOU guard)', async () => {
+  const env = makeEnv();
+  writeFreeze(env, knownFreeze());
+  writeSavedReport(env, shippedReport());
+  // Recovery runs before the wrapper lock, so a concurrent process can swap
+  // the freeze mid-POST; the stale recovery must not delete the newcomer.
+  const fetchImpl = async () => {
+    writeFreeze(env, knownFreeze({ runId: 'run-newer', shipState: 'unknown' }));
+    return { ok: true, status: 204, text: async () => '' };
+  };
+  const result = await recoverFreeze({ ...env, fetchImpl, log: () => {} });
+  assert.strictEqual(result.recovered, false);
+  assert.notStrictEqual(result.exitCode, 0);
+  const survivor = JSON.parse(fs.readFileSync(env.freezePath, 'utf8'));
+  assert.strictEqual(survivor.runId, 'run-newer', 'replacement freeze must survive a stale recovery');
+});
+
 test('recovery: does not create a new freeze while recovering', async () => {
   const env = makeEnv();
   writeFreeze(env, knownFreeze());

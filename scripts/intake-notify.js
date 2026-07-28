@@ -339,6 +339,16 @@ async function recoverFreeze(opts = {}) {
   // Delivery is proven for this exact run — only now may the freeze go.
   // A crash between POST and unlink duplicates one message; that is safer
   // than deleting without delivery proof.
+  //
+  // TOCTOU guard: recovery runs before the wrapper lock, so a concurrent
+  // process may have replaced the freeze while the POST was in flight. Delete
+  // only if the bytes on disk are still exactly the bytes this recovery
+  // validated; otherwise the newer freeze wins and this attempt fails closed.
+  // (The compare-to-unlink window is process-local and microseconds wide —
+  // the network-length window is what this closes.)
+  let currentFreeze = null;
+  try { currentFreeze = fs.readFileSync(freezePath, 'utf8'); } catch (_) { /* vanished */ }
+  if (currentFreeze !== rawFreeze) return finish(false, true, 'freeze-changed', runId, 3);
   fs.unlinkSync(freezePath);
   return finish(true, true, 'recovered', runId, 0);
 }
