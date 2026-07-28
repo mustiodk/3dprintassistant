@@ -55,15 +55,15 @@ done
 
 cd "$REPO" || fail cd-failed "$REPO"
 
-# 1 — freeze flag (PD8 kill switch). A stranded recovery claim file
-# (.intake-autonomy-freeze.claimed.*) is freeze state too: recovery renames
-# the freeze to a private claim before its verify+unlink, and a crash in that
-# window must stay fail-closed.
+# 1 — freeze flag (PD8 kill switch). ANY freeze sibling is freeze state too:
+# .claimed.* (recovery renames the freeze to a private claim before its
+# verify+unlink) and .tmp (freeze creation crashed between write and rename).
+# A crash in either window must stay fail-closed.
 if [[ -f "$FREEZE" ]]; then
   fail frozen "$(head -c 200 "$FREEZE" | tr '\n' ' ')" 78
 fi
-for claim in "$FREEZE".claimed.*(N); do
-  fail frozen "stranded recovery claim ${claim##*/}" 78
+for sibling in "$FREEZE".*(N); do
+  fail frozen "stranded freeze sibling ${sibling##*/}" 78
 done
 
 # 2 — run lock: held+fresh → exit; stale (>6h) → warn + proceed (the wrapper

@@ -129,3 +129,9 @@ expect_fail frozen
 init_repo
 printf '{"reason":"shipped-and-unreported"}\n' > "$TMP/repo/scripts/.intake-autonomy-freeze.claimed.123.abc"
 expect_fail frozen
+
+# PD8: a stranded freeze-creation temp file (.intake-autonomy-freeze.tmp — a
+# crash between write and rename) is freeze state too (review round 4).
+init_repo
+printf '{"reason":"shipped-and-unreported"}' > "$TMP/repo/scripts/.intake-autonomy-freeze.tmp"
+expect_fail frozen
