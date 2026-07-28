@@ -55,10 +55,16 @@ done
 
 cd "$REPO" || fail cd-failed "$REPO"
 
-# 1 — freeze flag (PD8 kill switch)
+# 1 — freeze flag (PD8 kill switch). ANY freeze sibling is freeze state too:
+# .claimed.* (recovery renames the freeze to a private claim before its
+# verify+unlink) and .tmp (freeze creation crashed between write and rename).
+# A crash in either window must stay fail-closed.
 if [[ -f "$FREEZE" ]]; then
   fail frozen "$(head -c 200 "$FREEZE" | tr '\n' ' ')" 78
 fi
+for sibling in "$FREEZE".*(N); do
+  fail frozen "stranded freeze sibling ${sibling##*/}" 78
+done
 
 # 2 — run lock: held+fresh → exit; stale (>6h) → warn + proceed (the wrapper
 # will take it over; a crashed run must not block tomorrow's).

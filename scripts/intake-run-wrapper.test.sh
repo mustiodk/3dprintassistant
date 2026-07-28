@@ -258,7 +258,7 @@ grep -Fq -- '--out-dir scripts/.intake-runner-state/bridge-reviews' "$ROOT/scrip
 # 9 — owner-approved re-entry is valid only through the deterministic decision
 # verifier; arbitrary sidecar prose must never become authorization.
 for token in \
-  'contract version 2.6' \
+  'contract version 2.7' \
   'nextEligibleTrigger:"owner-approved"' \
   'node scripts/intake-owner-decision.js verify-reentry --candidate "$candidate_id"' \
   'OWNERDECISION ok=true action=verify-reentry'; do
@@ -282,5 +282,102 @@ set -e
 [[ "$missing_ios_rc" == 64 ]] || { cat "$TMP/wrapper-missing-ios.out" >&2; echo "FAIL: missing explicit --ios-repo did not fail 64" >&2; exit 1; }
 grep -q 'explicit --repo and --ios-repo are required' "$TMP/wrapper-missing-ios.out" || { cat "$TMP/wrapper-missing-ios.out" >&2; echo "FAIL: missing runtime path failure is unclear" >&2; exit 1; }
 [[ ! -e "$TMP/claude-invoked" ]] || { echo "FAIL: Claude ran through a development-path fallback" >&2; exit 1; }
+
+# --- freeze auto-recovery ordering (PD8 exact-run recovery; 2026-07-28) -----
+# The wrapper must invoke `intake-notify.js --recover` after state-dir creation
+# and BEFORE preflight; recovery output is informational — preflight remains
+# the authoritative freeze/lock stop either way.
+
+# make_recovery_stubs <recover_rc> <preflight_rc>: ordering-aware notify +
+# preflight stubs writing to a shared $TMP/order.log (outside the fixture repo
+# so the post-run clean-tree invariant is untouched).
+make_recovery_stubs() {
+  local recover_rc="$1" preflight_rc="$2"
+  rm -f "$TMP/order.log"
+  cat > "$REPO/scripts/intake-run-preflight.sh" <<EOF
+#!/bin/zsh
+echo preflight >> "$TMP/order.log"
+if [[ $preflight_rc -ne 0 ]]; then
+  echo "PREFLIGHT ok=false reason=freeze detail=stub"
+else
+  echo "PREFLIGHT ok=true reason=none detail=stub"
+fi
+exit $preflight_rc
+EOF
+  chmod +x "$REPO/scripts/intake-run-preflight.sh"
+  cat > "$REPO/scripts/intake-notify.js" <<EOF
+const fs = require('fs');
+const args = process.argv.slice(2);
+fs.appendFileSync('$REPO/scripts/notify-calls.log', JSON.stringify(args) + '\n');
+if (args[0] === '--recover') {
+  fs.appendFileSync('$TMP/order.log', 'recover\n');
+  const ok = $recover_rc === 0;
+  console.log('RECOVERY recovered=' + ok + ' applicable=true reason=' + (ok ? 'recovered' : 'post-failed') + ' runId=run-test');
+  process.exit($recover_rc);
+}
+EOF
+  # The stub files are tracked in the fixture repo — commit them so the
+  # post-run clean-tree invariant sees a clean main, as in production.
+  git -C "$REPO" add -A
+  git -C "$REPO" commit -qm "recovery stubs"
+  git -C "$REPO" update-ref refs/remotes/origin/main HEAD
+}
+
+# 11 — recovery runs before preflight; after success, preflight and claude
+#      each run exactly once and the wrapper surfaces the RECOVERY line
+recovery_failures=0
+init_fixture
+rm -f "$TMP/claude-invoked"
+make_observable_good_claude
+make_recovery_stubs 0 0
+run_wrapper
+if [[ $rc -ne 0 ]]; then
+  cat "$TMP/wrapper.out" >&2
+  echo "FAIL: wrapper failed a run with successful recovery (rc=$rc)" >&2
+  recovery_failures=$((recovery_failures + 1))
+fi
+if [[ "$(cat "$TMP/order.log" 2>/dev/null)" != $'recover\npreflight' ]]; then
+  cat "$TMP/order.log" >&2 || true
+  echo "FAIL: expected exactly recover then preflight, once each" >&2
+  recovery_failures=$((recovery_failures + 1))
+fi
+grep -q -- '"--recover"' "$REPO/scripts/notify-calls.log" || { echo "FAIL: wrapper never invoked notify --recover" >&2; recovery_failures=$((recovery_failures + 1)); }
+grep -q 'RECOVERY recovered=true' "$TMP/wrapper.out" || { echo "FAIL: wrapper did not surface the RECOVERY machine line" >&2; recovery_failures=$((recovery_failures + 1)); }
+[[ -f "$TMP/claude-invoked" ]] || { echo "FAIL: claude did not run after successful recovery" >&2; recovery_failures=$((recovery_failures + 1)); }
+[[ $recovery_failures -eq 0 ]] || exit 1
+
+# 12 — recovery failure is not an incident: normal preflight still runs and
+#      owns the final 78 freeze skip; claude never runs; no --failure notify
+recovery_failures=0
+init_fixture
+rm -f "$TMP/claude-invoked"
+make_observable_good_claude
+make_recovery_stubs 3 78
+run_wrapper
+[[ $rc -eq 78 ]] || { cat "$TMP/wrapper.out" >&2; echo "FAIL: expected preflight-owned rc=78, got $rc" >&2; recovery_failures=$((recovery_failures + 1)); }
+if [[ "$(cat "$TMP/order.log" 2>/dev/null)" != $'recover\npreflight' ]]; then
+  cat "$TMP/order.log" >&2 || true
+  echo "FAIL: failed recovery must still reach preflight exactly once" >&2
+  recovery_failures=$((recovery_failures + 1))
+fi
+[[ ! -e "$TMP/claude-invoked" ]] || { echo "FAIL: claude ran despite the preflight freeze skip" >&2; recovery_failures=$((recovery_failures + 1)); }
+grep -q 'skip rc=78' "$REPO/scripts/.intake-runner-state/last-skip.log" || { echo "FAIL: freeze skip not recorded in last-skip.log" >&2; recovery_failures=$((recovery_failures + 1)); }
+if grep -q -- '--failure' "$REPO/scripts/notify-calls.log"; then
+  echo "FAIL: recovery failure must not send a --failure notification" >&2
+  recovery_failures=$((recovery_failures + 1))
+fi
+[[ $recovery_failures -eq 0 ]] || exit 1
+
+# 13 — successful recovery is NOT permission to bypass preflight: a still-
+#      failing preflight keeps the authoritative 78 stop
+recovery_failures=0
+init_fixture
+rm -f "$TMP/claude-invoked"
+make_observable_good_claude
+make_recovery_stubs 0 78
+run_wrapper
+[[ $rc -eq 78 ]] || { cat "$TMP/wrapper.out" >&2; echo "FAIL: expected rc=78 after recovery success + failing preflight, got $rc" >&2; recovery_failures=$((recovery_failures + 1)); }
+[[ ! -e "$TMP/claude-invoked" ]] || { echo "FAIL: claude ran on preflight failure after recovery success" >&2; recovery_failures=$((recovery_failures + 1)); }
+[[ $recovery_failures -eq 0 ]] || exit 1
 
 echo "intake-run-wrapper.test.sh: all tests passed"

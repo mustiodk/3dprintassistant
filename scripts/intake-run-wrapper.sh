@@ -63,6 +63,16 @@ if ! mkdir -p "$STATE_DIR" "$BRIDGE_OUT_DIR" "$REPO/scripts/.printer-intake-out"
   exit 73
 fi
 
+# 0.5 — freeze auto-recovery (PD8 exact-run; design 2026-07-28). The notifier
+# owns all evidence validation and freeze mutation; it deletes a
+# shipped-and-unreported freeze only after reposting the exact frozen run's
+# saved report successfully. The result here is informational — a non-zero
+# recovery is NOT an incident (the freeze creation already notified CRITICAL)
+# and a zero is NOT permission to bypass anything: preflight below remains the
+# authoritative freeze/lock stop either way.
+recover_out=$(node "$REPO/scripts/intake-notify.js" --recover 2>&1)
+echo "$recover_out"
+
 # 1 — preflight (checks only; includes freeze/lock/repo/auth predicates)
 preflight_out=$("$REPO/scripts/intake-run-preflight.sh" \
   --repo "$REPO" --ios-repo "$IOS_REPO" 2>&1)

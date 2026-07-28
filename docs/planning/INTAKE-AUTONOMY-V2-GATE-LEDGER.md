@@ -8,6 +8,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 | Gate | Status | Evidence |
 |---|---|---|
+| S2 PD8 exact-run freeze auto-recovery + protected notifier config | 🔨 implementation green on branch 2026-07-28; review + deployment pending | `codex/intake-freeze-auto-recovery` `b42d473`→`d6beb93` — RED-first: notifier 16 new tests (29/29 green), wrapper ordering tests 11–13, installer config tests 5–9; recovery clears only exact-runId known-shipment freezes after a fresh successful POST; strict legacy U1 parser; wrapper `--recover` before preflight (preflight remains authoritative); installer requires migration source and verifies config bytes+mode `0600`; see S2 row |
 | S1 sync-first isolated runner | ✅ production cutover green 2026-07-17 | Reviewed implementation merged/pushed (web `67d7913`, ai-om `64f46c6`); automation-owned checkout installed and loaded; supervised zero-candidate run ended `PREFLIGHT`/`POSTRUN`/`SYNCBOOT ok=true` and launchd exit 0; i7 duplicate custody `6113f04`; U1 re-entry then parked fail-closed at evidence before review; no iOS push |
 | I1 parked-sidecar path ownership | ✅ 2026-07-16 | `run-20260715T100124Z` root cause reconstructed from the headless transcript; RED reproduced the unsafe raw writer, web `104251c` + ai-om `8151868` close it under contract v2.4; Claude hostile review PASS; focused suite green; see I1 row |
 | R8 final validation + ready state | ✅ 2026-07-10 | Expected test files exist; full R8 intake suite + project validators green; final review NO-GO on ai-om split-routing fixed by `a118bd5`; focused re-review GO; no push/PR/merge; see R8 row |
@@ -29,6 +30,18 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 ---
 
 ## Rows (newest first)
+
+### S2 — PD8 exact-run freeze auto-recovery + protected notifier config 🔨 (2026-07-28, implementation green on `codex/intake-freeze-auto-recovery`; review + deployment pending)
+
+**Root cause (verified 2026-07-28 planning session):** the original isolated install omitted the gitignored `scripts/.printer-intake.local.json`; U1 (`run-20260718T112636Z`) shipped, Discord delivery failed, PD8 froze correctly — but PD8's manual-only clearance contract had no recovery state, so the freeze kept every scheduled run at preflight `rc=78` even after the config was restored and the saved report manually replayed.
+
+**Design:** [`../superpowers/specs/2026-07-28-intake-freeze-auto-recovery-design.md`](../superpowers/specs/2026-07-28-intake-freeze-auto-recovery-design.md) — owner-approved exact-run recovery: known positive shipment + exact `runId` match against `last-run-report.json` (independently proving `shipped > 0` via the normal normalization) + a fresh successful Discord POST are all required before deletion; unknown ship state is permanently fail-closed; the strict legacy parser accepts only the deterministic known-shipment detail shape (one owner-accepted possible duplicate U1 report, since no historical delivery receipt exists).
+
+**Implementation (TDD, one concern per commit):** `b42d473` RED notifier contract (16 tests) → `a2e4357` notifier `recoverFreeze()` + structured atomic freeze writes (`runId`/`shipState`/`shipped`) + `--recover` CLI + `RECOVERY …` machine line → `f64eb19` RED wrapper ordering (tests 11–13) → `53fb955` wrapper invokes recovery after state-dir creation, before preflight (informational either way; preflight keeps the authoritative stop) → `5a0445c` RED installer protected-config contract (tests 5–9) → `d6beb93` installer requires `--migrate-state-from` in install+verify, migrates config byte-identically at mode `0600` via 0600-before-rename temp, refuses conflicts, excludes the secret from the state manifest, never prints bytes.
+
+**Suites green at implementation close:** notifier 29/29 · wrapper tests 1–13 · installer tests 1–9 · bootstrap · preflight (all exit 0).
+
+**Open (recorded as they happen):** adversarial cross-model review; full verification battery; merge/push web + ai-om runner contract v2.7; installer update + verify-only against the automation-owned checkout; next scheduled 12:00 run owns the actual U1 recovery — no manual freeze clearance, queue processing, or LaunchAgent kickstart.
 
 ### S1 — sync-first isolated runner ✅ production cutover (2026-07-17)
 

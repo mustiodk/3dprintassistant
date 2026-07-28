@@ -118,3 +118,20 @@ expect_ok
 init_repo
 git -C "$IOS" update-ref refs/remotes/origin/main "$(git -C "$IOS" commit-tree 'HEAD^{tree}' -p HEAD -m remote-ahead)"
 expect_fail ios-behind-or-diverged
+
+# PD8: a live freeze fails preflight 78, and a stranded recovery claim file
+# (.intake-autonomy-freeze.claimed.*) is freeze state too — a crash between
+# recovery's atomic claim and unlink must stay fail-closed (review round 3).
+init_repo
+printf '{"reason":"shipped-and-unreported"}\n' > "$TMP/repo/scripts/.intake-autonomy-freeze"
+expect_fail frozen
+
+init_repo
+printf '{"reason":"shipped-and-unreported"}\n' > "$TMP/repo/scripts/.intake-autonomy-freeze.claimed.123.abc"
+expect_fail frozen
+
+# PD8: a stranded freeze-creation temp file (.intake-autonomy-freeze.tmp — a
+# crash between write and rename) is freeze state too (review round 4).
+init_repo
+printf '{"reason":"shipped-and-unreported"}' > "$TMP/repo/scripts/.intake-autonomy-freeze.tmp"
+expect_fail frozen
