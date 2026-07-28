@@ -257,9 +257,11 @@ async function notify(report, opts = {}) {
 
 // Legacy freezes predate the structured runId/shipState fields; only this
 // exact deterministic detail shape (written by the pre-recovery notifier for
-// KNOWN positive shipments) may migrate. Unknown-shipment wording and
-// free-form text never match.
-const LEGACY_KNOWN_DETAIL = /^run (\S+) shipped ([1-9][0-9]*) candidate\(s\) but the Discord run report could not be delivered$/;
+// KNOWN positive shipments) may migrate, and only with a real historical
+// runner id (run-YYYYMMDDTHHMMSSZ) — placeholder tokens like "?" are not
+// exact-run proof even if the saved report echoes them (review P2).
+// Unknown-shipment wording and free-form text never match.
+const LEGACY_KNOWN_DETAIL = /^run (run-\d{8}T\d{6}Z) shipped ([1-9][0-9]*) candidate\(s\) but the Discord run report could not be delivered$/;
 
 function parseRecoverableFreeze(rawFreeze) {
   let freeze;

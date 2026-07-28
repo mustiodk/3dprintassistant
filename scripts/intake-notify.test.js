@@ -407,14 +407,19 @@ test('recovery: strict legacy known-shipment freeze recovers against the matchin
 });
 
 test('recovery: legacy unknown-shipment and free-form freezes never recover', async () => {
-  for (const detail of [
-    'run run-x FAILED mid-session (ship state unknown) and the run report could not be delivered',
-    'manually frozen by owner pending investigation',
-    'run run-20260718T112636Z shipped 0 candidate(s) but the Discord run report could not be delivered',
+  for (const { detail, savedRunId } of [
+    { detail: 'run run-x FAILED mid-session (ship state unknown) and the run report could not be delivered' },
+    { detail: 'manually frozen by owner pending investigation' },
+    { detail: 'run run-20260718T112636Z shipped 0 candidate(s) but the Discord run report could not be delivered' },
+    // Placeholder / non-run tokens must not count as exact-run proof even
+    // when the saved report echoes the exact same token (review P2: \S+
+    // overreach — only the historical run-YYYYMMDDTHHMMSSZ shape may parse).
+    { detail: 'run ? shipped 1 candidate(s) but the Discord run report could not be delivered', savedRunId: '?' },
+    { detail: 'run foo/bar shipped 1 candidate(s) but the Discord run report could not be delivered', savedRunId: 'foo/bar' },
   ]) {
     const env = makeEnv();
     const bytes = writeFreeze(env, { reason: 'shipped-and-unreported', detail, at: '2026-07-18T11:30:00Z' });
-    writeSavedReport(env, shippedReport({ runId: 'run-20260718T112636Z' }));
+    writeSavedReport(env, shippedReport({ runId: savedRunId || 'run-20260718T112636Z' }));
     const fetchImpl = okFetch();
     const result = await recoverFreeze({ ...env, fetchImpl, log: () => {} });
     assert.strictEqual(result.recovered, false, `must not recover legacy detail: ${detail}`);
