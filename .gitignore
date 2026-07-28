@@ -20,6 +20,7 @@ catalog/*.republish-tmp
 # offset) — deliberately separate from .printer-intake-out/, which the Scout
 # test suite rmSync-wipes (see gate ledger B1 row).
 scripts/.intake-autonomy-freeze
+scripts/.intake-autonomy-freeze.*
 scripts/.intake-run.lock
 scripts/.printer-intake-runner.watermark.json
 scripts/.intake-runner-state/
