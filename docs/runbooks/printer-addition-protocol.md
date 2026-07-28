@@ -52,6 +52,21 @@ sequencing.**
      `"shipped | auto-shipped | auto-parked:<reason> | declined-correct | was-*"`,
      and commit as `docs(intake): PD7 marker migration`. Documented here; the
      runner never edits the marker.
+   - **PD8 freeze recovery (2026-07-28) — manual-only clearance is REPLACED by
+     verified exact-run auto-recovery** for `shipped-and-unreported` freezes:
+     before normal preflight, the wrapper invokes
+     `node scripts/intake-notify.js --recover`, which may delete the freeze
+     only when the freeze has a known ship state and a non-empty `runId` (or
+     matches the strict legacy known-shipment detail shape), the saved
+     `last-run-report.json` carries the exact same `runId` and independently
+     proves `shipped > 0`, and a fresh Discord POST succeeds. Unknown ship
+     state, missing/malformed/mismatched evidence, absent webhook config, or
+     failed delivery leave the freeze byte-for-byte in place — those still
+     require owner investigation. Recovery success is not permission to bypass
+     preflight, and the runner session itself still never deletes the freeze.
+     The installer migrates/verifies the protected notifier config
+     (`scripts/.printer-intake.local.json`, mode `0600`) as an enablement
+     requirement so delivery failure cannot recur silently.
 
    ### Intake Autonomy v2.1 additions (2026-07-10)
 
