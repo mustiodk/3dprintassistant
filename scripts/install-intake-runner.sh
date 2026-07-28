@@ -35,6 +35,11 @@ done
 
 [[ -n "$SOURCE_REPO" && -n "$INSTALL_ROOT" && -n "$IOS_REPO" && -n "$EXPECTED_ORIGIN" ]] \
   || fail bad-args '--source-repo, --install-root, --ios-repo and --expected-origin are required' 64
+# The protected notifier config is an enablement requirement for this runner
+# (PD8: shipped-and-unreported must be recoverable), so the migration source
+# that provides it is required in install AND verify paths.
+[[ -n "$MIGRATE_FROM" ]] \
+  || fail bad-args '--migrate-state-from is required (protected notifier-config source)' 64
 
 SOURCE_REPO="$(cd "$SOURCE_REPO" 2>/dev/null && pwd -P)" || fail source-missing "$SOURCE_REPO"
 IOS_REPO="$(cd "$IOS_REPO" 2>/dev/null && pwd -P)" || fail ios-repo-missing "$IOS_REPO"
@@ -68,6 +73,26 @@ SOURCE_PLIST="$SOURCE_REPO/scripts/launchd/dk.mragile.3dpa-intake.plist"
 
 [[ -f "$SOURCE_BOOTSTRAP" && -x "$SOURCE_BOOTSTRAP" ]] || fail source-bootstrap-missing "$SOURCE_BOOTSTRAP"
 [[ -f "$SOURCE_PLIST" ]] || fail source-plist-missing "$SOURCE_PLIST"
+
+# Protected notifier config (PD8 recovery design §7): gitignored secret,
+# migrated byte-identically at mode 0600, verified separately from the mutable
+# state manifest. Its bytes are NEVER printed.
+CONFIG_RELATIVE="scripts/.printer-intake.local.json"
+CONFIG_SOURCE="$MIGRATE_FROM/$CONFIG_RELATIVE"
+CONFIG_DEST="$CHECKOUT/$CONFIG_RELATIVE"
+
+file_mode() { stat -f %Lp "$1" 2>/dev/null || stat -c %a "$1"; }
+
+# Missing source config fails before any mutation: notification delivery is an
+# enablement requirement for this installed runner.
+[[ -f "$CONFIG_SOURCE" ]] || fail migration-config-missing "$CONFIG_RELATIVE"
+
+verify_protected_config() {
+  [[ -f "$CONFIG_DEST" ]] || fail protected-config-missing "$CONFIG_RELATIVE"
+  cmp -s "$CONFIG_SOURCE" "$CONFIG_DEST" || fail protected-config-mismatch "$CONFIG_RELATIVE"
+  [[ "$(file_mode "$CONFIG_DEST")" == 600 ]] \
+    || fail protected-config-mode "$CONFIG_RELATIVE expected 0600 got $(file_mode "$CONFIG_DEST")"
+}
 
 escape_sed() {
   printf '%s' "$1" | sed 's/[&|]/\\&/g'
@@ -146,6 +171,7 @@ verify_install() {
   local current_manifest
   current_manifest="$(state_manifest "$CHECKOUT")"
   [[ "$current_manifest" == "$(cat "$MANIFEST")" ]] || fail state-manifest-mismatch ""
+  verify_protected_config
 }
 
 if [[ "$VERIFY_ONLY" == true ]]; then
@@ -162,7 +188,11 @@ else
   validate_checkout
 fi
 
-# Refuse every unequal state collision before copying anything.
+# Refuse every unequal state collision before copying anything — including a
+# conflicting protected config, which must never be overwritten (or printed).
+if [[ -e "$CONFIG_DEST" ]] && ! cmp -s "$CONFIG_SOURCE" "$CONFIG_DEST"; then
+  fail protected-config-conflict "$CONFIG_RELATIVE"
+fi
 if [[ -n "$MIGRATE_FROM" ]]; then
   for relative in \
     scripts/.intake-runner-state \
@@ -186,6 +216,18 @@ if [[ -n "$MIGRATE_FROM" ]]; then
       cp -R "$source_item" "$destination_item"
     fi
   done
+fi
+
+# Protected config: byte-identical copy at mode 0600 (temp file gets the mode
+# BEFORE it lands at the final path); an existing byte-identical destination
+# only gets its mode normalized.
+if [[ ! -e "$CONFIG_DEST" ]]; then
+  config_tmp="$CONFIG_DEST.tmp.$$"
+  cp "$CONFIG_SOURCE" "$config_tmp"
+  chmod 600 "$config_tmp"
+  mv -f "$config_tmp" "$CONFIG_DEST"
+else
+  chmod 600 "$CONFIG_DEST"
 fi
 
 bootstrap_tmp="$BOOTSTRAP.tmp.$$"
