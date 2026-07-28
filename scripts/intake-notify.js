@@ -175,7 +175,15 @@ async function postToWebhook(webhookUrl, markdown, fetchImpl, log) {
     if (!res.ok) throw new Error(`webhook HTTP ${res.status}`);
     return true;
   } catch (error) {
-    log(`webhook POST failed: ${error.message}`);
+    // Transport errors can embed the webhook URL (proxy/fetch messages), and
+    // the wrapper echoes this output into launchd logs — log only our own
+    // HTTP-status message verbatim; everything else reduces to code/name.
+    const message = error && typeof error.message === 'string' ? error.message : '';
+    if (/^webhook HTTP \d+$/.test(message)) {
+      log(`webhook POST failed: ${message}`);
+    } else {
+      log(`webhook POST failed: ${(error && (error.code || error.name)) || 'network-error'}`);
+    }
     return false;
   }
 }

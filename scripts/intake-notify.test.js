@@ -235,6 +235,16 @@ test('monthly digest: appears when the run date is the 1st, covers auto-shipped 
   assert.ok(!body.includes('old_one'), 'already-digested rows must not repeat');
 });
 
+test('webhook errors that embed the URL are never logged verbatim', async () => {
+  const env = makeEnv();
+  const logged = [];
+  const fetchImpl = async (url) => { throw new Error(`connect ECONNREFUSED for ${url}`); };
+  await notify(report({ parked: 1 }), { ...env, fetchImpl, log: (l) => logged.push(l) });
+  const allLogs = logged.join('\n');
+  assert.ok(!allLogs.includes('discord.test'), 'transport error text must not reach the logs');
+  assert.match(allLogs, /webhook POST failed/);
+});
+
 // --- Freeze auto-recovery (PD8 exact-run recovery; design 2026-07-28) -------
 
 function writeSavedReport(env, reportObj) {
