@@ -447,6 +447,28 @@ test('recovery: never advances the monthly digest cursor even on a 1st-of-month 
     'recovery must not advance the digest cursor');
 });
 
+test('recovery: a structured freeze with missing or invalid schema fields never recovers', async () => {
+  for (const mutate of [
+    (f) => { delete f.shipped; },
+    (f) => { f.shipped = 0; },
+    (f) => { f.shipped = '1'; },
+    (f) => { delete f.detail; },
+    (f) => { delete f.at; },
+  ]) {
+    const env = makeEnv();
+    const freeze = knownFreeze();
+    mutate(freeze);
+    const bytes = writeFreeze(env, freeze);
+    writeSavedReport(env, shippedReport());
+    const fetchImpl = okFetch();
+    const result = await recoverFreeze({ ...env, fetchImpl, log: () => {} });
+    assert.strictEqual(result.recovered, false, `must not recover freeze mutated by: ${mutate}`);
+    assert.notStrictEqual(result.exitCode, 0);
+    assert.strictEqual(fetchImpl.calls.length, 0);
+    assert.strictEqual(fs.readFileSync(env.freezePath, 'utf8'), bytes);
+  }
+});
+
 test('recovery: a freeze replaced during the POST is never deleted (TOCTOU guard)', async () => {
   const env = makeEnv();
   writeFreeze(env, knownFreeze());

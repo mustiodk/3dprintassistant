@@ -268,9 +268,15 @@ function parseRecoverableFreeze(rawFreeze) {
   if (freeze.reason !== 'shipped-and-unreported') return { reason: 'freeze-reason-mismatch' };
 
   if (freeze.shipState !== undefined || freeze.runId !== undefined) {
-    // Structured freeze: trust only an explicit known ship state.
+    // Structured freeze: trust only an explicit known ship state, and only
+    // when the WHOLE schema is intact — a truncated or hand-edited freeze
+    // with just the recovery-relevant fields is not valid evidence (review P2).
     if (freeze.shipState !== 'known') return { reason: 'ship-state-not-known' };
     if (typeof freeze.runId !== 'string' || freeze.runId.length === 0) return { reason: 'freeze-run-id-missing' };
+    if (!Number.isInteger(freeze.shipped) || freeze.shipped <= 0
+        || typeof freeze.detail !== 'string' || typeof freeze.at !== 'string') {
+      return { reason: 'freeze-invalid-fields' };
+    }
     return { runId: freeze.runId };
   }
 
