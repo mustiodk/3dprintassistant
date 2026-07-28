@@ -144,6 +144,42 @@ function collectDigest(ledgerPath, stateDir, runDateIso) {
   return { digestRows, commit };
 }
 
+// Atomic write: a crash mid-write must never leave a truncated freeze that the
+// strict recovery parser would reject as malformed forever.
+function writeFileAtomic(filePath, contents) {
+  const tmpPath = `${filePath}.tmp`;
+  fs.writeFileSync(tmpPath, contents);
+  fs.renameSync(tmpPath, filePath);
+}
+
+// One POST path for normal notification AND recovery — same truncation, same
+// allowed_mentions guard, same redacted logging.
+async function postToWebhook(webhookUrl, markdown, fetchImpl, log) {
+  let content = markdown;
+  if (content.length > DISCORD_CONTENT_CAP) {
+    const suffix = '\n… (truncated — full report in last-run-report.md)';
+    let head = content.slice(0, DISCORD_CONTENT_CAP - suffix.length);
+    // Never split a surrogate pair at the cap boundary.
+    const lastCode = head.charCodeAt(head.length - 1);
+    if (lastCode >= 0xD800 && lastCode <= 0xDBFF) head = head.slice(0, -1);
+    content = head + suffix;
+  }
+  try {
+    const res = await fetchImpl(webhookUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      // allowed_mentions: candidate ids/details originate in requester
+      // input — an "@everyone" in a request must never ping the channel.
+      body: JSON.stringify({ content, allowed_mentions: { parse: [] } }),
+    });
+    if (!res.ok) throw new Error(`webhook HTTP ${res.status}`);
+    return true;
+  } catch (error) {
+    log(`webhook POST failed: ${error.message}`);
+    return false;
+  }
+}
+
 /**
  * @returns {Promise<{posted: boolean, frozen: boolean, digest: boolean, exitCode: number}>}
  */
@@ -173,28 +209,7 @@ async function notify(report, opts = {}) {
 
   let posted = false;
   if (webhookUrl) {
-    let content = markdown;
-    if (content.length > DISCORD_CONTENT_CAP) {
-      const suffix = '\n… (truncated — full report in last-run-report.md)';
-      let head = content.slice(0, DISCORD_CONTENT_CAP - suffix.length);
-      // Never split a surrogate pair at the cap boundary.
-      const lastCode = head.charCodeAt(head.length - 1);
-      if (lastCode >= 0xD800 && lastCode <= 0xDBFF) head = head.slice(0, -1);
-      content = head + suffix;
-    }
-    try {
-      const res = await fetchImpl(webhookUrl, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        // allowed_mentions: candidate ids/details originate in requester
-        // input — an "@everyone" in a request must never ping the channel.
-        body: JSON.stringify({ content, allowed_mentions: { parse: [] } }),
-      });
-      if (!res.ok) throw new Error(`webhook HTTP ${res.status}`);
-      posted = true;
-    } catch (error) {
-      log(`webhook POST failed: ${error.message}`);
-    }
+    posted = await postToWebhook(webhookUrl, markdown, fetchImpl, log);
   }
 
   // shippedUnknown (wrapper --shipped-unknown): a crashed runner session MAY
@@ -205,8 +220,14 @@ async function notify(report, opts = {}) {
   let frozen = false;
   if (mayHaveShipped && !posted) {
     // Shipped-and-unreported is the one silent state never allowed (PD8).
-    fs.writeFileSync(freezePath, `${JSON.stringify({
+    // Structured fields let recovery validate the exact run without parsing
+    // the human-facing detail string; shipState "unknown" is permanently
+    // fail-closed for auto-recovery.
+    writeFileAtomic(freezePath, `${JSON.stringify({
       reason: 'shipped-and-unreported',
+      runId: typeof terminalReport.runId === 'string' ? terminalReport.runId : '',
+      shipState: terminalReport.shippedUnknown === true ? 'unknown' : 'known',
+      shipped,
       detail: terminalReport.shippedUnknown
         ? `run ${terminalReport.runId || '?'} FAILED mid-session (ship state unknown) and the run report could not be delivered`
         : `run ${terminalReport.runId || '?'} shipped ${shipped} candidate(s) but the Discord run report could not be delivered`,
@@ -226,10 +247,115 @@ async function notify(report, opts = {}) {
   return { posted, frozen, digest, exitCode };
 }
 
-module.exports = { notify, renderMarkdown, normalizeTerminalReport };
+// --- Freeze auto-recovery (PD8 exact-run recovery; design 2026-07-28) -------
+//
+// The notifier is the ONLY component allowed to validate a saved terminal
+// report, repost it, and delete a matching freeze. The freeze may be deleted
+// only after a fresh successful Discord POST of the exact frozen run's saved
+// report. Everything else — unknown ship state, missing/malformed/mismatched
+// evidence, delivery failure — leaves the freeze byte-for-byte in place.
+
+// Legacy freezes predate the structured runId/shipState fields; only this
+// exact deterministic detail shape (written by the pre-recovery notifier for
+// KNOWN positive shipments) may migrate. Unknown-shipment wording and
+// free-form text never match.
+const LEGACY_KNOWN_DETAIL = /^run (\S+) shipped ([1-9][0-9]*) candidate\(s\) but the Discord run report could not be delivered$/;
+
+function parseRecoverableFreeze(rawFreeze) {
+  let freeze;
+  try { freeze = JSON.parse(rawFreeze); } catch (_) { return { reason: 'freeze-malformed' }; }
+  if (!freeze || typeof freeze !== 'object' || Array.isArray(freeze)) return { reason: 'freeze-malformed' };
+  if (freeze.reason !== 'shipped-and-unreported') return { reason: 'freeze-reason-mismatch' };
+
+  if (freeze.shipState !== undefined || freeze.runId !== undefined) {
+    // Structured freeze: trust only an explicit known ship state.
+    if (freeze.shipState !== 'known') return { reason: 'ship-state-not-known' };
+    if (typeof freeze.runId !== 'string' || freeze.runId.length === 0) return { reason: 'freeze-run-id-missing' };
+    return { runId: freeze.runId };
+  }
+
+  const match = typeof freeze.detail === 'string' ? freeze.detail.match(LEGACY_KNOWN_DETAIL) : null;
+  if (!match) return { reason: 'legacy-detail-unrecognized' };
+  return { runId: match[1] };
+}
+
+/**
+ * @returns {Promise<{recovered: boolean, applicable: boolean, reason: string,
+ *                    runId: string, exitCode: number}>}
+ */
+async function recoverFreeze(opts = {}) {
+  const {
+    stateDir = DEFAULT_STATE_DIR,
+    configPath = DEFAULT_CONFIG,
+    freezePath = DEFAULT_FREEZE,
+    fetchImpl = global.fetch,
+    now = () => new Date(),
+    log = (line) => console.log(`[intake-notify] ${line}`),
+  } = opts;
+
+  const finish = (recovered, applicable, reason, runId, exitCode) => {
+    log(`RECOVERY recovered=${recovered} applicable=${applicable} reason=${reason} runId=${runId || '-'}`);
+    return { recovered, applicable, reason, runId, exitCode };
+  };
+
+  let rawFreeze;
+  try {
+    rawFreeze = fs.readFileSync(freezePath, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return finish(false, false, 'no-freeze', '', 0);
+    return finish(false, false, 'freeze-unreadable', '', 3);
+  }
+
+  const parsed = parseRecoverableFreeze(rawFreeze);
+  if (!parsed.runId) return finish(false, false, parsed.reason, '', 3);
+  const runId = parsed.runId;
+
+  let saved;
+  try {
+    saved = JSON.parse(fs.readFileSync(path.join(stateDir, 'last-run-report.json'), 'utf8'));
+  } catch (_) {
+    return finish(false, true, 'saved-report-invalid', runId, 3);
+  }
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) {
+    return finish(false, true, 'saved-report-invalid', runId, 3);
+  }
+  if (saved.runId !== runId) return finish(false, true, 'run-id-mismatch', runId, 3);
+
+  // The saved report must independently prove a positive shipped count via the
+  // same normalization the original notification used.
+  const terminalReport = normalizeTerminalReport(saved, now);
+  if (shippedCount(terminalReport) <= 0) return finish(false, true, 'no-positive-shipment', runId, 3);
+
+  const webhookUrl = readWebhookUrl(configPath);
+  log(webhookUrl ? `webhook: set(len=${webhookUrl.length})` : 'webhook: not-configured');
+  if (!webhookUrl) return finish(false, true, 'webhook-not-configured', runId, 3);
+
+  // Same rendering path as normal notification, but never the digest: the
+  // digest cursor belongs to real runs, and recovery must not advance it.
+  const markdown = renderMarkdown(terminalReport, null);
+  const posted = await postToWebhook(webhookUrl, markdown, fetchImpl, log);
+  if (!posted) return finish(false, true, 'post-failed', runId, 3);
+
+  // Delivery is proven for this exact run — only now may the freeze go.
+  // A crash between POST and unlink duplicates one message; that is safer
+  // than deleting without delivery proof.
+  fs.unlinkSync(freezePath);
+  return finish(true, true, 'recovered', runId, 0);
+}
+
+module.exports = { notify, recoverFreeze, renderMarkdown, normalizeTerminalReport };
 
 if (require.main === module) {
   const args = process.argv.slice(2);
+  if (args[0] === '--recover') {
+    recoverFreeze()
+      .then((result) => process.exit(result.exitCode))
+      .catch((error) => {
+        console.error(`[intake-notify] ${error.message}`);
+        process.exit(1);
+      });
+    return;
+  }
   let report;
   try {
     if (args[0] === '--failure') {
@@ -255,7 +381,7 @@ if (require.main === module) {
     } else if (args[0] && !args[0].startsWith('--')) {
       report = JSON.parse(fs.readFileSync(args[0], 'utf8'));
     } else {
-      throw new Error('usage: intake-notify.js <report.json> | --failure "<stage>: <detail>"');
+      throw new Error('usage: intake-notify.js <report.json> | --failure "<stage>: <detail>" | --recover');
     }
   } catch (error) {
     console.error(`[intake-notify] ${error.message}`);
