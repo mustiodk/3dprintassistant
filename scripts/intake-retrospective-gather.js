@@ -37,10 +37,13 @@ const DIFF_SCHEMA_ID    = 'printer-intake-guardrails-diff@1';
 
 const ARRAY_TARGETS    = ['modelSuffixStrip', 'resinKeywords', 'nonFdmTech', 'nonFdmNoteAcronyms'];
 // Owner resolutions that signal a Scout MISS a guardrail could prevent.
+// `declined-correct` belongs here only when it carries a parseable corrective
+// signal: the final product decision may be correct while Scout still spent
+// the assisted-research lane on a deterministic typo/guardrail miss.
 // Autonomous-mode values (PD7, additive): 'auto-shipped' and 'auto-parked:<reason>'
 // are NON-miss outcomes — deliberately absent here, so runner-written lines never
 // enter miss clusters. Owner retro-tags stay appended correction lines.
-const MISS_RESOLUTIONS = ['was-duplicate-missed', 'was-brand-typo', 'was-suffix-variant', 'was-mis-declined', 'was-noise'];
+const MISS_RESOLUTIONS = ['declined-correct', 'was-duplicate-missed', 'was-brand-typo', 'was-suffix-variant', 'was-mis-declined', 'was-noise'];
 
 // PD7 candidate identity: string candidateKey and array candidateKey (collapsed
 // candidates) must resolve to the same identity, order-insensitively — a

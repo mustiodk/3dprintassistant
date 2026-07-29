@@ -112,6 +112,26 @@ try {
   ];
   check('PD7 auto-* values never enter miss clusters', gather(autoEntries, null).clusters.length === 0);
 
+  // A correctly researched decline can still expose a deterministic Scout
+  // miss: "Seturn" should have matched the existing Saturn/resin guardrail
+  // family instead of spending the assisted-research lane.
+  const declinedCorrectLearning = gather([
+    {
+      candidateKey: 'req:seturn',
+      runId: '2026-07-29T10:01:06.000Z',
+      scoutOutcome: 'needs-research',
+      ownerResolution: 'declined-correct',
+      correctiveSignal: 'resinKeywords:seturn',
+    },
+  ], null);
+  check(
+    'PD7 declined-correct with an explicit signal proposes the literal guardrail',
+    declinedCorrectLearning.diff.changes.length === 1
+      && declinedCorrectLearning.diff.changes[0].target === 'resinKeywords'
+      && declinedCorrectLearning.diff.changes[0].value === 'seturn',
+    JSON.stringify(declinedCorrectLearning.diff.changes),
+  );
+
   // Existing single-line-per-candidate behavior unchanged (fixture re-check
   // happens above); a duplicated IDENTICAL line still dedupes via last-line-wins.
   const dupLine = { candidateKey: 'kd', runId: '2026-07-05T00:00:00.000Z', ownerResolution: 'was-brand-typo', correctiveSignal: 'brandAliases:qq->creality' };
