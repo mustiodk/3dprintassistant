@@ -74,11 +74,7 @@
 
 ### Untracked
 
-- Pre-existing hygiene item:
-  `codex/intake-autonomy-v2.1-review/direct-codex-2026-07-10-r6-followup.md`.
-  It appears to be a substantive July 10 review output but is not tracked;
-  owner should decide whether to commit it into that review packet or retire
-  it. This session did not alter it.
+- None.
 
 ## Commits
 
@@ -98,10 +94,12 @@
   Durable custody proves the terminal outcome and recovery traversal, but a
   future incident that needs line-level operational forensics must inspect the
   runtime host before the single report is overwritten.
-- Md-hygiene: no root redirect stubs, secret files, bare trailing
-  `</content>` tags, ROADMAP staleness, or session-INDEX parity gaps were found.
-  The one pre-existing untracked Codex review output above needs owner
-  disposition; no silent cleanup was performed.
+- Md-hygiene: no root redirect stubs, untracked markdown, secret files, bare
+  trailing `</content>` tags, ROADMAP staleness, or session-INDEX parity gaps
+  were found. A broad secret-pattern scan initially printed the July 10 Codex
+  review path because prose matched the loose `sk-` pattern; final
+  `git ls-files --stage` verification proved the file has been tracked since
+  `48fb9cf`. No cleanup was needed.
 - Lesson spotter: escalated mode, 1 candidate, 1 accepted, 1 high-value enough
   to capture as a low-friction K4; no K1, K3, MCP, or K1 safety-net finding.
 - Verify-before-mutate v2 summary, verbatim:
