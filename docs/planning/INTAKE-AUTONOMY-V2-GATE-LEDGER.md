@@ -8,7 +8,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 | Gate | Status | Evidence |
 |---|---|---|
-| S2 PD8 exact-run freeze auto-recovery + protected notifier config | ✅ shipped + deployed 2026-07-28; scheduled run pending | web `53e032b` + ai-om `3dee67c` — RED-first throughout; 5-round `bridge --mode codex-only` review 5→3→2→1→0 findings, final **GO**; 11 suites green; deployment verified read-only (checkout at `53e032b`, `INSTALL ok=true` install+verify, config `0600`, freeze byte-identical, LaunchAgent idle, **not kickstarted**); sandboxed dry-run of deployed code returned `recovered=true runId=run-20260718T112636Z`; see S2 row |
+| S2 PD8 exact-run freeze auto-recovery + protected notifier config | ✅ operationally proven 2026-07-29 | web `53e032b` + ai-om `3dee67c` — RED-first throughout; 5-round `bridge --mode codex-only` review 5→3→2→1→0 findings, final **GO**; 11 suites green; 2026-07-29 scheduled run crossed recovery + preflight and pushed terminal custody `cd9adf9` (`run-20260729T100106Z`, correct non-FDM decline); retrospective correction `a0b9100`; see S2 row |
 | S1 sync-first isolated runner | ✅ production cutover green 2026-07-17 | Reviewed implementation merged/pushed (web `67d7913`, ai-om `64f46c6`); automation-owned checkout installed and loaded; supervised zero-candidate run ended `PREFLIGHT`/`POSTRUN`/`SYNCBOOT ok=true` and launchd exit 0; i7 duplicate custody `6113f04`; U1 re-entry then parked fail-closed at evidence before review; no iOS push |
 | I1 parked-sidecar path ownership | ✅ 2026-07-16 | `run-20260715T100124Z` root cause reconstructed from the headless transcript; RED reproduced the unsafe raw writer, web `104251c` + ai-om `8151868` close it under contract v2.4; Claude hostile review PASS; focused suite green; see I1 row |
 | R8 final validation + ready state | ✅ 2026-07-10 | Expected test files exist; full R8 intake suite + project validators green; final review NO-GO on ai-om split-routing fixed by `a118bd5`; focused re-review GO; no push/PR/merge; see R8 row |
@@ -31,7 +31,7 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 ## Rows (newest first)
 
-### S2 — PD8 exact-run freeze auto-recovery + protected notifier config 🔨 (2026-07-28, implementation green on `codex/intake-freeze-auto-recovery`; review + deployment pending)
+### S2 — PD8 exact-run freeze auto-recovery + protected notifier config ✅ (operationally proven 2026-07-29)
 
 **Root cause (verified 2026-07-28 planning session):** the original isolated install omitted the gitignored `scripts/.printer-intake.local.json`; U1 (`run-20260718T112636Z`) shipped, Discord delivery failed, PD8 froze correctly — but PD8's manual-only clearance contract had no recovery state, so the freeze kept every scheduled run at preflight `rc=78` even after the config was restored and the saved report manually replayed.
 
@@ -49,7 +49,19 @@ Rules: ticks are recorded **as they happen, never pre-narrated**. Every row carr
 
 **Deployment (2026-07-28, read-only verified):** automation checkout fast-forwarded 23 commits to `53e032b` with the same `git merge --ff-only origin/main` the bootstrap uses (clean before and after); `INSTALL ok=true mode=install` then `mode=verify`; config mode `0600`; freeze still present and byte-identical (`sha256:5aa0808…72e6`, mtime unchanged Jul 18 13:45); no stranded siblings; LaunchAgent loaded and idle (last exit 78 = the freeze skip); no intake process started; **not kickstarted**. A sandboxed dry-run of the DEPLOYED notifier against copies of the live freeze + `last-run-report.json` with a stub webhook (no network, real secret never read) returned `RECOVERY recovered=true applicable=true reason=recovered runId=run-20260718T112636Z`, one POST, no stranded siblings, digest cursor untouched — and left the real freeze byte-identical.
 
-**Open:** the next scheduled 12:00 run owns the actual recovery — it replays the U1 report once (one owner-accepted possible duplicate), clears the legacy freeze only on successful delivery, then processes the queued `Elegoo seturn 4 ultra 16k` through the normal assisted-research lane. No manual freeze clearance, queue processing, or LaunchAgent kickstart. If that run does NOT clear the freeze, it is a critical operational finding, not permission for manual intake.
+**Operational proof (2026-07-29):** scheduled run `run-20260729T100106Z`
+reached normal terminal custody and pushed `cd9adf9`. Under the reviewed wrapper
+contract, that is unreachable unless the U1 exact-run repost succeeded, atomic
+claim-verify-unlink removed the freeze, and preflight passed. The queued
+`Elegoo seturn 4 ultra 16k` request resolved to the Elegoo Saturn 4 Ultra 16K,
+was manufacturer-confirmed as MSLA/resin, and closed `declined-correct` with no
+catalog, overlay, provenance, web, or iOS change. Owner-approved follow-up
+`a0b9100` adds RED→GREEN retrospective coverage and an append-only correction
+whose last-line-wins signal is the literal candidate `resinKeywords:seturn`;
+live guardrail mutation remains behind the existing owner-apply gate. The raw
+run report and Discord transcript are host-local and were not available from
+the MacBook Air; durable custody plus the fail-closed reachability invariant is
+the recorded cross-machine proof.
 
 ### S1 — sync-first isolated runner ✅ production cutover (2026-07-17)
 
