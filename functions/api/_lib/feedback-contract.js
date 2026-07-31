@@ -156,6 +156,16 @@ export function normalizeFeedbackPayload(payload, source) {
   const breadcrumbError = validateBreadcrumbs(payload.diagnostics.breadcrumbs || []);
   if (breadcrumbError) return fail(breadcrumbError);
 
+  // Only a bug report earns full diagnostics (design section 8). The client already
+  // strips these for other categories; enforcing it here means a forged or future
+  // client cannot quietly widen collection past what the user was told.
+  if (payload.category !== "bugReport") {
+    const widened = Object.keys(payload.diagnostics.configuration || {}).length > 0
+      || (payload.diagnostics.breadcrumbs || []).length > 0
+      || Object.keys(payload.diagnostics.failure || {}).length > 0;
+    if (widened) return fail("diagnostics_not_minimal");
+  }
+
   const canonicalFields = [];
   for (const key of ["whatHappened", "message", "title"]) {
     if (payload.userContent[key]?.trim()) canonicalFields.push({ id: key, value: payload.userContent[key].trim() });

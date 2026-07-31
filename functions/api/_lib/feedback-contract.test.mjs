@@ -127,3 +127,39 @@ test("rejects incoherent physical-printer classifications", () => {
   ok.diagnostics.physicalPrinter = { kind: "unknown", match: "different" };
   assert.equal(normalizeFeedbackPayload(ok, "web").ok, true);
 });
+
+test("enforces minimal diagnostics for non-bug categories at the boundary", () => {
+  const minimal = () => ({
+    schemaVersion: "feedback_v2",
+    category: "generalFeedback",
+    userContent: { message: "Nice tool" },
+    diagnostics: {
+      capturedAt: "2026-07-31T12:34:56Z",
+      captureReason: "manual",
+      entryPoint: "feedback.modal",
+      application: { platform: "web", releaseChannel: "production", appVersion: "web-abc" },
+      configuration: {}, breadcrumbs: [], failure: {},
+    },
+  });
+  assert.equal(normalizeFeedbackPayload(minimal(), "web").ok, true);
+
+  const withConfig = minimal();
+  withConfig.diagnostics.configuration = { printer: "bambu_p1s" };
+  assert.equal(normalizeFeedbackPayload(withConfig, "web").error, "diagnostics_not_minimal");
+
+  const withCrumbs = minimal();
+  withCrumbs.diagnostics.breadcrumbs = [{ name: "feedback_opened", ageMs: 0, screen: "feedback", props: {} }];
+  assert.equal(normalizeFeedbackPayload(withCrumbs, "web").error, "diagnostics_not_minimal");
+
+  const withFailure = minimal();
+  withFailure.diagnostics.failure = { code: "export_failed" };
+  assert.equal(normalizeFeedbackPayload(withFailure, "web").error, "diagnostics_not_minimal");
+
+  const featureRequest = minimal();
+  featureRequest.category = "featureRequest";
+  featureRequest.diagnostics.breadcrumbs = [{ name: "feedback_opened", ageMs: 0, screen: "feedback", props: {} }];
+  assert.equal(normalizeFeedbackPayload(featureRequest, "web").error, "diagnostics_not_minimal");
+
+  // bugReport keeps full diagnostics.
+  assert.equal(normalizeFeedbackPayload(v2, "web").ok, true);
+});
