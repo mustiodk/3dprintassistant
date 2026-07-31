@@ -80,7 +80,8 @@ Commit: `feat(feedback): lock v2 contract and D1 schema`
 - Create: `functions/api/_lib/feedback-crypto.js`
 - Create: `functions/api/_lib/feedback-crypto.test.mjs`
 - Create: `functions/api/_lib/feedback-store.js`
-- Create: `functions/api/feedback.persistence.test.mjs`
+- Create: `functions/api/feedback/persistence.test.mjs`
+- Create: `functions/api/feedback/retention.test.mjs`
 - Modify: `vitest.config.mjs`
 - Modify: `functions/api/push/test-setup.mjs`
 
@@ -92,7 +93,7 @@ Commit: `feat(feedback): lock v2 contract and D1 schema`
 
 - [ ] **Step 1: Write failing crypto and storage tests**
 
-Assert report-id format and decoded entropy length, deterministic fingerprints across identity/timestamp changes, fingerprint changes for error/printer/operation changes, AES round trip, wrong-key failure, and AAD mismatch failure. In the Workers pool, apply `feedback-migrations/0001_feedback_reports.sql` to local `FEEDBACK_DB` and assert write/read/list/disposition/delete/expiry behavior with literal rows.
+Assert report-id format and decoded entropy length, deterministic fingerprints across identity/timestamp changes, fingerprint changes for error/printer/operation changes, AES round trip, wrong-key failure, and AAD mismatch failure. In Vitest's Workers pool, apply `feedback-migrations/0001_feedback_reports.sql` to local `FEEDBACK_DB` and assert write/read/list/disposition/delete/expiry behavior with literal rows. Keep pure Web Crypto tests under Node; every test that imports `cloudflare:workers` or touches D1 belongs under `functions/api/feedback/` and runs only in the Workers pool.
 
 - [ ] **Step 2: Run tests and verify RED**
 
@@ -100,7 +101,7 @@ Run:
 
 ```bash
 node --test functions/api/_lib/feedback-crypto.test.mjs
-npm test -- --run functions/api/feedback.persistence.test.mjs
+npm test -- --run functions/api/feedback/persistence.test.mjs
 ```
 
 Expected: both commands fail because crypto/store modules and the local binding do not exist.
@@ -111,7 +112,7 @@ Decode `FEEDBACK_DATA_KEY` as exactly 32 bytes. Generate a fresh 12-byte IV per 
 
 - [ ] **Step 4: Wire isolated Miniflare feedback migrations**
 
-Read `feedback-migrations/` separately in `vitest.config.mjs`, expose it as `FEEDBACK_TEST_MIGRATIONS`, add local `FEEDBACK_DB: "feedback-db"`, and apply only those migrations to `env.FEEDBACK_DB` in the test setup. Existing push migrations remain applied only to `PUSH_DB`.
+Read `feedback-migrations/` separately in `vitest.config.mjs`, expose it as `FEEDBACK_TEST_MIGRATIONS`, add local `FEEDBACK_DB: "feedback-db"`, and apply only those migrations to `env.FEEDBACK_DB` in the test setup. Existing push migrations remain applied only to `PUSH_DB`. Widen `test.include` from push-only to both `functions/api/push/**/*.test.mjs` and `functions/api/feedback/**/*.test.mjs`; the shared setup must initialize both isolated bindings without cross-applying migrations.
 
 - [ ] **Step 5: Verify GREEN and commit**
 
@@ -175,9 +176,8 @@ Commit: `feat(feedback): store reports before minimized Discord alerts`
 
 **Files:**
 - Create: `functions/api/feedback-admin.js`
-- Create: `functions/api/feedback-admin.test.mjs`
+- Create: `functions/api/feedback/admin.test.mjs`
 - Create: `functions/api/_lib/feedback-retention.js`
-- Create: `functions/api/_lib/feedback-retention.test.mjs`
 - Modify: `worker.js`
 - Modify: `functions/api/worker.test.mjs`
 
@@ -192,7 +192,7 @@ Assert missing/mismatched admin token rejection, closed action allowlist, newest
 
 - [ ] **Step 2: Run and verify RED**
 
-Run: `node --test functions/api/feedback-admin.test.mjs functions/api/_lib/feedback-retention.test.mjs functions/api/worker.test.mjs`
+Run `npm test -- --run functions/api/feedback/admin.test.mjs functions/api/feedback/retention.test.mjs` for D1-backed tests, then `node --test functions/api/worker.test.mjs` for the pure Worker router test.
 
 Expected: route/modules are absent.
 
@@ -209,7 +209,8 @@ Keep the existing push-retention behavior. Use `ctx.waitUntil(Promise.all([runRe
 Run:
 
 ```bash
-node --test functions/api/feedback-admin.test.mjs functions/api/_lib/feedback-retention.test.mjs functions/api/worker.test.mjs
+npm test -- --run functions/api/feedback/admin.test.mjs functions/api/feedback/retention.test.mjs
+node --test functions/api/worker.test.mjs
 npm test -- --run
 git diff --check
 ```
