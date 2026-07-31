@@ -8,6 +8,8 @@
 
 **Tech Stack:** Vanilla JavaScript/HTML/CSS, Cloudflare Workers + Assets, D1/SQLite, Web Crypto AES-GCM/HMAC/SHA-256, Vitest Workers pool, Node test runner, Swift 5.9, SwiftUI, CryptoKit, Sentry Cocoa, XCTest, XcodeGen.
 
+**Execution status (2026-08-01):** Tasks 1–7 are implemented, locally green and independently reviewed on web branch `codex/feedback-diagnostics-v2`; review baseline `6381e9e` is GO for feature-branch handoff only. The initial review's two P1 findings are fixed. Its five P2 findings plus the confirmation review's client-side capture-vocabulary should-fix are the locked first stage next session, one finding per commit. Tasks 8–10 have not started. Nothing is provisioned or deployed; Task 10 O0 remains an owner gate.
+
 ## Global Constraints
 
 - Canonical design: `docs/superpowers/specs/2026-07-31-feedback-diagnostics-design.md`.
