@@ -381,8 +381,6 @@ Commit: `feat(feedback): add compact owner triage and privacy copy`
 - Modify: `3DPrintAssistant/Views/Output/OutputView.swift`
 - Modify: `3DPrintAssistant/Engine/EngineService.swift`
 - Modify: `3DPrintAssistant/Utils/Strings.swift`
-- Modify: `project.yml`
-- Modify: `3DPrintAssistant.xcodeproj/project.pbxproj`
 - Modify: `3DPrintAssistantTests/FeedbackTests.swift`
 - Create: `3DPrintAssistantTests/FeedbackDiagnosticRecorderTests.swift`
 - Modify: `docs/app-store-privacy-labels.md`
@@ -424,7 +422,7 @@ For bug reports use what-happened required, expected and steps optional, diagnos
 
 Update the iOS repo's `docs/app-store-privacy-labels.md` against the final payload before the App Store privacy-answer review gate.
 
-- [ ] **Step 6: Regenerate project and verify GREEN**
+- [ ] **Step 6: Verify XcodeGen discovery and GREEN**
 
 Run:
 
@@ -439,6 +437,8 @@ git diff --check
 ```
 
 Expected: focused feedback suites pass.
+
+The source/test globs discover the new Swift files, so Task 8 should not require a semantic `project.yml` change. After generation, `project.pbxproj` should also remain unchanged; any diff must be explained rather than committed mechanically. Version and generated-project changes belong only to Task 10 after O0.
 
 Commit: `feat(ios): attach privacy-bounded diagnostics to feedback`
 
