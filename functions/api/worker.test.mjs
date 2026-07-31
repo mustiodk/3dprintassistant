@@ -66,3 +66,27 @@ test("public app assets still delegate to ASSETS", async () => {
     assert.equal(requests.length, 1, `${path} did not reach ASSETS exactly once`);
   }
 });
+
+test("feedback admin route never reaches ASSETS", async () => {
+  const { env, ctx, requests } = makeHarness();
+  env.ANALYTICS_ADMIN_TOKEN = "owner";
+  const response = await worker.fetch(new Request("https://3dprintassistant.com/api/feedback-admin", {
+    method: "POST", headers: { Origin: "https://3dprintassistant.com", "Content-Type": "application/json" }, body: JSON.stringify({ action: "list" }),
+  }), env, ctx);
+  assert.equal(response.status, 401);
+  assert.equal(requests.length, 0);
+});
+
+test("scheduled retention tracks push and feedback cleanup in one promise", async () => {
+  let tracked;
+  const env = {
+    PUSH_DB: {
+      prepare() { return { bind() { return {}; } }; },
+      async batch() { return [{ meta: { changes: 1 } }, { meta: { changes: 2 } }]; },
+    },
+    FEEDBACK_DB: { prepare() { return { bind() { return { async run() { return { meta: { changes: 3 } }; } }; } }; } },
+  };
+  worker.scheduled({}, env, { waitUntil(promise) { tracked = promise; } });
+  assert.ok(tracked instanceof Promise);
+  assert.deepEqual(await tracked, [{ deliveriesRemoved: 1, devicesRemoved: 2 }, { feedbackRemoved: 3 }]);
+});

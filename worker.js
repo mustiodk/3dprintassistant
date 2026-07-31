@@ -32,11 +32,18 @@ import {
 } from "./functions/api/analytics-query.js";
 
 import {
+  onRequestPost    as feedbackAdminOnRequestPost,
+  onRequestOptions as feedbackAdminOnRequestOptions,
+  onRequest        as feedbackAdminOnRequestFallback,
+} from "./functions/api/feedback-admin.js";
+
+import {
   handlePushRequest,
   isPushAPIPath,
 } from "./functions/api/push/index.js";
 import { processQueueBatch } from "./functions/api/push/consumer.js";
 import { runRetention } from "./functions/api/push/retention.js";
+import { runFeedbackRetention } from "./functions/api/_lib/feedback-retention.js";
 
 const PRIVATE_ASSET_ROOTS = [
   "/.assetsignore",
@@ -103,6 +110,13 @@ export default {
       return analyticsQueryOnRequestFallback(context);
     }
 
+    if (url.pathname === "/api/feedback-admin") {
+      const context = { request, env, waitUntil: ctx.waitUntil.bind(ctx) };
+      if (request.method === "POST") return feedbackAdminOnRequestPost(context);
+      if (request.method === "OPTIONS") return feedbackAdminOnRequestOptions(context);
+      return feedbackAdminOnRequestFallback(context);
+    }
+
     if (isPushAPIPath(url.pathname)) {
       return handlePushRequest(request, env);
     }
@@ -118,6 +132,6 @@ export default {
   },
 
   scheduled(_controller, env, ctx) {
-    ctx.waitUntil(runRetention(env));
+    ctx.waitUntil(Promise.all([runRetention(env), runFeedbackRetention(env)]));
   },
 };
