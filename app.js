@@ -89,6 +89,7 @@ let _lastTrackedProfileKey = null;       // deduplicates profile_generated event
 let pickerBrand       = null;            // currently expanded brand in printer picker
 let pickerShowMore    = false;           // whether secondary brands are visible
 let pickerCollapsed   = false;           // auto-collapse picker after printer selected + other filter clicked
+let engineInitialized = false;           // real Engine.init() outcome — reported in feedback diagnostics
 
 globalThis.FeedbackDiagnostics?.setSnapshotProvider(() => {
   const preference = globalThis.FeedbackDiagnostics.physicalPrinterPreference();
@@ -113,7 +114,7 @@ globalThis.FeedbackDiagnostics?.setSnapshotProvider(() => {
       activeView: currentView, activeTab: activeTabId,
     },
     catalog: { selectedPrinterResolved: state.printer ? !!Engine.getPrinter(state.printer) : false },
-    runtime: { engineInitialized: true },
+    runtime: { engineInitialized },
   };
 });
 
@@ -193,6 +194,7 @@ function openModal(key) {
 // ── Boot — wait for engine to load all JSON data before building UI ───────────
 Engine.init()
   .then(() => {
+    engineInitialized = true;
     // Restore theme before first render to avoid flash
     try {
       const savedTheme = localStorage.getItem('3dpa_theme');

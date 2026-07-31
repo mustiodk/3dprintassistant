@@ -24,6 +24,13 @@
       locale: root.navigator?.language || '', browserFamily: 'web',
     };
   }
+  // Web ships one bundled catalog and has no remote overlay — that is the iOS
+  // PrinterCatalogProvider's job — so the honest answer is the bundled revision,
+  // not an empty field and not an invented overlay content version.
+  function catalogProvenance() {
+    const release = root.__3DPA_RELEASE__ || {};
+    return { baselineRevision: release.catalogRevision || '', overlaySource: 'bundled' };
+  }
   function allowedProp(key, value) {
     if (typeof value !== 'string') return false;
     if (['printer', 'material', 'nozzle', 'slicer'].includes(key)) return STABLE_ID.test(value);
@@ -75,7 +82,8 @@
           capturedAt: new Date(captured).toISOString(), captureReason: String(reason || 'manual').slice(0, 80),
           entryPoint: String(entryPoint || 'feedback').slice(0, 120), application: application(),
           physicalPrinter: supplied.physicalPrinter || safePreference(false), configuration: supplied.configuration || {},
-          catalog: supplied.catalog || {}, runtime: { online: root.navigator?.onLine !== false, ...(supplied.runtime || {}) },
+          catalog: { ...catalogProvenance(), ...(supplied.catalog || {}) },
+          runtime: { online: root.navigator?.onLine !== false, ...(supplied.runtime || {}) },
           failure: clone(failure || supplied.failure || {}),
           breadcrumbs: breadcrumbs.map((item) => ({ name: item.name, ageMs: Math.max(0, captured - item.at), screen: item.screen, props: clone(item.props) })),
         };

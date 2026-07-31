@@ -4,7 +4,7 @@ import test from "node:test";
 Object.defineProperty(globalThis, "location", { configurable: true, value: { hostname: "localhost" } });
 Object.defineProperty(globalThis, "navigator", { configurable: true, value: { language: "en-US", onLine: true, userAgent: "Test" } });
 Object.defineProperty(globalThis, "localStorage", { configurable: true, writable: true, value: { getItem() { return null; }, setItem() {} } });
-globalThis.__3DPA_RELEASE__ = { appVersion: "web-test", releaseId: "release-test" };
+globalThis.__3DPA_RELEASE__ = { appVersion: "web-test", releaseId: "release-test", catalogRevision: "catalog-test" };
 await import("../feedback-diagnostics.js");
 
 test("keeps only the newest 25 allowlisted breadcrumbs", () => {
@@ -52,4 +52,13 @@ test("a different physical printer is not classified as supported", () => {
   assert.notEqual(preference.kind, "supported");
   assert.equal("printerId" in preference, false);
   globalThis.localStorage = old;
+});
+
+test("snapshots real catalog provenance instead of leaving it blank", () => {
+  const recorder = globalThis.FeedbackDiagnostics.createRecorder({ now: () => 1 });
+  recorder.setSnapshotProvider(() => ({ catalog: { selectedPrinterResolved: true } }));
+  const { catalog } = recorder.snapshot("manual", "feedback.card");
+  assert.equal(catalog.selectedPrinterResolved, true);
+  assert.equal(catalog.overlaySource, "bundled");
+  assert.equal(catalog.baselineRevision, "catalog-test");
 });

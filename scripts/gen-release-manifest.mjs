@@ -9,14 +9,24 @@ export const RUNTIME_ASSETS = Object.freeze([
   "locales/da.json", "locales/en.json",
 ]);
 
-export async function buildRelease(root, assets = RUNTIME_ASSETS) {
+// The bundled catalog is the subset a diagnostic report cares about when asking
+// "which printer/material data did this user actually see?". Hashing it separately
+// keeps that answer stable when unrelated assets like style.css change.
+const CATALOG_ASSET = /^data\/.+\.json$/;
+
+async function fingerprint(root, assets) {
   const hash = createHash("sha256");
   for (const relative of [...assets].sort()) {
     hash.update(relative); hash.update("\0");
     hash.update(await readFile(path.join(root, relative))); hash.update("\0");
   }
-  const assetFingerprint = hash.digest("hex");
-  return { appVersion: `web-${assetFingerprint.slice(0, 12)}`, releaseId: assetFingerprint, assetFingerprint };
+  return hash.digest("hex");
+}
+
+export async function buildRelease(root, assets = RUNTIME_ASSETS) {
+  const assetFingerprint = await fingerprint(root, assets);
+  const catalogRevision = await fingerprint(root, assets.filter((item) => CATALOG_ASSET.test(item)));
+  return { appVersion: `web-${assetFingerprint.slice(0, 12)}`, releaseId: assetFingerprint, assetFingerprint, catalogRevision };
 }
 
 function sourceFor(release) {
