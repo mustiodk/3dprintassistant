@@ -90,10 +90,11 @@ Commit: `feat(feedback): lock v2 contract and D1 schema`
 - Produces: `fingerprintReport(report)` as lowercase hex SHA-256 over stable diagnostic facts only.
 - Produces: `encryptUserContent(value, keyBase64, reportId, schemaVersion)` and `decryptUserContent(...)` using AES-256-GCM with report id + schema version as AAD.
 - Produces: `insertFeedbackReport(db, storedReport)`, `readFeedbackReport`, `listFeedbackReports`, `setFeedbackDisposition`, `deleteFeedbackReport`, `deleteExpiredFeedbackReports`.
+- Produces: `persistFeedbackReport(db, buildStoredReport, createId)` which retries only a report-id primary-key collision with a fresh id, for at most three attempts.
 
 - [ ] **Step 1: Write failing crypto and storage tests**
 
-Assert report-id format and decoded entropy length, deterministic fingerprints across identity/timestamp changes, fingerprint changes for error/printer/operation changes, AES round trip, wrong-key failure, and AAD mismatch failure. In Vitest's Workers pool, apply `feedback-migrations/0001_feedback_reports.sql` to local `FEEDBACK_DB` and assert write/read/list/disposition/delete/expiry behavior with literal rows. Keep pure Web Crypto tests under Node; every test that imports `cloudflare:workers` or touches D1 belongs under `functions/api/feedback/` and runs only in the Workers pool.
+Assert report-id format and decoded entropy length, deterministic fingerprints across identity/timestamp changes, fingerprint changes for error/printer/operation changes, AES round trip, wrong-key failure, and AAD mismatch failure. In Vitest's Workers pool, apply `feedback-migrations/0001_feedback_reports.sql` to local `FEEDBACK_DB` and assert write/read/list/disposition/delete/expiry behavior with literal rows. Inject a deterministic id factory to prove one primary-key collision retries with a fresh id, unrelated D1 failures do not retry, and three collisions return stable `report_id_unavailable`. Keep pure Web Crypto tests under Node; every test that imports `cloudflare:workers` or touches D1 belongs under `functions/api/feedback/` and runs only in the Workers pool.
 
 - [ ] **Step 2: Run tests and verify RED**
 
