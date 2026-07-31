@@ -3,6 +3,11 @@
 
   const EVENTS = new Set(['app_opened', 'page_opened', 'screen_opened', 'printer_selected', 'material_selected', 'nozzle_selected', 'profile_generated', 'output_opened', 'export_started', 'export_succeeded', 'export_failed', 'copy_started', 'copy_succeeded', 'copy_failed', 'catalog_initialized', 'catalog_failed', 'feedback_opened']);
   const PROPS = new Set(['printer', 'material', 'nozzle', 'operation', 'outputMode', 'slicer', 'status', 'feature']);
+  const FEATURES = new Set(['app', 'configure', 'troubleshoot', 'workshop', 'feedback', 'output', 'catalog', 'unknown']);
+  const OPERATIONS = new Set(['process', 'filament', 'prusa_ini', 'copy', 'bundle', 'orca_bundle', 'prusa_bundle', 'profile', 'catalog', 'feedback']);
+  const OUTPUT_MODES = new Set(['simple', 'advanced', 'text', 'bambu', 'orca', 'prusa']);
+  const STATUSES = new Set(['started', 'succeeded', 'failed', 'available', 'unavailable']);
+  const STABLE_ID = /^[a-z0-9][a-z0-9._-]{0,79}$/;
   const STORAGE_KEY = '3dpa_physical_printer_v1';
 
   function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
@@ -18,6 +23,15 @@
       appVersion: release.appVersion || '', releaseId: release.releaseId || '',
       locale: root.navigator?.language || '', browserFamily: 'web',
     };
+  }
+  function allowedProp(key, value) {
+    if (typeof value !== 'string') return false;
+    if (['printer', 'material', 'nozzle', 'slicer'].includes(key)) return STABLE_ID.test(value);
+    if (key === 'feature') return FEATURES.has(value);
+    if (key === 'operation') return OPERATIONS.has(value);
+    if (key === 'outputMode') return OUTPUT_MODES.has(value);
+    if (key === 'status') return STATUSES.has(value);
+    return false;
   }
   function safePreference(includeCustomText) {
     try {
@@ -39,7 +53,8 @@
         if (!EVENTS.has(name)) return false;
         const clean = {};
         for (const [key, value] of Object.entries(props || {})) {
-          if (PROPS.has(key) && ['string', 'number', 'boolean'].includes(typeof value)) clean[key] = String(value).slice(0, 120);
+          const normalized = typeof value === 'string' ? value : String(value);
+          if (PROPS.has(key) && allowedProp(key, normalized)) clean[key] = normalized;
         }
         breadcrumbs.push({ name, at: now(), screen: clean.feature || 'unknown', props: clean });
         if (breadcrumbs.length > 25) breadcrumbs.shift();

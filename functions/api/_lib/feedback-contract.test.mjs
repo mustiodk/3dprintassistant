@@ -62,6 +62,9 @@ test("rejects oversized and unallowlisted breadcrumb data", () => {
   const unknownProp = structuredClone(v2);
   unknownProp.diagnostics.breadcrumbs[0].props.freeText = "no";
   assert.equal(normalizeFeedbackPayload(unknownProp, "web").error, "invalid_breadcrumb_property");
+  const openValue = structuredClone(v2);
+  openValue.diagnostics.breadcrumbs[0].props.feature = "person@example.com free text";
+  assert.equal(normalizeFeedbackPayload(openValue, "web").error, "invalid_breadcrumb_property");
   const longText = structuredClone(v2);
   longText.userContent.whatHappened = "x".repeat(4001);
   assert.equal(normalizeFeedbackPayload(longText, "web").error, "field_too_long");

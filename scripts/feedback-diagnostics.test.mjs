@@ -9,13 +9,15 @@ await import("../feedback-diagnostics.js");
 
 test("keeps only the newest 25 allowlisted breadcrumbs", () => {
   const recorder = globalThis.FeedbackDiagnostics.createRecorder({ now: (() => { let n = 0; return () => ++n; })() });
-  for (let index = 0; index < 26; index += 1) recorder.record("screen_opened", { feature: `screen-${index}` });
+  for (let index = 0; index < 26; index += 1) recorder.record("screen_opened", { feature: "configure", printer: `printer_${index}` });
   recorder.record("unknown_event", { feature: "bad" });
   recorder.record("screen_opened", { freeText: "bad" });
   const snapshot = recorder.snapshot("manual", "feedback.card");
   assert.equal(snapshot.breadcrumbs.length, 25);
-  assert.equal(snapshot.breadcrumbs[0].props.feature, "screen-2");
+  assert.equal(snapshot.breadcrumbs[0].props.printer, "printer_2");
   assert.equal(snapshot.breadcrumbs.at(-1).props.freeText, undefined);
+  recorder.record("screen_opened", { feature: "person@example.com free text" });
+  assert.equal(recorder.snapshot("manual", "feedback.card").breadcrumbs.at(-1).props.feature, undefined);
 });
 
 test("freezes the failure snapshot against later navigation", () => {

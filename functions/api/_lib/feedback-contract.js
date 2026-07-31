@@ -36,6 +36,11 @@ const RUNTIME_KEYS = ["engineInitialized", "online", "requestStatusClass", "requ
 const FAILURE_KEYS = ["code", "subsystem", "operation", "safeMessage", "sentryEventId"];
 const BREADCRUMB_KEYS = ["name", "ageMs", "screen", "props"];
 const PROP_KEYS = ["printer", "material", "nozzle", "operation", "outputMode", "slicer", "status", "feature"];
+const BREADCRUMB_FEATURES = new Set(["app", "configure", "troubleshoot", "workshop", "feedback", "output", "catalog", "unknown"]);
+const BREADCRUMB_OPERATIONS = new Set(["process", "filament", "prusa_ini", "copy", "bundle", "orca_bundle", "prusa_bundle", "profile", "catalog", "feedback"]);
+const BREADCRUMB_OUTPUT_MODES = new Set(["simple", "advanced", "text", "bambu", "orca", "prusa"]);
+const BREADCRUMB_STATUSES = new Set(["started", "succeeded", "failed", "available", "unavailable"]);
+const STABLE_ID = /^[a-z0-9][a-z0-9._-]{0,79}$/;
 const FIELD_LIMITS = { whatHappened: 4000, expected: 2000, steps: 3000, message: 4000, title: 200, email: 254, customPrinterBrand: 100, customPrinterModel: 160 };
 
 function isRecord(value) {
@@ -69,9 +74,16 @@ function validateBreadcrumbs(items) {
     if (!hasOnlyKeys(item, BREADCRUMB_KEYS)) return "unknown_key";
     if (!BREADCRUMB_EVENTS.includes(item.name)) return "invalid_breadcrumb_event";
     if (!Number.isInteger(item.ageMs) || item.ageMs < 0) return "invalid_breadcrumb_age";
-    if (typeof item.screen !== "string" || item.screen.length > 80) return "invalid_breadcrumb_screen";
+    if (!BREADCRUMB_FEATURES.has(item.screen)) return "invalid_breadcrumb_screen";
     if (!hasOnlyKeys(item.props || {}, PROP_KEYS)) return "invalid_breadcrumb_property";
-    if (boundedStrings(item.props || {}, PROP_KEYS, {}, 120)) return "invalid_breadcrumb_property";
+    for (const [key, value] of Object.entries(item.props || {})) {
+      if (typeof value !== "string") return "invalid_breadcrumb_property";
+      if (["printer", "material", "nozzle", "slicer"].includes(key) && !STABLE_ID.test(value)) return "invalid_breadcrumb_property";
+      if (key === "feature" && !BREADCRUMB_FEATURES.has(value)) return "invalid_breadcrumb_property";
+      if (key === "operation" && !BREADCRUMB_OPERATIONS.has(value)) return "invalid_breadcrumb_property";
+      if (key === "outputMode" && !BREADCRUMB_OUTPUT_MODES.has(value)) return "invalid_breadcrumb_property";
+      if (key === "status" && !BREADCRUMB_STATUSES.has(value)) return "invalid_breadcrumb_property";
+    }
   }
   return null;
 }
