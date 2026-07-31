@@ -289,6 +289,13 @@
       overflow: hidden;
     }
 
+    .feedback-owner-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 12px; margin: 24px 0; }
+    .feedback-owner-grid pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 360px; overflow: auto; color: var(--muted); font-size: 11px; }
+    .feedback-detail-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
+    .feedback-detail-head select { width: auto; min-width: 150px; }
+    .feedback-link { border: 0; background: transparent; color: var(--mint); cursor: pointer; padding: 0; font-weight: 800; }
+    .danger { min-height: 40px; border: 1px solid rgba(255,123,134,.45); border-radius: 6px; background: transparent; color: var(--rose); padding: 0 14px; cursor: pointer; font-weight: 800; }
+
     .panel-head {
       display: flex;
       align-items: flex-start;
@@ -811,6 +818,17 @@
       </article>
     </section>
 
+    <section class="feedback-owner-grid" aria-label="Feedback reports">
+      <article class="panel">
+        <header class="panel-head"><div><h2>Feedback Reports</h2><p>Newest first. Open a report for full diagnostics.</p></div><span id="feedbackStatus" class="card-status">Not loaded</span></header>
+        <div class="panel-body table-wrap" id="feedbackReports"><div class="empty">Load dashboard to view reports.</div></div>
+      </article>
+      <article class="panel">
+        <header class="panel-head"><div><h2>Report Detail</h2><p>Decrypted only when opened.</p></div></header>
+        <div class="panel-body" id="feedbackDetail"><div class="empty">Select a report.</div></div>
+      </article>
+    </section>
+
     <section class="diagnostics" aria-label="Detailed query tables">
       <header class="section-heading">
         <div>
@@ -826,6 +844,7 @@
     </section>
   </main>
 
+  <script src="feedback-owner.js"></script>
   <script>
     const QUERY_DEFS = [
       { id: "summary", title: "Summary", countKey: "events", hidden: true },
@@ -888,6 +907,10 @@
     const insights = document.getElementById("insights");
     const quickFacts = document.getElementById("quickFacts");
     const rawCards = document.getElementById("rawCards");
+    const feedbackReports = document.getElementById("feedbackReports");
+    const feedbackDetail = document.getElementById("feedbackDetail");
+    const feedbackStatus = document.getElementById("feedbackStatus");
+    let activeFeedbackReport = null;
 
     tokenInput.value = sessionStorage.getItem("3dpa_analytics_admin_token") || "";
 
@@ -913,6 +936,14 @@
         });
       });
       refreshButton.addEventListener("click", refreshAll);
+      feedbackReports.addEventListener("click", event => {
+        const button = event.target.closest("[data-feedback-open]");
+        if (button) loadFeedbackDetail(button.dataset.feedbackOpen);
+      });
+      feedbackDetail.addEventListener("click", event => {
+        if (event.target.closest("[data-feedback-save]")) updateFeedbackDisposition();
+        if (event.target.closest("[data-feedback-delete]")) deleteFeedbackReport();
+      });
       if (tokenInput.value) {
         setLoadState("ready", "Token saved for this browser session.");
         refreshButton.textContent = "Refresh Data";
@@ -988,7 +1019,7 @@
         return loadQuery(query.id, limit);
       });
 
-      await Promise.all(queryPromises);
+      await Promise.all([...queryPromises, loadFeedback()]);
       refreshButton.disabled = false;
       refreshButton.textContent = "Refresh Data";
       lastRefresh.textContent = `Last refreshed ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
@@ -1001,6 +1032,50 @@
       }
 
       renderDashboard();
+    }
+
+    async function feedbackAction(payload) {
+      const request = FeedbackOwner.buildRequest(tokenInput.value.trim(), payload);
+      const response = await fetch(request.url, request.init);
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok || !json.ok) throw new Error(readableError(json, response.status));
+      return json;
+    }
+
+    async function loadFeedback() {
+      feedbackStatus.textContent = "Loading...";
+      try {
+        const data = await feedbackAction({ action: "list", limit: Number(limitInput.value) });
+        feedbackReports.innerHTML = FeedbackOwner.renderList(data.reports);
+        feedbackStatus.textContent = `${data.reports.length} reports`;
+      } catch (error) {
+        feedbackReports.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
+        feedbackStatus.textContent = "Failed";
+      }
+    }
+
+    async function loadFeedbackDetail(reportId) {
+      feedbackDetail.innerHTML = '<div class="empty">Loading report...</div>';
+      try {
+        const data = await feedbackAction({ action: "detail", reportId });
+        activeFeedbackReport = reportId;
+        feedbackDetail.innerHTML = FeedbackOwner.renderDetail(data.report, data.matches);
+      } catch (error) { feedbackDetail.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; }
+    }
+
+    async function updateFeedbackDisposition() {
+      if (!activeFeedbackReport) return;
+      const disposition = feedbackDetail.querySelector("[data-feedback-disposition]").value;
+      await feedbackAction({ action: "setDisposition", reportId: activeFeedbackReport, disposition });
+      await Promise.all([loadFeedback(), loadFeedbackDetail(activeFeedbackReport)]);
+    }
+
+    async function deleteFeedbackReport() {
+      if (!activeFeedbackReport || !confirm(`Delete ${activeFeedbackReport} immediately? This cannot be undone.`)) return;
+      await feedbackAction({ action: "delete", reportId: activeFeedbackReport });
+      activeFeedbackReport = null;
+      feedbackDetail.innerHTML = '<div class="empty">Report deleted.</div>';
+      await loadFeedback();
     }
 
     async function loadReferenceLabels() {

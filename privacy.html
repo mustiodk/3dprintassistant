@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Privacy Policy — 3D Print Assistant</title>
-  <meta name="description" content="Privacy policy for 3D Print Assistant. We collect crash diagnostics, anonymous product usage events, and — only if you opt in — a push notification token. No personal information, user accounts, or tracking."/>
+  <meta name="description" content="Privacy policy for 3D Print Assistant, including feedback reports, diagnostics, usage analytics, crash reporting, and optional notifications."/>
   <link rel="canonical" href="https://3dprintassistant.com/privacy"/>
   <meta name="robots" content="index, follow"/>
 
@@ -125,7 +125,7 @@
     <a href="/" class="privacy-back">← 3D Print Assistant</a>
 
     <h1 class="privacy-title">Privacy Policy</h1>
-    <p class="privacy-date">Last updated: July 23, 2026</p>
+    <p class="privacy-date">Last updated: July 31, 2026</p>
 
     <div class="privacy-section">
       <p>3D Print Assistant is a hobby project developed by Musti. This policy explains what data the app and website collect and why.</p>
@@ -154,6 +154,14 @@
     </div>
 
     <div class="privacy-section">
+      <h2>Feedback and bug reports</h2>
+      <p>When you choose to submit feedback, the website or iOS app sends the text you enter and an optional reply email. Bug reports also include disclosed technical diagnostics needed to reproduce the problem: app/release and operating-system details, device class, selected printer/material/nozzle and configuration IDs, catalog source/version, a safe error code, and up to 25 recent allowlisted in-app actions. Reports may include an existing Sentry event ID, but not a stack trace, file contents, file paths, full URLs, query strings, response bodies, or general network logs.</p>
+      <p>A local “My printer” preference can distinguish the printer you use from the profile selected in the app. It stays on your device until you submit a report; unsupported printer brand/model text is treated as user content.</p>
+      <p>The purpose is to diagnose, reproduce, group, and resolve user-reported defects. The legal basis for necessary technical diagnostics is our legitimate interest in maintaining a reliable product (GDPR Article 6(1)(f)), after a necessity and balancing assessment. Providing an email is optional; by providing it you consent to its use only for a reply about that report, and you may withdraw that consent by contacting us. It is not used for marketing.</p>
+      <p>User text and optional email are encrypted at rest in an EU-jurisdiction Cloudflare D1 database. Technical diagnostics are stored in allowlisted form. Discord receives only a minimized alert containing the report ID, category, version/channel, printer classification, safe error code/operation, and issue fingerprint — never your text, email, breadcrumbs, Sentry ID, or full diagnostics.</p>
+    </div>
+
+    <div class="privacy-section">
       <h2>Notifications (optional)</h2>
       <p>The iOS app can send optional push notifications about newly supported printers and meaningful app updates. Notifications are <strong>off by default</strong>. They are sent only after you open <strong>Product updates</strong>, select at least one topic, and explicitly enable them — and you can turn them off again at any time.</p>
       <p>If you opt in, your device's Apple Push Notification service (APNs) token is sent to a <strong>first-party Cloudflare Worker</strong> and stored <strong>encrypted (AES-GCM) at rest</strong> in a Cloudflare <strong>D1 database hosted in the EU</strong>. The token is used only to deliver the notification topics you selected, and delivery is carried out by <strong>Apple's APNs</strong>. Notification content contains public product information only (for example, a printer name or an app version).</p>
@@ -176,7 +184,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td>Name, email, or contact info</td><td><span class="badge-no">No</span></td></tr>
+          <tr><td>Email or contact info</td><td><span class="badge-yes">Optional feedback email only</span></td></tr>
+          <tr><td>Feedback text and bug diagnostics</td><td><span class="badge-yes">Only when submitted</span></td></tr>
           <tr><td>Location data</td><td><span class="badge-no">No</span></td></tr>
           <tr><td>User account, login, or user ID</td><td><span class="badge-no">No</span></td></tr>
           <tr><td>Anonymous product usage events</td><td><span class="badge-yes">Yes</span></td></tr>
@@ -193,20 +202,31 @@
 
     <div class="privacy-section">
       <h2>How data is used</h2>
-      <p>Crash and diagnostic data is used solely to identify and fix bugs. Anonymous product usage events are used to understand which printer/material selections and product surfaces are used most. Data is not sold, shared with advertisers, or used for tracking across apps or websites.</p>
+      <p>Crash and submitted diagnostic data is used solely to identify and fix bugs. Anonymous product usage events are used to understand which printer/material selections and product surfaces are used most. Optional feedback email is used only for a reply about the report. Data is not sold, shared with advertisers, or used for tracking across apps or websites. No solely automated decision is made about you.</p>
     </div>
 
     <div class="privacy-section">
       <h2>Data retention</h2>
       <p>Crash data is retained in Sentry according to <a href="https://sentry.io/privacy/" target="_blank" rel="noopener">Sentry's standard data retention policy</a>. You can request deletion by contacting the developer.</p>
       <p>Push notification tokens (if you opt in) are deleted immediately when you turn notifications off, and are otherwise pruned automatically — delivery records after 30 days and inactive device tokens after 180 days.</p>
+      <p>Feedback reports are deleted automatically no later than 90 days after receipt and can be deleted sooner. A local “My printer” preference remains on your device until browser/app data is cleared or the preference is changed.</p>
+    </div>
+
+    <div class="privacy-section">
+      <h2>Recipients and international transfers</h2>
+      <p><strong>Cloudflare</strong> processes the website, Worker requests, analytics, and the EU-jurisdiction feedback database. <strong>Sentry</strong> processes iOS crash/performance records and a linked event ID when one already exists. <strong>Discord</strong> receives only the minimized feedback alert described above. <strong>Apple</strong> processes optional push delivery. These providers may process limited data outside the EU/EEA under their applicable data-processing and transfer safeguards.</p>
+    </div>
+
+    <div class="privacy-section">
+      <h2>Your rights</h2>
+      <p>You may request access, correction, deletion, restriction, or object to processing based on legitimate interests. For a feedback report, include the report ID shown after submission and, if supplied, the same email address so the record can be located without creating an account. Requests are handled without undue delay, normally within one month. You may also complain to <a href="https://www.datatilsynet.dk/borger/klage/saadan-klager-du" target="_blank" rel="noopener">the Danish Data Protection Agency (Datatilsynet)</a>.</p>
     </div>
 
     <hr class="privacy-divider"/>
 
     <div class="privacy-section">
       <h2>Contact</h2>
-      <p>Questions about this policy: <a href="mailto:mustiodk@gmail.com">mustiodk@gmail.com</a></p>
+      <p>Data controller: Musti, 3D Print Assistant. Questions or privacy requests: <a href="mailto:mustiodk@gmail.com">mustiodk@gmail.com</a></p>
     </div>
 
   </div>

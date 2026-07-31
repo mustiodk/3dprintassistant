@@ -4,8 +4,8 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const RUNTIME_ASSETS = Object.freeze([
-  "app.js", "engine.js", "feedback-diagnostics.js", "feedback-form.js", "index.html", "state-codec.js",
-  "style.css", "data/materials.json", "data/nozzles.json", "data/printers.json",
+  "analytics.html", "app.js", "engine.js", "feedback-diagnostics.js", "feedback-form.js", "feedback-owner.js",
+  "index.html", "privacy.html", "state-codec.js", "style.css", "data/materials.json", "data/nozzles.json", "data/printers.json",
   "locales/da.json", "locales/en.json",
 ]);
 
