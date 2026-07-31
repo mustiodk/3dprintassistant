@@ -143,7 +143,7 @@ Commit: `feat(feedback): encrypt and persist diagnostic reports`
 
 - [ ] **Step 1: Write failing endpoint tests**
 
-Use complete fakes for D1, rate limiter, KV and outbound Discord. Cover web Origin and iOS HMAC, 32 KiB cap, limiter rejection before body parsing, missing bindings fail closed, legacy/v2 normalization, encrypted persisted user content, minimized Discord payload, D1 failure preventing Discord, Discord failure returning `notified:false`, report-id response, honeypot no-op and unknown-key rejection.
+Use complete fakes for D1, rate limiter, KV and outbound Discord. Cover web Origin and iOS HMAC, 32 KiB cap against the actual UTF-8 bytes with Content-Length absent/understated/spoofed, limiter rejection before body parsing, missing bindings fail closed, legacy/v2 normalization, encrypted persisted user content, minimized Discord payload, D1 failure preventing Discord, Discord failure returning `notified:false`, report-id response, honeypot no-op and unknown-key rejection.
 
 - [ ] **Step 2: Add failing Printer Intake regression cases**
 
@@ -157,7 +157,7 @@ Expected: new v2 expectations fail against the legacy Discord-only handler.
 
 - [ ] **Step 4: Implement the authoritative D1-first flow**
 
-Rate-limit with `await env.FEEDBACK_RATE_LIMITER.limit({ key: request.headers.get("CF-Connecting-IP") || "unknown" })`, without logging or persisting the key. Authenticate, parse, normalize, tee Printer Intake fail-open, encrypt and insert. Only then post a Discord embed containing report id, category, source/version/channel, physical-vs-selected classification, error operation/code and fingerprint. Never include email, user text, breadcrumbs, Sentry id or diagnostic JSON.
+Rate-limit with `await env.FEEDBACK_RATE_LIMITER.limit({ key: request.headers.get("CF-Connecting-IP") || "unknown" })`, without logging or persisting the key. Use Content-Length only as an early rejection hint; after `request.text()`, enforce the authoritative 32 KiB limit with `new TextEncoder().encode(rawBody).byteLength` before JSON parsing. Authenticate, normalize, tee Printer Intake fail-open, encrypt and insert. Only then post a Discord embed containing report id, category, source/version/channel, physical-vs-selected classification, error operation/code and fingerprint. Never include email, user text, breadcrumbs, Sentry id or diagnostic JSON.
 
 - [ ] **Step 5: Verify GREEN and commit**
 
