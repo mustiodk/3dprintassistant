@@ -323,7 +323,6 @@ Commit: `feat(feedback): attach disclosed web diagnostics to reports`
 - Create: `feedback-owner.js`
 - Create: `functions/api/feedback-owner-ui.test.mjs`
 - Modify: `privacy.html`
-- Modify: `docs/app-store-privacy-labels.md`
 - Modify: `docs/planning/ROADMAP.md`
 
 **Interfaces:**
@@ -382,6 +381,7 @@ Commit: `feat(feedback): add compact owner triage and privacy copy`
 - Modify: `3DPrintAssistant.xcodeproj/project.pbxproj`
 - Modify: `3DPrintAssistantTests/FeedbackTests.swift`
 - Create: `3DPrintAssistantTests/FeedbackDiagnosticRecorderTests.swift`
+- Modify: `docs/app-store-privacy-labels.md`
 
 **Interfaces:**
 - Produces Codable `FeedbackV2Submission`, `FeedbackDiagnosticSnapshot`, `FeedbackBreadcrumb`, `FeedbackFailure`, `PhysicalPrinterPreference` matching the web fixture keys.
@@ -417,6 +417,8 @@ Record app/screen/selection/profile/export/feedback breadcrumbs at existing even
 - [ ] **Step 5: Update the SwiftUI form**
 
 For bug reports use what-happened required, expected and steps optional, diagnostics disclosure, contextual physical-printer confirmation and returned report id. Other categories remain visually unchanged and send minimal context. Keep all existing contextual `.sheet(item:)` prefill behavior.
+
+Update the iOS repo's `docs/app-store-privacy-labels.md` against the final payload before the App Store privacy-answer review gate.
 
 - [ ] **Step 6: Regenerate project and verify GREEN**
 
