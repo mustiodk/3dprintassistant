@@ -12,6 +12,9 @@ export default defineConfig({
       const migrations = await readD1Migrations(
         path.join(import.meta.dirname, "migrations"),
       );
+      const feedbackMigrations = await readD1Migrations(
+        path.join(import.meta.dirname, "feedback-migrations"),
+      );
 
       return {
         main: "./worker.js",
@@ -27,8 +30,9 @@ export default defineConfig({
             PUSH_TEST_RATE_LIMIT_BYPASS: "true",
             APNS_TOPIC: "dk.mragile.3DPrintAssistant",
             TEST_MIGRATIONS: migrations,
+            FEEDBACK_TEST_MIGRATIONS: feedbackMigrations,
           },
-          d1Databases: { PUSH_DB: "push-db" },
+          d1Databases: { PUSH_DB: "push-db", FEEDBACK_DB: "feedback-db" },
           queueProducers: {
             PUSH_FANOUT: "push-fanout",
             PUSH_DLQ: "push-dlq",
@@ -49,7 +53,7 @@ export default defineConfig({
     }),
   ],
   test: {
-    include: ["functions/api/push/**/*.test.mjs"],
+    include: ["functions/api/push/**/*.test.mjs", "functions/api/feedback/**/*.test.mjs"],
     setupFiles: ["./functions/api/push/test-setup.mjs"],
   },
 });
