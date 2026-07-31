@@ -109,3 +109,21 @@ test("reports diagnostic completeness for both schema versions", () => {
   assert.equal(legacy.ok, true);
   assert.equal(legacy.report.summary.diagnosticCompleteness, "partial");
 });
+
+test("rejects incoherent physical-printer classifications", () => {
+  const noId = structuredClone(v2);
+  noId.diagnostics.physicalPrinter = { kind: "supported", match: "different" };
+  assert.equal(normalizeFeedbackPayload(noId, "web").error, "invalid_physical_printer");
+
+  const unknownKind = structuredClone(v2);
+  unknownKind.diagnostics.physicalPrinter = { kind: "totally_made_up", match: "unknown" };
+  assert.equal(normalizeFeedbackPayload(unknownKind, "web").error, "invalid_physical_printer");
+
+  const strayId = structuredClone(v2);
+  strayId.diagnostics.physicalPrinter = { kind: "unknown", printerId: "bambu_p1s", match: "different" };
+  assert.equal(normalizeFeedbackPayload(strayId, "web").error, "invalid_physical_printer");
+
+  const ok = structuredClone(v2);
+  ok.diagnostics.physicalPrinter = { kind: "unknown", match: "different" };
+  assert.equal(normalizeFeedbackPayload(ok, "web").ok, true);
+});

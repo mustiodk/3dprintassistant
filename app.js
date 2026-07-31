@@ -93,7 +93,7 @@ let pickerCollapsed   = false;           // auto-collapse picker after printer s
 globalThis.FeedbackDiagnostics?.setSnapshotProvider(() => {
   const preference = globalThis.FeedbackDiagnostics.physicalPrinterPreference();
   let physicalPrinter = preference;
-  if (preference.kind === 'supported') {
+  if (preference.kind === 'supported' && preference.printerId) {
     physicalPrinter = { kind: 'supported', printerId: preference.printerId, match: !state.printer ? 'unknown' : (preference.printerId === state.printer ? 'same' : 'different') };
   } else if (preference.kind === 'custom') {
     physicalPrinter = { kind: 'custom', match: 'custom_not_in_catalog' };

@@ -37,7 +37,9 @@
     try {
       const parsed = JSON.parse(root.localStorage.getItem(STORAGE_KEY) || 'null');
       if (parsed?.kind === 'supported' && typeof parsed.printerId === 'string') return { kind: 'supported', printerId: parsed.printerId, match: 'unknown' };
-      if (parsed?.kind === 'different') return { kind: 'supported', match: 'different' };
+      // The user told us their printer differs from the selected profile but named no
+      // catalog printer, so there is no canonical id to report. "supported" would claim one.
+      if (parsed?.kind === 'different') return { kind: 'unknown', match: 'different' };
       if (parsed?.kind === 'custom') return { kind: 'custom', match: 'custom_not_in_catalog', ...(includeCustomText ? { customPrinterBrand: String(parsed.customPrinterBrand || '').slice(0, 100), customPrinterModel: String(parsed.customPrinterModel || '').slice(0, 160) } : {}) };
     } catch (_) {}
     return { kind: 'unknown', match: 'unknown' };

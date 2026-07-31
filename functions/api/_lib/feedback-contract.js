@@ -30,6 +30,8 @@ const USER_KEYS = ["whatHappened", "expected", "steps", "message", "title", "ema
 const DIAGNOSTIC_KEYS = ["capturedAt", "captureReason", "entryPoint", "application", "physicalPrinter", "configuration", "catalog", "runtime", "failure", "breadcrumbs"];
 const APPLICATION_KEYS = ["platform", "releaseChannel", "appVersion", "buildNumber", "releaseId", "engineRevision", "osFamily", "osVersion", "browserFamily", "browserVersion", "deviceClass", "locale", "screenClass"];
 const PHYSICAL_KEYS = ["kind", "printerId", "match"];
+const PHYSICAL_KINDS = new Set(["supported", "custom", "unknown"]);
+const PHYSICAL_MATCHES = new Set(["same", "different", "unknown", "custom_not_in_catalog"]);
 const CONFIG_KEYS = ["brand", "printer", "nozzle", "material", "useCase", "surface", "strength", "speed", "environment", "support", "colors", "userLevel", "specialOptions", "seam", "brim", "buildPlate", "extruderType", "filamentCondition", "ironing", "profileMode", "outputMode", "slicer", "activeView", "activeTab", "exportType", "nativeExportAvailable", "fallbackReason"];
 const CATALOG_KEYS = ["baselineRevision", "overlaySource", "contentVersion", "selectedPrinterResolved"];
 const RUNTIME_KEYS = ["engineInitialized", "online", "requestStatusClass", "requestCode", "fallbackUsed"];
@@ -88,6 +90,20 @@ function validateBreadcrumbs(items) {
   return null;
 }
 
+// A canonical printer id is the only thing that makes "supported" meaningful, so the
+// two must travel together. Anything else is an unresolved printer, not a supported one.
+function validatePhysicalPrinter(value) {
+  if (!isRecord(value) || value.kind === undefined) return null;
+  if (!PHYSICAL_KINDS.has(value.kind)) return "invalid_physical_printer";
+  if (value.match !== undefined && !PHYSICAL_MATCHES.has(value.match)) return "invalid_physical_printer";
+  if (value.kind === "supported") {
+    if (typeof value.printerId !== "string" || !STABLE_ID.test(value.printerId)) return "invalid_physical_printer";
+  } else if (value.printerId !== undefined) {
+    return "invalid_physical_printer";
+  }
+  return null;
+}
+
 function normalizeLegacy(payload, source) {
   if (!hasOnlyKeys(payload, ["category", "fields", "email", "context"])) return fail("unknown_key");
   if (!FEEDBACK_CATEGORIES.includes(payload.category)) return fail("invalid_category");
@@ -131,6 +147,8 @@ export function normalizeFeedbackPayload(payload, source) {
     const error = boundedStrings(section, keys);
     if (error) return fail(error);
   }
+  const physicalError = validatePhysicalPrinter(payload.diagnostics.physicalPrinter);
+  if (physicalError) return fail(physicalError);
   const application = payload.diagnostics.application;
   if (!application || application.platform !== source) return fail("invalid_platform");
   const channels = source === "web" ? ["production", "preview", "local"] : ["debug", "sandbox_or_testflight", "appstore"];

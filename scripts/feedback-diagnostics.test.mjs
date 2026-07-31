@@ -43,3 +43,13 @@ test("custom printer text stays in userContent", () => {
   assert.equal(submission.diagnostics.physicalPrinter.customPrinterBrand, undefined);
   assert.equal(submission.diagnostics.application.releaseChannel, "local");
 });
+
+test("a different physical printer is not classified as supported", () => {
+  const old = globalThis.localStorage;
+  globalThis.localStorage = { getItem() { return JSON.stringify({ kind: "different" }); }, setItem() {} };
+  const preference = globalThis.FeedbackDiagnostics.physicalPrinterPreference();
+  assert.equal(preference.match, "different");
+  assert.notEqual(preference.kind, "supported");
+  assert.equal("printerId" in preference, false);
+  globalThis.localStorage = old;
+});
