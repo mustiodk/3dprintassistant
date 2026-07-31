@@ -163,3 +163,24 @@ test("enforces minimal diagnostics for non-bug categories at the boundary", () =
   // bugReport keeps full diagnostics.
   assert.equal(normalizeFeedbackPayload(v2, "web").ok, true);
 });
+
+test("labels completeness by how much the category actually carries", () => {
+  const bug = normalizeFeedbackPayload(v2, "web");
+  assert.equal(bug.report.summary.diagnosticCompleteness, "complete");
+
+  const general = normalizeFeedbackPayload({
+    schemaVersion: "feedback_v2",
+    category: "generalFeedback",
+    userContent: { message: "Nice tool" },
+    diagnostics: {
+      capturedAt: "2026-07-31T12:34:56Z",
+      captureReason: "manual",
+      entryPoint: "feedback.modal",
+      application: { platform: "web", releaseChannel: "production", appVersion: "web-abc" },
+      configuration: {}, breadcrumbs: [], failure: {},
+    },
+  }, "web");
+  assert.equal(general.ok, true);
+  assert.equal(general.report.summary.diagnosticCompleteness, "minimal",
+    "a report that deliberately carries no diagnostics is not 'complete'");
+});
