@@ -30,8 +30,9 @@
     bugReport: {
       titleKey: 'fbCatBugReport',
       fields: [
-        { id: 'steps',   labelKey: 'fbFieldSteps',   type: 'textarea', required: true,  maxLength: 2000 },
-        { id: 'context', labelKey: 'fbFieldContext', type: 'textarea', required: false, maxLength: 1000 },
+        { id: 'whatHappened', labelKey: 'fbFieldWhatHappened', type: 'textarea', required: true,  maxLength: 4000 },
+        { id: 'expected',     labelKey: 'fbFieldExpected',     type: 'textarea', required: false, maxLength: 2000 },
+        { id: 'steps',        labelKey: 'fbFieldSteps',        type: 'textarea', required: false, maxLength: 3000 },
       ],
     },
     missingPrinter: {
@@ -163,7 +164,10 @@
           <label class="feedback-label">
             <span data-fb-el="emailLabel"></span>
             <input type="email" class="feedback-input" data-fb-el="email" autocomplete="email" />
+            <small class="feedback-help" data-fb-el="emailHelp"></small>
           </label>
+          <div class="feedback-diagnostics-note" data-fb-el="diagnosticsNote" hidden></div>
+          <div class="feedback-privacy-note" data-fb-el="privacyNote"></div>
           <!-- honeypot: invisible to humans, tempting to bots -->
           <div class="feedback-honeypot" aria-hidden="true">
             <label>Do not fill this field
@@ -179,6 +183,7 @@
             <div class="feedback-success-icon">\u2713</div>
             <div class="feedback-success-title"  data-fb-el="successTitle"></div>
             <div class="feedback-success-sub"    data-fb-el="successSub"></div>
+            <div class="feedback-report-id" data-fb-el="successReport"></div>
             <button type="button" class="feedback-btn feedback-btn--primary" data-fb-el="successClose"></button>
           </div>
         </form>
@@ -216,6 +221,9 @@
     qs('categoryLabel').textContent = T('fbCategoryLabel');
     qs('emailLabel').textContent    = T('fbEmailLabel');
     qs('email').placeholder         = T('fbEmailPlaceholder');
+    qs('emailHelp').textContent     = T('fbEmailHelp');
+    qs('privacyNote').textContent   = T('fbPrivacyNote');
+    qs('diagnosticsNote').textContent = T('fbDiagnosticsNote');
     qs('cancel').textContent        = T('fbCancel');
     qs('successTitle').textContent  = T('fbSuccessTitle');
     qs('successSub').textContent    = T('fbSuccessSub');
@@ -242,6 +250,8 @@
     wrap.innerHTML = '';
     const cat = CATEGORIES[currentCategory];
     if (!cat) return;
+
+    qs('diagnosticsNote').hidden = currentCategory !== 'bugReport';
 
     for (const f of cat.fields) {
       const label = document.createElement('label');
@@ -270,6 +280,22 @@
 
       wrap.appendChild(label);
     }
+
+    if (currentCategory === 'bugReport') renderPhysicalPrinterQuestion(wrap);
+  }
+
+  function renderPhysicalPrinterQuestion(wrap) {
+    const selectedPrinter = globalThis.FeedbackDiagnostics?.snapshot('form_opened', 'feedback.modal').configuration?.printer;
+    const preference = globalThis.FeedbackDiagnostics?.physicalPrinterPreference() || { kind: 'unknown' };
+    if (!selectedPrinter || preference.kind !== 'unknown') return;
+    const label = document.createElement('label');
+    label.className = 'feedback-label';
+    label.innerHTML = `<span>${T('fbPhysicalPrinter')}</span><select class="feedback-select" data-fb-el="physicalPrinter"><option value="unknown">${T('fbPrinterUnknown')}</option><option value="same">${T('fbPrinterSame')}</option><option value="different">${T('fbPrinterDifferent')}</option><option value="custom">${T('fbPrinterUnsupported')}</option></select>`;
+    const custom = document.createElement('div');
+    custom.className = 'feedback-custom-printer'; custom.hidden = true;
+    custom.innerHTML = `<input class="feedback-input" maxlength="100" data-fb-el="customBrand" placeholder="${T('fbFieldBrand')}"><input class="feedback-input" maxlength="160" data-fb-el="customModel" placeholder="${T('fbFieldModel')}">`;
+    label.querySelector('select').addEventListener('change', (event) => { custom.hidden = event.target.value !== 'custom'; });
+    wrap.append(label, custom);
   }
 
   function renderSubmitButton() {
@@ -351,12 +377,37 @@
     const email = (qs('email').value || '').trim();
     const honeypot = (qs('honeypot').value || '').trim();
 
-    const body = {
-      category: currentCategory,
-      fields,
-      email: email || null,
-      context: buildContext(honeypot),
-    };
+    let body;
+    if (currentCategory === 'bugReport' || currentCategory === 'generalFeedback' || currentCategory === 'featureRequest') {
+      const userContent = Object.fromEntries(fields.map((field) => [field.id, field.value]));
+      if (email) userContent.email = email;
+      const savedPrinter = globalThis.FeedbackDiagnostics.physicalPrinterPreference();
+      if (savedPrinter.kind === 'custom') {
+        if (savedPrinter.customPrinterBrand) userContent.customPrinterBrand = savedPrinter.customPrinterBrand;
+        if (savedPrinter.customPrinterModel) userContent.customPrinterModel = savedPrinter.customPrinterModel;
+      }
+      const printerChoice = qs('physicalPrinter');
+      if (printerChoice) {
+        const selected = globalThis.FeedbackDiagnostics.snapshot('manual', 'feedback.modal').configuration.printer;
+        if (printerChoice.value === 'same') globalThis.FeedbackDiagnostics.savePhysicalPrinterPreference({ kind: 'supported', printerId: selected });
+        if (printerChoice.value === 'different') globalThis.FeedbackDiagnostics.savePhysicalPrinterPreference({ kind: 'different' });
+        if (printerChoice.value === 'custom') {
+          const customPrinterBrand = (qs('customBrand')?.value || '').trim();
+          const customPrinterModel = (qs('customModel')?.value || '').trim();
+          if (customPrinterBrand) userContent.customPrinterBrand = customPrinterBrand;
+          if (customPrinterModel) userContent.customPrinterModel = customPrinterModel;
+          globalThis.FeedbackDiagnostics.savePhysicalPrinterPreference({ kind: 'custom', customPrinterBrand, customPrinterModel });
+        }
+      }
+      const diagnostics = globalThis.FeedbackDiagnostics.snapshot('manual', 'feedback.modal');
+      if (currentCategory !== 'bugReport') {
+        diagnostics.configuration = {}; diagnostics.breadcrumbs = []; diagnostics.failure = {};
+      }
+      body = globalThis.FeedbackDiagnostics.buildSubmission(currentCategory, userContent, diagnostics);
+    } else {
+      body = { category: currentCategory, fields, email: email || null, context: buildContext(honeypot) };
+    }
+    if (honeypot) body = { category: currentCategory, fields, email: email || null, context: buildContext(honeypot) };
 
     status = 'submitting';
     showError('');
@@ -375,6 +426,7 @@
 
       if (res.ok && data && data.ok) {
         status = 'success';
+        qs('successReport').textContent = data.reportId ? `${T('fbReportId')}: ${data.reportId}` : '';
         showSuccess();
         return;
       }

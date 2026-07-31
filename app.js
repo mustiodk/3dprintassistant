@@ -5,6 +5,7 @@
 // ── Analytics ─────────────────────────────────────────────────────────────────
 function track(name, props) {
   try {
+    globalThis.FeedbackDiagnostics?.record(name, props);
     if (localStorage.getItem('3dpa_notrack') === '1') return;
     const body = JSON.stringify({
       event: name,
@@ -88,6 +89,33 @@ let _lastTrackedProfileKey = null;       // deduplicates profile_generated event
 let pickerBrand       = null;            // currently expanded brand in printer picker
 let pickerShowMore    = false;           // whether secondary brands are visible
 let pickerCollapsed   = false;           // auto-collapse picker after printer selected + other filter clicked
+
+globalThis.FeedbackDiagnostics?.setSnapshotProvider(() => {
+  const preference = globalThis.FeedbackDiagnostics.physicalPrinterPreference();
+  let physicalPrinter = preference;
+  if (preference.kind === 'supported') {
+    physicalPrinter = { kind: 'supported', printerId: preference.printerId, match: !state.printer ? 'unknown' : (preference.printerId === state.printer ? 'same' : 'different') };
+  } else if (preference.kind === 'custom') {
+    physicalPrinter = { kind: 'custom', match: 'custom_not_in_catalog' };
+  }
+  return {
+    physicalPrinter,
+    configuration: {
+      brand: state.printer ? Engine.getPrinter(state.printer)?.manufacturer || null : null,
+      printer: state.printer, nozzle: state.nozzle, material: state.material,
+      useCase: state.useCase, surface: state.surface, strength: state.strength, speed: state.speed,
+      environment: state.environment, support: state.support, colors: state.colors,
+      userLevel: state.userLevel, specialOptions: state.special, seam: state.seam, brim: state.brim,
+      buildPlate: state.build_plate, extruderType: state.extruder_type,
+      filamentCondition: state.filament_condition, ironing: state.ironing,
+      profileMode: state.profileMode || 'safe', outputMode: currentMode,
+      slicer: state.printer ? Engine.getSlicerForPrinter(state.printer) : null,
+      activeView: currentView, activeTab: activeTabId,
+    },
+    catalog: { selectedPrinterResolved: state.printer ? !!Engine.getPrinter(state.printer) : false },
+    runtime: { engineInitialized: true },
+  };
+});
 
 // Print time estimator state
 const ptState = { height: 50, width: 50, depth: 50, walls: 3, infill: 15 };

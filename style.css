@@ -1618,6 +1618,28 @@ dialog.feedback-modal {
   height: 1px;
   overflow: hidden;
 }
+.feedback-help,
+.feedback-diagnostics-note,
+.feedback-privacy-note,
+.feedback-report-id {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text3);
+}
+.feedback-diagnostics-note,
+.feedback-privacy-note {
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+.feedback-diagnostics-note[hidden] { display: none; }
+.feedback-custom-printer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.feedback-custom-printer[hidden] { display: none; }
 .feedback-error {
   color: #ff8a80;
   font-size: 13px;
