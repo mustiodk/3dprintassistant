@@ -296,7 +296,7 @@ Expected: `feedback-diagnostics.js` is absent.
 
 - [ ] **Step 3: Implement recorder and state snapshot provider**
 
-Load `release-manifest.js`, then `feedback-diagnostics.js`, before form/app scripts. In `app.js`, register a provider that returns stable ids for selected configuration, current view/tab/output mode, resolved slicer, selected-printer existence and catalog/overlay provenance already available at runtime. Record only the allowlisted screen/selection/profile/export/catalog/feedback events.
+Load `release-manifest.js`, then `feedback-diagnostics.js`, before form/app scripts. `feedback-diagnostics.js` owns release-channel classification from `location.hostname`: canonical production host is `production`, local hosts are `development`, and every other host is `preview`. In `app.js`, register a provider that returns stable ids for selected configuration, current view/tab/output mode, resolved slicer, selected-printer existence and catalog/overlay provenance already available at runtime. Record only the allowlisted screen/selection/profile/export/catalog/feedback events.
 
 - [ ] **Step 4: Keep the form simple**
 
