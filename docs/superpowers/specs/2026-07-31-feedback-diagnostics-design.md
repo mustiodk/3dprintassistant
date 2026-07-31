@@ -1,7 +1,7 @@
 # Feedback Diagnostics v2 — design
 
 **Date:** 2026-07-31
-**Status:** Cross-model reviewed draft — pending owner review
+**Status:** Owner-approved 2026-07-31 — implementation authorized
 **Scope:** 3dprintassistant web + iOS + the existing Cloudflare Worker
 **Owner goal:** Automatically capture the highest-value diagnostic context with every bug report, without turning feedback into a complex support platform.
 
