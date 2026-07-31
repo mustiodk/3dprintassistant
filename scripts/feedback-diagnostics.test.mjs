@@ -62,3 +62,36 @@ test("snapshots real catalog provenance instead of leaving it blank", () => {
   assert.equal(catalog.overlaySource, "bundled");
   assert.equal(catalog.baselineRevision, "catalog-test");
 });
+
+// The client is the only producer of breadcrumbs, so its output must be accepted by
+// the server validator for every allowlisted event — including at the value bounds.
+// This is the boundary test the 120-vs-80 screen-length finding was missing.
+test("client breadcrumbs always satisfy the server contract", async () => {
+  const { normalizeFeedbackPayload, BREADCRUMB_EVENTS } = await import("../functions/api/_lib/feedback-contract.js");
+  // Fractional clock: ageMs must still reach the server as an integer.
+  let tick = 0.5;
+  const recorder = globalThis.FeedbackDiagnostics.createRecorder({ now: () => (tick += 1.25) });
+  recorder.setSnapshotProvider(() => ({}));
+
+  for (const name of BREADCRUMB_EVENTS) {
+    recorder.record(name, {
+      feature: "output", operation: "orca_bundle", outputMode: "text", status: "failed",
+      printer: "bambu_p1s", material: "pla_basic", nozzle: "std_0.4", slicer: "orca",
+    });
+  }
+  // Over-long and out-of-vocabulary values must be dropped, never truncated into the payload.
+  recorder.record("screen_opened", { feature: "z".repeat(200), printer: "p".repeat(200) });
+
+  const snapshot = recorder.snapshot("manual", "feedback.modal");
+  for (const crumb of snapshot.breadcrumbs) {
+    assert.ok(Number.isInteger(crumb.ageMs), `ageMs must be an integer, got ${crumb.ageMs}`);
+    // RED demo verified 2026-08-01: restoring the pre-1dab6d0 `.slice(0, 120)` prop
+    // truncation fails this line with "screen exceeds the server bound: 120".
+    assert.ok(crumb.screen.length <= 80, `screen exceeds the server bound: ${crumb.screen.length}`);
+  }
+
+  const body = globalThis.FeedbackDiagnostics.buildSubmission("bugReport", { whatHappened: "Export failed" }, snapshot);
+  const result = normalizeFeedbackPayload(body, "web");
+  assert.equal(result.error, undefined);
+  assert.equal(result.ok, true);
+});

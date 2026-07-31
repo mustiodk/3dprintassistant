@@ -85,7 +85,9 @@
           catalog: { ...catalogProvenance(), ...(supplied.catalog || {}) },
           runtime: { online: root.navigator?.onLine !== false, ...(supplied.runtime || {}) },
           failure: clone(failure || supplied.failure || {}),
-          breadcrumbs: breadcrumbs.map((item) => ({ name: item.name, ageMs: Math.max(0, captured - item.at), screen: item.screen, props: clone(item.props) })),
+          // The server requires an integer age; any non-integer clock would make the
+          // whole report fail validation at the boundary instead of just this crumb.
+          breadcrumbs: breadcrumbs.map((item) => ({ name: item.name, ageMs: Math.round(Math.max(0, captured - item.at)), screen: item.screen, props: clone(item.props) })),
         };
       },
     };
