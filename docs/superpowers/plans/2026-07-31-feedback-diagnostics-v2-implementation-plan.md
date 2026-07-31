@@ -371,6 +371,9 @@ Commit: `feat(feedback): add compact owner triage and privacy copy`
 - Create: `3DPrintAssistant/Models/FeedbackDiagnostics.swift`
 - Create: `3DPrintAssistant/Services/FeedbackDiagnosticRecorder.swift`
 - Modify: `3DPrintAssistant/Services/FeedbackService.swift`
+- Modify: `Config.xcconfig.template`
+- Modify: `3DPrintAssistant/App/Info.plist`
+- Modify: `3DPrintAssistant/Utils/AppConstants.swift`
 - Modify: `3DPrintAssistant/Views/Feedback/FeedbackViewModel.swift`
 - Modify: `3DPrintAssistant/Views/Feedback/FeedbackView.swift`
 - Modify: `3DPrintAssistant/App/ContentView.swift`
@@ -409,7 +412,7 @@ Expected: compile/test failure because v2 models and recorder do not exist.
 
 - [ ] **Step 3: Implement models, recorder and Worker-only service**
 
-Build diagnostics from `AppStateWebCodec.webDict`, `AppConstants.appVersion/appBuildNumber`, `UIDevice`, active route/screen, selected printer/slicer and catalog provider metadata. Store “My printer” locally in `UserDefaults` under a single namespaced key; custom text joins `userContent`. Remove `submitToDiscord` and make missing Worker/HMAC configuration a visible setup error.
+Build diagnostics from `AppStateWebCodec.webDict`, `AppConstants.appVersion/appBuildNumber`, `UIDevice`, active route/screen, selected printer/slicer and catalog provider metadata. Store “My printer” locally in `UserDefaults` under a single namespaced key; custom text joins `userContent`. Remove `submitToDiscord`, the committed `DISCORD_FEEDBACK_WEBHOOK` template entry, its Info.plist substitution and its `AppConstants` accessor; make missing Worker/HMAC configuration a visible setup error. A private local config value may remain unused and is not read or rewritten by this work.
 
 - [ ] **Step 4: Instrument bounded known paths**
 
