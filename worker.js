@@ -49,6 +49,7 @@ const PRIVATE_ASSET_ROOTS = [
   "/worker.js",
   "/functions",
   "/migrations",
+  "/feedback-migrations",
   "/package.json",
   "/package-lock.json",
   "/vitest.config.mjs",

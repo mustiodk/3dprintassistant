@@ -31,6 +31,8 @@ const privatePaths = [
   "/migrations/0001_push.sql",
   "/migrations/0001_push.sql/",
   "/%6digrations/0001_push.sql",
+  "/feedback-migrations/0001_feedback_reports.sql",
+  "/%66eedback-migrations/0001_feedback_reports.sql",
 ];
 
 test("exports the private-asset classifier", () => {
