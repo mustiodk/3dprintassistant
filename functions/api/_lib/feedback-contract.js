@@ -164,6 +164,7 @@ export function normalizeFeedbackPayload(payload, source) {
         selectedPrinter: payload.diagnostics.configuration?.printer || null,
         physicalPrinter: payload.diagnostics.physicalPrinter?.printerId || payload.diagnostics.physicalPrinter?.match || null,
         errorCode: payload.diagnostics.failure?.code || null,
+        diagnosticCompleteness: "complete",
       },
     },
   };

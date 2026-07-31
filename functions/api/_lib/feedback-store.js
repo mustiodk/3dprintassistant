@@ -3,6 +3,7 @@ const COLUMNS = [
   ["source", "source"], ["received_at", "receivedAt"], ["captured_at", "capturedAt"],
   ["app_version", "appVersion"], ["build_number", "buildNumber"], ["release_channel", "releaseChannel"],
   ["physical_printer", "physicalPrinter"], ["selected_printer", "selectedPrinter"], ["error_code", "errorCode"],
+  ["diagnostic_completeness", "diagnosticCompleteness"],
   ["user_content_ciphertext", "userContentCiphertext"], ["user_content_iv", "userContentIv"],
   ["diagnostics_json", "diagnosticsJson"], ["breadcrumbs_json", "breadcrumbsJson"],
   ["issue_fingerprint", "issueFingerprint"], ["expires_at", "expiresAt"],

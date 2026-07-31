@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS feedback_reports (
   physical_printer TEXT,
   selected_printer TEXT,
   error_code TEXT,
+  diagnostic_completeness TEXT NOT NULL CHECK (diagnostic_completeness IN ('complete','minimal','partial')),
   user_content_ciphertext TEXT NOT NULL,
   user_content_iv TEXT NOT NULL,
   diagnostics_json TEXT NOT NULL,

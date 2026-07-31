@@ -94,3 +94,18 @@ test("normalizes legacy web and iOS payloads without inventing diagnostics", () 
     assert.deepEqual(result.report.diagnostics, {});
   }
 });
+
+test("reports diagnostic completeness for both schema versions", () => {
+  const complete = normalizeFeedbackPayload(v2, "web");
+  assert.equal(complete.ok, true);
+  assert.equal(complete.report.summary.diagnosticCompleteness, "complete");
+
+  const legacy = normalizeFeedbackPayload({
+    category: "bugReport",
+    fields: [{ id: "message", label: "Message", value: "It broke" }],
+    email: null,
+    context: { appSource: "ios" },
+  }, "ios");
+  assert.equal(legacy.ok, true);
+  assert.equal(legacy.report.summary.diagnosticCompleteness, "partial");
+});

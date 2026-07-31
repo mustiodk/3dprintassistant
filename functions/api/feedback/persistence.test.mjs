@@ -9,6 +9,7 @@ const row = (id, receivedAt = "2026-07-31T12:00:00.000Z") => ({
   releaseChannel: "production", physicalPrinter: "bambu_p1s", selectedPrinter: "bambu_p1s",
   errorCode: "export_failed", userContentCiphertext: "cipher", userContentIv: "iv",
   diagnosticsJson: "{}", breadcrumbsJson: "[]", issueFingerprint: "fingerprint",
+  diagnosticCompleteness: "complete",
   expiresAt: "2026-10-29T12:00:00.000Z",
 });
 
@@ -37,5 +38,11 @@ describe("feedback D1 store", () => {
     await expect(persistFeedbackReport(env.FEEDBACK_DB, async (id) => row(id), () => ids.shift())).resolves.toBe("RPT-fresh");
     await expect(persistFeedbackReport(env.FEEDBACK_DB, async (id) => row(id), () => "RPT-taken")).rejects.toThrow("report_id_unavailable");
     await expect(persistFeedbackReport({ prepare() { throw new Error("database offline"); } }, async (id) => row(id), () => "RPT-any")).rejects.toThrow("database offline");
+  });
+  it("persists diagnostic completeness for the owner view", async () => {
+    await insertFeedbackReport(env.FEEDBACK_DB, row("RPT-complete"));
+    await insertFeedbackReport(env.FEEDBACK_DB, { ...row("RPT-legacy"), schemaVersion: "feedback_legacy_v1", diagnosticCompleteness: "partial" });
+    expect((await readFeedbackReport(env.FEEDBACK_DB, "RPT-complete")).diagnostic_completeness).toBe("complete");
+    expect((await readFeedbackReport(env.FEEDBACK_DB, "RPT-legacy")).diagnostic_completeness).toBe("partial");
   });
 });

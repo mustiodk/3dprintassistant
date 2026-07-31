@@ -16,7 +16,7 @@ async function seed(id = "RPT-test") {
     releaseChannel: "production", physicalPrinter: "same", selectedPrinter: "p1s", errorCode: "E1",
     userContentCiphertext: encrypted.ciphertext, userContentIv: encrypted.iv,
     diagnosticsJson: JSON.stringify({ failure: { code: "E1" } }), breadcrumbsJson: "[]",
-    issueFingerprint: "fingerprint", expiresAt: "2026-10-01T00:00:00Z",
+    issueFingerprint: "fingerprint", expiresAt: "2026-10-01T00:00:00Z", diagnosticCompleteness: "complete",
   });
 }
 
