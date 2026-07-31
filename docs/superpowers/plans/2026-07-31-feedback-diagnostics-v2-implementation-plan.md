@@ -391,7 +391,7 @@ Commit: `feat(feedback): add compact owner triage and privacy copy`
 
 - [ ] **Step 1: Create the iOS feature worktree and write failing model/recorder tests**
 
-Create `codex/feedback-diagnostics-v2-ios` from current iOS `main`. Use literal shared JSON fixtures copied from Task 1 expectations. Assert exact encoded wire shape, platform/channel, 25-entry eviction, unknown-value rejection through typed enums, frozen snapshot immutability, no persistent identifier, and no direct Discord fallback.
+Create worktree directory `.worktrees/feedback-diagnostics-v2-ios` on branch `codex/feedback-diagnostics-v2-ios` from current iOS `main`. Use literal shared JSON fixtures copied from Task 1 expectations. Assert exact encoded wire shape, platform/channel, 25-entry eviction, unknown-value rejection through typed enums, frozen snapshot immutability, no persistent identifier, and no direct Discord fallback.
 
 - [ ] **Step 2: Run focused XCTest and verify RED**
 
