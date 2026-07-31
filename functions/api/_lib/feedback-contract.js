@@ -16,6 +16,15 @@ export const BREADCRUMB_EVENTS = Object.freeze([
   "catalog_failed", "feedback_opened",
 ]);
 
+export const FEEDBACK_CAPTURE_REASONS = Object.freeze([
+  "manual", "form_opened", "export_failed", "copy_failed", "engine_failed", "catalog_failed",
+]);
+
+export const FEEDBACK_ENTRY_POINTS = Object.freeze([
+  "feedback.card", "feedback.modal", "output.export_error", "output.copy_error",
+  "app.engine_error", "app.catalog_error",
+]);
+
 const TOP_KEYS = ["schemaVersion", "category", "userContent", "diagnostics"];
 const USER_KEYS = ["whatHappened", "expected", "steps", "message", "title", "email", "customPrinterBrand", "customPrinterModel"];
 const DIAGNOSTIC_KEYS = ["capturedAt", "captureReason", "entryPoint", "application", "physicalPrinter", "configuration", "catalog", "runtime", "failure", "breadcrumbs"];
@@ -93,6 +102,10 @@ export function normalizeFeedbackPayload(payload, source) {
   if (userError) return fail(userError);
   if (payload.category === "bugReport" && !payload.userContent.whatHappened?.trim()) return fail("missing_what_happened");
   if (!hasOnlyKeys(payload.diagnostics, DIAGNOSTIC_KEYS)) return fail("unknown_key");
+  const { capturedAt, captureReason, entryPoint } = payload.diagnostics;
+  if (typeof capturedAt !== "string" || capturedAt.length > 40 || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/.test(capturedAt) || !Number.isFinite(Date.parse(capturedAt))) return fail("invalid_captured_at");
+  if (!FEEDBACK_CAPTURE_REASONS.includes(captureReason)) return fail("invalid_capture_reason");
+  if (!FEEDBACK_ENTRY_POINTS.includes(entryPoint)) return fail("invalid_entry_point");
 
   const sections = [
     [payload.diagnostics.application, APPLICATION_KEYS],

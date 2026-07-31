@@ -41,6 +41,20 @@ test("rejects unknown keys and invalid platform/channel pairs", () => {
   assert.equal(normalizeFeedbackPayload(bad, "web").error, "invalid_release_channel");
 });
 
+test("bounds capture metadata to closed server vocabularies", () => {
+  const badTime = structuredClone(v2);
+  badTime.diagnostics.capturedAt = "not-a-time";
+  assert.equal(normalizeFeedbackPayload(badTime, "web").error, "invalid_captured_at");
+
+  const badReason = structuredClone(v2);
+  badReason.diagnostics.captureReason = "x".repeat(1000);
+  assert.equal(normalizeFeedbackPayload(badReason, "web").error, "invalid_capture_reason");
+
+  const badEntry = structuredClone(v2);
+  badEntry.diagnostics.entryPoint = "attacker.controlled.entry";
+  assert.equal(normalizeFeedbackPayload(badEntry, "web").error, "invalid_entry_point");
+});
+
 test("rejects oversized and unallowlisted breadcrumb data", () => {
   const tooMany = structuredClone(v2);
   tooMany.diagnostics.breadcrumbs = Array.from({ length: 26 }, () => v2.diagnostics.breadcrumbs[0]);
