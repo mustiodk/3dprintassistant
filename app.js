@@ -28,6 +28,7 @@ function track(name, props) {
 
 function analyticsBaseProps() {
   const meta = document.querySelector('meta[name="app-version"]');
+  const release = globalThis.__3DPA_RELEASE__ || {};
   const host = window.location.hostname;
   let channel = 'production';
   if (host === 'localhost' || host === '127.0.0.1' || host === '') {
@@ -38,7 +39,7 @@ function analyticsBaseProps() {
   return {
     platform: 'web',
     channel,
-    appVersion: (meta && meta.content) || '',
+    appVersion: release.appVersion || (meta && meta.content) || '',
     locale: navigator.language || '',
   };
 }

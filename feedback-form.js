@@ -127,9 +127,11 @@
 
   function buildContext(honeypotValue) {
     const meta = document.querySelector('meta[name="app-version"]');
+    const release = globalThis.__3DPA_RELEASE__ || {};
     const b = detectBrowser();
     return {
-      appVersion:     (meta && meta.content) || '',
+      appVersion:     release.appVersion || (meta && meta.content) || '',
+      releaseId:      release.releaseId || '',
       browser:        b.name,
       browserVersion: b.version,
       os:             detectOS(),

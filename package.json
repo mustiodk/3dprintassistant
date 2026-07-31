@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest"
+    "test": "vitest",
+    "generate:release": "node scripts/gen-release-manifest.mjs",
+    "verify:release": "node scripts/gen-release-manifest.mjs --check"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.16.9",
