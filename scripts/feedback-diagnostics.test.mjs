@@ -95,3 +95,31 @@ test("client breadcrumbs always satisfy the server contract", async () => {
   assert.equal(result.error, undefined);
   assert.equal(result.ok, true);
 });
+
+test("capture metadata is constrained to the closed vocabulary on the client", async () => {
+  const { normalizeFeedbackPayload, FEEDBACK_CAPTURE_REASONS, FEEDBACK_ENTRY_POINTS } =
+    await import("../functions/api/_lib/feedback-contract.js");
+  const recorder = globalThis.FeedbackDiagnostics.createRecorder({ now: () => 1 });
+  recorder.setSnapshotProvider(() => ({}));
+
+  const accepts = (snapshot) => normalizeFeedbackPayload(
+    globalThis.FeedbackDiagnostics.buildSubmission("bugReport", { whatHappened: "x" }, snapshot), "web");
+
+  // Defaults must themselves be in vocabulary — "feedback" never was.
+  const fallback = recorder.snapshot();
+  assert.ok(FEEDBACK_CAPTURE_REASONS.includes(fallback.captureReason));
+  assert.ok(FEEDBACK_ENTRY_POINTS.includes(fallback.entryPoint));
+  assert.equal(accepts(fallback).ok, true);
+
+  // An off-vocabulary call site must degrade to a safe value, not a server 400.
+  const bogus = recorder.snapshot("totally_bogus", "also.bogus");
+  assert.ok(FEEDBACK_CAPTURE_REASONS.includes(bogus.captureReason));
+  assert.ok(FEEDBACK_ENTRY_POINTS.includes(bogus.entryPoint));
+  assert.equal(accepts(bogus).ok, true);
+
+  // Valid values pass through untouched.
+  const valid = recorder.snapshot("export_failed", "output.export_error");
+  assert.equal(valid.captureReason, "export_failed");
+  assert.equal(valid.entryPoint, "output.export_error");
+  assert.equal(accepts(valid).ok, true);
+});

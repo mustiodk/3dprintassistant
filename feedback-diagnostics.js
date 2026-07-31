@@ -9,6 +9,11 @@
   const STATUSES = new Set(['started', 'succeeded', 'failed', 'available', 'unavailable']);
   const STABLE_ID = /^[a-z0-9][a-z0-9._-]{0,79}$/;
   const STORAGE_KEY = '3dpa_physical_printer_v1';
+  // Must stay identical to FEEDBACK_CAPTURE_REASONS / FEEDBACK_ENTRY_POINTS in
+  // functions/api/_lib/feedback-contract.js — scripts/feedback-diagnostics.test.mjs
+  // asserts the parity, because the server rejects anything outside these sets.
+  const CAPTURE_REASONS = new Set(['manual', 'form_opened', 'export_failed', 'copy_failed', 'engine_failed', 'catalog_failed']);
+  const ENTRY_POINTS = new Set(['feedback.card', 'feedback.modal', 'output.export_error', 'output.copy_error', 'app.engine_error', 'app.catalog_error']);
 
   function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
   function channel(host) {
@@ -79,8 +84,12 @@
         const captured = now();
         const supplied = clone(provider()) || {};
         return {
-          capturedAt: new Date(captured).toISOString(), captureReason: String(reason || 'manual').slice(0, 80),
-          entryPoint: String(entryPoint || 'feedback').slice(0, 120), application: application(),
+          // Degrade an unknown call site to a safe in-vocabulary value: the server
+          // rejects anything else outright, which would lose the whole report.
+          capturedAt: new Date(captured).toISOString(),
+          captureReason: CAPTURE_REASONS.has(reason) ? reason : 'manual',
+          entryPoint: ENTRY_POINTS.has(entryPoint) ? entryPoint : 'feedback.card',
+          application: application(),
           physicalPrinter: supplied.physicalPrinter || safePreference(false), configuration: supplied.configuration || {},
           catalog: { ...catalogProvenance(), ...(supplied.catalog || {}) },
           runtime: { online: root.navigator?.onLine !== false, ...(supplied.runtime || {}) },
