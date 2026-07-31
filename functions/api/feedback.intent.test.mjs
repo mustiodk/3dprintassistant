@@ -2,8 +2,8 @@
 // Integration test (research-capable screening, Gate 1): the /api/feedback tee
 // threads `intent` into the KV record for a brand-less printer mention, does not
 // tee non-printer feedback, and keeps the form lane intent-free. We capture
-// env.PRINTER_INTAKE.put; the tee runs BEFORE the Discord webhook check, so no
-// webhook/fetch mock is needed (the handler 500s afterwards — we assert on the tee).
+// env.PRINTER_INTAKE.put. D1 remains authoritative; Discord is intentionally
+// absent because minimized notification is best-effort after a successful save.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -15,7 +15,9 @@ function mkEnv() {
     captured,
     env: {
       PRINTER_INTAKE: { put: async (k, v) => { captured.push({ k, v: JSON.parse(v) }); } },
-      // no DISCORD_WEBHOOK_URL on purpose — handler errors AFTER the tee has run.
+      FEEDBACK_RATE_LIMITER: { limit: async () => ({ success: true }) },
+      FEEDBACK_DATA_KEY: Buffer.alloc(32, 4).toString('base64'),
+      FEEDBACK_DB: { prepare: () => ({ bind: () => ({ run: async () => ({ meta: { changes: 1 } }) }) }) },
     },
   };
 }

@@ -33,6 +33,9 @@
 // Returns { ok: true } on success, { ok: false, error: "..." } on failure.
 
 import { extractPrinterMention } from "./_lib/printer-mention.js";
+import { normalizeFeedbackPayload } from "./_lib/feedback-contract.js";
+import { createReportId, encryptUserContent, fingerprintReport } from "./_lib/feedback-crypto.js";
+import { persistFeedbackReport } from "./_lib/feedback-store.js";
 
 const ALLOWED_ORIGINS = new Set([
   "https://3dprintassistant.com",
@@ -58,7 +61,7 @@ const CATEGORY_META = {
 
 const MAX_FIELD_VALUE = 1000;     // Discord embed field value limit
 const MAX_TOTAL_BYTES = 6000;     // safety margin under Discord's 6000-char embed total
-const MAX_REQUEST_BYTES = 8 * 1024;
+const MAX_REQUEST_BYTES = 32 * 1024;
 
 // HMAC replay-protection window — reject signatures more than this many seconds
 // away from server time. Keeps the window tight enough that a stolen signature
@@ -179,24 +182,31 @@ export async function onRequestPost({ request, env }) {
   const origin = request.headers.get("Origin");
   const appSource = (request.headers.get("X-App-Source") || "").toLowerCase();
   const isIOS = appSource === "ios";
+  const source = isIOS ? "ios" : "web";
   const cors = isIOS ? {} : corsHeaders(origin);
 
-  // Body size guard (applies to both paths)
+  if (!env.FEEDBACK_RATE_LIMITER || !env.FEEDBACK_DB || !env.FEEDBACK_DATA_KEY) {
+    return jsonResponse(503, { ok: false, error: "feedback_storage_not_configured" }, cors);
+  }
+  const rateLimit = await env.FEEDBACK_RATE_LIMITER.limit({
+    key: request.headers.get("CF-Connecting-IP") || "unknown",
+  });
+  if (!rateLimit?.success) {
+    return jsonResponse(429, { ok: false, error: "rate_limited" }, cors);
+  }
+
   const contentLength = Number(request.headers.get("Content-Length") || 0);
   if (contentLength > MAX_REQUEST_BYTES) {
     return jsonResponse(413, { ok: false, error: "payload_too_large" }, cors);
   }
-
-  // Read raw body once — iOS HMAC verification needs the exact bytes, and we
-  // still JSON-parse from the same string afterwards.
   const rawBody = await request.text();
+  if (new TextEncoder().encode(rawBody).byteLength > MAX_REQUEST_BYTES) {
+    return jsonResponse(413, { ok: false, error: "payload_too_large" }, cors);
+  }
 
-  // [CRITICAL-001] Authentication branch
   if (isIOS) {
     const secret = env.FEEDBACK_HMAC_SECRET;
     if (!secret || typeof secret !== "string") {
-      // Secret not yet configured — reject iOS submissions so an accidental
-      // deploy without secret can't fail open.
       return jsonResponse(500, { ok: false, error: "hmac_not_configured" });
     }
     const verdict = await verifyIOSSignature(request, rawBody, secret);
@@ -204,13 +214,11 @@ export async function onRequestPost({ request, env }) {
       return jsonResponse(401, { ok: false, error: verdict.error });
     }
   } else {
-    // Web path — existing origin check.
     if (!isAllowedOrigin(origin)) {
       return jsonResponse(403, { ok: false, error: "forbidden_origin" });
     }
   }
 
-  // Parse JSON from the raw body (already read)
   let payload;
   try {
     payload = JSON.parse(rawBody);
@@ -218,62 +226,21 @@ export async function onRequestPost({ request, env }) {
     return jsonResponse(400, { ok: false, error: "invalid_json" }, cors);
   }
 
-  // Honeypot check (web-only; iOS doesn't send one) — bots that fill every
-  // field will fail here. Return 200 so the bot thinks it succeeded.
   if (payload?.context?.honeypot) {
     return jsonResponse(200, { ok: true }, cors);
   }
+  const normalized = normalizeFeedbackPayload(payload, source);
+  if (!normalized.ok) return jsonResponse(400, { ok: false, error: normalized.error }, cors);
+  const report = normalized.report;
 
-  // Validate category
-  const meta = CATEGORY_META[payload?.category];
-  if (!meta) {
-    return jsonResponse(400, { ok: false, error: "invalid_category" }, cors);
-  }
-
-  // Validate fields array
-  const rawFields = Array.isArray(payload.fields) ? payload.fields : [];
-  if (rawFields.length === 0) {
-    return jsonResponse(400, { ok: false, error: "no_fields" }, cors);
-  }
-
-  // Build embed fields — strip empties, cap value length, sanitise mentions,
-  // rebuild server-side (never forward a client-constructed embed directly)
-  const embedFields = [];
-  let totalChars = 0;
-  for (const f of rawFields) {
-    const label = typeof f?.label === "string" ? f.label.trim() : "";
-    const rawValue = typeof f?.value === "string" ? f.value.trim() : "";
-    if (!label || !rawValue) continue;
-    const cappedLabel = stripDiscordMentions(label).slice(0, 256);
-    const cappedValue = stripDiscordMentions(rawValue).slice(0, MAX_FIELD_VALUE);
-    totalChars += cappedLabel.length + cappedValue.length;
-    if (totalChars > MAX_TOTAL_BYTES) break;
-    embedFields.push({ name: cappedLabel, value: cappedValue, inline: false });
-  }
-  if (embedFields.length === 0) {
-    return jsonResponse(400, { ok: false, error: "no_field_values" }, cors);
-  }
-
-  // Tee printer requests to the intake queue for the Printer Intake Scout.
-  // Fail-open: a KV error must never block the Discord post or {ok:true} — the
-  // feedback path is authoritative. Two lanes:
-  //   - FORM lane: the structured `missingPrinter` form (high precision; stores
-  //     the raw structured fields; 90-day TTL) — unchanged behaviour, now tagged.
-  //   - HEURISTIC lane (S2): a printer request typed into the WRONG form
-  //     (general / feature / bug). A deterministic extractor turns the free-text
-  //     mention into structured brand/model the Scout can act on; only the BOUNDED
-  //     matched span is stored (not the full message — lower confidence + riskier
-  //     free prose ⇒ minimise PII), 30-day TTL. The structured `missing*` forms
-  //     are EXCLUDED (they have their own lanes; running the extractor over a
-  //     "Missing filament: Anycubic" would mint a spurious printer candidate).
   if (env.PRINTER_INTAKE) {
     try {
       const HEURISTIC_CATEGORIES = new Set(["generalFeedback", "featureRequest", "bugReport"]);
       let tee = null;
-      if (payload.category === "missingPrinter") {
-        tee = { fields: rawFields, lane: "form", ttl: 60 * 60 * 24 * 90 };
-      } else if (HEURISTIC_CATEGORIES.has(payload.category)) {
-        const mention = extractPrinterMention(rawFields);   // null ⇒ not a printer request ⇒ don't tee
+      if (report.category === "missingPrinter") {
+        tee = { fields: report.canonicalFields, lane: "form", ttl: 60 * 60 * 24 * 90 };
+      } else if (HEURISTIC_CATEGORIES.has(report.category)) {
+        const mention = extractPrinterMention(report.canonicalFields);
         if (mention) {
           tee = {
             fields: [
@@ -282,8 +249,8 @@ export async function onRequestPost({ request, env }) {
               { id: "notes", value: mention.span },          // bounded matched span ONLY — never the full message
             ],
             lane: "heuristic",
-            originalCategory: payload.category,
-            intent: mention.intent || null,           // "unresolved-brand" → Scout routes to needs-research(resolve-brand)
+            originalCategory: report.category,
+            intent: mention.intent || null,
             ttl: 60 * 60 * 24 * 30,
           };
         }
@@ -292,9 +259,9 @@ export async function onRequestPost({ request, env }) {
         const id = `req:${Date.now()}:${crypto.randomUUID().slice(0, 8)}`;
         const record = {
           fields: tee.fields,
-          email: typeof payload.email === "string" ? payload.email : null,
-          context: payload.context || {},
-          appSource: isIOS ? "ios" : "web",
+          email: typeof report.userContent.email === "string" ? report.userContent.email : null,
+          context: {},
+          appSource: source,
           receivedAt: new Date().toISOString(),
           lane: tee.lane,
         };
@@ -303,69 +270,52 @@ export async function onRequestPost({ request, env }) {
         await env.PRINTER_INTAKE.put(id, JSON.stringify(record), { expirationTtl: tee.ttl });
       }
     } catch (_) {
-      // swallow — intake queue is best-effort, feedback delivery is not
+      // Printer intake remains best-effort; D1 feedback storage is authoritative.
     }
   }
 
-  // Optional reply-to email (sanitised same as other values)
-  const email = typeof payload.email === "string"
-    ? stripDiscordMentions(payload.email.trim())
-    : "";
-  if (email) {
-    embedFields.push({ name: "Reply-to email", value: email.slice(0, 254), inline: true });
-  }
-
-  // Footer — device/browser context. Shape differs between web + iOS.
-  const ctx = payload.context || {};
-  let footerParts;
-  if (isIOS) {
-    footerParts = [
-      `3DPA iOS ${sanitize(ctx.appVersion, 16) || "?"}${ctx.buildNumber ? ` (${sanitize(ctx.buildNumber, 16)})` : ""}`,
-      `${sanitize(ctx.systemName, 16) || "iOS"} ${sanitize(ctx.systemVersion, 16) || ""}`.trim(),
-      sanitize(ctx.deviceModel, 32),
-      sanitize(ctx.locale, 16),
-    ].filter(Boolean);
-  } else {
-    footerParts = [
-      `3DPA Web ${sanitize(ctx.appVersion, 16) || "?"}`,
-      `${sanitize(ctx.browser, 32) || "?"} ${sanitize(ctx.browserVersion, 16) || ""}`.trim(),
-      sanitize(ctx.os, 48),
-      sanitize(ctx.locale, 16),
-      sanitize(ctx.screen, 24),
-    ].filter(Boolean);
-  }
-
-  const embed = {
-    title: `${meta.emoji} ${meta.displayName}`,
-    color: meta.color,
-    fields: embedFields,
-    footer: { text: footerParts.join(" \u2022 ").slice(0, 2048) },
-    timestamp: new Date().toISOString(),
-  };
-
-  // Check webhook configured
-  const webhook = env.DISCORD_WEBHOOK_URL;
-  if (!webhook || typeof webhook !== "string" || !/^https:\/\/(discord|discordapp)\.com\/api\/webhooks\//.test(webhook)) {
-    return jsonResponse(500, { ok: false, error: "webhook_not_configured" }, cors);
-  }
-
-  // Forward to Discord
-  let discordRes;
+  const receivedAt = new Date().toISOString();
+  const issueFingerprint = await fingerprintReport(report);
+  let reportId;
   try {
-    discordRes = await fetch(webhook, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ embeds: [embed] }),
-    });
-  } catch (err) {
-    return jsonResponse(502, { ok: false, error: "discord_unreachable" }, cors);
+    reportId = await persistFeedbackReport(env.FEEDBACK_DB, async (candidateId) => {
+      const encrypted = await encryptUserContent(report.userContent, env.FEEDBACK_DATA_KEY, candidateId, report.schemaVersion);
+      return {
+        reportId: candidateId, schemaVersion: report.schemaVersion, category: report.category, source,
+        receivedAt, capturedAt: report.diagnostics.capturedAt || null,
+        appVersion: report.summary.appVersion, buildNumber: report.summary.buildNumber,
+        releaseChannel: report.summary.releaseChannel || null,
+        physicalPrinter: report.summary.physicalPrinter, selectedPrinter: report.summary.selectedPrinter,
+        errorCode: report.summary.errorCode, userContentCiphertext: encrypted.ciphertext,
+        userContentIv: encrypted.iv, diagnosticsJson: JSON.stringify(report.diagnostics),
+        breadcrumbsJson: JSON.stringify(report.breadcrumbs), issueFingerprint,
+        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+      };
+    }, createReportId);
+  } catch (error) {
+    const code = error?.message === "report_id_unavailable" ? "report_id_unavailable" : "feedback_storage_failed";
+    return jsonResponse(503, { ok: false, error: code }, cors);
   }
 
-  if (!discordRes.ok) {
-    return jsonResponse(502, { ok: false, error: `discord_${discordRes.status}` }, cors);
+  let notified = false;
+  const webhook = env.DISCORD_WEBHOOK_URL;
+  if (typeof webhook === "string" && /^https:\/\/(discord|discordapp)\.com\/api\/webhooks\//.test(webhook)) {
+    const meta = CATEGORY_META[report.category];
+    const fields = [
+      ["Report", reportId], ["Source", `${source} ${report.summary.appVersion || "?"}`],
+      ["Channel", report.summary.releaseChannel || "unknown"],
+      ["Printer", `${report.summary.physicalPrinter || "unknown"} / ${report.summary.selectedPrinter || "unknown"}`],
+      ["Failure", `${report.diagnostics.failure?.operation || "none"} / ${report.summary.errorCode || "none"}`],
+      ["Fingerprint", issueFingerprint],
+    ].map(([name, value]) => ({ name, value, inline: false }));
+    try {
+      const response = await fetch(webhook, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ embeds: [{ title: `${meta.emoji} ${meta.displayName}`, color: meta.color, fields, timestamp: receivedAt }] }) });
+      notified = response.ok;
+    } catch {
+      notified = false;
+    }
   }
-
-  return jsonResponse(200, { ok: true }, cors);
+  return jsonResponse(200, { ok: true, reportId, notified }, cors);
 }
 
 // Reject other methods
