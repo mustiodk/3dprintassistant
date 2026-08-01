@@ -21,12 +21,59 @@
     if (host === '' || host === 'localhost' || host === '127.0.0.1') return 'local';
     return 'preview';
   }
+  function coarseBrowser(navigatorLike) {
+    const brands = navigatorLike?.userAgentData?.brands || [];
+    const brand = brands.find((item) => !/not.?a.?brand/i.test(item.brand || ''));
+    if (brand) {
+      const family = /edge/i.test(brand.brand) ? 'edge'
+        : /chrom/i.test(brand.brand) ? 'chrome'
+          : /firefox/i.test(brand.brand) ? 'firefox'
+            : /safari/i.test(brand.brand) ? 'safari' : 'other';
+      return { browserFamily: family, browserVersion: String(brand.version || '').split('.')[0] };
+    }
+    const ua = String(navigatorLike?.userAgent || '');
+    const candidates = [
+      ['edge', /Edg\/([\d.]+)/], ['opera', /OPR\/([\d.]+)/],
+      ['firefox', /Firefox\/([\d.]+)/], ['chrome', /(?:Chrome|CriOS)\/([\d.]+)/],
+      ['safari', /Version\/([\d.]+).*Safari/],
+    ];
+    for (const [browserFamily, pattern] of candidates) {
+      const match = ua.match(pattern);
+      if (match) return { browserFamily, browserVersion: match[1].split('.')[0] };
+    }
+    return { browserFamily: 'other', browserVersion: '' };
+  }
+  function coarsePlatform(navigatorLike) {
+    const ua = String(navigatorLike?.userAgent || '');
+    let match = ua.match(/Android\s+([\d.]+)/i);
+    if (match) return { osFamily: 'android', osVersion: match[1], deviceClass: /mobile/i.test(ua) ? 'mobile' : 'tablet' };
+    match = ua.match(/(?:iPhone|CPU(?: iPhone)? OS)\s*([\d_]+)/i);
+    if (match) return { osFamily: /iPad/i.test(ua) ? 'ipados' : 'ios', osVersion: match[1].replaceAll('_', '.'), deviceClass: /iPad/i.test(ua) ? 'tablet' : 'mobile' };
+    match = ua.match(/Mac OS X\s+([\d_]+)/i);
+    if (match) return { osFamily: 'macos', osVersion: match[1].replaceAll('_', '.'), deviceClass: 'desktop' };
+    match = ua.match(/Windows NT\s+([\d.]+)/i);
+    if (match) return { osFamily: 'windows', osVersion: match[1], deviceClass: 'desktop' };
+    match = ua.match(/CrOS\s+\S+\s+([\d.]+)/i);
+    if (match) return { osFamily: 'chromeos', osVersion: match[1], deviceClass: 'desktop' };
+    return { osFamily: /Linux/i.test(ua) ? 'linux' : 'other', osVersion: '', deviceClass: navigatorLike?.userAgentData?.mobile ? 'mobile' : 'desktop' };
+  }
+  function coarseScreenClass() {
+    const width = Number(root.innerWidth || root.screen?.width || 0);
+    if (width <= 0) return 'unknown';
+    if (width < 600) return 'compact';
+    if (width < 1024) return 'medium';
+    return 'large';
+  }
   function application() {
     const release = root.__3DPA_RELEASE__ || {};
+    const browser = coarseBrowser(root.navigator);
+    const platform = coarsePlatform(root.navigator);
     return {
       platform: 'web', releaseChannel: channel(root.location?.hostname || ''),
       appVersion: release.appVersion || '', releaseId: release.releaseId || '',
-      locale: root.navigator?.language || '', browserFamily: 'web',
+      engineRevision: release.assetFingerprint || release.releaseId || '',
+      locale: root.navigator?.language || '', screenClass: coarseScreenClass(),
+      ...browser, ...platform,
     };
   }
   // Web ships one bundled catalog and has no remote overlay — that is the iOS

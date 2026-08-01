@@ -2,10 +2,27 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 Object.defineProperty(globalThis, "location", { configurable: true, value: { hostname: "localhost" } });
-Object.defineProperty(globalThis, "navigator", { configurable: true, value: { language: "en-US", onLine: true, userAgent: "Test" } });
+Object.defineProperty(globalThis, "navigator", { configurable: true, value: {
+  language: "en-US", onLine: true,
+  userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 Chrome/126.0.0.0 Safari/537.36",
+} });
+Object.defineProperty(globalThis, "innerWidth", { configurable: true, value: 1280 });
 Object.defineProperty(globalThis, "localStorage", { configurable: true, writable: true, value: { getItem() { return null; }, setItem() {} } });
-globalThis.__3DPA_RELEASE__ = { appVersion: "web-test", releaseId: "release-test", catalogRevision: "catalog-test" };
+globalThis.__3DPA_RELEASE__ = { appVersion: "web-test", releaseId: "release-test", assetFingerprint: "engine-test", catalogRevision: "catalog-test" };
 await import("../feedback-diagnostics.js");
+
+test("captures coarse web application metadata without a raw user agent", () => {
+  const application = globalThis.FeedbackDiagnostics.createRecorder({ now: () => 1 })
+    .snapshot("manual", "feedback.card").application;
+  assert.equal(application.engineRevision, "engine-test");
+  assert.equal(application.osFamily, "macos");
+  assert.equal(application.osVersion, "14.5");
+  assert.equal(application.browserFamily, "chrome");
+  assert.equal(application.browserVersion, "126");
+  assert.equal(application.deviceClass, "desktop");
+  assert.equal(application.screenClass, "large");
+  assert.equal("userAgent" in application, false);
+});
 
 test("keeps only the newest 25 allowlisted breadcrumbs", () => {
   const recorder = globalThis.FeedbackDiagnostics.createRecorder({ now: (() => { let n = 0; return () => ++n; })() });
