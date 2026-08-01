@@ -29,18 +29,21 @@ function mkReq(payload) {
   });
 }
 function v2Payload(category, userContent) {
+  const diagnostics = {
+    capturedAt: '2026-08-01T12:00:00Z',
+    captureReason: 'manual',
+    entryPoint: 'feedback.modal',
+    application: { platform: 'web', releaseChannel: 'production', appVersion: 'web-test', releaseId: 'release-test' },
+  };
+  if (category === 'bugReport') Object.assign(diagnostics, {
+    physicalPrinter: { kind: 'unknown', match: 'unknown' },
+    configuration: {}, catalog: {}, runtime: {}, failure: {}, breadcrumbs: [],
+  });
   return {
     schemaVersion: 'feedback_v2',
     category,
     userContent,
-    diagnostics: {
-      capturedAt: '2026-08-01T12:00:00Z',
-      captureReason: 'manual',
-      entryPoint: 'feedback.modal',
-      application: { platform: 'web', releaseChannel: 'production', appVersion: 'web-test', releaseId: 'release-test' },
-      physicalPrinter: { kind: 'unknown', match: 'unknown' },
-      configuration: {}, catalog: {}, runtime: {}, failure: {}, breadcrumbs: [],
-    },
+    diagnostics,
   };
 }
 

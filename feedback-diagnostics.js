@@ -166,6 +166,14 @@
       if (safeDiagnostics.physicalPrinter?.kind === 'custom') {
         safeDiagnostics.physicalPrinter = { kind: 'custom', match: 'custom_not_in_catalog' };
       }
+      if (category !== 'bugReport') {
+        delete safeDiagnostics.physicalPrinter;
+        delete safeDiagnostics.configuration;
+        delete safeDiagnostics.catalog;
+        delete safeDiagnostics.runtime;
+        delete safeDiagnostics.failure;
+        delete safeDiagnostics.breadcrumbs;
+      }
       return { schemaVersion: 'feedback_v2', category, userContent: clone(userContent) || {}, diagnostics: safeDiagnostics };
     },
   };

@@ -160,7 +160,10 @@ export function normalizeFeedbackPayload(payload, source) {
   // strips these for other categories; enforcing it here means a forged or future
   // client cannot quietly widen collection past what the user was told.
   if (payload.category !== "bugReport") {
-    const widened = Object.keys(payload.diagnostics.configuration || {}).length > 0
+    const widened = Object.keys(payload.diagnostics.physicalPrinter || {}).length > 0
+      || Object.keys(payload.diagnostics.configuration || {}).length > 0
+      || Object.keys(payload.diagnostics.catalog || {}).length > 0
+      || Object.keys(payload.diagnostics.runtime || {}).length > 0
       || (payload.diagnostics.breadcrumbs || []).length > 0
       || Object.keys(payload.diagnostics.failure || {}).length > 0;
     if (widened) return fail("diagnostics_not_minimal");

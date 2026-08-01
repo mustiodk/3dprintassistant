@@ -61,6 +61,23 @@ test("custom printer text stays in userContent", () => {
   assert.equal(submission.diagnostics.application.releaseChannel, "local");
 });
 
+test("non-bug submissions keep only application and capture metadata", () => {
+  const recorder = globalThis.FeedbackDiagnostics.createRecorder({ now: () => 1 });
+  recorder.record("feedback_opened", { feature: "feedback" });
+  recorder.setSnapshotProvider(() => ({
+    physicalPrinter: { kind: "supported", printerId: "bambu_p1s", match: "same" },
+    configuration: { printer: "bambu_p1s" },
+    catalog: { overlaySource: "bundled" }, runtime: { online: true },
+    failure: { code: "E1" },
+  }));
+  const submission = globalThis.FeedbackDiagnostics.buildSubmission(
+    "generalFeedback", { message: "Nice tool" }, recorder.snapshot("manual", "feedback.modal")
+  );
+  assert.deepEqual(Object.keys(submission.diagnostics).sort(), [
+    "application", "captureReason", "capturedAt", "entryPoint",
+  ]);
+});
+
 test("a different physical printer is not classified as supported", () => {
   const old = globalThis.localStorage;
   globalThis.localStorage = { getItem() { return JSON.stringify({ kind: "different" }); }, setItem() {} };

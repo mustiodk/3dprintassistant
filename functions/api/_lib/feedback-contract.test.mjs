@@ -155,6 +155,18 @@ test("enforces minimal diagnostics for non-bug categories at the boundary", () =
   withFailure.diagnostics.failure = { code: "export_failed" };
   assert.equal(normalizeFeedbackPayload(withFailure, "web").error, "diagnostics_not_minimal");
 
+  const withPhysicalPrinter = minimal();
+  withPhysicalPrinter.diagnostics.physicalPrinter = { kind: "supported", printerId: "bambu_p1s", match: "same" };
+  assert.equal(normalizeFeedbackPayload(withPhysicalPrinter, "web").error, "diagnostics_not_minimal");
+
+  const withCatalog = minimal();
+  withCatalog.diagnostics.catalog = { overlaySource: "bundled" };
+  assert.equal(normalizeFeedbackPayload(withCatalog, "web").error, "diagnostics_not_minimal");
+
+  const withRuntime = minimal();
+  withRuntime.diagnostics.runtime = { online: true };
+  assert.equal(normalizeFeedbackPayload(withRuntime, "web").error, "diagnostics_not_minimal");
+
   const featureRequest = minimal();
   featureRequest.category = "featureRequest";
   featureRequest.diagnostics.breadcrumbs = [{ name: "feedback_opened", ageMs: 0, screen: "feedback", props: {} }];
