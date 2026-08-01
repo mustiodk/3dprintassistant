@@ -63,3 +63,41 @@ Docs: `docs/reviews/2026-07-31-feedback-diagnostics-v2-implementation-review.md`
 ## Next session
 
 Cross-model review, then O0. See `docs/sessions/NEXT-SESSION.md`.
+
+## Mac-mini continuation — Task 9 complete, stopped at O0
+
+Live Git verification superseded the stale machine-local assumptions above. The
+web feature branch contained the pushed gate `bd171e8`; iOS `main` was clean and
+current at `2be10a403a74e764d7551e861dc5998f16c9f1f9`. Because the earlier iOS
+feature commit was unavailable on this machine, the Task 8 worktree was
+recreated from that exact base and the feature was rebuilt locally under the
+same locked contract.
+
+Final reviewed implementation HEADs:
+
+- Web: `7be81deb10a8c699349e307861947fc8d2eb734a`
+- iOS: `5bfcc89f48a5260ce2703a24dc7bb77c5a4fe2c7` (local only; no upstream)
+
+The first valid Bridge review
+(`docs/reviews/bridge-2026-08-01-124526-257741.md`) returned two P1 findings and
+one P2 should-fix. They landed independently as web `3b81e1e`, web `3e7b524`,
+web `7be81de` and the matching iOS half `5bfcc89`. The fixes add coarse web
+application metadata without raw UA, pin both v2 Printer Intake routes, and
+reduce every non-bug diagnostic envelope to application/release context only.
+
+The complete post-fix battery passed: web 60 Node and 70 Vitest; release, data,
+walkthrough, export, Wrangler dry-run and diff checks green; iOS complete scheme
+217/217 with zero failures/skips; real Swift non-bug JSON accepted by the
+canonical Worker; engine and the three core data files byte-identical. The
+bounded confirmation review
+(`docs/reviews/bridge-2026-08-01-130631-202595.md`) returned explicit **GO** with
+0 P0/P1 tied to the exact HEADs above.
+
+The web feature branch was pushed for handoff. iOS remains unpushed with no
+version change. No feedback database, secret, limiter, migration, deploy,
+production canary, TestFlight or App Store Connect action occurred.
+
+Task 10 Step 1 is now the only next entry point: explicit owner O0 permission
+for the EU D1 create command, interactive data-key secret, unique limiter
+namespace, remote migration, Worker deploy and synthetic production canaries.
+ROADMAP and rollout configuration remain unchanged until that permission.
