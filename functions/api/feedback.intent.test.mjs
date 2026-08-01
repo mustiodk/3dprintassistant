@@ -28,6 +28,21 @@ function mkReq(payload) {
     body: JSON.stringify(payload),
   });
 }
+function v2Payload(category, userContent) {
+  return {
+    schemaVersion: 'feedback_v2',
+    category,
+    userContent,
+    diagnostics: {
+      capturedAt: '2026-08-01T12:00:00Z',
+      captureReason: 'manual',
+      entryPoint: 'feedback.modal',
+      application: { platform: 'web', releaseChannel: 'production', appVersion: 'web-test', releaseId: 'release-test' },
+      physicalPrinter: { kind: 'unknown', match: 'unknown' },
+      configuration: {}, catalog: {}, runtime: {}, failure: {}, breadcrumbs: [],
+    },
+  };
+}
 
 test('tee threads intent for a brand-less printer mention (general feedback)', async () => {
   const { captured, env } = mkEnv();
@@ -79,4 +94,33 @@ test('missingPrinter form tees lane:form with no intent', async () => {
   assert.equal(captured.length, 1);
   assert.equal(captured[0].v.lane, 'form');
   assert.equal(captured[0].v.intent, undefined);
+});
+
+test('v2 bug report printer mention still tees the heuristic lane', async () => {
+  const { captured, env } = mkEnv();
+  const response = await onRequestPost({
+    request: mkReq(v2Payload('bugReport', { whatHappened: 'Please add the Creator 5 Pro printer' })),
+    env,
+  });
+  assert.equal(response.status, 200);
+  assert.equal(captured.length, 1);
+  assert.equal(captured[0].v.lane, 'heuristic');
+  assert.equal(captured[0].v.originalCategory, 'bugReport');
+  assert.ok(captured[0].v.fields.some((field) => field.id === 'model' && /Creator 5 Pro/.test(field.value)));
+});
+
+test('v2 missing-printer report still tees the explicit form lane', async () => {
+  const { captured, env } = mkEnv();
+  const response = await onRequestPost({
+    request: mkReq(v2Payload('missingPrinter', {
+      customPrinterBrand: 'Snapmaker', customPrinterModel: 'U1', message: 'Please add it',
+    })),
+    env,
+  });
+  assert.equal(response.status, 200);
+  assert.equal(captured.length, 1);
+  assert.equal(captured[0].v.lane, 'form');
+  assert.equal(captured[0].v.intent, undefined);
+  assert.ok(captured[0].v.fields.some((field) => field.id === 'brand' && field.value === 'Snapmaker'));
+  assert.ok(captured[0].v.fields.some((field) => field.id === 'model' && field.value === 'U1'));
 });
