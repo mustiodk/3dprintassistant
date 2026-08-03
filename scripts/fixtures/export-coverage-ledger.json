@@ -13,6 +13,9 @@
       "reason": "alias-candidate",
       "note": "Upstream has 'Creality Ender-3 V4 0.4 nozzle' (220x220x235). The Combo is the same printer bundled with the CFS, so this is very likely the same machine — needs a human to confirm before mapping."
     },
+    "ender_3_s1": {
+      "reason": "awaiting-registry"
+    },
     "guider_3": {
       "reason": "absent-upstream",
       "note": "Upstream has Guider 2s, Guider 3 Ultra and Guider4, but no plain Guider 3."
