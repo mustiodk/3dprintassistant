@@ -403,6 +403,31 @@
       ]
     },
     {
+      "id": "ender_3_s1",
+      "name": "Ender-3 S1",
+      "manufacturer": "creality",
+      "series": "bedslinger",
+      "series_group": "Ender Series",
+      "enclosure": "none",
+      "active_chamber_heating": false,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 260,
+      "max_bed_temp": 100,
+      "max_speed": 150,
+      "max_acceleration": 500,
+      "has_lidar": false,
+      "has_camera": false,
+      "multi_color_systems": [],
+      "available_plates": ["textured_pei", "smooth_glass"],
+      "available_nozzle_sizes": [0.4],
+      "notes": [
+        "Open-frame Ender Series bed-slinger — 220×220×270mm build volume, dual Z-axis lead screws, not suitable for ABS/ASA/PA/PC without enclosure modification",
+        "Sprite dual-gear direct extruder, CR-Touch 16-point auto bed leveling; PC-coated spring steel plate standard, tempered glass and PEI sold separately — https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+        "max_acceleration 500mm/s2 (X/Y) is Creality's official shipped firmware default, not an app-side cap — Ender-3S1/Marlin/Configuration.h DEFAULT_MAX_ACCELERATION: https://github.com/CrealityOfficial/Ender-3S1/blob/main/Marlin/Configuration.h",
+        "No camera, no LiDAR, single extruder (no multi-color system) per official spec page"
+      ]
+    },
+    {
       "id": "k1",
       "name": "K1",
       "manufacturer": "creality",
