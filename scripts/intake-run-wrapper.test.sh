@@ -258,7 +258,7 @@ grep -Fq -- '--out-dir scripts/.intake-runner-state/bridge-reviews' "$ROOT/scrip
 # 9 — owner-approved re-entry is valid only through the deterministic decision
 # verifier; arbitrary sidecar prose must never become authorization.
 for token in \
-  'contract version 2.8' \
+  'contract version 3.0' \
   'nextEligibleTrigger:"owner-approved"' \
   'node scripts/intake-owner-decision.js verify-reentry --candidate "$candidate_id"' \
   'OWNERDECISION ok=true action=verify-reentry'; do
