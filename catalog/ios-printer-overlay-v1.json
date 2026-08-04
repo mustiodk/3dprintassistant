@@ -1,7 +1,7 @@
 {
-  "content_version": 2026071801,
+  "content_version": 2026080401,
   "enabled": true,
-  "generated_at": "2026-07-18T11:32:10.916Z",
+  "generated_at": "2026-08-04T17:48:57.409Z",
   "min_app_version": "1.0.3",
   "payload": {
     "brands": [
@@ -302,9 +302,39 @@
           "Specs confirmed from manufacturer pages: 300°C nozzle, 100°C bed, 500mm/s, 20000mm/s² accel, CoreXY, direct-drive toolchanger (https://www.snapmaker.com/snapmaker-u1/specs); compatible 0.2, 0.4, 0.6 and 0.8mm U1 hot ends (https://shop.snapmaker.com/products/hot-end-for-snapmaker-u1).",
           "Series_group “U Series” owner-approved; available_plates: textured_pei confirmed from manufacturer spec page (Flexible Steel Sheet with PEI Surface)."
         ]
+      },
+      {
+        "id": "ender_3_s1",
+        "name": "Ender-3 S1",
+        "manufacturer": "creality",
+        "series": "bedslinger",
+        "series_group": "Ender Series",
+        "enclosure": "none",
+        "active_chamber_heating": false,
+        "extruder_type": "direct_drive",
+        "max_nozzle_temp": 260,
+        "max_bed_temp": 100,
+        "max_speed": 150,
+        "max_acceleration": 500,
+        "has_lidar": false,
+        "has_camera": false,
+        "multi_color_systems": [],
+        "available_plates": [
+          "textured_pei",
+          "smooth_glass"
+        ],
+        "available_nozzle_sizes": [
+          0.4
+        ],
+        "notes": [
+          "Open-frame Ender Series bed-slinger — 220×220×270mm build volume, dual Z-axis lead screws, not suitable for ABS/ASA/PA/PC without enclosure modification",
+          "Sprite dual-gear direct extruder, CR-Touch 16-point auto bed leveling; PC-coated spring steel plate standard, tempered glass and PEI sold separately — https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+          "max_acceleration 500mm/s2 (X/Y) is Creality's official shipped firmware default, not an app-side cap — Ender-3S1/Marlin/Configuration.h DEFAULT_MAX_ACCELERATION: https://github.com/CrealityOfficial/Ender-3S1/blob/main/Marlin/Configuration.h",
+          "No camera, no LiDAR, single extruder (no multi-color system) per official spec page"
+        ]
       }
     ]
   },
-  "payload_sha256": "a8b8285d1b98636728fdb08cd4ce0ca81e15997b20c970042e718115e19d9a3d",
+  "payload_sha256": "3a0b83c8495fe49508c203fb25df2a6acd448c22315e502fafca23534425060d",
   "schema_version": 1
 }
