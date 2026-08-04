@@ -149,8 +149,13 @@ function parseAnswers(body) {
   // written as if it were what the owner meant.
   const strip = (v) => {
     const raw = String(v).trim();
-    // YAML block scalars would need multi-line handling this parser does not do.
-    if (raw === '|' || raw === '>' || /^[|>][-+]?\d*\s*$/.test(raw)) {
+    // YAML block scalars need multi-line handling this parser does not do.
+    // Matching the full header grammar (`|`, `|-`, `|2-`, `>2+`, `| # note`…)
+    // is easy to get subtly wrong — an earlier attempt missed the comment and
+    // indentation-indicator forms and consumed them as literal claims. Any
+    // leading `|` or `>` is refused instead: no legitimate answer starts that
+    // way, and refusing is the fail-closed direction.
+    if (/^[|>]/.test(raw)) {
       throw new Error('multi-line values are not supported — keep the answer on one line');
     }
     // A fully-quoted scalar is taken verbatim: the owner explicitly delimited

@@ -192,14 +192,18 @@ t('an unterminated quote is refused, not half-parsed', () => {
   assert.ok(errors.some((e) => /unterminated quote/.test(e)), errors.join(' | '));
 });
 
-t('a YAML block scalar is refused', () => {
-  const { answers, errors } = parseAnswers(wrap([
-    'answers:', '  enclosure:', '    value: none',
-    '    source: https://a.example/1', '    claim: |',
-  ].join('\n')));
-  assert.deepStrictEqual(answers, []);
-  assert.ok(errors.some((e) => /multi-line/.test(e)), errors.join(' | '));
-});
+// Every block-scalar header form, including the comment and indentation-
+// indicator variants a first attempt at this check missed.
+for (const header of ['|', '>', '|-', '|+', '|2-', '>2+', '| # explain below', '>- # note']) {
+  t(`a YAML block scalar header ${JSON.stringify(header)} is refused`, () => {
+    const { answers, errors } = parseAnswers(wrap([
+      'answers:', '  enclosure:', '    value: none',
+      '    source: https://a.example/1', `    claim: ${header}`,
+    ].join('\n')));
+    assert.deepStrictEqual(answers, [], `${header} must not be consumed`);
+    assert.ok(errors.some((e) => /multi-line/.test(e)), errors.join(' | '));
+  });
+}
 
 t('a quote INSIDE an unquoted value is left alone', () => {
   const { answers } = parseAnswers(wrap([
