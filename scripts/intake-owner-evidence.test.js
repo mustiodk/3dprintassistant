@@ -266,6 +266,28 @@ t('a source note change is detected rather than silently ignored', () => {
   );
 });
 
+// Codex confirmation review P2: sameKey() is raw JSON.stringify and therefore
+// key-order sensitive. A decision persisted with {note,url} ordering must not
+// false-conflict against the same decision expressed as {url,note}.
+t('source comparison is insensitive to object key order', () => {
+  const f = makeFixture();
+  provideEvidence({ ...f.opts, sources: [{ url: MANUFACTURER_SOURCE, note: 'p12' }], apply: true });
+  // Rewrite the persisted decision + packet with the keys in the opposite order,
+  // exactly as a differently-serialized sidecar would arrive.
+  const sidecar = readJSON(f.sidecarPath);
+  const packet = readJSON(f.packetPath);
+  const flipped = [{ note: 'p12', url: MANUFACTURER_SOURCE }];
+  sidecar.ownerDecision.sources = flipped;
+  packet.ownerSuppliedSources = flipped;
+  fs.writeFileSync(f.sidecarPath, `${JSON.stringify(sidecar, null, 2)}\n`);
+  fs.writeFileSync(f.packetPath, `${JSON.stringify(packet, null, 2)}\n`);
+  // Materialization check inside validateReentryDecision must still match...
+  const validation = validateReentryDecision({
+    sidecar, packet, candidateId: f.candidateId,
+  });
+  assert.ok(validation.ok, `key order must not break validation: ${validation.reason}`);
+});
+
 t('a different source set on an already-decided candidate throws', () => {
   const f = makeFixture();
   provideEvidence({ ...f.opts, sources: [MANUFACTURER_SOURCE], apply: true });

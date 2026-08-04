@@ -332,7 +332,7 @@ function validateReentryDecision({ sidecar, packet, candidateId, packetSha256 })
     }
     const onPacket = packet?.ownerSuppliedSources;
     if (!Array.isArray(onPacket)
-        || !sameKey(onPacket.map((s) => s.url), sources.map((s) => s.url))) {
+        || !sameKey(sourceFingerprint(onPacket), sourceFingerprint(sources))) {
       return { ok: false, reason: 'owner-decision-sources-not-materialized' };
     }
     if (decision.overrides !== undefined) {
@@ -481,6 +481,15 @@ function commitDecisionTransaction(context, { packetText, nextPacketSha, sidecar
   fs.rmSync(transactionDir, { recursive: true });
 }
 
+// sameKey() is raw JSON.stringify, so it is key-ORDER sensitive. That is fine
+// for the flat arrays it was written for, but a persisted decision re-read from
+// a sidecar preserves whatever key order that file happens to carry, so
+// {url,note} and {note,url} would false-conflict as "a different source set".
+// Canonicalize to a stable scalar before any comparison.
+function sourceFingerprint(sources) {
+  return (sources || []).map((s) => `${s?.url || ''} ${s?.note || ''}`);
+}
+
 function normalizeSources(rawSources) {
   const list = Array.isArray(rawSources) ? rawSources : [];
   if (list.length === 0) {
@@ -537,7 +546,7 @@ function provideEvidence(options) {
     // conflict path was actually correct.
     const sameShape = existing.action === 'reenter-with-evidence'
       && existing.edge === edge
-      && sameKey(existing.sources || [], sources)
+      && sameKey(sourceFingerprint(existing.sources), sourceFingerprint(sources))
       && sameKey(existing.unresolvedFields || [], unresolvedFields);
     if (sameShape) {
       return {
