@@ -152,6 +152,33 @@ t('a non-attestable field in the block is ignored with a note', () => {
   assert.ok(errors.some((e) => /not owner-attestable/.test(e)));
 });
 
+// Cross-model review SHOULD-FIX-1: the comment stripper ate '#' inside a
+// legitimate quoted claim, truncating provenance text with no error.
+t('a # inside a QUOTED claim survives', () => {
+  const { answers } = parseAnswers(wrap([
+    'answers:', '  enclosure:', '    value: none',
+    '    source: https://a.example/1',
+    '    claim: "photo caption says #3 is open-frame"',
+  ].join('\n')));
+  assert.strictEqual(answers[0].claim, 'photo caption says #3 is open-frame');
+});
+
+t('a quoted value with a trailing comment still strips the comment', () => {
+  const { answers } = parseAnswers(wrap([
+    'answers:', '  enclosure:', '    value: "none"   # the hint',
+    '    source: https://a.example/1', '    claim: "open"',
+  ].join('\n')));
+  assert.strictEqual(answers[0].value, 'none');
+});
+
+t('an UNQUOTED trailing comment is still stripped', () => {
+  const { answers } = parseAnswers(wrap([
+    'answers:', '  enclosure:', '    value: none # open frame',
+    '    source: https://a.example/1', '    claim: open',
+  ].join('\n')));
+  assert.strictEqual(answers[0].value, 'none');
+});
+
 t('a body with no yaml block fails closed', () => {
   const { answers, errors } = parseAnswers('just some prose, no block');
   assert.deepStrictEqual(answers, []);

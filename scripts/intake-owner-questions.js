@@ -144,8 +144,14 @@ function parseAnswers(body) {
   // freshly-generated-template case. A `#` inside a real value (a URL fragment)
   // has no whitespace before it and is correctly left alone.
   const strip = (v) => {
-    const withoutComment = String(v).replace(/(^|\s+)#.*$/, '').trim();
-    return withoutComment.replace(/^["']|["']$/g, '').trim();
+    const raw = String(v).trim();
+    // A fully-quoted scalar is taken verbatim: the owner explicitly delimited
+    // it, so a `#` inside is content, not a comment. Without this, a legitimate
+    // claim like "photo caption says #3 is open-frame" silently truncated to
+    // "photo caption says" and corrupted the provenance record with no error.
+    const quoted = raw.match(/^(["'])([\s\S]*)\1\s*(?:#.*)?$/);
+    if (quoted) return quoted[2].trim();
+    return raw.replace(/(^|\s+)#.*$/, '').trim();
   };
 
   for (const line of lines) {
