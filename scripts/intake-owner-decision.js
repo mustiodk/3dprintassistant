@@ -269,7 +269,13 @@ function validateSeriesGroup(value) {
   return normalized;
 }
 
-function validateReentryDecision({ sidecar, packet, candidateId }) {
+// The two re-entry edges the park taxonomy sanctions for an owner-gated (and
+// possibly tainted) candidate. Kept in sync with intake-park-taxonomy.json ->
+// sanctionedTaintedReviewEdges, which intake-park-taxonomy.js validates.
+const SANCTIONED_REENTRY_EDGES = new Set(['owner-instruction', 'rd3-external-evidence']);
+const REENTER_ACTIONS = new Set(['reenter', 'reenter-with-evidence']);
+
+function validateReentryDecision({ sidecar, packet, candidateId, packetSha256 }) {
   const decision = sidecar?.ownerDecision;
   if (!decision || decision.schema !== 'intake-owner-decision@1') {
     return { ok: false, reason: 'owner-decision-missing-or-invalid' };
@@ -277,13 +283,49 @@ function validateReentryDecision({ sidecar, packet, candidateId }) {
   if (sidecar.nextEligibleTrigger !== 'owner-approved') {
     return { ok: false, reason: 'owner-decision-trigger-invalid' };
   }
-  if (decision.action !== 'reenter' || decision.candidateId !== candidateId
+  if (!REENTER_ACTIONS.has(decision.action) || decision.candidateId !== candidateId
       || sidecar.candidateId !== candidateId || !sameKey(decision.candidateKey, sidecar.candidateKey)) {
     return { ok: false, reason: 'owner-decision-identity-invalid' };
   }
   if (!/^[a-f0-9]{64}$/.test(decision.priorCandidateSha256 || '')) {
     return { ok: false, reason: 'owner-decision-prior-sha-invalid' };
   }
+  // Staleness binding. readContext() already refuses a packet whose bytes drifted
+  // from candidateArtifact.sha256, so the CLI path cannot reach here stale; this
+  // makes the same guarantee available to direct callers that pass the observed
+  // packet hash, so a decision can never outlive the packet it was made against.
+  if (packetSha256 !== undefined && packetSha256 !== sidecar?.candidateArtifact?.sha256) {
+    return { ok: false, reason: 'owner-decision-packet-stale' };
+  }
+
+  // rd3-external-evidence / owner-instruction: the owner unblocks the ATTEMPT and
+  // points at sources. It deliberately carries no field overrides — the
+  // researcher still has to read those sources and fill the packet, and
+  // validate-candidate-evidence.js still adjudicates every safety-critical
+  // field. Unblocking is an owner decision; passing the evidence gate is not.
+  if (decision.action === 'reenter-with-evidence') {
+    if (!SANCTIONED_REENTRY_EDGES.has(decision.edge)) {
+      return { ok: false, reason: 'owner-decision-edge-not-sanctioned' };
+    }
+    if (sidecar.reviewEntryEdge !== decision.edge) {
+      return { ok: false, reason: 'owner-decision-edge-mismatch' };
+    }
+    const sources = decision.sources;
+    if (!Array.isArray(sources) || sources.length === 0
+        || !sources.every((s) => typeof s?.url === 'string' && /^https?:\/\//i.test(s.url))) {
+      return { ok: false, reason: 'owner-decision-sources-invalid' };
+    }
+    const onPacket = packet?.ownerSuppliedSources;
+    if (!Array.isArray(onPacket)
+        || !sameKey(onPacket.map((s) => s.url), sources.map((s) => s.url))) {
+      return { ok: false, reason: 'owner-decision-sources-not-materialized' };
+    }
+    if (decision.overrides !== undefined) {
+      return { ok: false, reason: 'owner-decision-evidence-must-not-override' };
+    }
+    return { ok: true, reason: 'none', edge: decision.edge, sources };
+  }
+
   const seriesGroup = decision.overrides?.series_group;
   if (typeof seriesGroup !== 'string'
       || packet?.proposedTaxonomy?.series_group !== seriesGroup
@@ -364,7 +406,17 @@ function approveSeries(options) {
 
   const result = { changed: false, action: 'approve-series', seriesGroup, validation };
   if (!options.apply) return result;
+  commitDecisionTransaction(context, { packetText, nextPacketSha, sidecarText, now, options });
+  return { ...result, changed: true };
+}
 
+// Crash-safe two-file apply shared by every owner-decision writer. Snapshots
+// both old and new bytes plus a hash manifest before touching either target, so
+// recoverOwnerDecisionTransaction() can always tell prepared-not-applied from
+// half-applied from committed. Extracted when the evidence writer landed —
+// duplicating it would have given the two decision paths divergent crash
+// semantics, which is exactly the class of drift this pipeline fails closed on.
+function commitDecisionTransaction(context, { packetText, nextPacketSha, sidecarText, now, options = {} }) {
   const transactionDir = transactionPath(context.candidateDir);
   if (fs.existsSync(transactionDir)) {
     throw new Error(`owner-decision transaction already exists for ${context.candidateId}`);
@@ -399,13 +451,105 @@ function approveSeries(options) {
     throw new Error('simulated crash after sidecar rename');
   }
   fs.rmSync(transactionDir, { recursive: true });
+}
+
+function normalizeSources(rawSources) {
+  const list = Array.isArray(rawSources) ? rawSources : [];
+  if (list.length === 0) {
+    throw new Error('at least one --source URL is required for an evidence decision');
+  }
+  return list.map((entry) => {
+    const url = typeof entry === 'string' ? entry : entry?.url;
+    if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+      throw new Error(`source must be an http(s) URL: ${String(url).slice(0, 80)}`);
+    }
+    if (url.length > 500) throw new Error('source URL exceeds 500 characters');
+    const note = typeof entry === 'string' ? undefined : entry?.note;
+    return note ? { url, note: String(note).slice(0, 300) } : { url };
+  });
+}
+
+// ─── rd3-external-evidence / owner-instruction re-entry ─────────────────────
+// The taxonomy has always sanctioned these two edges; until now nothing could
+// put a candidate onto either, so a `needs-source-resolution` park (researcher
+// could not reach a manufacturer domain that day) was a permanent dead end.
+//
+// This writer deliberately does NOT touch printersJsonRow field evidence. The
+// owner points at sources; the researcher must still read them and fill the
+// packet, and validate-candidate-evidence.js still adjudicates every
+// safety-critical field. Promoting a field to manufacturer-class on the
+// owner's say-so would forge exactly the provenance the gate exists to check.
+function provideEvidence(options) {
+  const edge = options.edge || 'rd3-external-evidence';
+  if (!SANCTIONED_REENTRY_EDGES.has(edge)) {
+    throw new Error(`edge ${edge} is not sanctioned for owner re-entry`);
+  }
+  const sources = normalizeSources(options.sources);
+  const unresolvedFields = Array.isArray(options.fields) ? options.fields.map(String) : [];
+  const context = readContext(options);
+
+  const existing = context.sidecar.ownerDecision;
+  if (existing) {
+    const sameShape = existing.action === 'reenter-with-evidence'
+      && existing.edge === edge
+      && sameKey((existing.sources || []).map((s) => s.url), sources.map((s) => s.url));
+    if (sameShape) {
+      return {
+        changed: false,
+        action: 'provide-evidence',
+        edge,
+        sources,
+        validation: validateReentryDecision({
+          sidecar: context.sidecar, packet: context.packet, candidateId: context.candidateId,
+        }),
+      };
+    }
+    throw new Error(`conflicting owner decision already exists for ${context.candidateId}`);
+  }
+
+  const now = options.now || new Date();
+  const packet = structuredClone(context.packet);
+  packet.ownerSuppliedSources = sources;
+  packet.nextStep = `Owner supplied ${sources.length} external source(s) via the ${edge} edge. Re-run research against them, then pass every normal evidence, review, live, custody, and POSTRUN gate. Owner-supplied sources are leads, not pre-approved evidence: each field still needs its own confirmed citation.`;
+  if (typeof packet.note === 'string') {
+    packet.note = `${packet.note} Owner re-entry (${edge}) on ${now.toISOString()}; prior park reason remains historical evidence.`;
+  }
+  const packetText = `${JSON.stringify(packet, null, 2)}\n`;
+  const nextPacketSha = shaBuffer(Buffer.from(packetText));
+
+  const ownerDecision = {
+    schema: 'intake-owner-decision@1',
+    action: 'reenter-with-evidence',
+    candidateId: context.candidateId,
+    candidateKey: context.sidecar.candidateKey,
+    decidedAt: now.toISOString(),
+    priorCandidateSha256: context.packetSha,
+    edge,
+    sources,
+    ...(unresolvedFields.length ? { unresolvedFields } : {}),
+  };
+  const sidecar = {
+    ...context.sidecar,
+    nextEligibleTrigger: 'owner-approved',
+    reviewEntryEdge: edge,
+    ownerDecision,
+    candidateArtifact: { ...context.sidecar.candidateArtifact, sha256: nextPacketSha },
+    resolutionNote: `Owner supplied external sources for gated re-entry via ${edge}; field-level evidence is unchanged and still subject to the evidence gate.`,
+  };
+  const sidecarText = `${JSON.stringify(sidecar, null, 2)}\n`;
+  const validation = validateReentryDecision({ sidecar, packet, candidateId: context.candidateId });
+  if (!validation.ok) throw new Error(`generated owner decision is invalid: ${validation.reason}`);
+
+  const result = { changed: false, action: 'provide-evidence', edge, sources, validation };
+  if (!options.apply) return result;
+  commitDecisionTransaction(context, { packetText, nextPacketSha, sidecarText, now, options });
   return { ...result, changed: true };
 }
 
 function parseCli(argv) {
   const [command, ...rest] = argv;
-  if (!['duplicate', 'approve-series', 'verify-reentry'].includes(command)) {
-    throw new Error('command must be duplicate, approve-series, or verify-reentry');
+  if (!['duplicate', 'approve-series', 'provide-evidence', 'verify-reentry'].includes(command)) {
+    throw new Error('command must be duplicate, approve-series, provide-evidence, or verify-reentry');
   }
   const options = { apply: false };
   for (let i = 0; i < rest.length; i += 1) {
@@ -415,10 +559,15 @@ function parseCli(argv) {
     else {
       const value = rest[++i];
       if (!value) throw new Error(`${arg} requires a value`);
+      // Repeatable flags accumulate instead of last-one-wins: an owner citing
+      // three manufacturer pages must not silently ship only the third.
+      if (arg === '--source') { (options.sources ||= []).push(value); continue; }
+      if (arg === '--field')  { (options.fields  ||= []).push(value); continue; }
       const key = {
         '--candidate': 'candidateId',
         '--duplicate-of': 'duplicateOf',
         '--series-group': 'seriesGroup',
+        '--edge': 'edge',
         '--repo-root': 'repoRoot',
         '--parked-root': 'parkedRoot',
         '--resolved-root': 'resolvedRoot',
@@ -435,8 +584,10 @@ function parseCli(argv) {
 module.exports = {
   resolveDuplicate,
   approveSeries,
+  provideEvidence,
   validateReentryDecision,
   recoverOwnerDecisionTransaction,
+  SANCTIONED_REENTRY_EDGES,
 };
 
 if (require.main === module) {
@@ -445,6 +596,7 @@ if (require.main === module) {
     let result;
     if (command === 'duplicate') result = resolveDuplicate(options);
     else if (command === 'approve-series') result = approveSeries(options);
+    else if (command === 'provide-evidence') result = provideEvidence(options);
     else {
       const context = readContext(options);
       const validation = validateReentryDecision({
