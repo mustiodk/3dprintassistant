@@ -242,6 +242,77 @@ t('a different source set on an already-decided candidate throws', () => {
   );
 });
 
+// ── TC8 — edge/lane binding (Codex hostile review P0-1) ─────────────────────
+// The two sanctioned edges are NOT interchangeable. rd3-external-evidence
+// answers "the researcher could not REACH a source". A review-no-go is a
+// reviewer judgment about the DATA — new URLs do not answer it, and an
+// unconstrained evidence decision would walk a tainted candidate straight past
+// intake-retry-gate.js. Caught by cross-model review; the original
+// implementation returned ok=true for exactly this case.
+console.log('\nTC8 — an edge may only re-enter the park lane it actually answers');
+function reviewNoGoFixture() {
+  return makeFixture({
+    candidateId: 'ender_3_s1',
+    sidecar: { class: 'judgment-on-evidence', reason: 'review-no-go', tainted: true },
+  });
+}
+
+t('rd3-external-evidence is refused on a review-no-go park at write time', () => {
+  const f = reviewNoGoFixture();
+  assert.throws(
+    () => provideEvidence({ ...f.opts, sources: [MANUFACTURER_SOURCE], apply: true }),
+    /cannot re-enter a review-no-go park/i,
+  );
+});
+
+t('a hand-forged out-of-lane evidence decision fails verify-reentry', () => {
+  const f = reviewNoGoFixture();
+  // Bypass the writer entirely — an envelope planted by any other means must
+  // still be rejected by the boundary the runner actually calls.
+  const sidecar = readJSON(f.sidecarPath);
+  const packet = readJSON(f.packetPath);
+  sidecar.nextEligibleTrigger = 'owner-approved';
+  sidecar.reviewEntryEdge = 'rd3-external-evidence';
+  sidecar.ownerDecision = {
+    schema: 'intake-owner-decision@1',
+    action: 'reenter-with-evidence',
+    candidateId: f.candidateId,
+    candidateKey: sidecar.candidateKey,
+    decidedAt: '2026-08-04T00:00:00Z',
+    priorCandidateSha256: sidecar.candidateArtifact.sha256,
+    edge: 'rd3-external-evidence',
+    sources: [{ url: MANUFACTURER_SOURCE }],
+  };
+  packet.ownerSuppliedSources = [{ url: MANUFACTURER_SOURCE }];
+  const validation = validateReentryDecision({ sidecar, packet, candidateId: f.candidateId });
+  assert.ok(!validation.ok, 'out-of-lane evidence decision must not validate');
+  assert.strictEqual(validation.reason, 'owner-decision-edge-wrong-lane');
+});
+
+t('owner-instruction may override a reviewer judgment but flags the retry gate', () => {
+  const f = reviewNoGoFixture();
+  provideEvidence({ ...f.opts, sources: [MANUFACTURER_SOURCE], edge: 'owner-instruction', apply: true });
+  const validation = validateReentryDecision({
+    sidecar: readJSON(f.sidecarPath),
+    packet: readJSON(f.packetPath),
+    candidateId: f.candidateId,
+  });
+  assert.ok(validation.ok, `owner-instruction should be allowed here: ${validation.reason}`);
+  assert.strictEqual(validation.requiresRetryGate, true,
+    'a judgment-on-evidence candidate must still be marked for intake-retry-gate.js');
+});
+
+t('a needs-source-resolution park does not require the retry gate', () => {
+  const f = makeFixture();
+  provideEvidence({ ...f.opts, sources: [MANUFACTURER_SOURCE], apply: true });
+  const validation = validateReentryDecision({
+    sidecar: readJSON(f.sidecarPath),
+    packet: readJSON(f.packetPath),
+    candidateId: f.candidateId,
+  });
+  assert.strictEqual(validation.requiresRetryGate, false);
+});
+
 // ── TC7 — regression: the existing series_group path still works ────────────
 console.log('\nTC7 — approve-series is not weakened by the new edge');
 t('approve-series still produces a valid re-entry decision', () => {

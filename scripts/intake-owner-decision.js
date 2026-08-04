@@ -275,6 +275,21 @@ function validateSeriesGroup(value) {
 const SANCTIONED_REENTRY_EDGES = new Set(['owner-instruction', 'rd3-external-evidence']);
 const REENTER_ACTIONS = new Set(['reenter', 'reenter-with-evidence']);
 
+// Which park reasons each edge may re-enter. The edges are NOT interchangeable
+// and an unconstrained evidence decision is a gate bypass: `rd3-external-evidence`
+// answers "the researcher could not REACH a source", so it only applies where
+// source availability was the blocker. A `review-no-go` is a reviewer judgment
+// about the DATA — new URLs do not answer it, and letting them try would walk a
+// tainted candidate straight past intake-retry-gate.js. `owner-instruction` is
+// the general override and stays broad, but never silently skips that gate:
+// validateReentryDecision reports requiresRetryGate for judgment-on-evidence so
+// the runner must still clear it.
+const EDGE_ALLOWED_REASONS = {
+  'rd3-external-evidence': new Set(['needs-source-resolution']),
+  'owner-instruction': null, // null = any reason, subject to requiresRetryGate
+};
+const RETRY_GATED_CLASSES = new Set(['judgment-on-evidence']);
+
 function validateReentryDecision({ sidecar, packet, candidateId, packetSha256 }) {
   const decision = sidecar?.ownerDecision;
   if (!decision || decision.schema !== 'intake-owner-decision@1') {
@@ -323,7 +338,20 @@ function validateReentryDecision({ sidecar, packet, candidateId, packetSha256 })
     if (decision.overrides !== undefined) {
       return { ok: false, reason: 'owner-decision-evidence-must-not-override' };
     }
-    return { ok: true, reason: 'none', edge: decision.edge, sources };
+    const allowedReasons = EDGE_ALLOWED_REASONS[decision.edge];
+    if (allowedReasons && !allowedReasons.has(sidecar.reason)) {
+      return { ok: false, reason: 'owner-decision-edge-wrong-lane' };
+    }
+    return {
+      ok: true,
+      reason: 'none',
+      edge: decision.edge,
+      sources,
+      // The runner MUST still clear intake-retry-gate.js when this is true. An
+      // owner override unblocks the attempt; it does not retire the gate that
+      // bounds how often a judgment-on-evidence candidate may be re-reviewed.
+      requiresRetryGate: RETRY_GATED_CLASSES.has(sidecar.class),
+    };
   }
 
   const seriesGroup = decision.overrides?.series_group;
@@ -487,6 +515,18 @@ function provideEvidence(options) {
   const sources = normalizeSources(options.sources);
   const unresolvedFields = Array.isArray(options.fields) ? options.fields.map(String) : [];
   const context = readContext(options);
+
+  // Refuse out-of-lane at WRITE time, not only at verify time. A sidecar that
+  // parked on a reviewer's judgment is not unblocked by new URLs, and writing
+  // the decision anyway would leave an envelope that verify-reentry then
+  // rejects — a confusing half-state on a fail-closed pipeline.
+  const allowedReasons = EDGE_ALLOWED_REASONS[edge];
+  if (allowedReasons && !allowedReasons.has(context.sidecar.reason)) {
+    throw new Error(
+      `edge ${edge} cannot re-enter a ${context.sidecar.reason} park `
+      + `(allowed: ${[...allowedReasons].join(', ')}); use --edge owner-instruction if the owner is overriding a reviewer judgment`,
+    );
+  }
 
   const existing = context.sidecar.ownerDecision;
   if (existing) {
