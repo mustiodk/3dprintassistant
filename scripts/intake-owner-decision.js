@@ -533,12 +533,40 @@ function buildAttestation({ value, source, claim, answeredBy, answeredAt, issueN
 // Values arrive from a YAML/CLI surface as strings; the catalog expects real
 // types. Only the allowlisted fields are coerced, and only in the shapes those
 // fields actually take, so this cannot become a general type-punning hatch.
+// Vocabulary derived from the shipped catalog. `available_plates` reaches
+// engine.js's `plate_not_on_printer` warning, so a typo or a stray quote
+// fragment becoming a catalog-visible plate id would silently break a real
+// compatibility check — comma-splitting arbitrary text was not enough.
+const KNOWN_PLATE_IDS = new Set([
+  'cool_plate', 'engineering_plate', 'high_temp_plate',
+  'satin_pei', 'smooth_glass', 'smooth_pei', 'textured_pei',
+]);
+
+const ATTESTED_ENUMS = {
+  enclosure: new Set(['none', 'passive', 'active_heated']),
+};
+
 function coerceAttestedValue(field, raw) {
   if (field === 'available_plates') {
-    if (Array.isArray(raw)) return raw.map(String);
-    return String(raw).split(',').map((s) => s.trim()).filter(Boolean);
+    const list = (Array.isArray(raw) ? raw : String(raw).split(','))
+      .map((s) => String(s).trim().replace(/^["']|["']$/g, '').trim())
+      .filter(Boolean);
+    if (list.length === 0) throw new Error('available_plates requires at least one plate id');
+    const unknown = list.filter((p) => !KNOWN_PLATE_IDS.has(p));
+    if (unknown.length) {
+      throw new Error(
+        `unknown plate id(s): ${unknown.join(', ')} `
+        + `(known: ${[...KNOWN_PLATE_IDS].sort().join(', ')})`,
+      );
+    }
+    return [...new Set(list)];
   }
-  return typeof raw === 'string' ? raw.trim() : raw;
+  const value = typeof raw === 'string' ? raw.trim() : raw;
+  const allowed = ATTESTED_ENUMS[field];
+  if (allowed && !allowed.has(value)) {
+    throw new Error(`${field} must be one of: ${[...allowed].sort().join(', ')} (got ${JSON.stringify(value)})`);
+  }
+  return value;
 }
 
 function attestField(options) {

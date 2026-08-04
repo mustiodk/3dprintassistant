@@ -279,6 +279,42 @@ console.log('\nTC7 — attestField writes a packet the gate then accepts');
       /not owner-attestable/i);
   });
 
+  // Cross-model review SHOULD-FIX-2: available_plates was any comma-split text,
+  // and it reaches engine.js's plate_not_on_printer warning.
+  t('the writer refuses unknown plate ids', () => {
+    const f = fixture();
+    assert.throws(
+      () => attestField({ ...f.opts, ...answer('available_plates', 'textured_pei,glass_thing'), apply: true }),
+      /unknown plate id/i,
+    );
+  });
+
+  t('a YAML list of plates is accepted and de-duplicated', () => {
+    const f = fixture();
+    attestField({
+      ...f.opts,
+      ...answer('available_plates', ['textured_pei', 'smooth_pei', 'textured_pei']),
+      apply: true,
+    });
+    assert.deepStrictEqual(read(f.packetPath).printersJsonRow.available_plates.value,
+      ['textured_pei', 'smooth_pei']);
+  });
+
+  t('empty / quote-fragment plate input is refused', () => {
+    const f = fixture();
+    assert.throws(() => attestField({ ...f.opts, ...answer('available_plates', ' , , '), apply: true }),
+      /at least one plate id/i);
+  });
+
+  t('enclosure is constrained to the real enum', () => {
+    const f = fixture();
+    assert.throws(() => attestField({ ...f.opts, ...answer('enclosure', 'open'), apply: true }),
+      /must be one of/i);
+    // and the correct token works
+    attestField({ ...f.opts, ...answer('enclosure', 'none'), apply: true });
+    assert.strictEqual(read(f.packetPath).printersJsonRow.enclosure.value, 'none');
+  });
+
   t('the writer refuses an incomplete envelope', () => {
     const f = fixture();
     assert.throws(() => attestField({ ...f.opts, ...answer('series', 'bedslinger'), claim: '', apply: true }),
