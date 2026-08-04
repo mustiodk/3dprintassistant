@@ -6310,16 +6310,16 @@
     "elephant_foot_compensation": "0.15 mm",
     "fan_speed": "50%",
     "gap_fill_speed": "70 mm/s",
-    "initial_layer_acceleration": "500 mm/s²",
+    "initial_layer_acceleration": "400 mm/s²",
     "initial_layer_height": "0.20 mm",
     "initial_layer_speed": "25 mm/s",
-    "inner_wall_acceleration": "3000 mm/s²",
+    "inner_wall_acceleration": "400 mm/s²",
     "inner_wall_line_width": "0.44 mm",
     "inner_wall_speed": "60 mm/s",
     "internal_solid_infill_pattern": "Rectilinear",
     "layer_height": "0.2 mm",
     "order_of_walls": "Inner / Outer",
-    "outer_wall_acceleration": "2500 mm/s²",
+    "outer_wall_acceleration": "400 mm/s²",
     "outer_wall_line_width": "0.42 mm",
     "outer_wall_speed": "40 mm/s",
     "pressure_advance": "0.05",
@@ -6416,11 +6416,11 @@
    "initial_layer_acceleration": {
     "mode": "advanced",
     "prov": {
-     "ref": "objective_profiles.json#speed.initial_accel",
-     "source": "default"
+     "ref": "objective_profiles.json#speed.initial_accel (clamped to printer.max_acceleration)",
+     "source": "calculated"
     },
-    "value": "500 mm/s²",
-    "why": "Very low acceleration ensures the nozzle moves smoothly at slow speed — prevents the first layer from being dragged or lifting at corners."
+    "value": "400 mm/s²",
+    "why": "Capped at the 400 mm/s² acceleration ceiling of Mega X — the printer cannot execute more, so a higher value is ignored at best and causes ringing on raised firmware limits at worst."
    },
    "initial_layer_height": {
     "mode": "advanced",
@@ -6443,11 +6443,11 @@
    "inner_wall_acceleration": {
     "mode": "advanced",
     "prov": {
-     "ref": "rule:accel_with_material_caps",
+     "ref": "rule:accel_with_material_caps (clamped to printer.max_acceleration)",
      "source": "calculated"
     },
-    "value": "3000 mm/s²",
-    "why": "Reduced acceleration for bedslinger — inner walls still contribute to visible ringing."
+    "value": "400 mm/s²",
+    "why": "Capped at the 400 mm/s² acceleration ceiling of Mega X — the printer cannot execute more, so a higher value is ignored at best and causes ringing on raised firmware limits at worst."
    },
    "inner_wall_line_width": {
     "mode": "advanced",
@@ -6493,11 +6493,11 @@
    "outer_wall_acceleration": {
     "mode": "advanced",
     "prov": {
-     "ref": "rule:accel_with_material_caps",
+     "ref": "rule:accel_with_material_caps (clamped to printer.max_acceleration)",
      "source": "calculated"
     },
-    "value": "2500 mm/s²",
-    "why": "Lower acceleration on Mega X prevents ringing from the moving print bed mass."
+    "value": "400 mm/s²",
+    "why": "Capped at the 400 mm/s² acceleration ceiling of Mega X — the printer cannot execute more, so a higher value is ignored at best and causes ringing on raised firmware limits at worst."
    },
    "outer_wall_line_width": {
     "mode": "advanced",
@@ -6636,7 +6636,7 @@
    "bed": "75 °C",
    "nozzle": "260 °C"
   },
-  "text": "═══════════════════════════════════════\n  3D Print Assistant — Profile Export\n═══════════════════════════════════════\n\nPrinter:          Mega X\nNozzle:           Standard 0.4 mm\nMaterial:         PETG Basic\nSlicer:           OrcaSlicer\nSurface quality:  Standard\nStrength:         Standard\nSpeed priority:   Balanced\nEnvironment:      Normal room\n\n── Filament Settings ──────────────────\n  (Filament tab in OrcaSlicer)\n\n  TEMPERATURE\n    Nozzle temp:             250 °C  (same for both layers)\n    Bed temp (initial):      85 °C\n    Bed temp (other):        75 °C\n\n  FAN SETTINGS\n    Part cooling fan:        40–50%\n    Fan speed (min):         30%\n    Overhang fan speed:      80\n    Min layer time:          15 s\n\n  SPEED LIMIT\n    Max volumetric speed:    14 mm³/s\n\n  SETUP\n    Build plate:             Textured PEI (add glue stick or release agent)\n    AMS compatible:          Yes\n    Drying:                  Strongly recommended — 65 °C / 8h\n    Enclosure:               Enclosed preferred (open frame OK)\n\n  EXTRUSION\n    Pressure advance:        0.05\n    Flow ratio:              0.95\n    Retraction length:       2 mm\n    Retraction speed:        45 mm/s\n\n── Print Profile Settings ─────────────\n  (Process tab in OrcaSlicer)\n\n  Quality\n    Layer height: 0.2 mm\n    First layer height: 0.20 mm\n    Outer wall line width: 0.42 mm\n    Inner wall line width: 0.44 mm\n    Top surface line width: 0.42 mm\n    Arc fitting: Enabled\n    X-Y hole compensation: 0.05–0.1 mm\n    Elephant foot compensation: 0.15 mm\n    Wall generator: Classic\n    Walls printing order: Inner / Outer\n    Avoid crossing walls: Enabled\n    Bridge flow ratio: 0.90\n\n  Strength\n    Wall loops: 3\n    Top shell layers: 5\n    Bottom shell layers: 4\n    Top surface pattern: Monotonic\n    Bottom surface pattern: Monotonic\n    Internal solid infill pattern: Rectilinear\n    Sparse infill density: 15%\n    Sparse infill pattern: Grid\n\n  Speed\n    First layer: 25 mm/s\n    Outer wall: 40 mm/s\n    Inner wall: 60 mm/s\n    Top surface: 50 mm/s\n    Gap infill: 70 mm/s\n    Outer wall: 2500 mm/s²\n    Inner wall: 3000 mm/s²\n    First layer: 500 mm/s²\n\n  Others\n    Brim width: 5–8 mm\n\n── Warnings ───────────────────────────\n  ⚠ Mega X has no enclosure.\n  ⚠ Mega X nozzle temperature capped at 250°C.\n  ⚠ PETG Basic bonds aggressively to smooth PEI.\n  ⚠ Mega X uses a bowden extruder.\n  ⚠ Outer wall speed capped at 40 mm/s for Mega X.\n\n───────────────────────────────────────\nGenerated by 3dprintassistant.com",
+  "text": "═══════════════════════════════════════\n  3D Print Assistant — Profile Export\n═══════════════════════════════════════\n\nPrinter:          Mega X\nNozzle:           Standard 0.4 mm\nMaterial:         PETG Basic\nSlicer:           OrcaSlicer\nSurface quality:  Standard\nStrength:         Standard\nSpeed priority:   Balanced\nEnvironment:      Normal room\n\n── Filament Settings ──────────────────\n  (Filament tab in OrcaSlicer)\n\n  TEMPERATURE\n    Nozzle temp:             250 °C  (same for both layers)\n    Bed temp (initial):      85 °C\n    Bed temp (other):        75 °C\n\n  FAN SETTINGS\n    Part cooling fan:        40–50%\n    Fan speed (min):         30%\n    Overhang fan speed:      80\n    Min layer time:          15 s\n\n  SPEED LIMIT\n    Max volumetric speed:    14 mm³/s\n\n  SETUP\n    Build plate:             Textured PEI (add glue stick or release agent)\n    AMS compatible:          Yes\n    Drying:                  Strongly recommended — 65 °C / 8h\n    Enclosure:               Enclosed preferred (open frame OK)\n\n  EXTRUSION\n    Pressure advance:        0.05\n    Flow ratio:              0.95\n    Retraction length:       2 mm\n    Retraction speed:        45 mm/s\n\n── Print Profile Settings ─────────────\n  (Process tab in OrcaSlicer)\n\n  Quality\n    Layer height: 0.2 mm\n    First layer height: 0.20 mm\n    Outer wall line width: 0.42 mm\n    Inner wall line width: 0.44 mm\n    Top surface line width: 0.42 mm\n    Arc fitting: Enabled\n    X-Y hole compensation: 0.05–0.1 mm\n    Elephant foot compensation: 0.15 mm\n    Wall generator: Classic\n    Walls printing order: Inner / Outer\n    Avoid crossing walls: Enabled\n    Bridge flow ratio: 0.90\n\n  Strength\n    Wall loops: 3\n    Top shell layers: 5\n    Bottom shell layers: 4\n    Top surface pattern: Monotonic\n    Bottom surface pattern: Monotonic\n    Internal solid infill pattern: Rectilinear\n    Sparse infill density: 15%\n    Sparse infill pattern: Grid\n\n  Speed\n    First layer: 25 mm/s\n    Outer wall: 40 mm/s\n    Inner wall: 60 mm/s\n    Top surface: 50 mm/s\n    Gap infill: 70 mm/s\n    Outer wall: 400 mm/s²\n    Inner wall: 400 mm/s²\n    First layer: 400 mm/s²\n\n  Others\n    Brim width: 5–8 mm\n\n── Warnings ───────────────────────────\n  ⚠ Mega X has no enclosure.\n  ⚠ Mega X nozzle temperature capped at 250°C.\n  ⚠ PETG Basic bonds aggressively to smooth PEI.\n  ⚠ Mega X uses a bowden extruder.\n  ⚠ Outer wall speed capped at 40 mm/s for Mega X.\n\n───────────────────────────────────────\nGenerated by 3dprintassistant.com",
   "warnings": [
    {
     "detail": "PETG prints better with stable ambient temperature. Consider a DIY enclosure or warm room to avoid layer separation.",
@@ -6823,16 +6823,16 @@
     "elephant_foot_compensation": "0.15 mm",
     "fan_speed": "50%",
     "gap_fill_speed": "70 mm/s",
-    "initial_layer_acceleration": "500 mm/s²",
+    "initial_layer_acceleration": "400 mm/s²",
     "initial_layer_height": "0.20 mm",
     "initial_layer_speed": "25 mm/s",
-    "inner_wall_acceleration": "3000 mm/s²",
+    "inner_wall_acceleration": "400 mm/s²",
     "inner_wall_line_width": "0.44 mm",
     "inner_wall_speed": "60 mm/s",
     "internal_solid_infill_pattern": "Rectilinear",
     "layer_height": "0.2 mm",
     "order_of_walls": "Inner / Outer",
-    "outer_wall_acceleration": "2500 mm/s²",
+    "outer_wall_acceleration": "400 mm/s²",
     "outer_wall_line_width": "0.42 mm",
     "outer_wall_speed": "40 mm/s",
     "pressure_advance": "0.05",
@@ -6929,11 +6929,11 @@
    "initial_layer_acceleration": {
     "mode": "advanced",
     "prov": {
-     "ref": "objective_profiles.json#speed.initial_accel",
-     "source": "default"
+     "ref": "objective_profiles.json#speed.initial_accel (clamped to printer.max_acceleration)",
+     "source": "calculated"
     },
-    "value": "500 mm/s²",
-    "why": "Very low acceleration ensures the nozzle moves smoothly at slow speed — prevents the first layer from being dragged or lifting at corners."
+    "value": "400 mm/s²",
+    "why": "Capped at the 400 mm/s² acceleration ceiling of Mega X — the printer cannot execute more, so a higher value is ignored at best and causes ringing on raised firmware limits at worst."
    },
    "initial_layer_height": {
     "mode": "advanced",
@@ -6956,11 +6956,11 @@
    "inner_wall_acceleration": {
     "mode": "advanced",
     "prov": {
-     "ref": "rule:accel_with_material_caps",
+     "ref": "rule:accel_with_material_caps (clamped to printer.max_acceleration)",
      "source": "calculated"
     },
-    "value": "3000 mm/s²",
-    "why": "Reduced acceleration for bedslinger — inner walls still contribute to visible ringing."
+    "value": "400 mm/s²",
+    "why": "Capped at the 400 mm/s² acceleration ceiling of Mega X — the printer cannot execute more, so a higher value is ignored at best and causes ringing on raised firmware limits at worst."
    },
    "inner_wall_line_width": {
     "mode": "advanced",
@@ -7006,11 +7006,11 @@
    "outer_wall_acceleration": {
     "mode": "advanced",
     "prov": {
-     "ref": "rule:accel_with_material_caps",
+     "ref": "rule:accel_with_material_caps (clamped to printer.max_acceleration)",
      "source": "calculated"
     },
-    "value": "2500 mm/s²",
-    "why": "Lower acceleration on Mega X prevents ringing from the moving print bed mass."
+    "value": "400 mm/s²",
+    "why": "Capped at the 400 mm/s² acceleration ceiling of Mega X — the printer cannot execute more, so a higher value is ignored at best and causes ringing on raised firmware limits at worst."
    },
    "outer_wall_line_width": {
     "mode": "advanced",
@@ -7149,7 +7149,7 @@
    "bed": "75 °C",
    "nozzle": "260 °C"
   },
-  "text": "═══════════════════════════════════════\n  3D Print Assistant — Profile Export\n═══════════════════════════════════════\n\nPrinter:          Mega X\nNozzle:           Standard 0.4 mm\nMaterial:         PETG Basic\nSlicer:           OrcaSlicer\nSurface quality:  Standard\nStrength:         Standard\nSpeed priority:   Balanced\nEnvironment:      Normal room\n\n── Filament Settings ──────────────────\n  (Filament tab in OrcaSlicer)\n\n  TEMPERATURE\n    Nozzle temp:             250 °C  (same for both layers)\n    Bed temp (initial):      85 °C\n    Bed temp (other):        75 °C\n\n  FAN SETTINGS\n    Part cooling fan:        40–50%\n    Fan speed (min):         30%\n    Overhang fan speed:      80\n    Min layer time:          15 s\n\n  SPEED LIMIT\n    Max volumetric speed:    14 mm³/s\n\n  SETUP\n    Build plate:             Textured PEI (add glue stick or release agent)\n    AMS compatible:          Yes\n    Drying:                  Strongly recommended — 65 °C / 8h\n    Enclosure:               Enclosed preferred (open frame OK)\n\n  EXTRUSION\n    Pressure advance:        0.05\n    Flow ratio:              0.95\n    Retraction length:       2 mm\n    Retraction speed:        45 mm/s\n\n── Print Profile Settings ─────────────\n  (Process tab in OrcaSlicer)\n\n  Quality\n    Layer height: 0.2 mm\n    First layer height: 0.20 mm\n    Outer wall line width: 0.42 mm\n    Inner wall line width: 0.44 mm\n    Top surface line width: 0.42 mm\n    Arc fitting: Enabled\n    X-Y hole compensation: 0.05–0.1 mm\n    Elephant foot compensation: 0.15 mm\n    Wall generator: Classic\n    Walls printing order: Inner / Outer\n    Avoid crossing walls: Enabled\n    Bridge flow ratio: 0.90\n\n  Strength\n    Wall loops: 3\n    Top shell layers: 5\n    Bottom shell layers: 4\n    Top surface pattern: Monotonic\n    Bottom surface pattern: Monotonic\n    Internal solid infill pattern: Rectilinear\n    Sparse infill density: 15%\n    Sparse infill pattern: Grid\n\n  Speed\n    First layer: 25 mm/s\n    Outer wall: 40 mm/s\n    Inner wall: 60 mm/s\n    Top surface: 50 mm/s\n    Gap infill: 70 mm/s\n    Outer wall: 2500 mm/s²\n    Inner wall: 3000 mm/s²\n    First layer: 500 mm/s²\n\n  Others\n    Brim width: 5–8 mm\n\n── Warnings ───────────────────────────\n  ⚠ Mega X has no enclosure.\n  ⚠ Mega X nozzle temperature capped at 250°C.\n  ⚠ PETG Basic bonds aggressively to smooth PEI.\n  ⚠ Mega X uses a bowden extruder.\n  ⚠ Outer wall speed capped at 40 mm/s for Mega X.\n\n───────────────────────────────────────\nGenerated by 3dprintassistant.com",
+  "text": "═══════════════════════════════════════\n  3D Print Assistant — Profile Export\n═══════════════════════════════════════\n\nPrinter:          Mega X\nNozzle:           Standard 0.4 mm\nMaterial:         PETG Basic\nSlicer:           OrcaSlicer\nSurface quality:  Standard\nStrength:         Standard\nSpeed priority:   Balanced\nEnvironment:      Normal room\n\n── Filament Settings ──────────────────\n  (Filament tab in OrcaSlicer)\n\n  TEMPERATURE\n    Nozzle temp:             250 °C  (same for both layers)\n    Bed temp (initial):      85 °C\n    Bed temp (other):        75 °C\n\n  FAN SETTINGS\n    Part cooling fan:        40–50%\n    Fan speed (min):         30%\n    Overhang fan speed:      80\n    Min layer time:          15 s\n\n  SPEED LIMIT\n    Max volumetric speed:    14 mm³/s\n\n  SETUP\n    Build plate:             Textured PEI (add glue stick or release agent)\n    AMS compatible:          Yes\n    Drying:                  Strongly recommended — 65 °C / 8h\n    Enclosure:               Enclosed preferred (open frame OK)\n\n  EXTRUSION\n    Pressure advance:        0.05\n    Flow ratio:              0.95\n    Retraction length:       2 mm\n    Retraction speed:        45 mm/s\n\n── Print Profile Settings ─────────────\n  (Process tab in OrcaSlicer)\n\n  Quality\n    Layer height: 0.2 mm\n    First layer height: 0.20 mm\n    Outer wall line width: 0.42 mm\n    Inner wall line width: 0.44 mm\n    Top surface line width: 0.42 mm\n    Arc fitting: Enabled\n    X-Y hole compensation: 0.05–0.1 mm\n    Elephant foot compensation: 0.15 mm\n    Wall generator: Classic\n    Walls printing order: Inner / Outer\n    Avoid crossing walls: Enabled\n    Bridge flow ratio: 0.90\n\n  Strength\n    Wall loops: 3\n    Top shell layers: 5\n    Bottom shell layers: 4\n    Top surface pattern: Monotonic\n    Bottom surface pattern: Monotonic\n    Internal solid infill pattern: Rectilinear\n    Sparse infill density: 15%\n    Sparse infill pattern: Grid\n\n  Speed\n    First layer: 25 mm/s\n    Outer wall: 40 mm/s\n    Inner wall: 60 mm/s\n    Top surface: 50 mm/s\n    Gap infill: 70 mm/s\n    Outer wall: 400 mm/s²\n    Inner wall: 400 mm/s²\n    First layer: 400 mm/s²\n\n  Others\n    Brim width: 5–8 mm\n\n── Warnings ───────────────────────────\n  ⚠ Mega X has no enclosure.\n  ⚠ Mega X nozzle temperature capped at 250°C.\n  ⚠ PETG Basic bonds aggressively to smooth PEI.\n  ⚠ Mega X uses a bowden extruder.\n  ⚠ Outer wall speed capped at 40 mm/s for Mega X.\n\n───────────────────────────────────────\nGenerated by 3dprintassistant.com",
   "warnings": [
    {
     "detail": "PETG prints better with stable ambient temperature. Consider a DIY enclosure or warm room to avoid layer separation.",

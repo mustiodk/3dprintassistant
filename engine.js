@@ -2676,7 +2676,7 @@ const Engine = (() => {
       let innerAccel = isCoreXY
         ? (isPETG || isABSlike ? Math.round(sm.inner_accel_corexy * 0.6) : sm.inner_accel_corexy)
         : sm.inner_accel_bedslinger;
-      const initAccel = sm.initial_accel;
+      let initAccel = sm.initial_accel;
 
       if (isTPU) {
         const tpuMax = material.base_settings.max_speed || 40;
@@ -2685,24 +2685,50 @@ const Engine = (() => {
         innerAccel = Math.min(innerAccel, Math.round(accelCap * 1.6));
       }
 
+      // [HIGH-012-followup B] Clamp every emitted acceleration to the printer's
+      // own ceiling. `printer.max_acceleration` previously fed ONLY the HIGH-012
+      // warning TEXT, so a low-ceiling machine was told "tops out at 400 mm/s²"
+      // directly above a 2500 mm/s² recommendation. Firmware normally refuses
+      // the excess, which made the advice dead rather than destructive — but on
+      // raised limits (Klipper, modified firmware) it produces real ringing or
+      // layer shifts, and a self-contradicting screen costs trust in every other
+      // number on it. Clamped LAST so it also binds the TPU cap above, and only
+      // ever lowers: a printer whose ceiling exceeds its tier is untouched.
+      const accelCeiling    = Number(printer.max_acceleration);
+      const hasAccelCeiling = Number.isFinite(accelCeiling) && accelCeiling > 0;
+      const _clampAccel     = v => (hasAccelCeiling && Number.isFinite(v) ? Math.min(v, accelCeiling) : v);
+      const outerAccelCapped = hasAccelCeiling && outerAccel > accelCeiling;
+      const innerAccelCapped = hasAccelCeiling && innerAccel > accelCeiling;
+      const initAccelCapped  = hasAccelCeiling && initAccel  > accelCeiling;
+      outerAccel = _clampAccel(outerAccel);
+      innerAccel = _clampAccel(innerAccel);
+      initAccel  = _clampAccel(initAccel);
+      const _ceilingText = hasAccelCeiling ? accelCeiling.toLocaleString('en-US') : '';
+      const _cappedDesc  = `Capped at the ${accelCeiling ? _ceilingText : ''} mm/s² acceleration ceiling of ${printer.name} — the printer cannot execute more, so a higher value is ignored at best and causes ringing on raised firmware limits at worst.`;
+
       const outerAccelTuned = profileMode === 'tuned' && sm._tuned
         && (isCoreXY ? sm._tuned.outer_accel_corexy != null : sm._tuned.outer_accel_bedslinger != null);
       p.outer_wall_acceleration    = A(`${outerAccel} mm/s²`,
+        // Clamp explanation wins: when the ceiling binds it IS the reason for
+        // the number, and the material/kinematics rationale would misdescribe it.
+        outerAccelCapped ? _cappedDesc :
         isTPU     ? 'Very low acceleration for TPU — prevents filament stretching and under-extrusion.' :
         // [HIGH-012-followup A] Template against printer.name — was hardcoded "A1/A1 Mini" and fired for every bedslinger.
         !isCoreXY ? `Lower acceleration on ${printer.name} prevents ringing from the moving print bed mass.` :
         isABSlike ? 'Reduced acceleration helps ABS/ASA cool more uniformly, reducing warping.' :
         'Outer wall acceleration tuned for your printer — balances speed with surface quality.',
-        { source: 'calculated', ref: `rule:accel_with_material_caps${outerAccelTuned ? ' (base from _tuned)' : ''}` });
+        { source: 'calculated', ref: `rule:accel_with_material_caps${outerAccelTuned ? ' (base from _tuned)' : ''}${outerAccelCapped ? ' (clamped to printer.max_acceleration)' : ''}` });
       p.inner_wall_acceleration    = A(`${innerAccel} mm/s²`,
+        innerAccelCapped ? _cappedDesc :
         isTPU     ? 'Low acceleration for flexible filament — matches outer wall limits to prevent jams.' :
         !isCoreXY ? 'Reduced acceleration for bedslinger — inner walls still contribute to visible ringing.' :
         isABSlike ? 'Lower acceleration helps ABS/ASA maintain consistent layer bonding.' :
         'Higher than outer wall — inner walls are hidden so acceleration artifacts are not visible.',
-        { source: 'calculated', ref: 'rule:accel_with_material_caps' });
+        { source: 'calculated', ref: `rule:accel_with_material_caps${innerAccelCapped ? ' (clamped to printer.max_acceleration)' : ''}` });
       p.initial_layer_acceleration = A(`${initAccel} mm/s²`,
+        initAccelCapped ? _cappedDesc :
         'Very low acceleration ensures the nozzle moves smoothly at slow speed — prevents the first layer from being dragged or lifting at corners.',
-        { source: 'default', ref: 'objective_profiles.json#speed.initial_accel' });
+        { source: initAccelCapped ? 'calculated' : 'default', ref: `objective_profiles.json#speed.initial_accel${initAccelCapped ? ' (clamped to printer.max_acceleration)' : ''}` });
     }
 
     // ─── SUPPORT TAB ──────────────────────────────────────────────────────────
