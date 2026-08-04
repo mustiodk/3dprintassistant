@@ -567,11 +567,25 @@ function attestField(options) {
   if (packet.proposedTaxonomy && Object.prototype.hasOwnProperty.call(packet.proposedTaxonomy, field)) {
     packet.proposedTaxonomy = { ...packet.proposedTaxonomy, [field]: attestation.value };
   }
+  const existingSources = Array.isArray(packet.ownerSuppliedSources) ? packet.ownerSuppliedSources : [];
   const existing = Array.isArray(packet.ownerAttestations) ? packet.ownerAttestations : [];
   // Answers accumulate across separate sittings (owner decision 2026-08-04:
   // "I can maybe add answers not at once but separately, it should consider
   // them all"), so re-attesting one field replaces only that field's entry.
   packet.ownerAttestations = [...existing.filter((a) => a.field !== field), { field, ...attestation }];
+
+  // validateReentryDecision requires decision.sources to MATCH
+  // packet.ownerSuppliedSources exactly. Writing the decision without
+  // materializing the packet side produced a sidecar that verify-reentry
+  // rejected as `owner-decision-sources-not-materialized` — i.e. an attestation
+  // the autonomous runner could never consume. Build both from one list.
+  const noteFor = (a) => `owner-attested ${a.field}: ${a.claim}`;
+  const sources = [
+    ...existingSources.filter((s) => !/^owner-attested (\w+):/.test(s.note || '')
+      || !packet.ownerAttestations.some((a) => (s.note || '').startsWith(`owner-attested ${a.field}:`))),
+    ...packet.ownerAttestations.map((a) => ({ url: a.source, note: noteFor(a) })),
+  ];
+  packet.ownerSuppliedSources = sources;
 
   const packetText = `${JSON.stringify(packet, null, 2)}\n`;
   const nextPacketSha = shaBuffer(Buffer.from(packetText));
@@ -589,7 +603,7 @@ function attestField(options) {
       decidedAt: attestation.answeredAt,
       priorCandidateSha256: context.packetSha,
       edge: 'owner-instruction',
-      sources: [{ url: attestation.source, note: `owner-attested ${field}: ${attestation.claim}` }],
+      sources,
       attestedFields: answered,
     },
     candidateArtifact: { ...context.sidecar.candidateArtifact, sha256: nextPacketSha },
@@ -597,7 +611,13 @@ function attestField(options) {
   };
   const sidecarText = `${JSON.stringify(sidecar, null, 2)}\n`;
 
-  const result = { changed: false, action: 'attest-field', field, attestedFields: answered };
+  // Never write a decision the runner's own boundary would refuse. provideEvidence
+  // has always done this; attestField shipping without it is exactly how the
+  // sources-not-materialized defect got as far as review.
+  const validation = validateReentryDecision({ sidecar, packet, candidateId: context.candidateId });
+  if (!validation.ok) throw new Error(`generated attestation is invalid: ${validation.reason}`);
+
+  const result = { changed: false, action: 'attest-field', field, attestedFields: answered, validation };
   if (!options.apply) return result;
   commitDecisionTransaction(context, {
     packetText, nextPacketSha, sidecarText, now: new Date(attestation.answeredAt), options,

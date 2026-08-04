@@ -246,6 +246,33 @@ console.log('\nTC7 — attestField writes a packet the gate then accepts');
     assert.strictEqual(packet.ownerAttestations.filter((a) => a.field === 'series').length, 1);
   });
 
+  // Cross-model review MUST-FIX-1: attestField wrote an ownerDecision whose
+  // sources were not materialized onto the packet, so verify-reentry — the
+  // boundary the runner MUST call — rejected it. The feature was unconsumable.
+  t('an attestation passes the verify-reentry boundary the runner uses', () => {
+    const { validateReentryDecision } = require('./intake-owner-decision.js');
+    const f = fixture();
+    attestField({ ...f.opts, ...answer('series', 'bedslinger'), apply: true });
+    const v = validateReentryDecision({
+      sidecar: read(f.sidecarPath), packet: read(f.packetPath), candidateId: 'adventurer_3',
+    });
+    assert.ok(v.ok, `runner boundary would reject this attestation: ${v.reason}`);
+  });
+
+  t('accumulated attestations all stay consumable', () => {
+    const { validateReentryDecision } = require('./intake-owner-decision.js');
+    const f = fixture();
+    attestField({ ...f.opts, ...answer('series', 'bedslinger'), apply: true });
+    attestField({ ...f.opts, ...answer('available_plates', 'textured_pei'), apply: true });
+    const packet = read(f.packetPath);
+    const v = validateReentryDecision({
+      sidecar: read(f.sidecarPath), packet, candidateId: 'adventurer_3',
+    });
+    assert.ok(v.ok, `reason=${v.reason}`);
+    assert.strictEqual(packet.ownerSuppliedSources.length, 2,
+      'each attested field contributes exactly one source, no duplicates');
+  });
+
   t('the writer refuses a non-allowlisted field', () => {
     const f = fixture();
     assert.throws(() => attestField({ ...f.opts, ...answer('max_bed_temp', 110), apply: true }),
