@@ -653,7 +653,19 @@ if (require.main === module) {
       if (!validation.ok) throw new Error(validation.reason);
       result = { changed: false, action: 'verify-reentry', validation };
     }
-    console.log(`OWNERDECISION ok=true action=${result.action} candidate=${options.candidateId} changed=${result.changed}`);
+    // requiresRetryGate MUST reach the runner. The runner consumes this CLI
+    // line, not the in-process return value, so a boolean that only existed in
+    // the returned object was invisible to the only consumer that enforces it —
+    // an owner-instruction re-entry for a judgment-on-evidence candidate would
+    // read as a plain ok=true and skip intake-retry-gate.js. Edge is emitted
+    // alongside it so the runner can tell the two envelope shapes apart without
+    // re-reading the sidecar.
+    const extra = [];
+    if (result.validation?.edge) extra.push(`edge=${result.validation.edge}`);
+    if (result.validation?.requiresRetryGate !== undefined) {
+      extra.push(`requiresRetryGate=${result.validation.requiresRetryGate}`);
+    }
+    console.log(`OWNERDECISION ok=true action=${result.action} candidate=${options.candidateId} changed=${result.changed}${extra.length ? ` ${extra.join(' ')}` : ''}`);
   } catch (error) {
     console.error(`OWNERDECISION ok=false reason=${error.message}`);
     process.exit(1);

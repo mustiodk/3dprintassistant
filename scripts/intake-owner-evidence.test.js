@@ -368,6 +368,47 @@ t('an evidence decision cannot masquerade as a series override', () => {
     'the evidence path must not silently write a series_group override');
 });
 
+// ── TC9 — the retry-gate signal must reach the RUNNER, not just callers ─────
+// Codex confirmation review: requiresRetryGate was computed but never printed,
+// and the runner consumes the CLI line rather than the returned object. An
+// advisory boolean invisible to its only enforcer is not a control.
+console.log('\nTC9 — verify-reentry CLI surfaces the retry-gate signal');
+{
+  const { execFileSync } = require('node:child_process');
+  const cli = path.join(__dirname, 'intake-owner-decision.js');
+  const run = (f) => execFileSync(process.execPath, [
+    cli, 'verify-reentry', '--candidate', f.candidateId,
+    '--repo-root', f.repoRoot, '--parked-root', f.parkedRoot,
+  ], { encoding: 'utf8' }).trim();
+
+  t('owner-instruction on judgment-on-evidence prints requiresRetryGate=true', () => {
+    const f = makeFixture({
+      candidateId: 'ender_3_s1',
+      sidecar: { class: 'judgment-on-evidence', reason: 'review-no-go', tainted: true },
+    });
+    provideEvidence({ ...f.opts, sources: [MANUFACTURER_SOURCE], edge: 'owner-instruction', apply: true });
+    const line = run(f);
+    assert.match(line, /ok=true/);
+    assert.match(line, /requiresRetryGate=true/,
+      `runner-visible line must carry the gate signal. Got: ${line}`);
+    assert.match(line, /edge=owner-instruction/);
+  });
+
+  t('needs-source-resolution prints requiresRetryGate=false', () => {
+    const f = makeFixture();
+    provideEvidence({ ...f.opts, sources: [MANUFACTURER_SOURCE], apply: true });
+    assert.match(run(f), /requiresRetryGate=false/);
+  });
+
+  t('the series_group path prints no retry-gate token (shape unchanged)', () => {
+    const f = makeFixture();
+    approveSeries({ ...f.opts, seriesGroup: 'Adventurer Series', apply: true });
+    const line = run(f);
+    assert.match(line, /ok=true/);
+    assert.ok(!/requiresRetryGate/.test(line), `series path must stay as-was. Got: ${line}`);
+  });
+}
+
 console.log(`\n[intake-owner-evidence] ${pass} passing, ${fail} failing`);
 if (fail) {
   console.log('\nFailures:');
