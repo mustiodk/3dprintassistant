@@ -179,6 +179,37 @@ t('an UNQUOTED trailing comment is still stripped', () => {
   assert.strictEqual(answers[0].value, 'none');
 });
 
+// Cross-model confirmation review: malformed answers were silently mangled
+// (an unterminated quote parsed to '"photo'; a YAML block scalar parsed to '|')
+// and still satisfied the non-empty check downstream. Fail closed instead.
+t('an unterminated quote is refused, not half-parsed', () => {
+  const { answers, errors } = parseAnswers(wrap([
+    'answers:', '  enclosure:', '    value: none',
+    '    source: https://a.example/1',
+    '    claim: "photo #3 shows open',
+  ].join('\n')));
+  assert.deepStrictEqual(answers, [], 'a mangled claim must never be consumed');
+  assert.ok(errors.some((e) => /unterminated quote/.test(e)), errors.join(' | '));
+});
+
+t('a YAML block scalar is refused', () => {
+  const { answers, errors } = parseAnswers(wrap([
+    'answers:', '  enclosure:', '    value: none',
+    '    source: https://a.example/1', '    claim: |',
+  ].join('\n')));
+  assert.deepStrictEqual(answers, []);
+  assert.ok(errors.some((e) => /multi-line/.test(e)), errors.join(' | '));
+});
+
+t('a quote INSIDE an unquoted value is left alone', () => {
+  const { answers } = parseAnswers(wrap([
+    'answers:', '  enclosure:', '    value: none',
+    '    source: https://a.example/1',
+    "    claim: the maker's own photo shows an open frame",
+  ].join('\n')));
+  assert.strictEqual(answers[0].claim, "the maker's own photo shows an open frame");
+});
+
 t('a body with no yaml block fails closed', () => {
   const { answers, errors } = parseAnswers('just some prose, no block');
   assert.deepStrictEqual(answers, []);

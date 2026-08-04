@@ -143,14 +143,27 @@ function parseAnswers(body) {
   // text itself becomes the "answer" — caught by the suite's own
   // freshly-generated-template case. A `#` inside a real value (a URL fragment)
   // has no whitespace before it and is correctly left alone.
+  // Returns a value, or throws so the field is reported rather than mangled.
+  // Silent corruption is the worst outcome for a provenance record: an answer
+  // that half-parses still passes buildAttestation's non-empty check and gets
+  // written as if it were what the owner meant.
   const strip = (v) => {
     const raw = String(v).trim();
+    // YAML block scalars would need multi-line handling this parser does not do.
+    if (raw === '|' || raw === '>' || /^[|>][-+]?\d*\s*$/.test(raw)) {
+      throw new Error('multi-line values are not supported — keep the answer on one line');
+    }
     // A fully-quoted scalar is taken verbatim: the owner explicitly delimited
-    // it, so a `#` inside is content, not a comment. Without this, a legitimate
-    // claim like "photo caption says #3 is open-frame" silently truncated to
-    // "photo caption says" and corrupted the provenance record with no error.
+    // it, so a `#` inside is content, not a comment. Without this a legitimate
+    // claim like "photo caption says #3 is open-frame" truncated to "photo
+    // caption says" and corrupted the record with no error.
     const quoted = raw.match(/^(["'])([\s\S]*)\1\s*(?:#.*)?$/);
     if (quoted) return quoted[2].trim();
+    // Opens a quote but never closes it: ambiguous. Refuse rather than guess
+    // which half the owner meant.
+    if (/^["']/.test(raw)) {
+      throw new Error('unterminated quote — close the quote or remove it');
+    }
     return raw.replace(/(^|\s+)#.*$/, '').trim();
   };
 
@@ -163,13 +176,26 @@ function parseAnswers(body) {
       continue;
     }
     const kv = line.match(/^\s{4}(value|source|claim):\s*(.*)$/);
-    if (kv && current) current[kv[1]] = strip(kv[2]);
+    if (kv && current) {
+      try {
+        current[kv[1]] = strip(kv[2]);
+      } catch (error) {
+        current[kv[1]] = '';
+        current._malformed = `${kv[1]}: ${error.message}`;
+      }
+    }
   }
 
   const complete = [];
   for (const a of answers) {
     if (!OWNER_ATTESTABLE_FIELDS.has(a.field)) {
       errors.push(`${a.field} is not owner-attestable — ignored`);
+      continue;
+    }
+    // A malformed line is reported and NOT consumed, even if the other two keys
+    // look fine — a half-parsed answer must never be written as provenance.
+    if (a._malformed) {
+      errors.push(`${a.field} ${a._malformed} — not consumed`);
       continue;
     }
     // A field left as the blank template is not an error, it is simply
