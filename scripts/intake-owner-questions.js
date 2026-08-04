@@ -71,7 +71,7 @@ function buildBody(candidateId, fields, tried) {
     `  ${f}:`,
     '    value:   # ' + (FIELD_PROMPTS[f] || 'the value'),
     '    source:  # a URL backing this (a review, a photo page, the manual — anything you actually looked at)',
-    '    claim:   # what that source shows, e.g. "product photo shows open gantry, no panels"',
+    '    claim:   # what that source shows — QUOTE IT if it contains a # character',
   ].join('\n')).join('\n');
 
   return `The intake pipeline researched **${candidateId}** and confirmed everything it could from the
@@ -147,7 +147,7 @@ function parseAnswers(body) {
   // Silent corruption is the worst outcome for a provenance record: an answer
   // that half-parses still passes buildAttestation's non-empty check and gets
   // written as if it were what the owner meant.
-  const strip = (v) => {
+  const strip = (v, key) => {
     const raw = String(v).trim();
     // YAML block scalars need multi-line handling this parser does not do.
     // Matching the full header grammar (`|`, `|-`, `|2-`, `>2+`, `| # note`…)
@@ -169,7 +169,20 @@ function parseAnswers(body) {
     if (/^["']/.test(raw)) {
       throw new Error('unterminated quote — close the quote or remove it');
     }
-    return raw.replace(/(^|\s+)#.*$/, '').trim();
+    const stripped = raw.replace(/(^|\s+)#.*$/, '').trim();
+    // Unquoted `#` starts a YAML comment; the template's own hints rely on it,
+    // and the natural way to answer is to type the value and leave the hint in
+    // place (`value: none   # none | passive`) — so `value` and `source` must
+    // keep stripping silently or answering becomes annoying.
+    //
+    // `claim` is different: it is free prose where `#` can be real content
+    // ("photo caption says #3 is open-frame"), and silently truncating it
+    // writes a corrupted provenance record — the exact failure this field
+    // exists to prevent. There, ambiguity is refused with instructions.
+    if (key === 'claim' && stripped && stripped !== raw) {
+      throw new Error('unquoted "#" is read as a YAML comment — wrap the claim in quotes to keep it');
+    }
+    return stripped;
   };
 
   for (const line of lines) {
@@ -183,7 +196,7 @@ function parseAnswers(body) {
     const kv = line.match(/^\s{4}(value|source|claim):\s*(.*)$/);
     if (kv && current) {
       try {
-        current[kv[1]] = strip(kv[2]);
+        current[kv[1]] = strip(kv[2], kv[1]);
       } catch (error) {
         current[kv[1]] = '';
         current._malformed = `${kv[1]}: ${error.message}`;

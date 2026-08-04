@@ -59,14 +59,18 @@ t('a complete answer is extracted', () => {
   });
 });
 
-t('the template comment hints are stripped from values', () => {
-  const { answers } = parseAnswers(wrap([
+// value/source keep stripping silently — the natural way to answer is to type
+// the value and leave the template hint in place. `claim` is free prose where a
+// `#` may be content, so there ambiguity is refused instead (see TC4).
+t('template hints are stripped from value and source', () => {
+  const { answers, errors } = parseAnswers(wrap([
     'answers:',
     '  enclosure:',
     '    value: none   # none | passive | active_heated',
     '    source: https://x.example/a  # a URL',
-    '    claim: open gantry  # what it shows',
+    '    claim: open gantry',
   ].join('\n')));
+  assert.deepStrictEqual(errors, []);
   assert.strictEqual(answers[0].value, 'none');
   assert.strictEqual(answers[0].source, 'https://x.example/a');
   assert.strictEqual(answers[0].claim, 'open gantry');
@@ -171,12 +175,24 @@ t('a quoted value with a trailing comment still strips the comment', () => {
   assert.strictEqual(answers[0].value, 'none');
 });
 
-t('an UNQUOTED trailing comment is still stripped', () => {
+t('an UNQUOTED trailing comment is still stripped from value', () => {
   const { answers } = parseAnswers(wrap([
     'answers:', '  enclosure:', '    value: none # open frame',
     '    source: https://a.example/1', '    claim: open',
   ].join('\n')));
   assert.strictEqual(answers[0].value, 'none');
+});
+
+// The reviewer's final case: unquoted '#' in free prose silently truncated the
+// claim and still consumed it. Refused now, with the fix named in the message.
+t('an unquoted # in a CLAIM is refused rather than truncated', () => {
+  const { answers, errors } = parseAnswers(wrap([
+    'answers:', '  enclosure:', '    value: none',
+    '    source: https://a.example/1',
+    '    claim: photo caption says #3 is open-frame',
+  ].join('\n')));
+  assert.deepStrictEqual(answers, [], 'a truncated claim must not be consumed');
+  assert.ok(errors.some((e) => /wrap the claim in quotes/.test(e)), errors.join(' | '));
 });
 
 // Cross-model confirmation review: malformed answers were silently mangled
