@@ -42,6 +42,60 @@ const ABSENCE_BOOLEAN_FIELDS = new Set([
 const REPO_CONVENTION_FIELD = 'open_door_threshold_bed_temp';
 const REPO_CONVENTION_POLICY = 'passive-enclosure-open-door-threshold';
 
+// ─── Owner-attested fields ──────────────────────────────────────────────────
+// Some facts are trivially observable by a human and simply never stated by the
+// manufacturer — Kobra 2 Neo confirmed every field from Anycubic's own JSON-LD
+// except `enclosure`, which is visible in any photograph and absent from every
+// Anycubic page. The owner answers those directly, and the record says so: both
+// `evidenceType` and `confidence` read `owner-attested`, never `manufacturer` /
+// `confirmed`, so a future reader can always tell the two apart.
+//
+// THIS ALLOWLIST IS THE ENTIRE SAFETY STORY. Allowlist creep is the designed-for
+// failure mode: once this path exists, every parked field will argue for
+// admission. Nothing numeric may ever be added — a wrong temperature or speed
+// damages hardware or ruins a print, and no amount of owner confidence changes
+// that. `validate-candidate-evidence-attested.test.js` TC3 asserts rejection
+// per numeric field; adding one here fails those tests loudly, on purpose.
+//
+// `series` is the sharpest edge in the set and is present at the owner's
+// explicit direction (2026-08-04). Unlike `enclosure` — which drives warnings
+// and checklist text only, measured — `series` selects the CoreXY vs bedslinger
+// acceleration tier in engine.js and therefore changes EMITTED PRINT SETTINGS.
+// It qualifies because it is still directly observable (does the bed move?),
+// not because it is low-impact.
+const OWNER_ATTESTABLE_FIELDS = new Set([
+  'enclosure',
+  'series',
+  'available_plates',
+]);
+
+function isHttpUrl(value) {
+  if (!nonEmptyString(value)) return false;
+  try {
+    return /^https?:$/i.test(new URL(value).protocol);
+  } catch (_) {
+    return false;
+  }
+}
+
+// An attestation carries its own provenance: who answered, when, from what, and
+// what that source actually shows. The `claim` is the part that makes it
+// auditable rather than a bare assertion — "product photo shows an open gantry
+// with no side panels" can be checked by anyone later.
+function hasOwnerAttestation(name, field) {
+  if (!OWNER_ATTESTABLE_FIELDS.has(name)) return false;
+  if (!field) return false;
+  if (field.evidenceType !== 'owner-attested') return false;
+  // Must not launder into something a reader would mistake for manufacturer
+  // evidence — the confidence label has to match the evidence class.
+  if (field.confidence !== 'owner-attested') return false;
+  if (!isHttpUrl(field.source)) return false;
+  if (!nonEmptyString(field.claim)) return false;
+  if (!nonEmptyString(field.answeredBy)) return false;
+  if (Number.isNaN(Date.parse(field.answeredAt || ''))) return false;
+  return true;
+}
+
 function nonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -156,6 +210,9 @@ function fieldPasses(name, field, context = {}) {
     return true;
   }
   if (hasRepoConvention(name, field, context.row || {}, context.printersData)) {
+    return true;
+  }
+  if (hasOwnerAttestation(name, field)) {
     return true;
   }
   return ABSENCE_BOOLEAN_FIELDS.has(name)
@@ -380,6 +437,7 @@ if (require.main === module) {
 module.exports = {
   CRITICAL_FIELDS,
   OPTIONAL_CRITICAL_FIELDS,
+  OWNER_ATTESTABLE_FIELDS,
   hasAbsenceRationale,
   hasCompleteSourceSweep,
   validateMaterializedParity,

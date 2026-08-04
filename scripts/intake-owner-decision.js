@@ -490,6 +490,121 @@ function sourceFingerprint(sources) {
   return (sources || []).map((s) => JSON.stringify([String(s?.url || ''), String(s?.note || '')]));
 }
 
+// Mirrors validate-candidate-evidence.js OWNER_ATTESTABLE_FIELDS. Required here
+// so the WRITER refuses out-of-allowlist fields up front rather than producing
+// a packet the evidence gate will reject downstream — and so the two lists
+// failing to agree is a loud test failure, not a silent divergence.
+const { OWNER_ATTESTABLE_FIELDS } = require('./validate-candidate-evidence.js');
+
+// ─── Owner attestation ──────────────────────────────────────────────────────
+// The owner answers a field the manufacturer never states. Distinct from
+// provide-evidence by design: THAT action says "here are leads, go confirm
+// them" and deliberately cannot promote field evidence. THIS one is the owner
+// asserting the fact directly, and the packet records it as such — never as
+// manufacturer/confirmed. Keeping them as separate actions is what stops the
+// weaker semantics leaking into the stronger one.
+function buildAttestation({ value, source, claim, answeredBy, answeredAt, issueNumber }) {
+  if (value === null || value === undefined || value === '') {
+    throw new Error('attestation requires a value');
+  }
+  if (!/^https?:\/\//i.test(String(source || ''))) {
+    throw new Error('attestation requires an http(s) --source URL backing the claim');
+  }
+  if (!String(claim || '').trim()) {
+    throw new Error('attestation requires a --claim describing what the source shows');
+  }
+  if (!String(answeredBy || '').trim()) {
+    throw new Error('attestation requires --answered-by');
+  }
+  const at = answeredAt || new Date().toISOString();
+  if (Number.isNaN(Date.parse(at))) throw new Error('attestation answeredAt must be an ISO date');
+  return {
+    value,
+    source: String(source),
+    confidence: 'owner-attested',
+    evidenceType: 'owner-attested',
+    claim: String(claim).slice(0, 500),
+    answeredBy: String(answeredBy),
+    answeredAt: at,
+    ...(issueNumber ? { issueNumber: Number(issueNumber) } : {}),
+  };
+}
+
+// Values arrive from a YAML/CLI surface as strings; the catalog expects real
+// types. Only the allowlisted fields are coerced, and only in the shapes those
+// fields actually take, so this cannot become a general type-punning hatch.
+function coerceAttestedValue(field, raw) {
+  if (field === 'available_plates') {
+    if (Array.isArray(raw)) return raw.map(String);
+    return String(raw).split(',').map((s) => s.trim()).filter(Boolean);
+  }
+  return typeof raw === 'string' ? raw.trim() : raw;
+}
+
+function attestField(options) {
+  const field = String(options.field || '');
+  if (!OWNER_ATTESTABLE_FIELDS.has(field)) {
+    throw new Error(
+      `field ${field || '<none>'} is not owner-attestable `
+      + `(allowed: ${[...OWNER_ATTESTABLE_FIELDS].sort().join(', ')}); `
+      + 'numeric safety fields are never attestable',
+    );
+  }
+  const context = readContext(options);
+  const attestation = buildAttestation({
+    value: coerceAttestedValue(field, options.value),
+    source: options.source,
+    claim: options.claim,
+    answeredBy: options.answeredBy,
+    answeredAt: options.answeredAt,
+    issueNumber: options.issueNumber,
+  });
+
+  const packet = structuredClone(context.packet);
+  packet.printersJsonRow = { ...packet.printersJsonRow, [field]: attestation };
+  // Materialized parity compares the packet row against data/printers.json, so
+  // the taxonomy mirror has to move with it for the fields it carries.
+  if (packet.proposedTaxonomy && Object.prototype.hasOwnProperty.call(packet.proposedTaxonomy, field)) {
+    packet.proposedTaxonomy = { ...packet.proposedTaxonomy, [field]: attestation.value };
+  }
+  const existing = Array.isArray(packet.ownerAttestations) ? packet.ownerAttestations : [];
+  // Answers accumulate across separate sittings (owner decision 2026-08-04:
+  // "I can maybe add answers not at once but separately, it should consider
+  // them all"), so re-attesting one field replaces only that field's entry.
+  packet.ownerAttestations = [...existing.filter((a) => a.field !== field), { field, ...attestation }];
+
+  const packetText = `${JSON.stringify(packet, null, 2)}\n`;
+  const nextPacketSha = shaBuffer(Buffer.from(packetText));
+
+  const answered = packet.ownerAttestations.map((a) => a.field).sort();
+  const sidecar = {
+    ...context.sidecar,
+    nextEligibleTrigger: 'owner-approved',
+    reviewEntryEdge: 'owner-instruction',
+    ownerDecision: {
+      schema: 'intake-owner-decision@1',
+      action: 'reenter-with-evidence',
+      candidateId: context.candidateId,
+      candidateKey: context.sidecar.candidateKey,
+      decidedAt: attestation.answeredAt,
+      priorCandidateSha256: context.packetSha,
+      edge: 'owner-instruction',
+      sources: [{ url: attestation.source, note: `owner-attested ${field}: ${attestation.claim}` }],
+      attestedFields: answered,
+    },
+    candidateArtifact: { ...context.sidecar.candidateArtifact, sha256: nextPacketSha },
+    resolutionNote: `Owner attested ${answered.join(', ')}; recorded as owner-attested, never manufacturer. All normal evidence/PD5/live/custody gates still apply.`,
+  };
+  const sidecarText = `${JSON.stringify(sidecar, null, 2)}\n`;
+
+  const result = { changed: false, action: 'attest-field', field, attestedFields: answered };
+  if (!options.apply) return result;
+  commitDecisionTransaction(context, {
+    packetText, nextPacketSha, sidecarText, now: new Date(attestation.answeredAt), options,
+  });
+  return { ...result, changed: true };
+}
+
 function normalizeSources(rawSources) {
   const list = Array.isArray(rawSources) ? rawSources : [];
   if (list.length === 0) {
@@ -603,8 +718,8 @@ function provideEvidence(options) {
 
 function parseCli(argv) {
   const [command, ...rest] = argv;
-  if (!['duplicate', 'approve-series', 'provide-evidence', 'verify-reentry'].includes(command)) {
-    throw new Error('command must be duplicate, approve-series, provide-evidence, or verify-reentry');
+  if (!['duplicate', 'approve-series', 'provide-evidence', 'attest-field', 'verify-reentry'].includes(command)) {
+    throw new Error('command must be duplicate, approve-series, provide-evidence, attest-field, or verify-reentry');
   }
   const options = { apply: false };
   for (let i = 0; i < rest.length; i += 1) {
@@ -623,6 +738,12 @@ function parseCli(argv) {
         '--duplicate-of': 'duplicateOf',
         '--series-group': 'seriesGroup',
         '--edge': 'edge',
+        '--field-name': 'field',
+        '--value': 'value',
+        '--claim': 'claim',
+        '--answered-by': 'answeredBy',
+        '--answered-at': 'answeredAt',
+        '--issue': 'issueNumber',
         '--repo-root': 'repoRoot',
         '--parked-root': 'parkedRoot',
         '--resolved-root': 'resolvedRoot',
@@ -640,6 +761,7 @@ module.exports = {
   resolveDuplicate,
   approveSeries,
   provideEvidence,
+  attestField,
   validateReentryDecision,
   recoverOwnerDecisionTransaction,
   SANCTIONED_REENTRY_EDGES,
@@ -652,6 +774,7 @@ if (require.main === module) {
     if (command === 'duplicate') result = resolveDuplicate(options);
     else if (command === 'approve-series') result = approveSeries(options);
     else if (command === 'provide-evidence') result = provideEvidence(options);
+    else if (command === 'attest-field') result = attestField(options);
     else {
       const context = readContext(options);
       const validation = validateReentryDecision({
