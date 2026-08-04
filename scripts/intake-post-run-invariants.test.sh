@@ -295,4 +295,53 @@ branch_sha="$(git -C "$REPO" rev-parse refs/heads/intake/centauri_carbon_2)"
 set_preserved_ref centauri_carbon_2 "$branch_sha"
 expect_ok
 
+# ── 2026-08-04 incident: R1 failed twice, runner never parked ──────────────
+# The boundary correctly returned `R1REVIEW ok=false reason=envelope-subtype`
+# (nested session aborted_streaming) on BOTH attempts, and the runner ignored
+# the contract's fail-closed clause — it backgrounded, exited, and left no
+# review-unavailable park. POSTRUN only caught it generically as report-stale,
+# which named a symptom and not the cause. This invariant is deterministic: an
+# R1 attempt that produced no verdict THIS RUN must have produced a park.
+
+r1_attempt() { # label [with-structured]
+  mkdir -p "$STATE/bridge-reviews"
+  printf 'review prompt\n' > "$STATE/bridge-reviews/pd5-$1-r1-20260804T175112Z-prompt.md"
+  printf '{"is_error":true,"subtype":"error_during_execution"}\n' \
+    > "$STATE/bridge-reviews/pd5-$1-r1-20260804T175112Z-envelope.json"
+  if [[ "${2:-}" == "with-structured" ]]; then
+    printf '{"reviewer":"claude-opus-r1","verdict":"GO","objections":[]}\n' \
+      > "$STATE/bridge-reviews/pd5-$1-r1-20260804T175112Z-structured.json"
+  fi
+}
+
+# 28 — a verdictless R1 attempt with NO park is the 2026-08-04 failure
+init_repo
+r1_attempt ender_3_s1
+expect_fail r1-attempted-not-parked
+
+# 29 — same attempt, but the contract was followed: review-unavailable park
+init_repo
+git -C "$REPO" branch intake/ender_3_s1
+r1_attempt ender_3_s1
+make_parked ender_3_s1 review-unavailable
+printf '{}\n' > "$STATE/parked/ender_3_s1/candidate-creality-ender_3_s1.json"
+branch_sha="$(git -C "$REPO" rev-parse refs/heads/intake/ender_3_s1)"
+set_preserved_ref ender_3_s1 "$branch_sha"
+expect_ok
+
+# 30 — an R1 that DID produce a verdict needs no park (normal GO path)
+init_repo
+r1_attempt ender_3_s1 with-structured
+expect_ok
+
+# 31 — a stale R1 attempt from a PRIOR run must not implicate this one.
+# Age the ARTIFACT rather than moving RUN_START forward: a future run-start
+# would also stale the report and test two things at once.
+init_repo
+r1_attempt ender_3_s1
+touch -t 202601010000 "$STATE/bridge-reviews/pd5-ender_3_s1-r1-20260804T175112Z-prompt.md"
+RUN_START=$(date +%s)
+expect_ok
+RUN_START=0
+
 echo "intake-post-run-invariants.test.sh: all tests passed"

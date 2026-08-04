@@ -74,6 +74,39 @@ if [[ ! -s "$SESSION_LOG" ]]; then
   fail session-log-empty "$SESSION_LOG"
 fi
 
+# 1b — R1 fail-closed enforcement (2026-08-04 incident).
+# The boundary returned `R1REVIEW ok=false reason=envelope-subtype` on BOTH
+# attempts (nested session aborted_streaming), which is exactly what it is built
+# to do. The runner ignored the contract's "park review-unavailable, notify,
+# stop" clause, backgrounded, and exited — leaving no park at all. POSTRUN only
+# caught it as `report-stale`, naming a symptom rather than the cause.
+#
+# Deterministic invariant: an R1 attempt started THIS RUN that produced no
+# verdict must have produced a park for that candidate. A verdictless review is
+# never a state a run may exit on silently. Detected by artifact shape — the
+# boundary writes `<label>-structured.json` only on a contract-valid verdict.
+REVIEW_DIR="$STATE_DIR/bridge-reviews"
+if [[ -d "$REVIEW_DIR" ]]; then
+  for prompt_file in "$REVIEW_DIR"/pd5-*-r1-*-prompt.md(N); do
+    prompt_mtime=$(mtime_of "$prompt_file")
+    [[ -z "$prompt_mtime" ]] && continue
+    (( prompt_mtime < RUN_START_EPOCH )) && continue   # prior run's artifact
+    structured="${prompt_file%-prompt.md}-structured.json"
+    [[ -s "$structured" ]] && continue                 # verdict produced — fine
+    # Candidate id sits between the `pd5-` prefix and the `-r1-` marker.
+    base="${prompt_file:t}"
+    candidate="${base#pd5-}"
+    candidate="${candidate%%-r1-*}"
+    sidecar="$STATE_DIR/parked/$candidate/parked.json"
+    if [[ ! -f "$sidecar" ]]; then
+      fail r1-attempted-not-parked "candidate=$candidate verdictless=${base} no-sidecar"
+    fi
+    if ! grep -q '"reason"[[:space:]]*:[[:space:]]*"review-unavailable"' "$sidecar"; then
+      fail r1-attempted-not-parked "candidate=$candidate verdictless=${base} sidecar-not-review-unavailable"
+    fi
+  done
+fi
+
 # 2 — run report: freshly written this run ⇒ the notify stage actually ran
 REPORT="$STATE_DIR/last-run-report.md"
 if [[ ! -f "$REPORT" ]]; then
