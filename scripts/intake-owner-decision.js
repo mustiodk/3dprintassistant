@@ -530,9 +530,15 @@ function provideEvidence(options) {
 
   const existing = context.sidecar.ownerDecision;
   if (existing) {
+    // Compare the FULL decision shape, not just source URLs. Comparing urls
+    // alone made `--source X --field max_bed_temp` a silent no-op against an
+    // existing `--source X` decision: the owner's new field hint vanished and
+    // the call reported changed:false, so neither the idempotent path nor the
+    // conflict path was actually correct.
     const sameShape = existing.action === 'reenter-with-evidence'
       && existing.edge === edge
-      && sameKey((existing.sources || []).map((s) => s.url), sources.map((s) => s.url));
+      && sameKey(existing.sources || [], sources)
+      && sameKey(existing.unresolvedFields || [], unresolvedFields);
     if (sameShape) {
       return {
         changed: false,

@@ -233,6 +233,39 @@ t('re-applying the identical decision is a no-op', () => {
   assert.strictEqual(fs.readFileSync(f.sidecarPath, 'utf8'), first);
 });
 
+// Codex hostile review P2-1: comparing source URLs alone made a changed --field
+// a silent no-op that reported changed:false, losing the owner's new hint.
+t('same sources but a different --field set is a conflict, not a no-op', () => {
+  const f = makeFixture();
+  provideEvidence({ ...f.opts, sources: [MANUFACTURER_SOURCE], fields: ['extruder_type'], apply: true });
+  assert.throws(
+    () => provideEvidence({
+      ...f.opts, sources: [MANUFACTURER_SOURCE], fields: ['extruder_type', 'max_bed_temp'], apply: true,
+    }),
+    /conflict/i,
+  );
+});
+
+t('same sources with an unchanged --field set is still idempotent', () => {
+  const f = makeFixture();
+  provideEvidence({ ...f.opts, sources: [MANUFACTURER_SOURCE], fields: ['extruder_type'], apply: true });
+  const result = provideEvidence({
+    ...f.opts, sources: [MANUFACTURER_SOURCE], fields: ['extruder_type'], apply: true,
+  });
+  assert.strictEqual(result.changed, false);
+});
+
+t('a source note change is detected rather than silently ignored', () => {
+  const f = makeFixture();
+  provideEvidence({ ...f.opts, sources: [{ url: MANUFACTURER_SOURCE, note: 'p12 spec table' }], apply: true });
+  assert.throws(
+    () => provideEvidence({
+      ...f.opts, sources: [{ url: MANUFACTURER_SOURCE, note: 'p31 nozzle table' }], apply: true,
+    }),
+    /conflict/i,
+  );
+});
+
 t('a different source set on an already-decided candidate throws', () => {
   const f = makeFixture();
   provideEvidence({ ...f.opts, sources: [MANUFACTURER_SOURCE], apply: true });
