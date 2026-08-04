@@ -487,7 +487,7 @@ function commitDecisionTransaction(context, { packetText, nextPacketSha, sidecar
 // {url,note} and {note,url} would false-conflict as "a different source set".
 // Canonicalize to a stable scalar before any comparison.
 function sourceFingerprint(sources) {
-  return (sources || []).map((s) => `${s?.url || ''} ${s?.note || ''}`);
+  return (sources || []).map((s) => JSON.stringify([String(s?.url || ''), String(s?.note || '')]));
 }
 
 function normalizeSources(rawSources) {
