@@ -189,6 +189,81 @@ t('a partially-answered objection set is still rejected', () => {
   assert.ok(r.errors.some((e) => /count must match/.test(e)));
 });
 
+// ── TC5 — code-change must be BOUND to the objection (review RG-001) ───────
+// "any merged commit + a claim" was trivially satisfiable, which defeats the
+// gate's anti-reroll purpose even though a fresh R1/R2 still follows.
+console.log('\nTC5 — a code-change commit must plausibly answer the objection');
+const codeChangeAttempt = (over = {}) => ({
+  diffSha: 'f8933f26e3201f4e8321b64999ae16d2677d7704',
+  objections: [{
+    ...OBJECTION,
+    resolvedBy: {
+      kind: 'code-change',
+      commit: 'cc2ea767aedabf13f82cbe9aa2cd182e476650a4',
+      claim: 'engine.js now clamps emitted acceleration',
+      resolvedAt: '2026-08-04T18:00:00Z',
+      ...over,
+    },
+  }],
+});
+
+t('a commit that PREDATES the objection is rejected', () => {
+  const root = tmp();
+  const r = canRetryJudgment(realWorldSidecar(root), codeChangeAttempt(), {
+    repoRoot: root,
+    inspectCommit: () => ({ merged: true, committedAt: '2026-07-01T00:00:00Z', touchesCode: true }),
+  });
+  assert.ok(!r.ok);
+  assert.ok(r.errors.some((e) => /predates the objection/.test(e)), r.errors.join(' | '));
+});
+
+t('a docs-only commit is rejected', () => {
+  const root = tmp();
+  const r = canRetryJudgment(realWorldSidecar(root), codeChangeAttempt(), {
+    repoRoot: root,
+    inspectCommit: () => ({ merged: true, committedAt: '2026-08-04T18:00:00Z', touchesCode: false }),
+  });
+  assert.ok(!r.ok);
+  assert.ok(r.errors.some((e) => /only docs/.test(e)), r.errors.join(' | '));
+});
+
+t('a commit newer than the objection that touches code is accepted', () => {
+  const root = tmp();
+  const r = canRetryJudgment(realWorldSidecar(root), codeChangeAttempt(), {
+    repoRoot: root,
+    inspectCommit: () => ({ merged: true, committedAt: '2026-08-04T18:00:00Z', touchesCode: true }),
+  });
+  assert.ok(r.ok, r.errors.join(' | '));
+});
+
+t('a ref expression is never handed to git', () => {
+  const root = tmp();
+  let sawCommit = null;
+  const r = canRetryJudgment(realWorldSidecar(root), codeChangeAttempt({ commit: '--help' }), {
+    repoRoot: root,
+    inspectCommit: (c) => { sawCommit = c; return { merged: true, committedAt: null, touchesCode: true }; },
+  });
+  assert.ok(!r.ok);
+  assert.strictEqual(sawCommit, null, 'the 40-hex test must run before any git call');
+  assert.ok(r.errors.some((e) => /40-character commit sha/.test(e)));
+});
+
+// ── TC6 — ref containment (review RG-003) ──────────────────────────────────
+console.log('\nTC6 — verdictRefs cannot point outside the runner state dir');
+t('a ref escaping the bridge-reviews dir is ignored', () => {
+  const root = tmp();
+  const outside = path.join(root, 'evil.json');
+  fs.writeFileSync(outside, `${JSON.stringify({ objections: [OBJECTION] })}\n`);
+  const r = canRetryJudgment(
+    { class: 'judgment-on-evidence', preservedRef: 'aaa', verdictRefs: [{ ref: '../evil.json' }] },
+    { diffSha: 'bbb', objections: [] },
+    { repoRoot: root, inspectCommit: () => ({ merged: true, touchesCode: true }) },
+  );
+  assert.ok(!r.ok);
+  assert.ok(r.errors.some((e) => /objections are required/.test(e)),
+    'an out-of-tree ref must not supply objections');
+});
+
 console.log(`\n[retry-gate-resolution] ${pass} passing, ${fail} failing`);
 if (fail) {
   console.log('\nFailures:');

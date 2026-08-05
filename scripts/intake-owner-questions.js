@@ -255,7 +255,7 @@ function parseAnswers(body) {
 // correctly reported `answered=0` and did nothing. Scan every source in
 // chronological order and let a later one supersede an earlier answer for the
 // same field, which is also how "I'll add the rest tomorrow" behaves.
-function collectAnswerSources(issue) {
+function collectAnswerSources(issue, ownerLogin) {
   const sources = [{ body: issue.body, by: (issue.author && issue.author.login) || null, at: '' }];
   for (const comment of Array.isArray(issue.comments) ? issue.comments : []) {
     sources.push({
@@ -264,7 +264,15 @@ function collectAnswerSources(issue) {
       at: comment.createdAt || '',
     });
   }
-  return sources.sort((a, b) => String(a.at).localeCompare(String(b.at)));
+  const filtered = ownerLogin
+    ? sources.filter((src) => !src.by || src.by === ownerLogin)
+    : sources;
+  // Stable sort: equal/missing createdAt keeps insertion order, so the body
+  // stays first and comments keep their natural sequence.
+  return filtered
+    .map((src, index) => ({ src, index }))
+    .sort((a, b) => String(a.src.at).localeCompare(String(b.src.at)) || (a.index - b.index))
+    .map((entry) => entry.src);
 }
 
 function readAnswers(options) {
@@ -273,10 +281,21 @@ function readAnswers(options) {
   const issue = findIssue(candidateId, repoArgs);
   if (!issue) return { action: 'read', issue: null, answers: [], errors: [] };
 
+  // Answers count only from the repo owner. On a private single-owner repo this
+  // changes nothing day to day and costs the owner no extra step, but as code it
+  // stops a collaborator, bot or integration from injecting an owner-attested
+  // value simply by commenting.
+  const ownerLogin = options.ownerLogin || (issue.author && issue.author.login) || null;
   const byField = new Map();
   const errors = [];
   let sawBlock = false;
-  for (const source of collectAnswerSources(issue)) {
+  const skipped = (Array.isArray(issue.comments) ? issue.comments : [])
+    .filter((c) => c && c.author && ownerLogin && c.author.login !== ownerLogin
+      && /```ya?ml/i.test(c.body || ''));
+  for (const c of skipped) {
+    errors.push(`answer block from ${c.author.login} ignored — only ${ownerLogin} may answer`);
+  }
+  for (const source of collectAnswerSources(issue, ownerLogin)) {
     const parsed = parseAnswers(source.body);
     // "no yaml block" is only meaningful if NO source had one — a prose comment
     // alongside a filled block is normal, not an error.

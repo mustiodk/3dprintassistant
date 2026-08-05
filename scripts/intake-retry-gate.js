@@ -24,7 +24,12 @@ function resolveParkedObjections(parked, repoRoot) {
   for (const entry of refs) {
     if (!entry || !isNonEmptyString(entry.ref)) continue;
     try {
+      // Containment: preserved review evidence lives under the runner state
+      // dir. A sidecar pointing anywhere else is not trusted review output.
+      const base = path.resolve(repoRoot || process.cwd(),
+        'scripts', '.intake-runner-state', 'bridge-reviews');
       const resolvedPath = path.resolve(repoRoot || process.cwd(), entry.ref);
+      if (resolvedPath !== base && !resolvedPath.startsWith(`${base}${path.sep}`)) continue;
       const parsed = JSON.parse(fs.readFileSync(resolvedPath, 'utf8'));
       if (Array.isArray(parsed.objections) && parsed.objections.length) return parsed.objections;
     } catch (_) { /* unreadable ref is not an objection source; fall through */ }
@@ -32,16 +37,34 @@ function resolveParkedObjections(parked, repoRoot) {
   return [];
 }
 
-function defaultCommitExists(commit, repoRoot) {
+// "Is it merged?" alone is trivially satisfiable — ANY merged commit would do,
+// including an unrelated one, a docs typo, or a revert. That defeats the gate's
+// actual purpose, which is anti-reroll: stopping a stochastic reviewer from
+// being sampled again without the objection genuinely being addressed.
+//
+// Three bindings, all cheaply checkable from what git already knows:
+//   merged   — reachable from origin/main; an unmerged commit proves nothing
+//   newer    — committed AFTER the objection was raised; a commit that predates
+//              the objection cannot possibly have resolved it
+//   code     — touches something other than docs/markdown; a docs-only commit
+//              changes no behaviour and cannot answer a behavioural objection
+function defaultInspectCommit(commit, repoRoot) {
+  const cwd = repoRoot || process.cwd();
+  const run = (args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
   try {
-    // Merged-to-main is the bar, not merely "the object exists" — a resolution
-    // pointing at an unmerged local commit proves nothing about shipped behavior.
     execFileSync('git', ['merge-base', '--is-ancestor', commit, 'origin/main'],
-      { cwd: repoRoot || process.cwd(), stdio: 'ignore' });
-    return true;
+      { cwd, stdio: 'ignore' });
   } catch (_) {
-    return false;
+    return { merged: false };
   }
+  let committedAt = null;
+  let files = [];
+  try {
+    committedAt = run(['show', '-s', '--format=%cI', commit]);
+    files = run(['show', '--name-only', '--format=', commit]).split('\n').filter(Boolean);
+  } catch (_) { /* merged but unreadable detail — treated as no code below */ }
+  const touchesCode = files.some((f) => !/^docs\//.test(f) && !/\.md$/i.test(f));
+  return { merged: true, committedAt, touchesCode };
 }
 
 function canRetryJudgment(sidecar, regenerated, options = {}) {
@@ -49,8 +72,10 @@ function canRetryJudgment(sidecar, regenerated, options = {}) {
   const parked = sidecar && typeof sidecar === 'object' ? sidecar : {};
   const attempt = regenerated && typeof regenerated === 'object' ? regenerated : {};
   const repoRoot = options.repoRoot;
-  const commitExists = options.commitExists
-    || ((commit) => defaultCommitExists(commit, repoRoot));
+  const inspectCommit = options.inspectCommit
+    || (options.commitExists
+      ? (commit) => ({ merged: options.commitExists(commit), committedAt: null, touchesCode: true })
+      : (commit) => defaultInspectCommit(commit, repoRoot));
 
   if (parked.class !== 'judgment-on-evidence') {
     errors.push('parked class must be judgment-on-evidence');
@@ -109,10 +134,28 @@ function canRetryJudgment(sidecar, regenerated, options = {}) {
       if (!isNonEmptyString(resolution.resolvedAt) || !isIso8601Timestamp(resolution.resolvedAt)) {
         errors.push(`objection ${i} code-change resolution needs an ISO-8601 resolvedAt`);
       }
+      // The 40-hex test runs FIRST and is the only thing ever handed to git,
+      // so a ref expression or an option-looking string (`--help`, `HEAD~1`)
+      // never reaches the subprocess.
       if (!/^[0-9a-f]{40}$/i.test(String(resolution.commit || ''))) {
         errors.push(`objection ${i} code-change resolution needs a full 40-character commit sha`);
-      } else if (!commitExists(resolution.commit)) {
-        errors.push(`objection ${i} commit ${String(resolution.commit).slice(0, 12)} is not merged to origin/main (does not exist there)`);
+        continue;
+      }
+      const short = String(resolution.commit).slice(0, 12);
+      const info = inspectCommit(resolution.commit);
+      if (!info || !info.merged) {
+        errors.push(`objection ${i} commit ${short} is not merged to origin/main (does not exist there)`);
+        continue;
+      }
+      // A commit that predates the objection cannot have resolved it. This is
+      // what stops "cite any merged commit" from clearing the gate.
+      const raisedAt = objections[i] && objections[i].raisedAt;
+      if (info.committedAt && isNonEmptyString(raisedAt)
+          && Date.parse(info.committedAt) < Date.parse(raisedAt)) {
+        errors.push(`objection ${i} commit ${short} predates the objection (${info.committedAt} < ${raisedAt}) and cannot have resolved it`);
+      }
+      if (info.touchesCode === false) {
+        errors.push(`objection ${i} commit ${short} touches only docs/markdown and cannot answer a behavioural objection`);
       }
       continue;
     }
