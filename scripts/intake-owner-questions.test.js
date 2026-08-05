@@ -236,6 +236,93 @@ t('a body with no yaml block fails closed', () => {
   assert.ok(errors.length > 0);
 });
 
+// ── TC5 — answers in COMMENTS (the 2026-08-05 live-test failure) ───────────
+// The owner replied in a comment; the parser only read the body, so the run
+// reported answered=0 and did nothing. Everything below exercises readAnswers'
+// multi-source collection through a stubbed issue rather than gh.
+console.log('\nTC5 — answers may live in body or comments');
+{
+  const qs = require('./intake-owner-questions.js');
+  const block = (field, value) => ['```yaml', 'answers:', `  ${field}:`,
+    `    value: ${value}`, '    source: https://a.example/1', '    claim: seen it',
+    '```'].join('\n');
+
+  // readAnswers() calls gh; swap findIssue's transport by driving the exported
+  // collector + parser directly, which is the logic the defect lived in.
+  const readFrom = (issue) => {
+    const sources = qs.collectAnswerSources(issue);
+    const byField = new Map();
+    for (const src of sources) {
+      for (const a of qs.parseAnswers(src.body).answers) byField.set(a.field, { ...a, answeredBy: src.by });
+    }
+    return [...byField.values()];
+  };
+
+  t('an answer in a comment is found', () => {
+    const answers = readFrom({
+      body: 'blank template, nothing filled',
+      author: { login: 'runner' },
+      comments: [{ body: block('enclosure', 'none'), author: { login: 'mustiodk' }, createdAt: '2026-08-05T09:00:00Z' }],
+    });
+    assert.deepStrictEqual(answers.map((a) => a.field), ['enclosure']);
+    assert.strictEqual(answers[0].answeredBy, 'mustiodk');
+  });
+
+  t('answers spread across two comments are merged', () => {
+    const answers = readFrom({
+      body: 'template',
+      comments: [
+        { body: block('enclosure', 'none'), author: { login: 'mustiodk' }, createdAt: '2026-08-05T09:00:00Z' },
+        { body: block('series', 'bedslinger'), author: { login: 'mustiodk' }, createdAt: '2026-08-06T09:00:00Z' },
+      ],
+    });
+    assert.deepStrictEqual(answers.map((a) => a.field).sort(), ['enclosure', 'series']);
+  });
+
+  t('a later comment supersedes an earlier answer for the same field', () => {
+    const answers = readFrom({
+      body: 'template',
+      comments: [
+        { body: block('enclosure', 'passive'), author: { login: 'mustiodk' }, createdAt: '2026-08-05T09:00:00Z' },
+        { body: block('enclosure', 'none'), author: { login: 'mustiodk' }, createdAt: '2026-08-06T09:00:00Z' },
+      ],
+    });
+    assert.strictEqual(answers.length, 1);
+    assert.strictEqual(answers[0].value, 'none');
+  });
+
+  t('a prose-only comment contributes nothing and breaks nothing', () => {
+    const answers = readFrom({
+      body: 'template',
+      comments: [
+        { body: 'The Kobra 2 Neo is an open-frame printer. Source: https://x.example/a', author: { login: 'mustiodk' }, createdAt: '2026-08-05T09:00:00Z' },
+        { body: block('enclosure', 'none'), author: { login: 'mustiodk' }, createdAt: '2026-08-05T10:00:00Z' },
+      ],
+    });
+    assert.deepStrictEqual(answers.map((a) => a.field), ['enclosure']);
+  });
+}
+
+// ── TC6 — prompts speak the catalog's vocabulary ───────────────────────────
+console.log('\nTC6 — prompts ask what the field actually means');
+t('the series prompt says FRAME TYPE and disclaims product line', () => {
+  const body = buildBody('adventurer_3', ['series']);
+  assert.ok(/FRAME TYPE/.test(body), 'series must not read as product line');
+  assert.ok(/series_group/.test(body), 'must point at where the product line already lives');
+  assert.ok(/bedslinger \| corexy/.test(body));
+});
+
+t('the plates prompt enumerates the accepted ids', () => {
+  const body = buildBody('adventurer_3', ['available_plates']);
+  for (const id of ['cool_plate', 'smooth_glass', 'textured_pei']) {
+    assert.ok(body.includes(id), `${id} must be offered as a choice`);
+  }
+});
+
+t('the template tells the owner to reply', () => {
+  assert.ok(/Reply to this issue/i.test(buildBody('x', ['enclosure'])));
+});
+
 console.log(`\n[owner-questions] ${pass} passing, ${fail} failing`);
 if (fail) {
   console.log('\nFailures:');

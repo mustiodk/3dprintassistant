@@ -30,10 +30,24 @@ const { OWNER_ATTESTABLE_FIELDS } = require('./validate-candidate-evidence.js');
 const LABEL = 'intake-needs-data';
 const ID_RE = /^[A-Za-z0-9._-]+$/;
 
+// Ask what the field MEANS in this catalog, not what its name suggests. The
+// first live run failed on exactly this: `series` reads as "product line", so
+// the owner answered "Adventurer 3 Series" — which is `series_group`, a
+// different field that was already confirmed. Every prompt now names the real
+// question and enumerates the only values the writer will accept.
 const FIELD_PROMPTS = {
-  enclosure: 'none | passive | active_heated   (is it open-frame, passively enclosed, or actively heated?)',
-  series: 'bedslinger | corexy | ...            (does the bed move front-to-back, or does the toolhead move in X/Y?)',
-  available_plates: 'comma-separated plate ids  (which build surfaces ship with it?)',
+  enclosure:
+    'none | passive | active_heated'
+    + '   — none = open frame, passive = enclosed box, active_heated = heated chamber',
+  series:
+    'bedslinger | corexy'
+    + '   — FRAME TYPE, not product line. bedslinger = the BED moves front-to-back;'
+    + ' corexy = the bed only moves down and the toolhead moves in X/Y.'
+    + ' (The product line is `series_group` and is already filled in.)',
+  available_plates:
+    'one or more of: cool_plate, engineering_plate, high_temp_plate, satin_pei,'
+    + ' smooth_glass, smooth_pei, textured_pei'
+    + '   — comma-separated. Only these ids are accepted.',
 };
 
 function gh(args, { allowFail = false } = {}) {
@@ -78,8 +92,10 @@ function buildBody(candidateId, fields, tried) {
 manufacturer. It could not confirm the field${fields.length === 1 ? '' : 's'} below, so it parked rather than guess.
 
 ${tried ? `**Already tried:** ${tried}\n` : ''}
-Fill in the block and leave the issue open — the next scheduled run picks it up.
-You can answer one field now and the rest later; partial answers are kept.
+**Reply to this issue** with the block below filled in — a comment is fine, editing this
+body works too. Leave the issue open; the next scheduled run picks it up.
+You can answer one field now and the rest later; partial answers are kept, and a later
+answer supersedes an earlier one for the same field.
 
 \`\`\`yaml
 answers:
@@ -96,7 +112,7 @@ this way; those always park.
 
 function findIssue(candidateId, repoArgs) {
   const raw = gh(['issue', 'list', '--label', LABEL, '--state', 'open',
-    '--json', 'number,title,body,author', '--limit', '100', ...repoArgs], { allowFail: true });
+    '--json', 'number,title,body,author,comments', '--limit', '100', ...repoArgs], { allowFail: true });
   if (!raw.trim()) return null;
   let list;
   try { list = JSON.parse(raw); } catch (_) { return null; }
@@ -233,18 +249,51 @@ function parseAnswers(body) {
   return { answers: complete, errors };
 }
 
+// Answers may live in the issue BODY or in any COMMENT. The first live run
+// failed precisely here: the owner replied in a comment — the natural thing to
+// do on a GitHub issue — while the parser only read the body, so the run
+// correctly reported `answered=0` and did nothing. Scan every source in
+// chronological order and let a later one supersede an earlier answer for the
+// same field, which is also how "I'll add the rest tomorrow" behaves.
+function collectAnswerSources(issue) {
+  const sources = [{ body: issue.body, by: (issue.author && issue.author.login) || null, at: '' }];
+  for (const comment of Array.isArray(issue.comments) ? issue.comments : []) {
+    sources.push({
+      body: comment.body,
+      by: (comment.author && comment.author.login) || null,
+      at: comment.createdAt || '',
+    });
+  }
+  return sources.sort((a, b) => String(a.at).localeCompare(String(b.at)));
+}
+
 function readAnswers(options) {
   const candidateId = assertCandidate(options.candidate);
   const repoArgs = options.repo ? ['--repo', options.repo] : [];
   const issue = findIssue(candidateId, repoArgs);
   if (!issue) return { action: 'read', issue: null, answers: [], errors: [] };
-  const parsed = parseAnswers(issue.body);
+
+  const byField = new Map();
+  const errors = [];
+  let sawBlock = false;
+  for (const source of collectAnswerSources(issue)) {
+    const parsed = parseAnswers(source.body);
+    // "no yaml block" is only meaningful if NO source had one — a prose comment
+    // alongside a filled block is normal, not an error.
+    if (!parsed.errors.some((e) => /no ```yaml block/.test(e))) sawBlock = true;
+    for (const e of parsed.errors) if (!/no ```yaml block/.test(e)) errors.push(e);
+    for (const answer of parsed.answers) {
+      byField.set(answer.field, { ...answer, answeredBy: source.by });
+    }
+  }
+  if (!sawBlock) errors.push('no ```yaml answer block found in the issue body or any comment');
+
   return {
     action: 'read',
     issue: issue.number,
     answeredBy: (issue.author && issue.author.login) || null,
-    answers: parsed.answers,
-    errors: parsed.errors,
+    answers: [...byField.values()],
+    errors,
   };
 }
 
@@ -281,7 +330,7 @@ function parseCli(argv) {
   return { command, options };
 }
 
-module.exports = { parseAnswers, buildBody, attestableOnly, openQuestion, readAnswers, closeQuestion, LABEL };
+module.exports = { parseAnswers, buildBody, attestableOnly, collectAnswerSources, openQuestion, readAnswers, closeQuestion, LABEL };
 
 if (require.main === module) {
   try {
