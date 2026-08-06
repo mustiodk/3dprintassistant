@@ -595,9 +595,15 @@ function attestField(options) {
     );
   }
   const context = readContext(options);
+  // `--source` is a REPEATABLE flag (provide-evidence takes many), so the CLI
+  // parks it in options.sources. attest-field wants exactly one; accept either
+  // shape rather than failing with "requires an http(s) --source URL" while the
+  // caller is staring at the http(s) URL they just passed.
+  const firstSource = options.source
+    || (Array.isArray(options.sources) && options.sources.length ? options.sources[0] : undefined);
   const attestation = buildAttestation({
     value: coerceAttestedValue(field, options.value),
-    source: options.source,
+    source: firstSource,
     claim: options.claim,
     answeredBy: options.answeredBy,
     answeredAt: options.answeredAt,

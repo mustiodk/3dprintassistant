@@ -335,6 +335,16 @@ console.log('\nTC7 — attestField writes a packet the gate then accepts');
       /must be one of/i);
   });
 
+  // The CLI's --source is repeatable (provide-evidence takes several), so it
+  // arrives as options.sources. attest-field failed with "requires an http(s)
+  // --source URL" while the caller was passing exactly that.
+  t('a source supplied as the repeatable CLI array is accepted', () => {
+    const f = fixture();
+    const { source, ...rest } = answer('series', 'bedslinger');
+    attestField({ ...f.opts, ...rest, sources: [source], apply: true });
+    assert.strictEqual(read(f.packetPath).printersJsonRow.series.source, source);
+  });
+
   t('the writer refuses an incomplete envelope', () => {
     const f = fixture();
     assert.throws(() => attestField({ ...f.opts, ...answer('series', 'bedslinger'), claim: '', apply: true }),
