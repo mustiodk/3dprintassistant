@@ -230,10 +230,14 @@ t('a quote INSIDE an unquoted value is left alone', () => {
   assert.strictEqual(answers[0].claim, "the maker's own photo shows an open frame");
 });
 
-t('a body with no yaml block fails closed', () => {
+// Superseded 2026-08-06: prose without an `answers:` key is a normal comment,
+// not an error. The "the owner answered and nothing was found" protection moved
+// up to readAnswers, which reports when NO source in the whole thread carried a
+// block — see the sawBlock path.
+t('prose without an answers: key yields nothing and no error', () => {
   const { answers, errors } = parseAnswers('just some prose, no block');
   assert.deepStrictEqual(answers, []);
-  assert.ok(errors.length > 0);
+  assert.deepStrictEqual(errors, []);
 });
 
 // ── TC5 — answers in COMMENTS (the 2026-08-05 live-test failure) ───────────
@@ -321,6 +325,56 @@ t('the plates prompt enumerates the accepted ids', () => {
 
 t('the template tells the owner to reply', () => {
   assert.ok(/Reply to this issue/i.test(buildBody('x', ['enclosure'])));
+});
+
+// ── TC7 — 2026-08-05: the owner answered and the system said NOTHING ───────
+// The answer text was byte-identical to a valid block, just without the ```
+// fence — which is exactly what GitHub's copy button on a rendered code block
+// produces. Worse, it was SILENT: another comment in the thread did carry a
+// fence, so `sawBlock` was true and even the "no block" note was suppressed.
+console.log('\nTC7 — un-fenced answers (the real 2026-08-05 failure)');
+const OWNER_ANSWER = [
+  'answers:',
+  '  enclosure:',
+  '    value:   None',
+  '    source:  https://3dpros.com/printers/anycubic-kobra-2-neo',
+  '    claim:   Image of the printer that confirms open farme',
+].join('\n');
+
+t("the owner's actual un-fenced comment parses", () => {
+  const { answers, errors } = parseAnswers(OWNER_ANSWER);
+  assert.deepStrictEqual(errors, [], errors.join(' | '));
+  assert.strictEqual(answers.length, 1);
+  assert.strictEqual(answers[0].field, 'enclosure');
+  assert.strictEqual(answers[0].source, 'https://3dpros.com/printers/anycubic-kobra-2-neo');
+});
+
+t('a fenced block still parses identically', () => {
+  const fenced = parseAnswers(['```yaml', OWNER_ANSWER, '```'].join('\n'));
+  const bare = parseAnswers(OWNER_ANSWER);
+  assert.deepStrictEqual(fenced.answers, bare.answers);
+});
+
+t('prose with no answers: key contributes nothing and is not an error', () => {
+  const { answers, errors } = parseAnswers('The Kobra 2 Neo is open-frame. Source: https://x.example/a');
+  assert.deepStrictEqual(answers, []);
+  assert.deepStrictEqual(errors, []);
+});
+
+t('a multi-field un-fenced answer with a blank line between fields parses', () => {
+  const { answers } = parseAnswers([
+    'answers:',
+    '  series:',
+    '    value: bedslinger',
+    '    source: https://en.fss.flashforge.com/x.pdf',
+    '    claim: "manual Move controls show the build plate moving front/back"',
+    '',
+    '  available_plates:',
+    '    value: smooth_glass',
+    '    source: https://www.flashforge.dk/item/glass-build-plate-adventurer-3-pro',
+    '    claim: "FlashForge sells a glass build plate kit for the Adventurer 3"',
+  ].join('\n'));
+  assert.deepStrictEqual(answers.map((a) => a.field).sort(), ['available_plates', 'series']);
 });
 
 console.log(`\n[owner-questions] ${pass} passing, ${fail} failing`);

@@ -315,6 +315,26 @@ console.log('\nTC7 — attestField writes a packet the gate then accepts');
     assert.strictEqual(read(f.packetPath).printersJsonRow.enclosure.value, 'none');
   });
 
+  // The owner wrote `None` where the catalog token is `none`. A capital letter
+  // is not a wrong answer; normalize rather than reject.
+  t('enclosure value is matched case-insensitively and normalized', () => {
+    const f = fixture();
+    attestField({ ...f.opts, ...answer('enclosure', 'None'), apply: true });
+    assert.strictEqual(read(f.packetPath).printersJsonRow.enclosure.value, 'none');
+  });
+
+  t('plate ids are matched case-insensitively and normalized', () => {
+    const f = fixture();
+    attestField({ ...f.opts, ...answer('available_plates', 'Smooth_Glass'), apply: true });
+    assert.deepStrictEqual(read(f.packetPath).printersJsonRow.available_plates.value, ['smooth_glass']);
+  });
+
+  t('a genuinely wrong enum value is still refused', () => {
+    const f = fixture();
+    assert.throws(() => attestField({ ...f.opts, ...answer('enclosure', 'open'), apply: true }),
+      /must be one of/i);
+  });
+
   t('the writer refuses an incomplete envelope', () => {
     const f = fixture();
     assert.throws(() => attestField({ ...f.opts, ...answer('series', 'bedslinger'), claim: '', apply: true }),

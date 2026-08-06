@@ -552,19 +552,35 @@ function coerceAttestedValue(field, raw) {
       .map((s) => String(s).trim().replace(/^["']|["']$/g, '').trim())
       .filter(Boolean);
     if (list.length === 0) throw new Error('available_plates requires at least one plate id');
-    const unknown = list.filter((p) => !KNOWN_PLATE_IDS.has(p));
+    const normalized = [];
+    const unknown = [];
+    for (const entry of list) {
+      const match = [...KNOWN_PLATE_IDS].find(
+        (id) => id.toLowerCase() === entry.toLowerCase(),
+      );
+      if (match) normalized.push(match); else unknown.push(entry);
+    }
     if (unknown.length) {
       throw new Error(
         `unknown plate id(s): ${unknown.join(', ')} `
         + `(known: ${[...KNOWN_PLATE_IDS].sort().join(', ')})`,
       );
     }
-    return [...new Set(list)];
+    return [...new Set(normalized)];
   }
   const value = typeof raw === 'string' ? raw.trim() : raw;
   const allowed = ATTESTED_ENUMS[field];
-  if (allowed && !allowed.has(value)) {
-    throw new Error(`${field} must be one of: ${[...allowed].sort().join(', ')} (got ${JSON.stringify(value)})`);
+  if (allowed) {
+    // Match case-insensitively and normalize to the catalog's token. The owner
+    // wrote `None` where the catalog says `none` — a capital letter is not a
+    // wrong answer, and rejecting it teaches nothing.
+    const match = [...allowed].find(
+      (token) => String(token).toLowerCase() === String(value).toLowerCase(),
+    );
+    if (!match) {
+      throw new Error(`${field} must be one of: ${[...allowed].sort().join(', ')} (got ${JSON.stringify(value)})`);
+    }
+    return match;
   }
   return value;
 }
