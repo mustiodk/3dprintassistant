@@ -101,8 +101,27 @@ if [[ -d "$REVIEW_DIR" ]]; then
     if [[ ! -f "$sidecar" ]]; then
       fail r1-attempted-not-parked "candidate=$candidate verdictless=${base} no-sidecar"
     fi
-    if ! grep -q '"reason"[[:space:]]*:[[:space:]]*"review-unavailable"' "$sidecar"; then
-      fail r1-attempted-not-parked "candidate=$candidate verdictless=${base} sidecar-not-review-unavailable"
+    # The invariant is "the runner RECORDED the failed review before exiting",
+    # not "the sidecar literally says review-unavailable". Demanding that exact
+    # string re-implemented taxonomy logic out here and produced a false
+    # positive on 2026-08-06: R1 aborted, the runner correctly went to park
+    # `review-unavailable` — but that reason belongs to class
+    # `availability-blocked`, which sets `taintedAllowed:false`, so
+    # classifyParkReason() redirects a TAINTED candidate away from it. The
+    # runner could not write the string without violating the taxonomy, said so,
+    # and this gate then failed an otherwise-correct run.
+    #
+    # `lastAttemptAt` within this run is the honest proof: the runner touched
+    # the park after starting, rather than walking away from a dead review.
+    attempted_at=$(grep -o '"lastAttemptAt"[[:space:]]*:[[:space:]]*"[^"]*"' "$sidecar" \
+      | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+    if [[ -z "$attempted_at" ]]; then
+      fail r1-attempted-not-parked "candidate=$candidate verdictless=${base} sidecar-has-no-lastAttemptAt"
+    fi
+    attempted_epoch=$(date -j -f '%Y-%m-%dT%H:%M:%SZ' "${attempted_at%%.*}Z" +%s 2>/dev/null \
+      || date -d "$attempted_at" +%s 2>/dev/null || echo 0)
+    if (( attempted_epoch < RUN_START_EPOCH )); then
+      fail r1-attempted-not-parked "candidate=$candidate verdictless=${base} park-not-updated-this-run (lastAttemptAt=$attempted_at)"
     fi
   done
 fi

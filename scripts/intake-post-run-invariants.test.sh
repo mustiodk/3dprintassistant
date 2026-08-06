@@ -319,15 +319,51 @@ init_repo
 r1_attempt ender_3_s1
 expect_fail r1-attempted-not-parked
 
+set_last_attempt() { # id iso8601
+  node -e '
+    const fs = require("fs");
+    const p = process.argv[1];
+    const d = JSON.parse(fs.readFileSync(p, "utf8"));
+    d.lastAttemptAt = process.argv[2];
+    fs.writeFileSync(p, `${JSON.stringify(d)}\n`);
+  ' "$STATE/parked/$1/parked.json" "$2"
+}
+
 # 29 — same attempt, but the contract was followed: review-unavailable park
 init_repo
 git -C "$REPO" branch intake/ender_3_s1
 r1_attempt ender_3_s1
 make_parked ender_3_s1 review-unavailable
+set_last_attempt ender_3_s1 "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf '{}\n' > "$STATE/parked/ender_3_s1/candidate-creality-ender_3_s1.json"
 branch_sha="$(git -C "$REPO" rev-parse refs/heads/intake/ender_3_s1)"
 set_preserved_ref ender_3_s1 "$branch_sha"
 expect_ok
+
+# 29b — 2026-08-06 false positive: a TAINTED candidate cannot legally carry
+# reason `review-unavailable` (availability-blocked sets taintedAllowed:false,
+# so classifyParkReason redirects it). The park is still correct and the run
+# must pass — the old check demanded the literal string and failed it.
+init_repo
+git -C "$REPO" branch intake/ender_3_s1
+r1_attempt ender_3_s1
+make_parked ender_3_s1 review-no-go-unresolved
+set_last_attempt ender_3_s1 "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+printf '{}\n' > "$STATE/parked/ender_3_s1/candidate-creality-ender_3_s1.json"
+branch_sha="$(git -C "$REPO" rev-parse refs/heads/intake/ender_3_s1)"
+set_preserved_ref ender_3_s1 "$branch_sha"
+expect_ok
+
+# 29c — a park left over from a PRIOR run does not count as recording this one
+init_repo
+git -C "$REPO" branch intake/ender_3_s1
+r1_attempt ender_3_s1
+make_parked ender_3_s1 review-no-go-unresolved
+set_last_attempt ender_3_s1 "2026-01-01T00:00:00Z"
+printf '{}\n' > "$STATE/parked/ender_3_s1/candidate-creality-ender_3_s1.json"
+RUN_START=$(date +%s)
+expect_fail r1-attempted-not-parked
+RUN_START=0
 
 # 30 — an R1 that DID produce a verdict needs no park (normal GO path)
 init_repo
