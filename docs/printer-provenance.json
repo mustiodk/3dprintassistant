@@ -520,6 +520,88 @@
           "evidenceType": "manufacturer"
         }
       }
+    },
+    "ender_3_s1": {
+      "runId": "run-20260806T122726Z",
+      "shippedAt": "2026-08-06T12:56:00.000Z",
+      "resolution": "auto-shipped",
+      "fields": {
+        "series": {
+          "source": "https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "series_group": {
+          "source": "https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "enclosure": {
+          "source": "https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "active_chamber_heating": {
+          "source": "https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "absence-rationale"
+        },
+        "extruder_type": {
+          "source": "https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_nozzle_temp": {
+          "source": "https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_bed_temp": {
+          "source": "https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_speed": {
+          "source": "https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_acceleration": {
+          "source": "https://github.com/CrealityOfficial/Ender-3S1/blob/main/Marlin/Configuration.h",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "available_nozzle_sizes": {
+          "source": "https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "multi_color_systems": {
+          "source": "https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "available_plates": {
+          "source": "https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "has_camera": {
+          "source": "https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "has_lidar": {
+          "source": "https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "notes": {
+          "source": "https://www.creality3dofficial.com/products/ender-3-s1-direct-drive-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        }
+      }
     }
   }
 }
