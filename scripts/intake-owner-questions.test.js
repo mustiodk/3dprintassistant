@@ -135,7 +135,7 @@ t('a field with a value but no source is NOT consumed', () => {
     'answers:', '  enclosure:', '    value: none', '    source:', '    claim:',
   ].join('\n')));
   assert.deepStrictEqual(answers, []);
-  assert.ok(errors.some((e) => /partially filled/.test(e)), errors.join(' | '));
+  assert.ok(errors.some((e) => /no source URL/.test(e)), errors.join(' | '));
 });
 
 t('a non-http source is NOT consumed', () => {
@@ -144,7 +144,8 @@ t('a non-http source is NOT consumed', () => {
     '    source: ask me', '    claim: open',
   ].join('\n')));
   assert.deepStrictEqual(answers, []);
-  assert.ok(errors.some((e) => /http/.test(e)));
+  // "ask me" carries no URL, so no source is found and the field is refused.
+  assert.ok(errors.some((e) => /no source URL/.test(e)), errors.join(' | '));
 });
 
 t('a non-attestable field in the block is ignored with a note', () => {
