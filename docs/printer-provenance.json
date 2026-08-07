@@ -602,6 +602,93 @@
           "evidenceType": "manufacturer"
         }
       }
+    },
+    "adventurer_3": {
+      "runId": "run-20260807T100636Z",
+      "shippedAt": "2026-08-07T10:41:00.000Z",
+      "resolution": "auto-shipped",
+      "fields": {
+        "series": {
+          "source": "https://en.fss.flashforge.com/10000/software/e1bc9c105b1f9983ae67f1f94e47690b.pdf",
+          "confidence": "owner-attested",
+          "evidenceType": "owner-attested"
+        },
+        "series_group": {
+          "source": "https://au.flashforge.com/blogs/news/is-the-adventurer-3-still-any-good-in-2025",
+          "confidence": "inferred",
+          "evidenceType": "manufacturer"
+        },
+        "enclosure": {
+          "source": "https://au.flashforge.com/blogs/news/is-the-adventurer-3-still-any-good-in-2025",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "active_chamber_heating": {
+          "source": null,
+          "confidence": "low-confidence",
+          "evidenceType": "absence-rationale"
+        },
+        "extruder_type": {
+          "source": "https://en.fss.flashforge.com/10000/software/2ff1e48618315861cfee296866c0392a.pdf",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_nozzle_temp": {
+          "source": "https://en.fss.flashforge.com/10000/software/2ff1e48618315861cfee296866c0392a.pdf",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_bed_temp": {
+          "source": "https://en.fss.flashforge.com/10000/software/2ff1e48618315861cfee296866c0392a.pdf",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_speed": {
+          "source": "https://au.flashforge.com/blogs/news/is-the-adventurer-3-still-any-good-in-2025",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_acceleration": {
+          "source": null,
+          "confidence": "app-cap",
+          "evidenceType": "app-cap"
+        },
+        "available_nozzle_sizes": {
+          "source": "https://en.fss.flashforge.com/10000/software/2ff1e48618315861cfee296866c0392a.pdf",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "multi_color_systems": {
+          "source": "https://en.fss.flashforge.com/10000/software/2ff1e48618315861cfee296866c0392a.pdf",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "available_plates": {
+          "source": "https://www.flashforge.dk/item/glass-build-plate-adventurer-3-pro",
+          "confidence": "owner-attested",
+          "evidenceType": "owner-attested"
+        },
+        "has_camera": {
+          "source": "https://en.fss.flashforge.com/10000/software/2ff1e48618315861cfee296866c0392a.pdf",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "has_lidar": {
+          "source": null,
+          "confidence": "low-confidence",
+          "evidenceType": "absence-rationale"
+        },
+        "notes": {
+          "source": "https://au.flashforge.com/blogs/news/is-the-adventurer-3-still-any-good-in-2025",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "open_door_threshold_bed_temp": {
+          "source": null,
+          "confidence": "owner-approved",
+          "evidenceType": "repo-convention"
+        }
+      }
     }
   }
 }
