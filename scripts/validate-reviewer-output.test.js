@@ -92,24 +92,59 @@ test('objections must be an array', () => {
   assert.match(result.errors.join('\n'), /array/);
 });
 
-test('kickoff pins codex-only Bridge output under ignored runner state', () => {
+test('kickoff routes reviewer 2 through its boundary, under ignored runner state', () => {
   const repo = path.join(__dirname, '..');
   const kickoff = fs.readFileSync(path.join(repo, 'scripts/intake-run-kickoff.md'), 'utf8');
   const expectedCommand =
-    'bridge --mode codex-only "<concrete review prompt over the main...intake/<printer-id> diff>" \\\n' +
-    '  --out-dir scripts/.intake-runner-state/bridge-reviews';
+    'zsh scripts/intake-r2-review.sh \\\n' +
+    '  --prompt-file "$fresh_r2_prompt" \\\n' +
+    '  --out-dir scripts/.intake-runner-state/bridge-reviews \\\n' +
+    '  --label "$r2_label"';
 
   assert.ok(
     kickoff.includes(expectedCommand),
-    `kickoff must contain the exact Bridge command:\n${expectedCommand}`,
+    `kickoff must contain the exact R2 boundary command:\n${expectedCommand}`,
   );
   assert.doesNotMatch(kickoff, /--out-dir \/Users\/[^\s]+\/3dprintassistant\/scripts\/\.intake-runner-state\/bridge-reviews/);
 });
 
-test('kickoff retains the direct Codex fallback', () => {
+// 2026-08-07 kobra_2_neo: the runner hand-wrote the R2 prompt, omitted the
+// structured-output instruction, and Codex answered in prose — an unreadable
+// verdict and a day parked. The instruction now lives in the boundary, so the
+// kickoff must not reintroduce a direct bridge review call for the runner to
+// compose a prompt into. `bridge --health` stays allowed.
+test('kickoff leaves no direct bridge review invocation for reviewer 2', () => {
   const repo = path.join(__dirname, '..');
   const kickoff = fs.readFileSync(path.join(repo, 'scripts/intake-run-kickoff.md'), 'utf8');
-  assert.ok(kickoff.includes('codex exec -s read-only -m gpt-5.5'));
+  assert.doesNotMatch(
+    kickoff,
+    /^\s*bridge\s+--mode\s+codex-only/m,
+    'kickoff must invoke reviewer 2 only through intake-r2-review.sh',
+  );
+  assert.ok(kickoff.includes('bridge --health'), 'kickoff still permits the health preflight');
+});
+
+// v3.1 (2026-08-07): the direct `codex exec` fallback is DELETED from the
+// autonomous run. It required the runner to carry R2's output contract by hand
+// — the exact defect that parked kobra_2_neo — and it had never been exercised
+// in 34 ledgered outcomes. A boundary failure parks `review-unavailable` and
+// the next run retries. This test is the inverse of the one it replaces.
+test('kickoff offers no hand-composed reviewer fallback', () => {
+  const repo = path.join(__dirname, '..');
+  const kickoff = fs.readFileSync(path.join(repo, 'scripts/intake-run-kickoff.md'), 'utf8');
+  // Match the PERMISSION, not the token: the no-fallback rule itself has to
+  // name `codex exec` in order to forbid it. RED-demoed 2026-08-07 by pasting
+  // the deleted sentence back in — this assertion fires on it.
+  assert.doesNotMatch(
+    kickoff,
+    /(the |a )?(direct )?fallback is[^\n]*codex exec/i,
+    'kickoff must not offer a hand-run codex fallback for reviewer 2',
+  );
+  assert.match(
+    kickoff,
+    /There is no fallback \(v3\.1\)/,
+    'kickoff must state the no-fallback rule explicitly',
+  );
 });
 
 test('operational docs preserve the RD4 split-verdict decision-required branch', () => {

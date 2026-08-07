@@ -534,10 +534,21 @@ the wrap-up is blocked.
 
 ### Reviewer dispatch rules
 
-Every autonomous reviewer emits this v2.1 structured result before prose:
+Every autonomous reviewer returns this v2.1 structured result:
 `{ reviewer, verdict:"GO"|"NO-GO", objections:[{field,question,raisedAt}] }`.
 The reviewer id is a stable token; `raisedAt` is explicit ISO-8601. Validate the
-result with `scripts/validate-reviewer-output.js`. `NO-GO` requires at least one
+result with `scripts/validate-reviewer-output.js`.
+
+**Never write that shape, or any other output-format instruction, into a review
+prompt** (v2.2 for R1, v3.1 for R2). Each channel's boundary script appends its
+own canonical contract block: `intake-r1-structured-review.sh` routes R1's
+verdict through the CLI's structured-output mechanism and forbids JSON in text,
+while `intake-r2-review.sh` demands a fenced JSON object before any prose on the
+text channel. The two are opposites, so a format instruction composed by hand is
+wrong on at least one channel — 2026-07-13 (R1, prose JSON) and 2026-08-07 (R2,
+`kobra_2_neo` prose verdict) are the same defect from both directions.
+
+`NO-GO` requires at least one
 structured objection; `GO` requires none. Malformed output becomes
 `review-unavailable` and parks without a merge decision — never infer a verdict
 or reconstruct objections from prose.
