@@ -511,6 +511,8 @@ const COMBOS = [
     state: stateDefault({ printer: 'u1', nozzle: 'std_0.4', material: 'pla_basic' }) },
   { id: 19, label: 'Creality Ender-3 S1 + 0.4 std + PLA Basic + Standard/Balanced (classic open-frame bedslinger, firmware-sourced 500mm/s² accel, 150mm/s cap, 100°C bed)',
     state: stateDefault({ printer: 'ender_3_s1', nozzle: 'std_0.4', material: 'pla_basic' }) },
+  { id: 20, label: 'FlashForge Adventurer 3 + 0.4 std + PLA Basic + Standard/Balanced (discontinued passive-enclosure bedslinger, app-capped 400mm/s² accel, 100mm/s cap, bowden extruder)',
+    state: stateDefault({ printer: 'adventurer_3', nozzle: 'std_0.4', material: 'pla_basic' }) },
 ];
 
 // ─── Main ───────────────────────────────────────────────────────────────────

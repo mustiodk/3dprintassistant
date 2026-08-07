@@ -1395,6 +1395,33 @@
       "notes": ["Open-frame CoreXY", "Quick-swap nozzle"]
     },
     {
+      "id": "adventurer_3",
+      "name": "Adventurer 3",
+      "manufacturer": "flashforge",
+      "series": "bedslinger",
+      "series_group": "Adventurer",
+      "enclosure": "passive",
+      "active_chamber_heating": false,
+      "extruder_type": "bowden",
+      "max_nozzle_temp": 240,
+      "max_bed_temp": 100,
+      "max_speed": 100,
+      "max_acceleration": 400,
+      "has_lidar": false,
+      "has_camera": true,
+      "multi_color_systems": [],
+      "available_plates": ["textured_pei", "smooth_glass"],
+      "available_nozzle_sizes": [0.4],
+      "open_door_threshold_bed_temp": 45,
+      "notes": [
+        "Discontinued (~2019) entry-level fully-enclosed FDM printer — 150x150x150mm build volume, 45dB ultra-quiet operation, WiFi/FlashCloud remote control (https://au.flashforge.com/blogs/news/is-the-adventurer-3-still-any-good-in-2025)",
+        "extruder_type=bowden, max_nozzle_temp=240C, max_bed_temp=100C, available_nozzle_sizes=[0.4], and has_camera=true confirmed via the official FlashForge Adventurer 3 User Guide (https://en.fss.flashforge.com/10000/software/2ff1e48618315861cfee296866c0392a.pdf) — Reference table p.07, Preheat Setting p.16, Chapter 2.5 Camera User Manual; Q&A p.46 describes unclogging via the guide-tube air-tube-joint, consistent with a Bowden feed path",
+        "multi_color_systems=[] confirmed via the same User Guide — Chapter 1 Terms defines a single 'Extruder' (integral device on X-Axis, singular) and the Components diagram (1.1) shows one nozzle/filament intake/filament cartridge slot; no multi-material, IDEX, or toolchanging system is mentioned anywhere in the manual",
+        "series=bedslinger and available_plates=[textured_pei, smooth_glass] per owner attestation (issue #27) — see field-level owner-attested provenance",
+        "max_acceleration=400mm/s² is a conservative app-side cap, not a manufacturer spec — no manufacturer source (official product page, user manual, or FlashForge wiki) publishes an acceleration figure for this legacy 2019 model, and neither reseller listings nor independent community reviews do either; capped at the lowest bedslinger-bucket sibling already shipped (anycubic mega_x, 400mm/s², a comparably legacy 100mm/s Bowden bedslinger)"
+      ]
+    },
+    {
       "id": "ad5x",
       "name": "AD5X",
       "manufacturer": "flashforge",
