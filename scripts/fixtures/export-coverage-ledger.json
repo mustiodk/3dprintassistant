@@ -5,6 +5,9 @@
     "prusaslicer": "prusa3d/PrusaSlicer resources/profiles/PrusaResearch.ini config_version 2.4.14"
   },
   "entries": {
+    "adventurer_3": {
+      "reason": "awaiting-registry"
+    },
     "aries": {
       "reason": "absent-upstream",
       "note": "Voxelab ships only 'Voxelab Aquila X2' upstream; no Aries machine at the pinned commit."
