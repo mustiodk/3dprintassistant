@@ -9,6 +9,12 @@
 # headless runs on this machine (see reference_mac_mini_headless_claude_auth_oauth_env).
 set -uo pipefail
 
+# launchd hands a job a minimal PATH — an interactive shell's PATH is NOT
+# inherited, so `node` is simply absent and the run dies with
+# "command not found: node". The intake runner's own bootstrap sets PATH the
+# same way for the same reason; this file must not rely on a login shell.
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
 REPO="${THREEDPA_INTAKE_REPO:-$HOME/.local/share/3dpa-intake/checkout/3dprintassistant}"
 
 if [[ ! -d "$REPO" ]]; then
@@ -17,6 +23,11 @@ if [[ ! -d "$REPO" ]]; then
 fi
 
 [[ -f "$HOME/.config/claude-code/oauth.env" ]] && source "$HOME/.config/claude-code/oauth.env"
+
+command -v node >/dev/null 2>&1 || {
+  print -u2 "NORMALIZER ok=false reason=node-not-on-path detail=PATH=$PATH"
+  exit 1
+}
 
 cd "$REPO" || { print -u2 "NORMALIZER ok=false reason=cd-failed"; exit 1; }
 exec node scripts/intake-answer-normalizer.js "$@"
