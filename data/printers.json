@@ -922,6 +922,26 @@
       "notes": ["Auto leveling \u2014 LeviQ 2.0"]
     },
     {
+      "id": "kobra_2_neo",
+      "name": "Kobra 2 Neo",
+      "manufacturer": "anycubic",
+      "series": "bedslinger",
+      "series_group": "Kobra Series",
+      "enclosure": "none",
+      "active_chamber_heating": false,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 260,
+      "max_bed_temp": 110,
+      "max_speed": 250,
+      "max_acceleration": 2500,
+      "has_lidar": false,
+      "has_camera": false,
+      "multi_color_systems": [],
+      "available_plates": ["textured_pei"],
+      "available_nozzle_sizes": [0.4],
+      "notes": ["Entry-level Kobra 2-series bedslinger \u2014 250mm/s max print speed, 2500mm/s\u00b2 acceleration (https://store.anycubic.com/blogs/3d-printing-guides/anycubic-kobra-2-series-comparison-guide)", "LeviQ 2.0 auto bed leveling \u2014 25-point mesh, inductive Z-offset sensor", "series (bedslinger \u2014 single Y-axis rail, threaded-rod Z-axis, gantry frame structure) and available_plates (PEI Magnetic Spring Steel) confirmed via the official product page's JSON-LD schema (https://store.anycubic.com/products/kobra-2-neo)", "enclosure per owner attestation (photographic confirmation, open i3-style frame, no walls) \u2014 see https://3dpros.com/printers/anycubic-kobra-2-neo"]
+    },
+    {
       "id": "mega_x",
       "name": "Mega X",
       "manufacturer": "anycubic",

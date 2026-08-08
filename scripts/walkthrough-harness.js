@@ -513,6 +513,8 @@ const COMBOS = [
     state: stateDefault({ printer: 'ender_3_s1', nozzle: 'std_0.4', material: 'pla_basic' }) },
   { id: 20, label: 'FlashForge Adventurer 3 + 0.4 std + PLA Basic + Standard/Balanced (discontinued passive-enclosure bedslinger, app-capped 400mm/s² accel, 100mm/s cap, bowden extruder)',
     state: stateDefault({ printer: 'adventurer_3', nozzle: 'std_0.4', material: 'pla_basic' }) },
+  { id: 21, label: 'Anycubic Kobra 2 Neo + 0.4 std + PLA Basic + Standard/Balanced (entry-level open-frame bedslinger, 250mm/s, 2500mm/s² accel, 110°C bed)',
+    state: stateDefault({ printer: 'kobra_2_neo', nozzle: 'std_0.4', material: 'pla_basic' }) },
 ];
 
 // ─── Main ───────────────────────────────────────────────────────────────────
