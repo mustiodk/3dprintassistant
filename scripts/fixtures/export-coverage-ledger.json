@@ -23,6 +23,9 @@
       "reason": "absent-upstream",
       "note": "Upstream has Guider 2s, Guider 3 Ultra and Guider4, but no plain Guider 3."
     },
+    "kobra_2_neo": {
+      "reason": "awaiting-registry"
+    },
     "kobra_3_v2": {
       "reason": "absent-upstream",
       "note": "Upstream has 'Anycubic Kobra 3' and 'Kobra 3 Max' but no V2 revision at the pinned commit."
