@@ -1,7 +1,7 @@
 {
-  "content_version": 2026080701,
+  "content_version": 2026080801,
   "enabled": true,
-  "generated_at": "2026-08-07T10:27:56.613Z",
+  "generated_at": "2026-08-08T10:08:43.712Z",
   "min_app_version": "1.0.3",
   "payload": {
     "brands": [
@@ -364,9 +364,38 @@
           "series=bedslinger and available_plates=[textured_pei, smooth_glass] per owner attestation (issue #27) — see field-level owner-attested provenance",
           "max_acceleration=400mm/s² is a conservative app-side cap, not a manufacturer spec — no manufacturer source (official product page, user manual, or FlashForge wiki) publishes an acceleration figure for this legacy 2019 model, and neither reseller listings nor independent community reviews do either; capped at the lowest bedslinger-bucket sibling already shipped (anycubic mega_x, 400mm/s², a comparably legacy 100mm/s Bowden bedslinger)"
         ]
+      },
+      {
+        "id": "kobra_2_neo",
+        "name": "Kobra 2 Neo",
+        "manufacturer": "anycubic",
+        "series": "bedslinger",
+        "series_group": "Kobra Series",
+        "enclosure": "none",
+        "active_chamber_heating": false,
+        "extruder_type": "direct_drive",
+        "max_nozzle_temp": 260,
+        "max_bed_temp": 110,
+        "max_speed": 250,
+        "max_acceleration": 2500,
+        "has_lidar": false,
+        "has_camera": false,
+        "multi_color_systems": [],
+        "available_plates": [
+          "textured_pei"
+        ],
+        "available_nozzle_sizes": [
+          0.4
+        ],
+        "notes": [
+          "Entry-level Kobra 2-series bedslinger — 250mm/s max print speed, 2500mm/s² acceleration (https://store.anycubic.com/blogs/3d-printing-guides/anycubic-kobra-2-series-comparison-guide)",
+          "LeviQ 2.0 auto bed leveling — 25-point mesh, inductive Z-offset sensor",
+          "series (bedslinger — single Y-axis rail, threaded-rod Z-axis, gantry frame structure) and available_plates (PEI Magnetic Spring Steel) confirmed via the official product page's JSON-LD schema (https://store.anycubic.com/products/kobra-2-neo)",
+          "enclosure per owner attestation (photographic confirmation, open i3-style frame, no walls) — see https://3dpros.com/printers/anycubic-kobra-2-neo"
+        ]
       }
     ]
   },
-  "payload_sha256": "3a3a4a9682ee04a94ae6791ebb74970e8a77455be382f21a4d2f59b313b7bd79",
+  "payload_sha256": "28f557fa8e59eca08ae8973aa78e319b92aab367c8a235d3ca67dedfca965e1c",
   "schema_version": 1
 }
