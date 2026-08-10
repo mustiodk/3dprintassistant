@@ -207,7 +207,14 @@ run_bootstrap
 expect_reason true none
 expect_wrapper_count 1
 [[ "$(shasum -a 256 "$DEV/data.txt")" == "$dev_sha" ]]
-[[ "$(git -C "$DEV" rev-list HEAD..origin/main --count)" != 0 ]]
+# "$DEV is still behind the remote" has to be measured against the remote
+# itself. $DEV is never fetched after push_remote_change, so its own
+# refs/remotes/origin/main is the stale ref it was cloned with, making
+# `HEAD..origin/main` always 0 — the previous form asserted nothing and was
+# false on every platform. It went unnoticed because bash 3.2 (macOS) does not
+# apply `set -e` to a failing `[[ ]]`, so the false assertion simply continued;
+# bash 5 on CI aborts, which is how it surfaced.
+[[ "$(git -C "$DEV" rev-parse HEAD)" != "$(git -C "$ORIGIN" rev-parse main)" ]]
 
 # 12 — wrapper status propagates and the external lock still releases.
 clone_auto
