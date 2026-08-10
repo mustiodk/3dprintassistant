@@ -181,7 +181,12 @@ expect_wrapper_count 0
 # 10 — stale external lock is taken over atomically and released.
 clone_auto
 printf 'stale\n' > "$LOCK"
-touch -t "$(date -v-7H +%Y%m%d%H%M)" "$LOCK"
+# GNU first, BSD fallback — same idiom as intake-run-wrapper.test.sh. `date -v`
+# is BSD-only and this call had no fallback, so on Linux it produced
+# `touch: invalid date format ''` and the case failed for an environment
+# reason rather than a real one.
+touch -d '7 hours ago' "$LOCK" 2>/dev/null \
+  || touch -t "$(date -v-7H +%Y%m%d%H%M)" "$LOCK"
 run_bootstrap
 [[ "$BOOT_RC" == 0 ]]
 grep -q 'stale lock' "$OUT"
