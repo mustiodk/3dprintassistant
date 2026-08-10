@@ -32,9 +32,11 @@ name: CI
 # 14 of 15 *.test.mjs). An early draft of this file silently skipped
 # scripts/lib/intake-source-normalizer.test.js for exactly that reason.
 #
-# Step 6 reconciles what ran against what is tracked, so a future test file that
-# no tier claims fails the build instead of being quietly uncovered. That is the
-# guard that makes this workflow self-maintaining.
+# Step 6 reconciles the SET of files that ran against a deliberately broader
+# selector for "looks like a test", so a future suite that no tier claims fails
+# the build instead of sitting quietly uncovered. The breadth is the point: an
+# earlier version compared counts derived from the tiers' own globs, which made
+# the check an algebraic identity that passed while a .test.ts ran nowhere.
 
 on:
   push:
@@ -99,7 +101,7 @@ jobs:
               errors=1
             fi
           done < <(git ls-files '*.test.js')
-          echo "$count" > /tmp/ran-js.count
+          git ls-files '*.test.js' | sort > /tmp/ran-js.txt
           if [ "$count" -eq 0 ]; then
             echo "::error::No *.test.js found. Refusing to pass vacuously."
             exit 1
@@ -130,7 +132,11 @@ jobs:
               errors=1
             fi
           done < <(git ls-files '*.test.mjs')
-          echo "$count" > /tmp/ran-mjs.count
+          git ls-files '*.test.mjs' | grep -Fxv -f /tmp/vitest-owned.txt | sort > /tmp/ran-mjs.txt || true
+          if [ "$count" -eq 0 ]; then
+            echo "::error::Every *.test.mjs was claimed by vitest. Expected standalone suites too; refusing to pass vacuously."
+            exit 1
+          fi
           echo "$count standalone .mjs suites run"
           exit $errors
 
@@ -158,7 +164,7 @@ jobs:
               errors=1
             fi
           done < <(git ls-files '*.test.sh')
-          echo "$count" > /tmp/ran-sh.count
+          git ls-files '*.test.sh' | sort > /tmp/ran-sh.txt
           if [ "$count" -eq 0 ]; then
             echo "::error::No *.test.sh found. Refusing to pass vacuously."
             exit 1
@@ -168,28 +174,55 @@ jobs:
 
       # ---------------------------------------------------------------- 6/6
       - name: "6/6 · Coverage reconciliation"
-        # Every tracked test file must be claimed by exactly one tier above. A
-        # new suite with an extension or location no tier selects would
-        # otherwise sit uncovered and look fine — the precise failure this
-        # workflow exists to end.
-        if: always()
+        # Every test-looking file in the repo must be claimed by exactly one
+        # tier above. A suite with an extension or location no tier selects
+        # would otherwise sit uncovered and look fine — the precise failure
+        # this workflow exists to end.
+        #
+        # This compares FILE SETS, not counts, and the tracked side uses a
+        # DELIBERATELY BROADER selector than any tier. An earlier version
+        # counted `git ls-files '*.test.js' '*.test.mjs' '*.test.sh'` — the
+        # same three globs the tiers use — which made ran == tracked an
+        # algebraic identity: a NEVER_RUN.test.ts was invisible to both sides
+        # and the step reported "all covered" while running nothing.
+        #
+        # if: success() — NOT always(). On a genuine suite failure the earlier
+        # steps abort before writing their manifests, and an always() version
+        # would then shout "Coverage gap" over the top of the real error with
+        # advice pointing entirely the wrong way.
+        if: success()
         run: |
           set -uo pipefail
-          tracked=$(git ls-files '*.test.js' '*.test.mjs' '*.test.sh' | wc -l | tr -d ' ')
-          js=$(cat /tmp/ran-js.count 2>/dev/null || echo 0)
-          mjs=$(cat /tmp/ran-mjs.count 2>/dev/null || echo 0)
-          sh=$(cat /tmp/ran-sh.count 2>/dev/null || echo 0)
-          vt=$(wc -l < /tmp/vitest-owned.txt 2>/dev/null | tr -d ' ' || echo 0)
-          ran=$((js + mjs + sh + vt))
-          echo "tracked=$tracked  ran=$ran  (node-js=$js standalone-mjs=$mjs vitest=$vt shell=$sh)"
-          if [ "$ran" -ne "$tracked" ]; then
-            echo "::error::Coverage gap: $tracked test files are tracked but $ran ran."
-            echo "A test file exists that no tier selects. Either add it to a tier or"
-            echo "rename it to a covered pattern (*.test.js / *.test.mjs / *.test.sh)."
-            git ls-files '*.test.js' '*.test.mjs' '*.test.sh'
+
+          # Broad: anything a human would read as a test file, at any depth,
+          # whatever the extension.
+          git ls-files \
+            | grep -E '(^|/)[^/]*[._](test|spec)\.[A-Za-z0-9]+$' \
+            | sort > /tmp/tracked.txt
+
+          cat /tmp/ran-js.txt /tmp/ran-mjs.txt /tmp/ran-sh.txt /tmp/vitest-owned.txt \
+            2>/dev/null | sort > /tmp/ran.txt
+
+          echo "tracked=$(wc -l < /tmp/tracked.txt | tr -d ' ')  ran=$(wc -l < /tmp/ran.txt | tr -d ' ')"
+
+          # Claimed by no tier — the failure this step exists to catch.
+          uncovered=$(comm -23 /tmp/tracked.txt /tmp/ran.txt)
+          if [ -n "$uncovered" ]; then
+            echo "::error::These test files are tracked but no tier ran them:"
+            printf '  %s\n' $uncovered
+            echo "Add a tier that selects them, or rename to a covered pattern."
             exit 1
           fi
-          echo "All $tracked tracked test files are covered."
+
+          # Claimed by two tiers — double counting could mask an uncovered file.
+          dupes=$(sort /tmp/ran.txt | uniq -d)
+          if [ -n "$dupes" ]; then
+            echo "::error::These files were run by more than one tier:"
+            printf '  %s\n' $dupes
+            exit 1
+          fi
+
+          echo "Every tracked test file is claimed by exactly one tier."
 
   # ---------------------------------------------------------------------------
   # Deliberately a SEPARATE job, not a final step of `test`.
