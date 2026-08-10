@@ -9,11 +9,12 @@
 // app, useless for ordering tests). engineFacts is a stub — the module must
 // never load the engine.
 
-const path = require('path');
-const ROOT = path.join(__dirname, '..');
-const { createWorkshopStore } = require(path.join(ROOT, 'workshop-store.js'));
-const { TUNING_RULES, rulesForSymptom } = require(path.join(ROOT, 'workshop-tuning-rules.js'));
-const { createWorkshopTuning } = require(path.join(ROOT, 'workshop-tuning.js'));
+const { loadBrowserScript } = require('./load-browser-script.js');
+const { createWorkshopStore } = loadBrowserScript('workshop-store.js', ['createWorkshopStore']);
+const { TUNING_RULES, rulesForSymptom } = loadBrowserScript(
+  'workshop-tuning-rules.js', ['TUNING_RULES', 'rulesForSymptom']);
+const { createWorkshopTuning } = loadBrowserScript(
+  'workshop-tuning.js', ['createWorkshopTuning']);
 
 let failures = 0;
 function check(name, cond, detail) {

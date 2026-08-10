@@ -10,8 +10,9 @@
 
 const path = require('path');
 const fs = require('fs');
-const ROOT = path.join(__dirname, '..');
-const { TUNING_RULES, rulesForSymptom } = require(path.join(ROOT, 'workshop-tuning-rules.js'));
+const { loadBrowserScript, ROOT } = require('./load-browser-script.js');
+const { TUNING_RULES, rulesForSymptom } = loadBrowserScript(
+  'workshop-tuning-rules.js', ['TUNING_RULES', 'rulesForSymptom']);
 const ts = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/rules/troubleshooter.json'), 'utf8'));
 
 let failures = 0;

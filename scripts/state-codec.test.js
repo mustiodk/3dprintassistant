@@ -45,7 +45,8 @@ const engineSrc = fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8');
 vm.runInThisContext(engineSrc + '\n;globalThis.__Engine = Engine;\n', { filename: 'engine.js' });
 const Engine = globalThis.__Engine;
 
-const StateCodec = require(path.join(ROOT, 'state-codec.js'));
+const { loadBrowserScript } = require('./load-browser-script.js');
+const StateCodec = loadBrowserScript('state-codec.js', ['encodeForStorage']);
 
 let failures = 0;
 

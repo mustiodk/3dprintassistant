@@ -10,10 +10,9 @@
 // persists opaque state objects; id validation happens at restore time in
 // app.js via StateCodec.validateState (covered by state-codec.test.js).
 
-const path = require('path');
-const ROOT = path.join(__dirname, '..');
+const { loadBrowserScript } = require('./load-browser-script.js');
 
-const { createWorkshopStore } = require(path.join(ROOT, 'workshop-store.js'));
+const { createWorkshopStore } = loadBrowserScript('workshop-store.js', ['createWorkshopStore']);
 
 let failures = 0;
 
