@@ -1,65 +1,88 @@
 # 3dpa — Next Session Kickoff
 
 **Purpose:** start the next independent 3dpa session from the closed
-printer-intake recovery/learning state.
+intake decision-issue state.
 
-**Last updated:** 2026-07-29 after the Seturn retrospective-learning wrap.
+**Last updated:** 2026-08-10 after the decision-required notification wrap.
 
-No implementation task is locked. The intake recovery incident is closed:
-scheduled custody `cd9adf9` proves `run-20260729T100106Z` crossed the recovery
-path, and `a0b9100` now surfaces literal owner-gated
-`resinKeywords:seturn` learning. Choose the next priority from the live ROADMAP.
+No implementation task is locked, and nothing is blocked on code. The intake
+notification gap is closed, deployed, and self-maintaining: `intake-decision-issue.js
+sync --apply` runs as a stage before notify, POSTRUN check 7 fails the run if it
+did not, and the sweep is a fixpoint that backfills anything missed. The next
+scheduled 12:00 run needs nothing from you.
+
+Two items are genuinely waiting, both listed in the prompt below.
 
 Copy everything between the markers into the fresh session.
 
 >>> START >>>
 
-Cold start 3dpa. Confirm repository health, read the canonical project spine,
-then ask the owner which live ROADMAP priority to take next. No implementation
-task is locked. Do not rerun or re-diagnose the closed printer-intake recovery
-incident without new runtime evidence.
+Cold start 3dpa.
 
-Read in this order:
+**Read in order:**
+1. `Projects/CLAUDE.md` (top-level protocol — routing + standing rules)
+2. `3dprintassistant/CLAUDE.md` (project rules)
+3. `3dprintassistant/docs/3dpa-context.md` (evergreen architecture, engine API, app state)
+4. `3dprintassistant/docs/planning/ROADMAP.md` (live status + Active Work Queue)
+5. `3dprintassistant/docs/sessions/INDEX.md`
+6. The last 3 session logs in full — newest is
+   `docs/sessions/2026-08-10-cowork-appdev-intake-decision-issues.md`
+7. This file
+8. Task-specific source, per the choice below
 
-1. `~/dev/Claude/Projects/AGENTS.md`
-2. `~/dev/Claude/Projects/3dprintassistant/CLAUDE.md`
-3. `~/dev/Claude/Projects/3dprintassistant/docs/3dpa-context.md`
-4. `~/dev/Claude/Projects/3dprintassistant/docs/planning/ROADMAP.md`
-5. `~/dev/Claude/Projects/3dprintassistant/docs/sessions/INDEX.md`
-6. `~/dev/Claude/Projects/3dprintassistant/docs/sessions/2026-07-29-cowork-appdev-intake-seturn-learning.md`
-7. `~/dev/Claude/Projects/3dprintassistant/docs/sessions/2026-07-28-cowork-appdev-intake-freeze-auto-recovery-impl.md`
-8. `~/dev/Claude/Projects/3dprintassistant/docs/sessions/2026-07-28-cowork-appdev-intake-freeze-auto-recovery-planning.md`
-9. `~/dev/Claude/Projects/3dprintassistant/docs/sessions/NEXT-SESSION.md`
-10. The task-specific finding/spec selected by the owner.
+**Repo health first.** Trigger C's GitHub-first gate is not optional here — the
+last two cold starts both opened with `3dprintassistant` behind origin. Resolve
+any `behind:`/`diverged:` before reading local state as truth. Note that
+`3dprintassistant-ios: N unpushed` is expected (iOS push gate), not a problem.
 
-Today's task:
+**Then pick one of these three. Ask the owner which; do not assume.**
 
-- Verify GitHub-first health and reconcile any in-scope sync blocker.
-- Present the live ROADMAP queue and get the owner's priority.
-- If the owner selects the Seturn follow-up, inspect the retrospective proposal
-  from `scripts/printer-intake-outcomes.jsonl` with
-  `scripts/intake-retrospective-gather.js`; do not apply it to
-  `scripts/printer-intake-guardrails.json` without explicit approval.
+**(a) The two open owner decisions** — these are the only things actually blocking
+printers from shipping. Neither is a coding task; both need the owner's call, and
+the issue body carries the exact command:
+  - [#29](https://github.com/mustiodk/3dprintassistant/issues/29) `hi` (Creality Hi) — Creality's own blog calls it the "Hi
+    Series"; no existing catalog sibling (K / Ender / i Series) matches, and PD2
+    auto-ship requires an exact match. Establishing a new `series_group` label is
+    a taxonomy decision. Resolve with `intake-owner-decision.js approve-series`.
+  - [#28](https://github.com/mustiodk/3dprintassistant/issues/28) `ender3_s1_pro` (Ender-3 S1 Pro) — everything confirmed except
+    `max_speed`: the official manual says 150 mm/s (matching the shipped
+    `ender_3_s1` sibling exactly), Creality's own storefront says 160 mm/s.
+    Resolve with `intake-owner-decision.js provide-evidence --edge
+    rd3-external-evidence`. Owner URLs are treated as LEADS — research re-runs
+    against them and anything unsubstantiated still parks.
 
-Scope and process:
+**(b) The CI item — recommended if the owner has no strong preference.** ROADMAP
+Active Work Queue, "Repo capability gap — 223 tests + a purpose-built drift gate,
+and NO CI". It picked up N=2 evidence on 2026-08-10 and is now the highest-value
+process work in the queue: `intake-run-wrapper.test.sh` was red from birth for six
+days (assertion and the marker it asserts landed mismatched in the same commit,
+`6d12c14`), and four more suites — `workshop-store`, `workshop-tuning`,
+`workshop-tuning-rules`, `state-codec` — are red on `main` right now, verified at
+clean HEAD. Five guards nobody is getting. Scope is ~2h and already written out in
+the ROADMAP entry: `.github/workflows/ci.yml` running the JS suites plus
+`node scripts/engine-golden-snapshot.js --check`, and a cross-repo `engine.js`
+checksum step. **Start by triaging the four red suites** — shipping CI that is red
+on day one is the one way to guarantee it gets ignored.
 
-- Treat `docs/planning/ROADMAP.md` as status truth.
-- Preserve the closed recovery evidence: web `53e032b`, AI-OM contract
-  `3dee67c`, scheduled custody `cd9adf9`, learning fix `a0b9100`, tracking close
-  `81f11f3`.
-- Use TDD for behavior changes and verify before claiming success.
-- For any data or engine change, evaluate functional/structural/UI/UX impact on
-  both web and iOS, keep the engine mirror byte-identical, and run walkthrough
-  plus XCTest.
+**(c) Anything else the owner names** from the live ROADMAP.
 
-Standing rules:
-
+**Standing rules that bite on this project:**
+- ROADMAP is truth. Read it fully before reporting status; never trust session
+  notes or memory for what is done.
+- No mutation on an unverified premise. Verify with a real tool call in the SAME
+  turn and state the outcome inline — citing a check from an earlier turn does
+  not count and will be ledgered as unresolved.
 - One finding = one commit.
-- Web is master.
-- Do not push iOS `main` until the complete release train is TestFlight-ready.
-- Do not treat a committed or published artifact as deployed/live without
-  same-session runtime evidence.
-- Do not reopen the intake recovery incident without new failure evidence.
+- Web is master; iOS mirrors `engine.js` and the full `data/` tree byte-identical.
+  Any engine/data change requires an explicit web + iOS impact evaluation.
+- iOS `main` stays push-gated until ready for TestFlight. Web pushes freely.
+- Shell test suites are a mix of `#!/usr/bin/env bash` and `#!/bin/zsh`. Run each
+  with its own shebang — a bash suite run under zsh fails with zero output and
+  exit 1, which looks exactly like a real failure.
+- Committed ≠ deployed. The intake pipeline runs from
+  `~/.local/share/3dpa-intake/checkout/3dprintassistant`, which fast-forwards from
+  origin at run start; verify there, not in the dev tree (whose
+  `.intake-runner-state` is stale since July).
 
 <<< END <<<
 
