@@ -321,5 +321,25 @@ NODE
   done
 fi
 
+# 7. Decision-required parks are reachable (2026-08-10 silent-park gap).
+#    A `decision-required` park has no retry and no timer, so an unnotified one
+#    is a permanent dead end — `hi` and `ender3_s1_pro` both sat silent because
+#    the only issue surface was scoped to owner-attestable FIELDS. The sweep is
+#    a mandatory stage; this proves it actually ran.
+#
+#    Deliberately tolerant of `gh` being unavailable: this is a fail-closed
+#    gate, and turning a GitHub outage into a failed intake run would trade a
+#    notification gap for a pipeline outage. No gh, no auth, no verdict.
+if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+  decision_plan=$(node "$REPO/scripts/intake-decision-issue.js" sync \
+    --state-dir "$STATE_DIR" --repo mustiodk/3dprintassistant 2>/dev/null) || decision_plan=""
+  if [[ -n "$decision_plan" ]]; then
+    unnotified=$(print -r -- "$decision_plan" | grep '^  WOULD-OPEN ' | awk '{print $2}' | tr '\n' ',')
+    if [[ -n "$unnotified" ]]; then
+      fail decision-park-unnotified "${unnotified%,} parked decision-required with no open issue; run: node scripts/intake-decision-issue.js sync --apply"
+    fi
+  fi
+fi
+
 echo "POSTRUN ok=true reason=none detail="
 exit 0
