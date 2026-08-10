@@ -1,0 +1,199 @@
+name: CI
+
+# Runs the test suites that already existed in this repo but had nothing
+# running them. Before this workflow, 3dprintassistant/ had 54 tracked test
+# files and a purpose-built drift gate, and no .github/ directory at all — so a
+# guard that was red and a guard that worked looked identical. Two guards
+# proved that the hard way: four browser-script suites went red for 23 days
+# after an unrelated package.json change, and intake-run-wrapper.test.sh
+# asserted a token the kickoff never contained, red from the very commit that
+# introduced it.
+#
+# The suites are NOT uniform. There are four execution tiers, and running one
+# tier the wrong way produces convincing false failures:
+#
+#   1. *.test.js                bare `node`; CJS via scripts/package.json
+#   2. *.test.mjs standalone    bare `node`
+#   3. vitest-claimed *.test.mjs  vitest ONLY — these import vitest, so running
+#                               them under bare node fails 100% of the time
+#   4. *.test.sh                shell; MIXED bash and zsh shebangs
+#
+# Tier 3 is why this workflow does not use one `find -name '*.test.*'` loop.
+# That shape reports 9 false failures here. The tier-3 membership is asked of
+# vitest itself (`vitest list --filesOnly`) rather than hardcoded to a path, so
+# moving a Worker suite does not silently drop it from CI.
+#
+# Tier 4 is why the shell step runs ./"$f" rather than `bash "$f"`: a bash suite
+# executed under zsh fails with zero output and exit 1, which reads exactly like
+# a real failure.
+#
+# Selectors use `git ls-files`, never shell globs. A shell glob does not descend
+# into subdirectories, and this repo has nested suites (scripts/lib/*.test.js,
+# 14 of 15 *.test.mjs). An early draft of this file silently skipped
+# scripts/lib/intake-source-normalizer.test.js for exactly that reason.
+#
+# Step 6 reconciles what ran against what is tracked, so a future test file that
+# no tier claims fails the build instead of being quietly uncovered. That is the
+# guard that makes this workflow self-maintaining.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests + drift gates
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install zsh
+        # Several shell suites declare #!/bin/zsh and ubuntu runners have no zsh.
+        # Without this they would fail on the interpreter, not on their subject.
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq zsh
+
+      # ---------------------------------------------------------------- 1/6
+      - name: "1/6 · Syntax check (all tracked .js)"
+        # Catches a truncated or half-merged file before any suite runs, where
+        # the failure would otherwise be blamed on the suite.
+        run: |
+          set -uo pipefail
+          errors=0
+          while IFS= read -r f; do
+            if ! node --check "$f" 2>/dev/null; then
+              echo "::error file=$f::Syntax error in $f"
+              node --check "$f" || true
+              errors=1
+            fi
+          done < <(git ls-files '*.js')
+          if [ "$errors" = 0 ]; then
+            echo "All tracked .js files parse cleanly"
+          fi
+          exit $errors
+
+      # ---------------------------------------------------------------- 2/6
+      - name: "2/6 · Node suites (*.test.js)"
+        run: |
+          set -uo pipefail
+          errors=0; count=0
+          while IFS= read -r f; do
+            count=$((count + 1))
+            if node "$f" > /tmp/suite.log 2>&1; then
+              echo "  pass  $f"
+            else
+              echo "::error file=$f::Suite failed: $f"
+              cat /tmp/suite.log
+              errors=1
+            fi
+          done < <(git ls-files '*.test.js')
+          echo "$count" > /tmp/ran-js.count
+          if [ "$count" -eq 0 ]; then
+            echo "::error::No *.test.js found. Refusing to pass vacuously."
+            exit 1
+          fi
+          echo "$count Node suites run"
+          exit $errors
+
+      # ---------------------------------------------------------------- 3/6
+      - name: "3/6 · Standalone .mjs suites"
+        # Everything vitest does NOT claim. Membership comes from vitest itself.
+        run: |
+          set -uo pipefail
+          npx vitest list --filesOnly 2>/dev/null | sed 's|^\./||' | sort > /tmp/vitest-owned.txt
+          echo "vitest claims $(wc -l < /tmp/vitest-owned.txt) file(s)"
+          if [ ! -s /tmp/vitest-owned.txt ]; then
+            echo "::error::vitest claimed zero files. Its config or discovery broke; step 4 would pass vacuously."
+            exit 1
+          fi
+          errors=0; count=0
+          while IFS= read -r f; do
+            if grep -Fxq "$f" /tmp/vitest-owned.txt; then continue; fi
+            count=$((count + 1))
+            if node "$f" > /tmp/suite.log 2>&1; then
+              echo "  pass  $f"
+            else
+              echo "::error file=$f::Suite failed: $f"
+              cat /tmp/suite.log
+              errors=1
+            fi
+          done < <(git ls-files '*.test.mjs')
+          echo "$count" > /tmp/ran-mjs.count
+          echo "$count standalone .mjs suites run"
+          exit $errors
+
+      # ---------------------------------------------------------------- 4/6
+      - name: "4/6 · Worker suites (vitest)"
+        run: npx vitest run
+
+      # ---------------------------------------------------------------- 5/6
+      - name: "5/6 · Shell suites"
+        run: |
+          set -uo pipefail
+          errors=0; count=0
+          while IFS= read -r f; do
+            count=$((count + 1))
+            if [ ! -x "$f" ]; then
+              echo "::error file=$f::$f is not executable — chmod +x it. Invoking it would exit 126."
+              errors=1
+              continue
+            fi
+            if ./"$f" > /tmp/suite.log 2>&1; then
+              echo "  pass  $f"
+            else
+              echo "::error file=$f::Suite failed: $f"
+              cat /tmp/suite.log
+              errors=1
+            fi
+          done < <(git ls-files '*.test.sh')
+          echo "$count" > /tmp/ran-sh.count
+          if [ "$count" -eq 0 ]; then
+            echo "::error::No *.test.sh found. Refusing to pass vacuously."
+            exit 1
+          fi
+          echo "$count shell suites run"
+          exit $errors
+
+      # ---------------------------------------------------------------- 6/6
+      - name: "6/6 · Coverage reconciliation"
+        # Every tracked test file must be claimed by exactly one tier above. A
+        # new suite with an extension or location no tier selects would
+        # otherwise sit uncovered and look fine — the precise failure this
+        # workflow exists to end.
+        if: always()
+        run: |
+          set -uo pipefail
+          tracked=$(git ls-files '*.test.js' '*.test.mjs' '*.test.sh' | wc -l | tr -d ' ')
+          js=$(cat /tmp/ran-js.count 2>/dev/null || echo 0)
+          mjs=$(cat /tmp/ran-mjs.count 2>/dev/null || echo 0)
+          sh=$(cat /tmp/ran-sh.count 2>/dev/null || echo 0)
+          vt=$(wc -l < /tmp/vitest-owned.txt 2>/dev/null | tr -d ' ' || echo 0)
+          ran=$((js + mjs + sh + vt))
+          echo "tracked=$tracked  ran=$ran  (node-js=$js standalone-mjs=$mjs vitest=$vt shell=$sh)"
+          if [ "$ran" -ne "$tracked" ]; then
+            echo "::error::Coverage gap: $tracked test files are tracked but $ran ran."
+            echo "A test file exists that no tier selects. Either add it to a tier or"
+            echo "rename it to a covered pattern (*.test.js / *.test.mjs / *.test.sh)."
+            git ls-files '*.test.js' '*.test.mjs' '*.test.sh'
+            exit 1
+          fi
+          echo "All $tracked tracked test files are covered."
+
+      # ---------------------------------------------------------------- gate
+      - name: "Engine golden snapshot (drift gate)"
+        # The repo's own purpose-built guard: exits 1 if resolved profile output
+        # drifts for any of the 39 recorded states. Re-baselining is deliberate
+        # and reviewed; unintentional drift fails here.
+        run: node scripts/engine-golden-snapshot.js --check
