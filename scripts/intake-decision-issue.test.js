@@ -192,6 +192,41 @@ t('the label is distinct from the owner-question label so answer parsing never s
   assert.notStrictEqual(DECISION_LABEL, questionLabel);
 });
 
+// ── TC4 — the receipt POSTRUN check 7 reads ─────────────────────────────────
+console.log('\nTC4 — sweep receipt');
+
+const { writeReceipt, receiptPath } = require('./intake-decision-issue.js');
+
+t('a receipt records what the sweep decided, not just that it ran', () => {
+  const dir = tmpStateDir();
+  writeReceipt(dir, { action: 'sync', opened: [{ candidateId: 'hi', issue: 29 }], closed: [], existing: [28] });
+  const receipt = JSON.parse(fs.readFileSync(receiptPath(dir), 'utf8'));
+  assert.strictEqual(receipt.schema, 'intake-decision-sync@1');
+  assert.deepStrictEqual(receipt.opened, [{ candidateId: 'hi', issue: 29 }]);
+  assert.deepStrictEqual(receipt.existing, [28]);
+  assert.ok(!Number.isNaN(Date.parse(receipt.syncedAt)), 'no timestamp');
+});
+
+t('a zero-change sweep still writes a receipt — silence must be provable', () => {
+  const dir = tmpStateDir();
+  writeReceipt(dir, { action: 'sync', opened: [], closed: [], existing: [] });
+  assert.ok(fs.existsSync(receiptPath(dir)));
+});
+
+t('the receipt is rewritten, not appended, so its mtime means "this run"', () => {
+  const dir = tmpStateDir();
+  writeReceipt(dir, { action: 'sync', opened: [], closed: [], existing: [1] });
+  writeReceipt(dir, { action: 'sync', opened: [], closed: [], existing: [2] });
+  const receipt = JSON.parse(fs.readFileSync(receiptPath(dir), 'utf8'));
+  assert.deepStrictEqual(receipt.existing, [2]);
+});
+
+t('a missing state dir does not stop the sweep from leaving its receipt', () => {
+  const dir = path.join(tmpStateDir(), 'not', 'created', 'yet');
+  writeReceipt(dir, { action: 'sync', opened: [], closed: [], existing: [] });
+  assert.ok(fs.existsSync(receiptPath(dir)));
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 for (const f of failures) console.log(`  - ${f}`);
 process.exit(fail === 0 ? 0 : 1);

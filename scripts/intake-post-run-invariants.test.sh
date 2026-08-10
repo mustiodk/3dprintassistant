@@ -40,6 +40,8 @@ init_repo() {
   mkdir -p "$STATE"
   printf 'run summary\n' > "$STATE/last-run-session.log"
   printf '# 3dpa intake run — test\n' > "$STATE/last-run-report.md"
+  printf '{"schema":"intake-decision-sync@1","opened":[],"closed":[],"existing":[]}\n' \
+    > "$STATE/last-decision-sync.json"
 }
 
 run_postrun() {
@@ -377,6 +379,29 @@ init_repo
 r1_attempt ender_3_s1
 touch -t 202601010000 "$STATE/bridge-reviews/pd5-ender_3_s1-r1-20260804T175112Z-prompt.md"
 RUN_START=$(date +%s)
+expect_ok
+RUN_START=0
+
+# 32 — the decision-issue sweep never ran (2026-08-10 silent-park gap: `hi` and
+#      `ender3_s1_pro` both parked decision-required and were never surfaced,
+#      because no stage existed to surface them).
+init_repo
+rm "$STATE/last-decision-sync.json"
+expect_fail decision-sync-missing
+
+# 33 — a receipt left by a PRIOR run does not count as this run's sweep (same
+#      shape as case 4's stale report: the file existing proves nothing).
+init_repo
+touch -t 202601010000 "$STATE/last-decision-sync.json"
+RUN_START=$(date +%s)
+expect_fail decision-sync-stale
+RUN_START=0
+
+# 34 — a sweep that ran and found nothing stuck still passes: a quiet day must
+#      be distinguishable from a skipped stage, and it is, by the receipt.
+init_repo
+RUN_START=$(date +%s)
+touch "$STATE/last-decision-sync.json"
 expect_ok
 RUN_START=0
 

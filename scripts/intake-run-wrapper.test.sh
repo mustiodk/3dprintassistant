@@ -71,6 +71,7 @@ make_good_claude() {
 state="$THREEDPA_INTAKE_REPO/scripts/.intake-runner-state"
 mkdir -p "$state"
 printf '# 3dpa intake run — stub\n' > "$state/last-run-report.md"
+printf '{"schema":"intake-decision-sync@1","opened":[],"closed":[],"existing":[]}\n' > "$state/last-decision-sync.json"
 printf 'repo=%s ios=%s\n' "$THREEDPA_INTAKE_REPO" "$THREEDPA_IOS_REPO" > "$state/runtime-paths.log"
 echo "run complete: shipped 0 parked 0 errored 0"
 exit 0
@@ -84,6 +85,7 @@ make_observable_good_claude() {
 touch "$TMP/claude-invoked"
 mkdir -p "$STATE"
 printf '# 3dpa intake run — stub\n' > "$STATE/last-run-report.md"
+printf '{"schema":"intake-decision-sync@1","opened":[],"closed":[],"existing":[]}\n' > "$STATE/last-decision-sync.json"
 echo "run complete: shipped 0 parked 0 errored 0"
 exit 0
 EOF

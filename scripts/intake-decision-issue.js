@@ -243,9 +243,29 @@ function ensureLabel(repoArgs) {
     ...repoArgs], { allowFail: true });
 }
 
+// The receipt POSTRUN check 7 reads. A live gh query in that fail-closed gate
+// would put a network call on the run's critical path — a GitHub outage would
+// fail the whole intake run — so the sweep leaves proof instead and the gate
+// checks its mtime, exactly as check 2 proves notify ran via last-run-report.md.
+function receiptPath(stateDir) {
+  return path.join(stateDir, 'last-decision-sync.json');
+}
+
+function writeReceipt(stateDir, result) {
+  fs.mkdirSync(stateDir, { recursive: true });
+  fs.writeFileSync(receiptPath(stateDir), `${JSON.stringify({
+    schema: 'intake-decision-sync@1',
+    syncedAt: new Date().toISOString(),
+    opened: result.opened || [],
+    closed: result.closed || [],
+    existing: result.existing || [],
+  }, null, 2)}\n`);
+}
+
 function syncIssues(options) {
   const repoArgs = options.repo ? ['--repo', options.repo] : [];
-  const parks = collectDecisionParks(options.stateDir || DEFAULT_STATE_DIR);
+  const stateDir = options.stateDir || DEFAULT_STATE_DIR;
+  const parks = collectDecisionParks(stateDir);
   const plan = planSync(parks, listOpenIssues(repoArgs));
 
   if (!options.apply) {
@@ -271,13 +291,17 @@ function syncIssues(options) {
       'No longer parked on an owner decision — closed by the intake runner.', ...repoArgs]);
     closed.push(issue.number);
   }
-  return {
+  const result = {
     changed: opened.length > 0 || closed.length > 0,
     action: 'sync',
     opened,
     closed,
     existing: plan.existing.map((i) => i.number),
   };
+  // A zero-change sweep still writes: "nothing was stuck" has to be provable,
+  // otherwise a quiet day is indistinguishable from a skipped stage.
+  writeReceipt(stateDir, result);
+  return result;
 }
 
 function openIssueFor(options) {
@@ -330,7 +354,7 @@ function parseCli(argv) {
 
 module.exports = {
   collectDecisionParks, buildBody, issueTitle, planSync,
-  syncIssues, openIssueFor, closeIssueFor,
+  syncIssues, openIssueFor, closeIssueFor, writeReceipt, receiptPath,
   DECISION_LABEL, DECISION_REASONS,
 };
 
