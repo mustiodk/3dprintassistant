@@ -57,7 +57,26 @@ One finding = one commit; the receipt refactor is a separate commit from the mec
 - **`workshop-*` + `state-codec` suites are red on `main`** and were before this session. Not investigated. Worth a bounded pass — four red suites are four guards nobody is getting.
 - **The no-CI item just got its second concrete instance** (`../planning/ROADMAP.md` Active Work Queue, finding `2026-08-01-wrap-up-checks-session-bookkeeping-not-project-capability.md`). A guard red from birth for six days, plus four suites red on `main`, is the exact failure the proposed workflow catches. Recommend promoting it.
 - **Md-hygiene sweep:** protocol-file drift `diff -u CLAUDE.md AGENTS.md` clean; findings INDEX↔files parity clean (0 orphans, verified programmatically); no stray `</content>` tags in session-created files; no secrets; no orphan root stubs. No action needed.
-- **VBM ledger:** 2 flags, both reported `unresolved_by_session_end`. Flag 1 (`intake-post-run-invariants.sh`) *was* verified in-turn by a Bash `grep` with the outcome stated inline — this is a clean recurrence of the already-queued [`2026-07-28-vbm-resolution-detection-misses-bash-verification.md`](../../../ai-operating-model/docs/findings/2026-07-28-vbm-resolution-detection-misses-bash-verification.md) (R2b), not a new finding. Flag 2 (`intake-post-run-invariants.test.sh`) is a genuine discipline miss: I cited a grep from an *earlier* turn instead of re-verifying in the same turn. The premise was correct in both cases (tests green, gate behaves as specified), but the ledger was right to refuse credit for the second. Corrected on the third flag this session (findings INDEX), which was verified in-turn.
+- **VBM ledger (verbatim, end of session):**
+
+  ```
+  verify-before-mutate ledger: 6 flags (0 resolved_same_turn, 0 resolved_late,
+    6 unresolved_by_session_end), 0 destructive-core, 14 unclassified, 0 generated-write
+  note: gate on unresolved_by_session_end; resolved_late = timing-health;
+    resolved = not premise-proved (spec M1)
+    - [unresolved_by_session_end] Edit 3dprintassistant/scripts/intake-post-run-invariants.sh (edit)
+    - [unresolved_by_session_end] Edit 3dprintassistant/scripts/intake-post-run-invariants.test.sh (edit)
+    - [unresolved_by_session_end] Edit ai-operating-model/docs/findings/INDEX.md (edit)
+    - [unresolved_by_session_end] Edit 3dprintassistant/docs/sessions/INDEX.md (edit)
+    - [unresolved_by_session_end] Write 3dprintassistant/docs/sessions/NEXT-SESSION.md (write_existing)
+    - [unresolved_by_session_end] Edit ~/.claude/.../memory/MEMORY.md (edit)
+  ```
+
+  **Controller's account — the owner's read of this list is the measurement, not mine.** Five of the six were verified in the SAME turn by a Bash call with the outcome stated inline (`grep -n 'STATE_DIR'` for the invariants script; anchor-uniqueness + entry-link parity for both INDEXes; marker/structure + `git diff --stat` for NEXT-SESSION; pointer-target `ls` + full index parity for MEMORY.md). None was credited. That is a clean recurrence of the already-queued [`2026-07-28-vbm-resolution-detection-misses-bash-verification.md`](../../../ai-operating-model/docs/findings/2026-07-28-vbm-resolution-detection-misses-bash-verification.md) (R2b — bounded Bash-verification credit), same shape as its 8-flag/0-credited observation, so no new finding.
+
+  **One is a genuine miss, not a detection gap:** flag 2 (`intake-post-run-invariants.test.sh`), where I cited a `grep` from an *earlier* turn instead of re-verifying in the same turn. The ledger was right to refuse it, and I corrected the habit for the four flags that followed. The premises were sound in every case — the gate behaves as specified and all suites are green — but resolved-rate is a discipline metric, never premise-proof.
+
+  Worth noting for the R2b design: the MEMORY.md verification also caught **my own checker being wrong** (a `tr -d '](' ` that left the trailing paren, reporting all 29 pointers broken including one I had just `ls`-confirmed). A verification step that can fail loudly is doing its job; that is an argument for crediting Bash verification, not against it.
 
 ## Next session
 
