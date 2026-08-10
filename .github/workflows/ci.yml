@@ -191,8 +191,30 @@ jobs:
           fi
           echo "All $tracked tracked test files are covered."
 
-      # ---------------------------------------------------------------- gate
-      - name: "Engine golden snapshot (drift gate)"
+  # ---------------------------------------------------------------------------
+  # Deliberately a SEPARATE job, not a final step of `test`.
+  #
+  # As a step it would be skipped the moment any earlier suite failed, so a PR
+  # that both broke one JS suite and drifted engine output would report only the
+  # JS suite — the drift stays hidden until the unrelated failure is fixed, and
+  # whoever fixes it has no reason to expect a second problem. These are
+  # independent signals and both should always be reported.
+  # ---------------------------------------------------------------------------
+  engine-drift:
+    name: Engine golden snapshot (drift gate)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for drift
         # The repo's own purpose-built guard: exits 1 if resolved profile output
         # drifts for any of the 39 recorded states. Re-baselining is deliberate
         # and reviewed; unintentional drift fails here.
