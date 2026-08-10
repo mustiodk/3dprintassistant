@@ -66,10 +66,18 @@ for sibling in "$FREEZE".*(N); do
   fail frozen "stranded freeze sibling ${sibling##*/}" 78
 done
 
+# BSD and GNU stat take incompatible flags; see file_mode note style. `stat -f`
+# on GNU means "filesystem status" and exits 0, so a `||` fallback is dead code.
+file_mtime() {
+  case "$(uname -s)" in
+    Darwin) stat -f %m "$1" ;;
+    *)      stat -c %Y "$1" ;;
+  esac
+}
 # 2 — run lock: held+fresh → exit; stale (>6h) → warn + proceed (the wrapper
 # will take it over; a crashed run must not block tomorrow's).
 if [[ -f "$LOCK" ]]; then
-  lock_age=$(( $(date +%s) - $(stat -f %m "$LOCK") ))
+  lock_age=$(( $(date +%s) - $(file_mtime "$LOCK") ))
   if (( lock_age < STALE_LOCK_SECONDS )); then
     fail lock-held "age=${lock_age}s" 75
   fi

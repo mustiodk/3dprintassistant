@@ -99,11 +99,19 @@ if [[ ! -f "$OAUTH_ENV" ]]; then
 fi
 set -a; source "$OAUTH_ENV"; set +a
 
+# BSD and GNU stat take incompatible flags; see file_mode note style. `stat -f`
+# on GNU means "filesystem status" and exits 0, so a `||` fallback is dead code.
+file_mtime() {
+  case "$(uname -s)" in
+    Darwin) stat -f %m "$1" ;;
+    *)      stat -c %Y "$1" ;;
+  esac
+}
 # 3 — lock acquire (atomic via noclobber) + trap release on EVERY exit path.
 # Stale takeover: rm then noclobber-create — the loser of a simultaneous
 # takeover race exits 75.
 if [[ -f "$LOCK" ]]; then
-  lock_age=$(( $(date +%s) - $(stat -f %m "$LOCK") ))
+  lock_age=$(( $(date +%s) - $(file_mtime "$LOCK") ))
   if (( lock_age >= 6 * 3600 )); then
     echo "WRAPPER stale lock (age=${lock_age}s) — taking over"
     rm -f "$LOCK"

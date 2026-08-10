@@ -50,8 +50,16 @@ cleanup_lock() {
   fi
 }
 
+# BSD and GNU stat take incompatible flags; see file_mode note style. `stat -f`
+# on GNU means "filesystem status" and exits 0, so a `||` fallback is dead code.
+file_mtime() {
+  case "$(uname -s)" in
+    Darwin) stat -f %m "$1" ;;
+    *)      stat -c %Y "$1" ;;
+  esac
+}
 if [[ -e "$LOCK" ]]; then
-  lock_age=$(( $(date +%s) - $(stat -f %m "$LOCK" 2>/dev/null || echo 0) ))
+  lock_age=$(( $(date +%s) - $(file_mtime "$LOCK" 2>/dev/null || echo 0) ))
   if (( lock_age < STALE_LOCK_SECONDS )); then
     echo "SYNCBOOT ok=false reason=lock-held detail=age=${lock_age}s"
     exit 75

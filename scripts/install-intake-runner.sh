@@ -81,7 +81,16 @@ CONFIG_RELATIVE="scripts/.printer-intake.local.json"
 CONFIG_SOURCE="$MIGRATE_FROM/$CONFIG_RELATIVE"
 CONFIG_DEST="$CHECKOUT/$CONFIG_RELATIVE"
 
-file_mode() { stat -f %Lp "$1" 2>/dev/null || stat -c %a "$1"; }
+# BSD and GNU stat take incompatible flags, and the obvious shim
+# `stat -f ... || stat -c ...` does NOT work: on GNU, `-f` means "filesystem
+# status" and EXITS 0, so the fallback never fires and the caller silently gets
+# filesystem junk instead of a mode. Dispatch on the platform instead.
+file_mode() {
+  case "$(uname -s)" in
+    Darwin) stat -f %Lp "$1" ;;
+    *)      stat -c %a  "$1" ;;
+  esac
+}
 
 # Missing source config fails before any mutation: notification delivery is an
 # enablement requirement for this installed runner.
