@@ -357,13 +357,33 @@ set_preserved_ref ender_3_s1 "$branch_sha"
 expect_ok
 
 # 29c — a park left over from a PRIOR run does not count as recording this one
+#
+# RUN_START is sampled BEFORE init_repo here and in cases 31, 33 and 34 below,
+# and that ordering is the point. Sampling it after the artifacts exist made
+# this suite intermittently red (~1 run in 6): an artifact written at second T
+# was compared against a run-start of T+1 whenever the wall clock ticked in
+# between, so the run failed with the wrong reason —
+#
+#   POSTRUN ok=false reason=report-stale detail=mtime=1786388765 run-start=1786388766
+#
+# where this case expects `r1-attempted-not-parked`. Sampling first makes
+# run-start <= every artifact this case intends to be current, by construction
+# and at any setup duration. A `- 1` tolerance was tried first and rejected: it
+# only narrows the window (2s of setup reopens it) and it weakens the staleness
+# boundary the invariant exists to enforce.
+#
+# Cases that need a genuinely stale artifact age it explicitly with
+# `touch -t 202601010000`, which no sampling order can accidentally satisfy.
+#
+# Production was never affected: the real runner samples run-start at run START,
+# before any artifact is written. Only the test built the ordering backwards.
+RUN_START=$(date +%s)
 init_repo
 git -C "$REPO" branch intake/ender_3_s1
 r1_attempt ender_3_s1
 make_parked ender_3_s1 review-no-go-unresolved
 set_last_attempt ender_3_s1 "2026-01-01T00:00:00Z"
 printf '{}\n' > "$STATE/parked/ender_3_s1/candidate-creality-ender_3_s1.json"
-RUN_START=$(date +%s)
 expect_fail r1-attempted-not-parked
 RUN_START=0
 
@@ -375,10 +395,10 @@ expect_ok
 # 31 — a stale R1 attempt from a PRIOR run must not implicate this one.
 # Age the ARTIFACT rather than moving RUN_START forward: a future run-start
 # would also stale the report and test two things at once.
+RUN_START=$(date +%s)
 init_repo
 r1_attempt ender_3_s1
 touch -t 202601010000 "$STATE/bridge-reviews/pd5-ender_3_s1-r1-20260804T175112Z-prompt.md"
-RUN_START=$(date +%s)
 expect_ok
 RUN_START=0
 
@@ -391,16 +411,16 @@ expect_fail decision-sync-missing
 
 # 33 — a receipt left by a PRIOR run does not count as this run's sweep (same
 #      shape as case 4's stale report: the file existing proves nothing).
+RUN_START=$(date +%s)
 init_repo
 touch -t 202601010000 "$STATE/last-decision-sync.json"
-RUN_START=$(date +%s)
 expect_fail decision-sync-stale
 RUN_START=0
 
 # 34 — a sweep that ran and found nothing stuck still passes: a quiet day must
 #      be distinguishable from a skipped stage, and it is, by the receipt.
-init_repo
 RUN_START=$(date +%s)
+init_repo
 touch "$STATE/last-decision-sync.json"
 expect_ok
 RUN_START=0
