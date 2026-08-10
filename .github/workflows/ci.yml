@@ -71,13 +71,39 @@ jobs:
       - name: "1/6 · Syntax check (all tracked .js)"
         # Catches a truncated or half-merged file before any suite runs, where
         # the failure would otherwise be blamed on the suite.
+        #
+        # --check picks its dialect from the nearest package.json, and the root
+        # one says "type": "module". That is the WRONG dialect for the root
+        # browser scripts: index.html loads them as classic sloppy-mode
+        # <script> tags, so valid browser code (e.g. a `with` block) would be
+        # rejected as a strict-mode error, while `export` syntax that would
+        # break a <script src> would be accepted. Checking them as commonjs
+        # (sloppy mode, like a classic script) is the closest accurate dialect.
+        # This is the same misclassification that made four suites unreachable
+        # in a62465e — worth not baking into the syntax gate as well.
         run: |
           set -uo pipefail
+
+          # The sloppy-mode set is derived from index.html, not hardcoded, so a
+          # new <script src> is classified correctly without touching this file.
+          # Everything else is ESM under the root package.json — including
+          # worker.js, which lives at the root but is the Worker's ESM entry and
+          # is NOT loaded by index.html. scripts/** is CommonJS per its own
+          # package.json.
+          grep -oE '<script\b[^>]*\bsrc\s*=\s*"[^"]+"' index.html \
+            | sed -E 's/.*src="([^"]+)".*/\1/' | sort > /tmp/classic-scripts.txt
+          echo "index.html loads $(wc -l < /tmp/classic-scripts.txt | tr -d ' ') classic script(s)"
+
           errors=0
           while IFS= read -r f; do
-            if ! node --check "$f" 2>/dev/null; then
-              echo "::error file=$f::Syntax error in $f"
-              node --check "$f" || true
+            if grep -Fxq "$f" /tmp/classic-scripts.txt || [ "${f#scripts/}" != "$f" ]; then
+              mode=commonjs
+            else
+              mode=module
+            fi
+            if ! node --input-type=$mode --check < "$f" 2>/dev/null; then
+              echo "::error file=$f::Syntax error in $f (checked as $mode)"
+              node --input-type=$mode --check < "$f" || true
               errors=1
             fi
           done < <(git ls-files '*.js')
