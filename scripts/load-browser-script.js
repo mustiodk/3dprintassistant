@@ -27,7 +27,17 @@
 // Each script is evaluated in its own function scope rather than the shared
 // global one. That is safe for the files this loader targets — workshop-tuning.js
 // receives `store` and `rules` as injected parameters rather than reading them as
-// globals — and it stops one suite's load from leaking into the next.
+// globals.
+//
+// That scoping is NOT full isolation, and it differs from a real <script> tag in
+// both directions. `vm.runInThisContext` shares the process global, so a sloppy
+// undeclared assignment (`leaked = 42`) inside a loaded script still lands on
+// globalThis and outlives the call; meanwhile a top-level `var` stays inside the
+// wrapper instead of becoming a global property, which is the opposite of what a
+// browser does. Top-level `this` is `undefined` under a strict-mode prologue here
+// rather than `window`. None of the files this loader targets depend on any of
+// that, but do not read this function as a browser emulator — the global surface
+// is covered separately, and honestly, by browser-globals.test.js.
 //
 // SCOPE LIMIT: this is only valid for root scripts that are self-contained and
 // export something. It is NOT a general <script> emulator. app.js, for example,
@@ -95,7 +105,17 @@ function loadBrowserScript(filename, expect = []) {
     );
   }
 
-  if (!exported || typeof exported !== 'object' || Object.keys(exported).length === 0) {
+  // `module.exports = someFunction` is a legitimate CommonJS shape, so a
+  // function counts as exported. Only an empty object means the tail did not
+  // run — an earlier version rejected function exports with a message claiming
+  // the tail was "missing", which would have been three false statements at
+  // once inside a loader written to stop misleading failures.
+  const isEmptyObject =
+    exported !== null &&
+    typeof exported === 'object' &&
+    Object.keys(exported).length === 0;
+
+  if (exported === undefined || exported === null || isEmptyObject) {
     throw new Error(
       `load-browser-script: ${filename} exported nothing. Its CommonJS tail ` +
       `(\`if (typeof module !== 'undefined' && module.exports)\`) is missing or ` +

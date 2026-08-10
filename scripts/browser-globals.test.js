@@ -50,7 +50,11 @@ console.log('# browser global contract');
 // ── Derive the script list from index.html rather than hardcoding it, so a new
 //    <script> tag is covered automatically and a reordering is detected.
 const html = fs.readFileSync(INDEX, 'utf8');
-const srcs = [...html.matchAll(/<script\s+src="([^"]+)"><\/script>/g)].map((m) => m[1]);
+// Tolerant of extra attributes and whitespace: a tag written as
+// `<script defer src="x.js">` or `<script src='x.js' type="module">` is still a
+// provider, and a stricter pattern would silently drop it from coverage —
+// which is the failure mode this suite exists to prevent, not commit.
+const srcs = [...html.matchAll(/<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi)].map((m) => m[1]);
 
 // app.js is the CONSUMER, not a provider. Loading it would require a live DOM;
 // this suite proves the scope app.js is handed, not app.js itself.
