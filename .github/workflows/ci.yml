@@ -188,6 +188,16 @@ jobs:
             else
               echo "::error file=$f::Suite failed: $f"
               cat /tmp/suite.log
+              # These suites run under `set -e` and assert with bare `[[ ... ]]`,
+              # so a failing assertion aborts having printed NOTHING. An empty
+              # log is therefore the common case, not the rare one, and it is
+              # indistinguishable from a suite that never started. Re-run under
+              # tracing so the last thing attempted is visible; without this a
+              # CI-only failure cannot be diagnosed without another push.
+              if [ ! -s /tmp/suite.log ]; then
+                echo "--- no output; re-running under set -x (last 40 lines) ---"
+                bash -x "$f" 2>&1 | tail -40 || true
+              fi
               errors=1
             fi
           done < <(git ls-files '*.test.sh')
