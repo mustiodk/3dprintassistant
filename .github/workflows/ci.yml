@@ -51,11 +51,12 @@ jobs:
   test:
     name: Tests + drift gates
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
 
@@ -262,16 +263,19 @@ jobs:
   engine-drift:
     name: Engine golden snapshot (drift gate)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
 
-      - name: Install dependencies
-        run: npm ci
+      # No `npm ci`: engine-golden-snapshot.js uses only fs/path/vm. Installing
+      # dependencies here would add a registry-outage failure mode to the drift
+      # gate — a gate failing for a reason unrelated to drift is the pattern
+      # this split was made to avoid.
 
       - name: Check for drift
         # The repo's own purpose-built guard: exits 1 if resolved profile output
