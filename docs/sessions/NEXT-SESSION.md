@@ -1,17 +1,15 @@
 # 3dpa — Next Session Kickoff
 
-**Purpose:** start the next independent 3dpa session from the closed
-intake decision-issue state.
+**Purpose:** start the next 3dpa session from a repo that now has working CI.
 
-**Last updated:** 2026-08-10 after the decision-required notification wrap.
+**Last updated:** 2026-08-10, after CI shipped green on `main` (`657d9f5`).
 
-No implementation task is locked, and nothing is blocked on code. The intake
-notification gap is closed, deployed, and self-maintaining: `intake-decision-issue.js
-sync --apply` runs as a stage before notify, POSTRUN check 7 fails the run if it
-did not, and the sweep is a fixpoint that backfills anything missed. The next
-scheduled 12:00 run needs nothing from you.
+No implementation task is locked. CI exists, runs all 55 tracked test files plus
+the engine drift gate on every push, and is green. Nothing is blocked on code.
 
-Two items are genuinely waiting, both listed in the prompt below.
+Two things are genuinely waiting, and both are in the prompt below: the two owner
+decisions that have been blocking printers since 2026-08-09, and the iOS CI half
+that is committed but unpushed under the push gate.
 
 Copy everything between the markers into the fresh session.
 
@@ -26,63 +24,74 @@ Cold start 3dpa.
 4. `3dprintassistant/docs/planning/ROADMAP.md` (live status + Active Work Queue)
 5. `3dprintassistant/docs/sessions/INDEX.md`
 6. The last 3 session logs in full — newest is
-   `docs/sessions/2026-08-10-cowork-appdev-intake-decision-issues.md`
+   `docs/sessions/2026-08-10-cowork-appdev-ci-workflows.md`
 7. This file
 8. Task-specific source, per the choice below
 
-**Repo health first.** Trigger C's GitHub-first gate is not optional here — the
-last two cold starts both opened with `3dprintassistant` behind origin. Resolve
-any `behind:`/`diverged:` before reading local state as truth. Note that
-`3dprintassistant-ios: N unpushed` is expected (iOS push gate), not a problem.
+**Repo health first — and check the BRANCH, not just the health line.** Trigger
+C's GitHub-first gate is not optional here; three consecutive cold starts have
+now opened behind origin. Note the failure mode that bit on 2026-08-10: the
+health line reported `3dprintassistant: current` while local `main` was **63
+commits behind**, because the checkout was parked on a feature branch that was
+current with *its own* upstream. Run `git branch -vv` and confirm which branch
+you are on before trusting any local ROADMAP or NEXT-SESSION.
+`3dprintassistant-ios: N unpushed` is expected (push gate), not a problem.
 
-**Then pick one of these three. Ask the owner which; do not assume.**
+**Then pick one of these. Ask the owner; do not assume.**
 
-**(a) The two open owner decisions** — these are the only things actually blocking
-printers from shipping. Neither is a coding task; both need the owner's call, and
-the issue body carries the exact command:
-  - [#29](https://github.com/mustiodk/3dprintassistant/issues/29) `hi` (Creality Hi) — Creality's own blog calls it the "Hi
-    Series"; no existing catalog sibling (K / Ender / i Series) matches, and PD2
-    auto-ship requires an exact match. Establishing a new `series_group` label is
-    a taxonomy decision. Resolve with `intake-owner-decision.js approve-series`.
-  - [#28](https://github.com/mustiodk/3dprintassistant/issues/28) `ender3_s1_pro` (Ender-3 S1 Pro) — everything confirmed except
-    `max_speed`: the official manual says 150 mm/s (matching the shipped
-    `ender_3_s1` sibling exactly), Creality's own storefront says 160 mm/s.
-    Resolve with `intake-owner-decision.js provide-evidence --edge
-    rd3-external-evidence`. Owner URLs are treated as LEADS — research re-runs
-    against them and anything unsubstantiated still parks.
+**(a) The two open owner decisions** — still the only things blocking printers
+from shipping. Neither is a coding task; each issue body carries the exact command:
+  - [#29](https://github.com/mustiodk/3dprintassistant/issues/29) `hi` (Creality Hi) — establishing a new `series_group` is a
+    taxonomy call. `intake-owner-decision.js approve-series`.
+  - [#28](https://github.com/mustiodk/3dprintassistant/issues/28) `ender3_s1_pro` — the official manual says 150 mm/s (matching
+    the shipped `ender_3_s1` sibling exactly), Creality's storefront says 160.
+    `intake-owner-decision.js provide-evidence --edge rd3-external-evidence`.
+    Owner URLs are treated as LEADS — research re-runs against them and anything
+    unsubstantiated still parks.
 
-**(b) The CI item — recommended if the owner has no strong preference.** ROADMAP
-Active Work Queue, "Repo capability gap — 223 tests + a purpose-built drift gate,
-and NO CI". It picked up N=2 evidence on 2026-08-10 and is now the highest-value
-process work in the queue: `intake-run-wrapper.test.sh` was red from birth for six
-days (assertion and the marker it asserts landed mismatched in the same commit,
-`6d12c14`), and four more suites — `workshop-store`, `workshop-tuning`,
-`workshop-tuning-rules`, `state-codec` — are red on `main` right now, verified at
-clean HEAD. Five guards nobody is getting. Scope is ~2h and already written out in
-the ROADMAP entry: `.github/workflows/ci.yml` running the JS suites plus
-`node scripts/engine-golden-snapshot.js --check`, and a cross-repo `engine.js`
-checksum step. **Start by triaging the four red suites** — shipping CI that is red
-on day one is the one way to guarantee it gets ignored.
+**(b) Push the iOS CI half.** `3dprintassistant-ios` `main` is **ahead 4** with an
+ubuntu `engine.js` mirror gate and a cost-bounded macos-26 unit job. It has
+**never run on a runner** and cannot until iOS pushes, so it is verified by
+inspection only. The push gate normally waits for a ship-ready train; the owner
+may reasonably decide a workflow-only push is worth an exception, since a mirror
+gate is most valuable *before* a release rather than after. Owner's call — do not
+push iOS without it.
 
-**(c) Anything else the owner names** from the live ROADMAP.
+**(c) Chase what CI can now find.** Highest-value follow-ups, in order:
+  - **68 remaining bare `[[ ]]` assertions** across the seven shell suites. macOS
+    bash 3.2 never enforced them; Linux does now. Any that are quietly false will
+    surface as a CI failure with no local equivalent — one already did. Decide
+    between converting them to an enforcing form and adopting "CI is the source
+    of truth for shell suites" as the standing rule.
+  - **`testflight.yml` has no `timeout-minutes`** — the same gap just closed in
+    iOS `ci.yml`, on the same 10× runner. One line.
+  - **`ScreenCaptureUITests` fails 4/6** on a clean checkout and is excluded from
+    iOS CI for that reason. Fixing it lets the UI suite back into the gate.
+
+**(d) Anything else the owner names** from the live ROADMAP.
 
 **Standing rules that bite on this project:**
-- ROADMAP is truth. Read it fully before reporting status; never trust session
-  notes or memory for what is done.
+- ROADMAP is truth. Read it fully before reporting status — and make sure you are
+  reading `main`'s copy, not a feature branch's.
 - No mutation on an unverified premise. Verify with a real tool call in the SAME
-  turn and state the outcome inline — citing a check from an earlier turn does
-  not count and will be ledgered as unresolved.
+  turn and state the outcome inline; citing an earlier turn does not count.
 - One finding = one commit.
-- Web is master; iOS mirrors `engine.js` and the full `data/` tree byte-identical.
-  Any engine/data change requires an explicit web + iOS impact evaluation.
-- iOS `main` stays push-gated until ready for TestFlight. Web pushes freely.
-- Shell test suites are a mix of `#!/usr/bin/env bash` and `#!/bin/zsh`. Run each
-  with its own shebang — a bash suite run under zsh fails with zero output and
-  exit 1, which looks exactly like a real failure.
+- Web is master; iOS mirrors `engine.js` byte-identical. Now machine-enforced by
+  the iOS `engine-mirror` job — but only once that workflow is pushed. `data/` is
+  deliberately NOT byte-compared: bundled iOS carries 92 printers to web's 95 by
+  overlay design, so such a gate would be red on day one.
+- iOS `main` stays push-gated. Web pushes freely.
+- **A green local macOS run of the shell suites proves less than a green CI run.**
+  bash 3.2 does not apply `set -e` to a failing `[[ ]]`; do not treat a local pass
+  as verification for those files.
+- Shell suites mix `#!/usr/bin/env bash` and `#!/bin/zsh`. Invoke via `./"$f"` so
+  each file's own shebang applies — a bash suite run under zsh fails with zero
+  output and exit 1, which looks exactly like a real failure.
 - Committed ≠ deployed. The intake pipeline runs from
   `~/.local/share/3dpa-intake/checkout/3dprintassistant`, which fast-forwards from
-  origin at run start; verify there, not in the dev tree (whose
-  `.intake-runner-state` is stale since July).
+  origin at run start; verify there, not in the dev tree. The 2026-08-10 `stat`
+  portability fix reaches that checkout at the next 12:00 run — verified a no-op
+  on Darwin, but it is a live-pipeline change.
 
 <<< END <<<
 
