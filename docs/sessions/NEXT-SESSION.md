@@ -102,7 +102,7 @@ Verify against the live ROADMAP before trusting it — this is a snapshot.
 
 ## Carried over from 2026-08-11
 
-**#31 Elegoo primary brand — DECIDED: it ships in the train you are scoping.**
+**#31 Elegoo primary brand — WEB IS LIVE (`1170a2d` on `main`); iOS ships in the train you are scoping.**
 - Design: `docs/superpowers/specs/2026-08-11-elegoo-primary-brand-design.md` (ACCEPTED)
 - Plan: `docs/superpowers/plans/2026-08-11-elegoo-primary-brand-plan.md`
 
