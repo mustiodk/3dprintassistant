@@ -164,13 +164,27 @@ printer delta is still `81/78` by re-running Step 1.
 - [ ] **Step 6: Commit locally.** Do **not** push — the iOS push gate holds
   until a ship-ready train. This rides the next release.
 
+**This is now the delivery path for iOS** (owner decision 2026-08-11, design §4
+Outcome). Elegoo reaches iOS users when the next train ships, so it belongs in
+that train's scope and its release notes — it is not a silent data change. Track
+it in the next-session scoping task alongside #32.
+
 ---
 
-## Phase 3 — iOS overlay (route R3) — OWNER-GATED, DO NOT START WITHOUT A DECISION
+## Phase 3 — iOS overlay (route R3) — ❌ DECLINED 2026-08-11, DO NOT EXECUTE
 
-**Precondition:** the owner has read 1.0.3 + 1.0.4 activity on `/analytics` and
-explicitly accepted raising `min_app_version` `1.0.3 → 1.0.5` as a standing
-change. Design §4 R3 and §8. **Without that decision this phase does not exist.**
+**The owner declined this route on 2026-08-11.** Elegoo ships bundled in the next
+iOS release train instead (Phase 2), combined with other features. Do not raise
+`min_app_version`, do not add a brand row to the overlay, and do not build the
+`--upsert-brand` mode — it would have no consumer.
+
+The tasks below are retained as the record of what the route would have required
+and why it was rejected. **Executing any of them without a fresh owner decision
+is out of scope.**
+
+**Original precondition (never met):** the owner has read 1.0.3 + 1.0.4 activity
+on `/analytics` and explicitly accepted raising `min_app_version` `1.0.3 → 1.0.5`
+as a standing change. Design §4 R3 and §8.
 
 ### Task 4: Answer the version question
 

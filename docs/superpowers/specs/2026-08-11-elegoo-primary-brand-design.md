@@ -1,10 +1,10 @@
 # Elegoo in the primary brand row — Cross-Platform Design
 
-**Status:** DRAFT — awaiting owner GO.
+**Status:** ACCEPTED 2026-08-11 — route R3 (overlay) DECLINED by owner.
 **Date:** 2026-08-11.
 **Issue:** [#31](https://github.com/mustiodk/3dprintassistant/issues/31).
-**Release scope:** web production immediately; iOS delivery route is an owner
-decision (§4).
+**Release scope:** iOS ships bundled in the next release train, alongside other
+features (owner decision, §4 Outcome). Web timing per §4 R1.
 
 ## 1. Product intent
 
@@ -92,7 +92,25 @@ Taking R3 therefore means raising `min_app_version` `1.0.3 → 1.0.5`, which
 **permanently ends overlay delivery to 1.0.3 and 1.0.4 installs** — not just for
 this change, but for every future printer.
 
-### Recommendation
+### Outcome — owner decision, 2026-08-11
+
+**R3 is DECLINED. Elegoo ships bundled in the next iOS release train, combined
+with other features.** The version-distribution question in the recommendation
+below was therefore never run, and does not need to be: the owner's reasoning is
+that a cosmetic brand reorder does not justify a permanent narrowing of overlay
+reach, and a train is being scoped anyway.
+
+Consequences:
+
+- **Phase 3 of the implementation plan is inert.** Do not raise
+  `min_app_version`. Do not add a brand row to the overlay.
+- **The `republish-overlay.js` brand-mode gap (§5) stays open and unbuilt.** It
+  is a real gap, but nothing now depends on it. Record it as a known limitation
+  rather than building a mode with no consumer.
+- **Elegoo becomes a scope item for the next iOS train**, tracked in the
+  next-session scoping task alongside #32.
+
+### Recommendation (superseded by the Outcome above; retained as reasoning)
 
 **R1 + R2 by default. R3 only if the version data says it is free.**
 
@@ -147,9 +165,20 @@ falling in the gap between its modes.
 | Test coverage | **Nothing guards the live primary set.** Every `primary` occurrence in web and iOS tests is a fixture. This change cannot break a test — and equally, nothing would catch an accidental future flip. Consider a cheap assertion as part of the work. |
 | Golden snapshot drift | Expected NO DRIFT. Any drift means something reads `primary` that should not — stop and investigate rather than re-baseline. |
 
-## 8. Owner decisions required
+## 8. Owner decisions
 
-1. **GO on the flag flip** (R1 + R2).
-2. **R3 yes/no**, after reading 1.0.3 + 1.0.4 activity on `/analytics`.
-3. If R3 is yes: confirm raising `min_app_version` to `1.0.5` as a standing
-   change, not a one-off.
+1. **GO on the flag flip** (R1 + R2) — ✅ **GIVEN 2026-08-11.**
+2. **R3 yes/no** — ❌ **DECLINED 2026-08-11.** Not worth permanently ending
+   overlay delivery to 1.0.3/1.0.4 installs for a cosmetic reorder when a
+   release train is being scoped anyway. The `/analytics` version check was
+   not run and is not needed under this decision.
+3. Raising `min_app_version` — **not applicable** under decision 2. If it is
+   ever revisited, it should be on its own merits as overlay hygiene, not
+   attached to this change.
+
+Remaining open: whether the web flip ships immediately (project convention —
+web is master and lands first) or is held so both surfaces change together with
+the train's release notes. Owner's call; it does not block the iOS work either
+way, and the intake pipeline is unaffected — the overlay only ever carries brand
+rows for genuinely new brands, and `writeValidated` fails closed on a collision
+regardless of what `data/printers.json` says.

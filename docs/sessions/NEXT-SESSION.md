@@ -102,24 +102,33 @@ Verify against the live ROADMAP before trusting it — this is a snapshot.
 
 ## Carried over from 2026-08-11
 
-**#31 Elegoo primary brand — spec and plan are WRITTEN, awaiting owner GO.**
-- Design: `docs/superpowers/specs/2026-08-11-elegoo-primary-brand-design.md`
+**#31 Elegoo primary brand — DECIDED: it ships in the train you are scoping.**
+- Design: `docs/superpowers/specs/2026-08-11-elegoo-primary-brand-design.md` (ACCEPTED)
 - Plan: `docs/superpowers/plans/2026-08-11-elegoo-primary-brand-plan.md`
 
-Owner decisions still open (design §8): GO on the flag flip, and yes/no on the
-overlay route. **The overlay route is not free** — verified by running the real
-`validateOverlay()`: publishing an `elegoo` brand row at the current
-`min_app_version: 1.0.3` **FAILS** the ship gate, because builds below 1.0.5
-reject the *entire* overlay on a bundled-id collision. Taking that route means
-raising `min_app_version` to `1.0.5` and permanently ending overlay delivery to
-1.0.3/1.0.4 installs. Decide it with the `/analytics` version data, not by
-assumption. If Elegoo instead rides the next binary train, it becomes a scope
-item for the train being planned here.
+The owner declined the overlay route on 2026-08-11, so **Elegoo is a scope item
+for this train** — Phase 2 of the plan (one `brands[]` field in the iOS bundled
+catalog), and it belongs in the release notes rather than shipping as a silent
+data change. It is small, done, and specified; treat it as a freebie in the
+scope, not a work item to re-plan.
 
-Also open from that session: `republish-overlay.js` has **no mode** that can
-publish or update a brand row on its own (`--add-brand` is a rider on
-`--add-printer`). Needed only if the overlay route is taken; specced in the plan
-as Phase 3 Task 5, TDD-first.
+Why the overlay route was rejected, so it is not relitigated: publishing an
+`elegoo` brand row at the current `min_app_version: 1.0.3` **FAILS** the ship
+gate — verified by running the real `validateOverlay()` — because builds below
+`FIRST_OVERRIDE_MERGE_VERSION` (1.0.5) reject the *entire* overlay on a
+bundled-id collision. Taking it would have meant raising `min_app_version` and
+permanently ending overlay delivery to 1.0.3/1.0.4 installs, for every future
+printer. Not worth it for a cosmetic reorder when a train was being scoped
+anyway.
+
+Known limitation, recorded and deliberately unbuilt: `republish-overlay.js` has
+**no mode** that can publish or update a brand row on its own (`--add-brand` is
+only a rider on `--add-printer`). Real gap, but nothing depends on it under this
+decision. Build it if and when a consumer appears.
+
+**Still open:** whether the web-side flag flip ships immediately (project
+convention — web is master, lands first) or is held so both surfaces move
+together with the train. Does not block anything either way.
 
 **Other still-open items** (unchanged, not blocked on code): the two intake owner
 decisions [#28](https://github.com/mustiodk/3dprintassistant/issues/28) and
