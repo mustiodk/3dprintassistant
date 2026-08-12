@@ -1,15 +1,15 @@
 # 3dpa — Next Session Kickoff
 
-**Purpose:** execute the two prepared printer-intake owner decisions on the
-mac-mini. The #32 iOS-train scoping session (previous locked entry) is preserved
-below and resumes after.
+**Purpose:** inspect the next scheduled outcome for #28, then implement the
+`epoxy_resin` taxonomy tracked by #35 before resuming Hi intake. The #32
+iOS-train scoping session remains below.
 
-**Last updated:** 2026-08-12, after both intake decisions were prepared from
-source and handed off for mac-mini execution.
+**Last updated:** 2026-08-12, after source-only evidence re-entry for #28 and
+the Hi epoxy plate correction.
 
 ---
 
-# LOCKED NEXT — run these on the mac-mini
+# LOCKED NEXT — inspect the next mac-mini run
 
 Nothing here is blocked on code. The parked sidecars are gitignored
 (`.gitignore:26`) and host-local, so this cannot be done from the iMac; the
@@ -17,7 +17,8 @@ runner host is confirmed from
 `scripts/launchd/dk.mragile.3dpa-intake.plist:34`
 (`/Users/mustafaozturk-macmini/Library/Logs/`).
 
-**Run everything from the automation checkout, not the dev tree:**
+**#28 is already authorized for the next scheduled run. No owner command is
+needed now.** The runner must use the automation checkout, not the dev tree:
 `~/.local/share/3dpa-intake/checkout/3dprintassistant`
 (`install-intake-runner.sh:64` — `INSTALL_ROOT` has no default; the
 authoritative value is `WorkingDirectory` in the installed plist). The failure
@@ -36,98 +37,31 @@ grep -A1 WorkingDirectory ~/Library/LaunchAgents/dk.mragile.3dpa-intake.plist
 
 - **The runner is healthy** — custody commits on 2026-08-06, 08-07, 08-08,
   08-09, 08-10; daily LaunchAgent at 12:00.
-- **Two candidates parked `decision-required`** (no retry, no timer — nothing
-  moves until the envelope is written):
-  [#29](https://github.com/mustiodk/3dprintassistant/issues/29) `hi`
-  (`new-series-group`) and
-  [#28](https://github.com/mustiodk/3dprintassistant/issues/28) `ender3_s1_pro`
-  (`needs-source-resolution`). Both carry owner research comments from
-  2026-08-11.
+- [#28](https://github.com/mustiodk/3dprintassistant/issues/28) is re-entry-ready
+  under canonical candidate ID `ender_3_s1_pro`; its envelope supplies sources
+  only for `max_speed` and `max_acceleration` and has passed `verify-reentry`.
+- [#29](https://github.com/mustiodk/3dprintassistant/issues/29) remains parked:
+  its stock plate is `epoxy_resin`, not `epoxy_flexible` or `textured_pei`.
+  Implement [#35](https://github.com/mustiodk/3dprintassistant/issues/35)
+  before any Hi re-entry decision.
 
-## #29 `hi` — do this one first
+## #28 `ender_3_s1_pro` — no owner action; inspect scheduled outcome
 
-### Step 0 — pre-check (read-only; gates everything after it)
+The owner evidence envelope is already applied and verified. The next scheduled
+runner pass must independently re-derive both numeric fields and run every
+normal evidence, dual-review, live-verification, overlay, and custody gate.
+Do not add values to the envelope or close the issue manually.
+
+## #29 `hi` — blocked on #35
 
 ```bash
 cd ~/.local/share/3dpa-intake/checkout/3dprintassistant && ls scripts/.intake-runner-state/parked/hi/ && node -e 'const fs=require("fs");const d="scripts/.intake-runner-state/parked/hi";const f=fs.readdirSync(d).find(n=>n.startsWith("candidate-"));const p=JSON.parse(fs.readFileSync(d+"/"+f));console.log(JSON.stringify({file:f,series_group:p.printersJsonRow?.series_group,available_plates:p.printersJsonRow?.available_plates,riskFlags:p.riskFlags},null,2))'
 ```
 
-Looking for `available_plates` to already hold a valid value (expected
-`textured_pei`). If it does, `approve-series` is the whole job.
-
-**STOP if it is empty, missing, or holds an epoxy-ish string.** `attest-field`
-and `approve-series` **cannot be stacked in either order** — attestation writes
-its own `reenter-with-evidence` / `owner-instruction` envelope, and
-`intake-run-kickoff.md:9` applies a `series_group` only from the
-`action:"reenter"` shape; run attestation first instead and `approve-series`
-throws `conflicting owner decision already exists`. That needs a decision, not
-an improvisation at the keyboard.
-
-### Step 1 — dry-run
-
-```bash
-cd ~/.local/share/3dpa-intake/checkout/3dprintassistant && node scripts/intake-owner-decision.js approve-series --candidate hi --series-group "Hi Series"
-```
-
-Expect `OWNERDECISION ok=true action=approve-series candidate=hi changed=false`.
-`changed=false` is correct — envelope built and validated, nothing written.
-Any `ok=false` → stop.
-
-### Step 2 — apply
-
-```bash
-cd ~/.local/share/3dpa-intake/checkout/3dprintassistant && node scripts/intake-owner-decision.js approve-series --candidate hi --series-group "Hi Series" --apply
-```
-
-Expect the same line with `changed=true`.
-
-### Step 3 — verify
-
-```bash
-cd ~/.local/share/3dpa-intake/checkout/3dprintassistant && node scripts/intake-owner-decision.js verify-reentry --candidate hi
-```
-
-Expect `OWNERDECISION ok=true action=verify-reentry candidate=hi changed=false`.
-This is the exact call the runner makes before spending a review turn
-(`intake-run-kickoff.md:9`), so green means the next 12:00 run takes `hi`
-through evidence, both reviewers, live verify and custody as normal. The
-approval removes the taxonomy block; it skips no gate.
-
-Owner research backing the label (issue #29 comment, 2026-08-11): `Hi Series` is
-Creality's own collection label, not an invented one; seven single-member
-`series_group` values already exist in the catalog; every spec the run reported
-matches Creality's own spec block.
-
-## #28 `ender3_s1_pro` — sources, not values
-
-**Structural constraint, verified in source:** `provide-evidence` cannot carry
-field values — `validateReentryDecision` rejects `overrides` on that edge
-(`owner-decision-evidence-must-not-override`) — and `OWNER_ATTESTABLE_FIELDS`
-is `{enclosure, series, available_plates}`, the writer refusing everything else
-as *"numeric safety fields are never attestable"*. The researched
-`max_speed=150` and `max_acceleration=500` **cannot be written directly**. The
-owner supplies sources; the researcher re-derives the values next run and must
-still pass the unchanged evidence gate.
-
-Lane is correct: `rd3-external-evidence` may only re-enter a
-`needs-source-resolution` park, which is exactly #28's reason.
-
-```bash
-cd ~/.local/share/3dpa-intake/checkout/3dprintassistant && node scripts/intake-owner-decision.js provide-evidence --candidate ender3_s1_pro --edge rd3-external-evidence --source "https://store.creality.com/ca/products/ender-3-s1-pro-3d-printer" --source "https://m.media-amazon.com/images/I/B1VeQWylTYL.pdf" --source "https://github.com/CrealityOfficial/Ender-3S1/blob/s1_pro_plus/Marlin/Configuration.h" --field max_speed --field max_acceleration
-```
-
-Then the same with `--apply`, then:
-
-```bash
-cd ~/.local/share/3dpa-intake/checkout/3dprintassistant && node scripts/intake-owner-decision.js verify-reentry --candidate ender3_s1_pro
-```
-
-The three sources are from the owner's research comment: the Creality CA store
-page whose own FAQ body says 150 mm/s (contradicting its 160 mm/s SEO title),
-the official manual V1.4 already cited by the run, and the firmware branch
-carrying `DEFAULT_MAX_ACCELERATION { 500, … }`. `--source` and `--field` are
-both repeatable and accumulate. `max_acceleration` belongs in `--field` even
-though the run never reported it — that absence is itself the finding.
+The stock plate is manufacturer-classified as epoxy resin. Implement #35 first:
+add `epoxy_resin` to engine/picker/compatibility/locales/intake validation/tests
+and mirror the engine/data change to iOS. Then refresh the parked candidate and
+apply the already-supported `Hi Series` taxonomy decision through normal gates.
 
 ## Opened 2026-08-12, not blocking
 
@@ -275,12 +209,11 @@ decision. Build it if and when a consumer appears.
 convention — web is master, lands first) or is held so both surfaces move
 together with the train. Does not block anything either way.
 
-**Other still-open items:** the two intake owner decisions #28/#29 have been
-promoted to the LOCKED NEXT section at the top of this file — commands prepared
-from source on 2026-08-12, mac-mini-pinned. Note the correction made there: the
-`provide-evidence` command shape in #28's own issue body cannot carry the
-researched values, so #28 supplies sources only. The 68 bare `[[ ]]` shell
-assertions and iOS CI's unpushed 4 commits are untouched.
+**Other still-open items:** #28 is now authorized and waits for the next
+mac-mini run; #29 waits on #35's `epoxy_resin` implementation. The
+`provide-evidence` shape cannot carry researched numeric values, so #28 supplies
+sources only. The iOS mirror has 3 intentionally unpushed commits under the
+push gate; Android remains health-only/missing.
 
 ---
 
