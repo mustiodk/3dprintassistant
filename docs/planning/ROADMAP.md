@@ -81,7 +81,7 @@
 
 ---
 
-## Active Release: iOS 1.1.4 — design accepted, implementation plan ready
+## Active Release: iOS 1.1.4 — implementation complete locally, owner gate pending
 
 **Current public App Store version:** 1.1.3. **Current 1.1.4 train:** TestFlight baseline exists; remaining work must stay local under the iOS push gate until the complete train is ready.
 
@@ -89,24 +89,24 @@
 |---|---|
 | Acceleration safety clamp | ✅ Landed in 1.1.4 |
 | Ender-3 S1, FlashForge Adventurer 3, Anycubic Kobra 2 Neo | ✅ Bundled in 1.1.4 |
-| `epoxy_resin` across engine/data, intake validation, tests and iOS mirror | ✅ Landed; final cross-surface verification remains |
-| Elegoo in iOS primary brand row | ⏳ Remaining — bundled change only, no overlay/version-floor change |
-| Output-owned EN/DA localization | ⏳ Remaining — bounded top-level Output/export/error chrome, not whole-app localization |
-| `review_prompt_requested` analytics | ⏳ Remaining — iOS sender + Worker/query/dashboard + explicit-zero KPI |
-| Durable App Store description and 1.1.4 release notes | ⏳ Remaining — repo copy first; owner-controlled ASC submission |
-| Exact-HEAD release gates and owner TestFlight acceptance | ⏳ Remaining |
+| `epoxy_resin` across engine/data, intake validation, tests and iOS mirror | ✅ Cross-surface verification green; #29 remains parked and untouched |
+| Elegoo in iOS primary brand row | ✅ Local bundled change + real-catalog order test green; no overlay/version-floor change |
+| Output-owned EN/DA localization | ✅ Local resource-backed Output/export/error contract; compact + regular rendered smoke green |
+| `review_prompt_requested` analytics | 🟡 Web `de01b54` live + CI green; iOS sender local; authenticated production explicit-zero smoke still owner-gated, so #12 stays open |
+| Durable App Store description and 1.1.4 release notes | ✅ Repository copy prepared; owner-controlled ASC submission remains |
+| Exact-HEAD release gates and owner TestFlight acceptance | 🟡 Local gates + cross-model review GO; iOS push, TestFlight and owner acceptance remain |
 
 **Explicitly outside 1.1.4:** Hi #29 re-entry, German/#37, picker personalization and material-list unification/#32, persistent rate link, My Gear, AI buddy, light mode, accounts/subscriptions, and unrelated technical debt.
 
 Ordered implementation queue:
 
-- [ ] [Web] Accept the common-only `review_prompt_requested` event.
-- [ ] [Web] Query and render the request count, including explicit zero vs unavailable.
-- [ ] [iOS] Mirror Elegoo into the bundled primary row and prove catalog parity.
-- [ ] [iOS] Localize Output-owned EN/DA chrome through string tables.
-- [ ] [iOS] Emit review-request telemetry after durable local marking.
-- [ ] [iOS docs] Prepare durable App Store description and 1.1.4 release notes.
-- [ ] [Web + iOS] Pass exact-HEAD review, CI, parity, UI, TestFlight and owner gates.
+- [x] [Web] Accept the common-only `review_prompt_requested` event.
+- [x] [Web] Query and render the request count, including explicit zero vs unavailable.
+- [x] [iOS] Mirror Elegoo into the bundled primary row and prove catalog parity.
+- [x] [iOS] Localize Output-owned EN/DA chrome through string tables.
+- [x] [iOS] Emit review-request telemetry after durable local marking.
+- [x] [iOS docs] Prepare durable App Store description and 1.1.4 release notes.
+- [ ] [Web + iOS] Local exact-HEAD review/CI/parity/UI gates passed; owner must authorize iOS push, dispatch TestFlight, run device acceptance and verify the authenticated explicit-zero dashboard state.
 
 Design: [`../superpowers/specs/2026-08-13-ios-1.1.4-release-design.md`](../superpowers/specs/2026-08-13-ios-1.1.4-release-design.md) · implementation plan: [`../superpowers/plans/2026-08-13-ios-1.1.4-release-plan.md`](../superpowers/plans/2026-08-13-ios-1.1.4-release-plan.md).
 
