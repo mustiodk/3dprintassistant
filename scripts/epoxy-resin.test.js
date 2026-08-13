@@ -137,8 +137,14 @@ function stateFor(material, overrides = {}) {
     assert.ok(!ids.includes('plate_not_on_printer'), `unexpected warning ids: ${ids.join(', ')}`);
   });
   await test('HIPS+epoxy emits build_plate_avoid', () => {
-    const ids = Engine.getWarnings(stateFor('hips')).map((warning) => warning.id);
+    const warnings = Engine.getWarnings(stateFor('hips'));
+    const ids = warnings.map((warning) => warning.id);
     assert.ok(ids.includes('build_plate_avoid'), `warning ids: ${ids.join(', ')}`);
+    const detail = warnings.find((warning) => warning.id === 'build_plate_avoid')?.detail || '';
+    assert.match(detail, /this material/i,
+      'plate-level guidance must remain correct if another material group becomes avoid');
+    assert.doesNotMatch(detail, /HIPS/i,
+      'plate-level guidance must not hardcode today\'s only avoid-rated material');
   });
 
   console.log(`\n[epoxy-resin] ${passing} passing, ${failing} failing`);

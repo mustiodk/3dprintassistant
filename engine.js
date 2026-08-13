@@ -406,7 +406,7 @@ const Engine = (() => {
                         avoid: 'Glass bed is not suitable for this material — adhesion is unreliable.' },
     garolite:         { needs_prep: 'Garolite provides excellent adhesion for nylons. No prep needed if surface is clean.',
                         avoid: 'Garolite is specialized for nylon/PA materials — not recommended for this filament.' },
-    epoxy_resin:      { avoid: 'Creality does not publish an epoxy-resin plate profile for HIPS. Use engineering plate or textured PEI instead.' },
+    epoxy_resin:      { avoid: 'Creality does not publish an epoxy-resin plate profile for this material. Use engineering plate or textured PEI instead.' },
   };
 
   // Public so catalog/intake tests can prove that every material group has an
