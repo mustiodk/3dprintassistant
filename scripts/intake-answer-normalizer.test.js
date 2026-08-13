@@ -158,6 +158,8 @@ t('the prompt offers only the attestable fields', () => {
   const p = buildPrompt('adventurer_3', ['series', 'available_plates'], 'text');
   assert.ok(p.includes('series'));
   assert.ok(p.includes('available_plates'));
+  assert.ok(p.includes('epoxy_resin'),
+    'the normalizer prompt must offer every plate id accepted by intake validation');
   assert.ok(!/max_bed_temp/.test(p), 'must not advertise a non-attestable field');
 });
 

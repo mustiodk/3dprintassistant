@@ -42,7 +42,7 @@ const FIELD_TOKENS = {
   enclosure: 'none | passive | active_heated',
   series: 'bedslinger | corexy',
   available_plates:
-    'cool_plate | engineering_plate | high_temp_plate | satin_pei | smooth_glass'
+    'cool_plate | engineering_plate | epoxy_resin | high_temp_plate | satin_pei | smooth_glass'
     + ' | smooth_pei | textured_pei   (comma-separated if more than one)',
 };
 
