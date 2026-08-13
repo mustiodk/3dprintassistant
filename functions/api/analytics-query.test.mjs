@@ -94,7 +94,16 @@ test("buildQuery features combines export, Workshop, and troubleshooter events",
   assert.match(sql, /'workshop_exported'/);
   assert.match(sql, /'workshop_imported'/);
   assert.match(sql, /'troubleshoot_used'/);
+  assert.match(sql, /'review_prompt_requested'/);
   assert.match(sql, /SUM\(_sample_interval \* double1\) AS uses/);
+});
+
+test("buildQuery review_requests returns an unambiguous platform aggregate", () => {
+  const sql = __test.buildQuery("review_requests", { days: 7, limit: 25 });
+  assert.match(sql, /blob3 AS platform/);
+  assert.match(sql, /AND blob2 = 'review_prompt_requested'/);
+  assert.match(sql, /SUM\(_sample_interval \* double1\) AS requests/);
+  assert.match(sql, /GROUP BY platform/);
 });
 
 test("owner dashboard registers and renders combined feature usage", () => {
@@ -103,6 +112,10 @@ test("owner dashboard registers and renders combined feature usage", () => {
   assert.match(html, /id: "features"/);
   assert.match(html, /workshop_saved: "Profile saved"/);
   assert.match(html, /workshop_imported: "Backup imported"/);
+  assert.match(html, /review_prompt_requested: "Review prompt requested"/);
+  assert.match(html, /id: "review_requests"/);
+  assert.match(html, /Review requests/);
+  assert.match(html, /reviewRequestMetric/);
   assert.match(html, /renderPlatformBarList\("featureUsage"/);
   assert.match(html, /function featureRows\(/);
 });

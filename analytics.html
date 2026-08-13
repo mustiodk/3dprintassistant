@@ -826,9 +826,13 @@
     </section>
   </main>
 
+  <script src="analytics-dashboard-helpers.js"></script>
   <script>
+    const { reviewRequestMetric } = window.AnalyticsDashboardHelpers;
+
     const QUERY_DEFS = [
       { id: "summary", title: "Summary", countKey: "events", hidden: true },
+      { id: "review_requests", title: "Review requests", countKey: "requests", hidden: true },
       { id: "overview", title: "Where usage is happening", countKey: "events" },
       { id: "profile_details", title: "Generated profile combinations", countKey: "profiles" },
       { id: "profile_mix", title: "Profile mode mix", countKey: "profiles" },
@@ -852,6 +856,7 @@
       workshop_loaded: "Profile loaded",
       workshop_exported: "Backup exported",
       workshop_imported: "Backup imported",
+      review_prompt_requested: "Review prompt requested",
     };
 
     const platformLabels = {
@@ -1059,6 +1064,7 @@
       const allFeedback = state.results.feedback || [];
       const allMix = state.results.profile_mix || [];
       const allFeatures = state.results.features || [];
+      const allReviewRequests = state.results.review_requests || [];
 
       const summary = filterByPlatform(allSummary);
       const profiles = filterByPlatform(allProfiles);
@@ -1070,7 +1076,15 @@
 
       renderPlatformMetrics({ allSummary, summary, printers, materials, profiles });
       renderInsights({ summary, profiles, printers, materials, versions, feedback, mix });
-      renderQuickFacts({ summary, versions, mix, profiles, feedback });
+      renderQuickFacts({
+        summary,
+        versions,
+        mix,
+        profiles,
+        feedback,
+        reviewRequests: allReviewRequests,
+        reviewRequestsFailed: !!state.errors.review_requests,
+      });
 
       renderPlatformBarList("journey", allSummary, platformSummaryRows, row => eventLabels[row.event] || prettyId(row.event), "events", 6);
       renderPlatformBarList("releaseHealth", allVersions, rows => rows, versionLabel, "events", 8);
@@ -1183,6 +1197,14 @@
       const leadingPlatform = webProfiles || iosProfiles
         ? (webProfiles >= iosProfiles ? "Web" : "iOS")
         : "-";
+      const reviewRequests = reviewRequestMetric(
+        data.reviewRequests,
+        state.platform,
+        data.reviewRequestsFailed
+      );
+      const reviewRequestValue = reviewRequests.available
+        ? formatNumber(reviewRequests.value)
+        : "Unavailable";
 
       if (state.platform === "all") {
         quickFacts.innerHTML = [
@@ -1191,6 +1213,7 @@
           ["Leading platform", leadingPlatform],
           ["Top web combo", topLabel(filterPlatformRows(data.profiles, "web"), profileComboLabel, "-")],
           ["Top iOS combo", topLabel(filterPlatformRows(data.profiles, "ios"), profileComboLabel, "-")],
+          ["Review requests", reviewRequestValue],
         ].map(([label, value]) => `
           <div class="quick-item"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>
         `).join("");
@@ -1203,6 +1226,7 @@
         ["Leading mode", latestMode ? latestMode.label : "-"],
         ["Top combo", topCombo],
         ["Top version row", version],
+        ["Review requests", reviewRequestValue],
       ].map(([label, value]) => `
         <div class="quick-item"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>
       `).join("");

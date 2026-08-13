@@ -217,10 +217,21 @@ SELECT
   SUM(_sample_interval * double1) AS uses
 FROM ${DATASET_TABLE}
 WHERE timestamp > ${interval(days)}
-  AND blob2 IN ('export_clicked', 'workshop_saved', 'workshop_loaded', 'workshop_exported', 'workshop_imported', 'troubleshoot_used')
+  AND blob2 IN ('export_clicked', 'workshop_saved', 'workshop_loaded', 'workshop_exported', 'workshop_imported', 'troubleshoot_used', 'review_prompt_requested')
 GROUP BY event, platform, app_version, detail
 ORDER BY uses DESC
 LIMIT ${limit}
+FORMAT JSON`,
+
+  review_requests: ({ days }) => `
+SELECT
+  blob3 AS platform,
+  SUM(_sample_interval * double1) AS requests
+FROM ${DATASET_TABLE}
+WHERE timestamp > ${interval(days)}
+  AND blob2 = 'review_prompt_requested'
+GROUP BY platform
+ORDER BY requests DESC
 FORMAT JSON`,
 
   feedback: ({ days, limit }) => `
