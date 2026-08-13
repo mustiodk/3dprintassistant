@@ -81,7 +81,7 @@
 
 ---
 
-## Active Release: iOS 1.1.4 — scope approved, design awaiting owner review
+## Active Release: iOS 1.1.4 — design accepted, implementation plan ready
 
 **Current public App Store version:** 1.1.3. **Current 1.1.4 train:** TestFlight baseline exists; remaining work must stay local under the iOS push gate until the complete train is ready.
 
@@ -98,7 +98,17 @@
 
 **Explicitly outside 1.1.4:** Hi #29 re-entry, German/#37, picker personalization and material-list unification/#32, persistent rate link, My Gear, AI buddy, light mode, accounts/subscriptions, and unrelated technical debt.
 
-Design: [`../superpowers/specs/2026-08-13-ios-1.1.4-release-design.md`](../superpowers/specs/2026-08-13-ios-1.1.4-release-design.md). The implementation plan is written only after owner approval of that spec.
+Ordered implementation queue:
+
+- [ ] [Web] Accept the common-only `review_prompt_requested` event.
+- [ ] [Web] Query and render the request count, including explicit zero vs unavailable.
+- [ ] [iOS] Mirror Elegoo into the bundled primary row and prove catalog parity.
+- [ ] [iOS] Localize Output-owned EN/DA chrome through string tables.
+- [ ] [iOS] Emit review-request telemetry after durable local marking.
+- [ ] [iOS docs] Prepare durable App Store description and 1.1.4 release notes.
+- [ ] [Web + iOS] Pass exact-HEAD review, CI, parity, UI, TestFlight and owner gates.
+
+Design: [`../superpowers/specs/2026-08-13-ios-1.1.4-release-design.md`](../superpowers/specs/2026-08-13-ios-1.1.4-release-design.md) · implementation plan: [`../superpowers/plans/2026-08-13-ios-1.1.4-release-plan.md`](../superpowers/plans/2026-08-13-ios-1.1.4-release-plan.md).
 
 Prior iOS 1.0.3/1.0.4 release evidence is preserved in
 [`archive/2026-05-ios-1.0.3-1.0.4-release.md`](archive/2026-05-ios-1.0.3-1.0.4-release.md).
