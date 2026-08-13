@@ -34,6 +34,9 @@ const EVENT_KEYS = {
   app_opened: new Set([
     ...COMMON_KEYS,
   ]),
+  review_prompt_requested: new Set([
+    ...COMMON_KEYS,
+  ]),
   profile_generated: new Set([
     ...COMMON_KEYS,
     "printerBrand",

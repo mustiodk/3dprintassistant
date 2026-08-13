@@ -63,6 +63,39 @@ test("validatePayload rejects properties outside the event allowlist", () => {
   assert.equal(result.error, "invalid_property_sessionId");
 });
 
+test("review_prompt_requested accepts only the common iOS properties", () => {
+  const properties = {
+    platform: "ios",
+    channel: "appstore",
+    appVersion: "1.1.4",
+    buildNumber: "202608131200",
+    locale: "da_DK",
+  };
+  const result = __test.validatePayload({
+    event: "review_prompt_requested",
+    properties,
+  });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.props, properties);
+  const point = __test.toDataPoint(result.event, result.props);
+  assert.equal(point.blobs[1], "review_prompt_requested");
+  assert.equal(point.blobs[2], "ios");
+  assert.equal(point.blobs[18], "");
+  assert.deepEqual(point.indexes, ["review_prompt_requested:ios"]);
+});
+
+test("review_prompt_requested rejects identity and profile detail", () => {
+  for (const key of ["sessionId", "deviceId", "profileKey", "printerModel"]) {
+    const result = __test.validatePayload({
+      event: "review_prompt_requested",
+      properties: { platform: "ios", [key]: "forbidden" },
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.error, `invalid_property_${key}`);
+  }
+});
+
 test("onRequestPost writes valid web events to Analytics Engine", async () => {
   const written = [];
   const res = await onRequestPost({
