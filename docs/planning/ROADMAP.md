@@ -81,31 +81,27 @@
 
 ---
 
-## Active Release: v1.0.4 (LIVE on App Store) — v1.0.3 batch shipped
+## Active Release: iOS 1.1.4 — scope approved, design awaiting owner review
 
-**v1.0.4** (accuracy/honesty release) is **LIVE on the App Store** — submitted 2026-05-20 (build `202605192119`, Manual Release), owner-confirmed approved + live 2026-06-04; now the live build, supersedes 1.0.3. See the current status and previous-update banners above + the v1.0.4 SHIPPED entry in Active Work Queue for the full arc. The v1.0.3 batch below is the prior shipped release, retained for history.
+**Current public App Store version:** 1.1.3. **Current 1.1.4 train:** TestFlight baseline exists; remaining work must stay local under the iOS push gate until the complete train is ready.
 
-### v1.0.3 batch (shipped)
-
-5-item v1.0.3 batch across web + iOS; **3/5 shipped into the live App Store build** (items 1 + 3 + 4 — see status table below). Owner pivoted from DQ-3 to this batch on 2026-05-08. Cross-AI collaboration remains available via the canonical [`ai-collab.md`](../../../ai-operating-model/docs/ai-collab.md) routing doc plus the 3dpa overlay in [`CLAUDE.md`](../../CLAUDE.md), but research/review packets are optional and risk-based, not a mandatory pilot workflow. Released build `202605101637` also includes the remote printer catalog hardening pass, profile-temperature/nozzle-cap audit fixes, and the Advanced filament temperature UI fix. Items 2 + 5 are post-v1.0.3 work unless owner explicitly reopens scope.
-
-| # | Item | Platform | Status |
-|---|---|---|---|
-| 1 | Missing printers (Anycubic Kobra X correction + Elegoo Centauri Carbon) | Web + iOS | ✅ **SHIPPED 2026-05-08** — 4 commits per one-finding-one-commit-per-platform. Web auto-deployed; iOS picked up in TestFlight run [`25572470387`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25572470387). Web `0f47b44` (Kobra X) + `8de9381` (Centauri Carbon); iOS `b0d1315` + `15930c1`. |
-| 2 | Expanded environments taxonomy | Web + iOS | ⏳ Gemini handover #2 drafted at [`../research/gemini-environments-taxonomy-research.md`](../research/gemini-environments-taxonomy-research.md); not yet sent. Multi-day workstream. |
-| 3 | iOS App Store review prompt | iOS | ✅ **SHIPPED 2026-05-08** — 6 Codex passes (1 design + 4 milestone + 1 post-implementation) + 1 Gemini pass. 5 caught-before-ship bugs. `ReviewPromptService` + `StoreKitDistributionDetector` + `ProfileKeyHasher` + 18 new XCTests (46 → 64). MARKETING_VERSION 1.0.3 + TestFlight dispatched (run [25557115706](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25557115706)). Design packet at [`../../codex/ios-review-prompt/codex-2026-05-08-ios-review-prompt-packet.md`](../../codex/ios-review-prompt/codex-2026-05-08-ios-review-prompt-packet.md); post-impl review at [`../../codex/ios-review-prompt/codex-2026-05-08-ios-review-prompt-implementation-review.md`](../../codex/ios-review-prompt/codex-2026-05-08-ios-review-prompt-implementation-review.md). |
-| 4 | Analytics platform + event taxonomy | Web + iOS | ✅ **SHIPPED 2026-05-08/09** — privacy-preserving first-party analytics with exactly 3 events (`app_opened`, `profile_generated`, `feedback_opened`), no user/session/device IDs, no free text, no generated profile output. Web Worker + Analytics Engine binding shipped; iOS client + tests shipped as `303f571`; iOS output-mode parity shipped as `153adbc` and uploaded in TestFlight run [`25596797349`](https://github.com/mustiodk/3dprintassistant-ios/actions/runs/25596797349), build `202605090842`. Owner dashboard `/analytics` added 2026-05-09 and refined in commits `eb66b18` / `e9ed6b9` / `5c60549`: owner readout, Product lens (`All` / `Web` / `iOS`), iOS version-aware diagnostics, and mobile-friendly diagnostic rows. Spec: [`../specs/analytics-v1.md`](../specs/analytics-v1.md). |
-| 5 | Web output-panel UX deep-dive | Web | ⏳ Not started. Claude direct (no Gemini per per-tool routing). |
-
-### Phase status
-
-| Phase | Status |
+| Scope | Status |
 |---|---|
-| Phase A — Printer changes | ✅ Shipped (item 1). Hold lifted 2026-05-08. |
-| Phase B — Research handovers | 🟨 Partial (handover #2 drafted; #3 sent + responded; #4 intentionally implemented directly after privacy plan; item 5 doesn't need Gemini). |
-| Phase C — Codex design packets | 🟨 Partial (item 3 design + post-impl complete; item 4 implemented with focused local tests; items 2 / 5 not started). |
-| Phase D — Implementation | 🟨 Partial (items 1 + 3 + 4 implemented; items 2 / 5 not started). |
-| Phase E — Ship cycle | 🟩 Released on the App Store 2026-05-11 after replacement build `202605101637` passed review. `High-speed` remains the Bambu picker label because it fits on iPhone SE and avoids brittle marketed speed numbers in picker chrome. Items 2 / 5 not yet built and parked post-v1.0.3. |
+| Acceleration safety clamp | ✅ Landed in 1.1.4 |
+| Ender-3 S1, FlashForge Adventurer 3, Anycubic Kobra 2 Neo | ✅ Bundled in 1.1.4 |
+| `epoxy_resin` across engine/data, intake validation, tests and iOS mirror | ✅ Landed; final cross-surface verification remains |
+| Elegoo in iOS primary brand row | ⏳ Remaining — bundled change only, no overlay/version-floor change |
+| Output-owned EN/DA localization | ⏳ Remaining — bounded top-level Output/export/error chrome, not whole-app localization |
+| `review_prompt_requested` analytics | ⏳ Remaining — iOS sender + Worker/query/dashboard + explicit-zero KPI |
+| Durable App Store description and 1.1.4 release notes | ⏳ Remaining — repo copy first; owner-controlled ASC submission |
+| Exact-HEAD release gates and owner TestFlight acceptance | ⏳ Remaining |
+
+**Explicitly outside 1.1.4:** Hi #29 re-entry, German/#37, picker personalization and material-list unification/#32, persistent rate link, My Gear, AI buddy, light mode, accounts/subscriptions, and unrelated technical debt.
+
+Design: [`../superpowers/specs/2026-08-13-ios-1.1.4-release-design.md`](../superpowers/specs/2026-08-13-ios-1.1.4-release-design.md). The implementation plan is written only after owner approval of that spec.
+
+Prior iOS 1.0.3/1.0.4 release evidence is preserved in
+[`archive/2026-05-ios-1.0.3-1.0.4-release.md`](archive/2026-05-ios-1.0.3-1.0.4-release.md).
 
 ---
 
