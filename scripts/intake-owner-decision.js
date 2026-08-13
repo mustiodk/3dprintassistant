@@ -538,7 +538,7 @@ function buildAttestation({ value, source, claim, answeredBy, answeredAt, issueN
 // fragment becoming a catalog-visible plate id would silently break a real
 // compatibility check — comma-splitting arbitrary text was not enough.
 const KNOWN_PLATE_IDS = new Set([
-  'cool_plate', 'engineering_plate', 'high_temp_plate',
+  'cool_plate', 'engineering_plate', 'epoxy_resin', 'high_temp_plate',
   'satin_pei', 'smooth_glass', 'smooth_pei', 'textured_pei',
 ]);
 

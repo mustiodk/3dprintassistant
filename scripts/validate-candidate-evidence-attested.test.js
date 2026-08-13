@@ -300,6 +300,17 @@ console.log('\nTC7 — attestField writes a packet the gate then accepts');
       ['textured_pei', 'smooth_pei']);
   });
 
+  t('the canonical epoxy_resin plate id is accepted and normalized', () => {
+    const f = fixture();
+    attestField({
+      ...f.opts,
+      ...answer('available_plates', 'Epoxy_Resin'),
+      apply: true,
+    });
+    assert.deepStrictEqual(read(f.packetPath).printersJsonRow.available_plates.value,
+      ['epoxy_resin']);
+  });
+
   t('empty / quote-fragment plate input is refused', () => {
     const f = fixture();
     assert.throws(() => attestField({ ...f.opts, ...answer('available_plates', ' , , '), apply: true }),

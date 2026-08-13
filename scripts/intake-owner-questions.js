@@ -45,7 +45,7 @@ const FIELD_PROMPTS = {
     + ' corexy = the bed only moves down and the toolhead moves in X/Y.'
     + ' (The product line is `series_group` and is already filled in.)',
   available_plates:
-    'one or more of: cool_plate, engineering_plate, high_temp_plate, satin_pei,'
+    'one or more of: cool_plate, engineering_plate, epoxy_resin, high_temp_plate, satin_pei,'
     + ' smooth_glass, smooth_pei, textured_pei'
     + '   — comma-separated. Only these ids are accepted.',
 };

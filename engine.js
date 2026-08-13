@@ -360,6 +360,7 @@ const Engine = (() => {
     { id: 'engineering_plate',  name: 'Engineering Plate' },
     { id: 'glass',             name: 'Glass'             },
     { id: 'garolite',          name: 'Garolite'          },
+    { id: 'epoxy_resin',       name: 'Epoxy Resin'       },
   ];
 
   const _EXTRUDER_TYPES = [
@@ -382,15 +383,16 @@ const Engine = (() => {
   // ── BUILD PLATE COMPATIBILITY ──────────────────────────────────────────────
   const BUILD_PLATE_COMPAT = {
     // material_group → { plate_id: 'good' | 'needs_prep' | 'avoid' }
-    PLA:  { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'good', engineering_plate: 'good', glass: 'good', garolite: 'avoid' },
-    PETG: { smooth_pei: 'needs_prep', textured_pei: 'good', cool_plate: 'good', engineering_plate: 'good', glass: 'needs_prep', garolite: 'avoid' },
-    ABS:  { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'avoid', engineering_plate: 'good', glass: 'needs_prep', garolite: 'avoid' },
-    ASA:  { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'avoid', engineering_plate: 'good', glass: 'needs_prep', garolite: 'avoid' },
-    TPU:  { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'good', engineering_plate: 'good', glass: 'good', garolite: 'avoid' },
-    PA:   { smooth_pei: 'needs_prep', textured_pei: 'needs_prep', cool_plate: 'avoid', engineering_plate: 'good', glass: 'avoid', garolite: 'good' },
-    PC:   { smooth_pei: 'needs_prep', textured_pei: 'good', cool_plate: 'avoid', engineering_plate: 'good', glass: 'avoid', garolite: 'good' },
-    PVA:  { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'good', engineering_plate: 'good', glass: 'good', garolite: 'good' },
-    HIPS: { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'avoid', engineering_plate: 'good', glass: 'needs_prep', garolite: 'avoid' },
+    PLA:  { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'good', engineering_plate: 'good', glass: 'good', garolite: 'avoid', epoxy_resin: 'good' },
+    PETG: { smooth_pei: 'needs_prep', textured_pei: 'good', cool_plate: 'good', engineering_plate: 'good', glass: 'needs_prep', garolite: 'avoid', epoxy_resin: 'good' },
+    ABS:  { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'avoid', engineering_plate: 'good', glass: 'needs_prep', garolite: 'avoid', epoxy_resin: 'good' },
+    ASA:  { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'avoid', engineering_plate: 'good', glass: 'needs_prep', garolite: 'avoid', epoxy_resin: 'good' },
+    TPU:  { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'good', engineering_plate: 'good', glass: 'good', garolite: 'avoid', epoxy_resin: 'good' },
+    PA:   { smooth_pei: 'needs_prep', textured_pei: 'needs_prep', cool_plate: 'avoid', engineering_plate: 'good', glass: 'avoid', garolite: 'good', epoxy_resin: 'good' },
+    PC:   { smooth_pei: 'needs_prep', textured_pei: 'good', cool_plate: 'avoid', engineering_plate: 'good', glass: 'avoid', garolite: 'good', epoxy_resin: 'good' },
+    PVA:  { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'good', engineering_plate: 'good', glass: 'good', garolite: 'good', epoxy_resin: 'good' },
+    PET:  { epoxy_resin: 'good' },
+    HIPS: { smooth_pei: 'good', textured_pei: 'good', cool_plate: 'avoid', engineering_plate: 'good', glass: 'needs_prep', garolite: 'avoid', epoxy_resin: 'avoid' },
   };
   const BUILD_PLATE_NOTES = {
     smooth_pei:       { needs_prep: 'Apply glue stick as a release layer to prevent PETG from bonding to smooth PEI.',
@@ -404,7 +406,17 @@ const Engine = (() => {
                         avoid: 'Glass bed is not suitable for this material — adhesion is unreliable.' },
     garolite:         { needs_prep: 'Garolite provides excellent adhesion for nylons. No prep needed if surface is clean.',
                         avoid: 'Garolite is specialized for nylon/PA materials — not recommended for this filament.' },
+    epoxy_resin:      { avoid: 'Creality does not publish an epoxy-resin plate profile for HIPS. Use engineering plate or textured PEI instead.' },
   };
+
+  // Public so catalog/intake tests can prove that every material group has an
+  // explicit rating for a newly introduced plate. Unknown combinations stay
+  // null rather than being silently promoted to compatible.
+  function getBuildPlateCompatibility(materialId, plateId) {
+    const material = getMaterial(materialId);
+    if (!material?.group || !plateId) return null;
+    return BUILD_PLATE_COMPAT[material.group]?.[plateId] || null;
+  }
 
   // ── Sort order + core item sets ─────────────────────────────────────────────
   const _MATERIAL_ORDER = [
@@ -579,6 +591,7 @@ const Engine = (() => {
         { id: 'engineering_plate', name: t('bpEngineering'), desc: 'For high-temp materials (PC, PA). Heat resistant.' },
         { id: 'glass',            name: t('bpGlass'),       desc: 'Smooth finish, needs glue stick for adhesion.' },
         { id: 'garolite',         name: t('bpGarolite'),    desc: 'Best for Nylon (PA) — excellent adhesion without glue.' },
+        { id: 'epoxy_resin',      name: t('bpEpoxyResin'),  desc: t('bpEpoxyResinDesc') },
       ]},
       { key: 'extruder_type',   label: t('filterExtruderType'),     multi: false, required: false, advanced: true, items: [
         { id: 'direct_drive', name: t('extDirectDrive'), desc: 'Short filament path — better retraction, handles flexibles well.' },
@@ -2139,7 +2152,7 @@ const Engine = (() => {
     if (state.build_plate && material.group) {
       const compat = BUILD_PLATE_COMPAT[material.group];
       if (compat) {
-        const rating = compat[state.build_plate];
+        const rating = getBuildPlateCompatibility(material.id, state.build_plate);
         const plateOption = _BUILD_PLATE_OPTIONS.find(bp => bp.id === state.build_plate);
         const plateName = plateOption ? plateOption.name : state.build_plate;
         if (rating === 'avoid') {
@@ -7708,6 +7721,7 @@ const Engine = (() => {
     init,
     get FILTERS()      { return getFilters(); },
     getFilters,
+    getBuildPlateCompatibility,
     get PROFILE_TABS() {
       const tabs = SLICER_TABS[_activeSlicer] || SLICER_TABS.bambu_studio;
       const cap = s => s[0].toUpperCase() + s.slice(1);

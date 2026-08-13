@@ -77,6 +77,8 @@
   "bpEngineering":             "Engineering Plate",
   "bpGlass":                   "Glas",
   "bpGarolite":                "Garolite",
+  "bpEpoxyResin":              "Epoxyharpiks",
+  "bpEpoxyResinDesc":          "Slidstærk, sandblæst belægning med høj vedhæftning og nem frigørelse ved bøjning.",
   "filterExtruderType":        "Ekstruder type",
   "extDirectDrive":            "Direkte drev",
   "extBowden":                 "Bowden",

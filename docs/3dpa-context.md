@@ -65,6 +65,7 @@ Web supports English + Danish. Strings live at `locales/en.json` and `locales/da
 |---|---|---|
 | `resolveProfile(state)` | `{ paramId: { value, why, mode, prov? } }` | The core output — slicer params (layer height, walls, infill, retraction, etc.). **Not temperatures** — temps come from `getAdjustedTemps()`. Per-param value + explanation + simple/advanced flag + provenance sidecar. |
 | `getWarnings(state)` | `[{ id, text, detail, fix }]` | Context-sensitive warnings (e.g. material × printer × nozzle incompatibilities) |
+| `getBuildPlateCompatibility(materialId, plateId)` | `'good'` \| `'needs_prep'` \| `'avoid'` \| `null` | Explicit material-group × build-plate rating; unknown combinations fail closed as `null` |
 | `getChecklist(state)` | `[{ text, detail, critical }]` | Pre-print checklist (e.g. "Dry filament for 4h at 60°C") |
 | `getAdjustedTemps(materialId, envId, nozzleId)` | `{ nozzle, bed }` | Environment- and nozzle-adjusted temp values |
 | `getAdvancedFilamentSettings(state)` | split temps + extrusion params | Advanced-mode filament panel |

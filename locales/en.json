@@ -77,6 +77,8 @@
   "bpEngineering":             "Engineering Plate",
   "bpGlass":                   "Glass",
   "bpGarolite":                "Garolite",
+  "bpEpoxyResin":              "Epoxy Resin",
+  "bpEpoxyResinDesc":          "Durable sandblasted coating with strong adhesion and easy flex-release.",
   "filterExtruderType":        "Extruder Type",
   "extDirectDrive":            "Direct drive",
   "extBowden":                 "Bowden",
