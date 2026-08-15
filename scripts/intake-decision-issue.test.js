@@ -11,6 +11,7 @@ const path = require('node:path');
 
 const {
   collectDecisionParks, buildBody, issueTitle, planSync, DECISION_LABEL,
+  repoRootForStateDir,
 } = require('./intake-decision-issue.js');
 
 let pass = 0;
@@ -142,6 +143,48 @@ t('the body never presents itself as an answer channel that bypasses verify-reen
   const body = buildBody({ candidateId: 'hi', ...HI });
   assert.ok(/verify-reentry/.test(body), 'the gate is not named');
   assert.ok(!/```ya?ml/i.test(body), 'a yaml answers block would collide with the attestation parser');
+});
+
+// ── TC2b — the command targets a root, it does not describe one (#34) ───────
+// The old body said "Run it from the repo root". The parked sidecars are
+// gitignored and host-local, so the only root that works is the automation
+// checkout — and the failure is silent in the one case that matters: a dev tree
+// carrying a STALE state dir writes the envelope, prints ok=true, and the runner
+// never reads it. Naming the root in prose cannot fix that; binding the command
+// to an absolute --repo-root can.
+console.log('\nTC2b — the decision command is root-independent');
+
+t('the generated command carries an absolute --repo-root', () => {
+  const body = buildBody({ candidateId: 'ender_3_s1_pro', ...ENDER }, '/opt/checkout/3dprintassistant');
+  assert.ok(body.includes('--repo-root /opt/checkout/3dprintassistant'),
+    'command is not bound to a specific checkout');
+});
+
+t('every lane binds the root, not just the rd3 lane', () => {
+  const series = buildBody({ candidateId: 'hi', ...HI }, '/opt/checkout/3dprintassistant');
+  const generic = buildBody({ candidateId: 'z1', class: 'decision-required', reason: 'pd4-criteria-unmet', resolutionNote: 'n/a' },
+    '/opt/checkout/3dprintassistant');
+  assert.ok(series.includes('--repo-root /opt/checkout/3dprintassistant'), 'approve-series lane unbound');
+  assert.ok(generic.includes('--repo-root /opt/checkout/3dprintassistant'), 'generic lane unbound');
+});
+
+t('the body no longer tells the owner to guess a root', () => {
+  const body = buildBody({ candidateId: 'ender_3_s1_pro', ...ENDER }, '/opt/checkout/3dprintassistant');
+  assert.ok(!/from the repo root/i.test(body), 'still instructs a relative, guessable root');
+});
+
+t('the script itself is invoked by absolute path, so cwd cannot matter', () => {
+  const body = buildBody({ candidateId: 'ender_3_s1_pro', ...ENDER }, '/opt/checkout/3dprintassistant');
+  assert.ok(body.includes('node /opt/checkout/3dprintassistant/scripts/intake-owner-decision.js'),
+    'a relative script path still makes the command cwd-dependent');
+  assert.ok(!/node scripts\//.test(body), 'relative invocation still present');
+});
+
+t('the root is derived from the state dir that actually held the sidecar', () => {
+  assert.strictEqual(
+    repoRootForStateDir('/opt/checkout/3dprintassistant/scripts/.intake-runner-state'),
+    '/opt/checkout/3dprintassistant',
+  );
 });
 
 // ── TC3 — sync is idempotent and closes what is no longer parked ────────────

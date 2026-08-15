@@ -35,7 +35,24 @@ const { execFileSync } = require('node:child_process');
 
 const DECISION_LABEL = 'intake-decision';
 const DEFAULT_STATE_DIR = path.join(__dirname, '.intake-runner-state');
+const DEFAULT_REPO_ROOT = path.resolve(__dirname, '..');
 const ID_RE = /^[A-Za-z0-9._-]+$/;
+
+// The generated command has to name the checkout it must write into (#34).
+// Parked sidecars are gitignored and host-local, so "the repo root" is not a
+// property of the repo — it is a property of the machine. The runner's own dev
+// tree and the automation checkout are both valid git roots, and only one of
+// them is read at 12:00. The failure is asymmetric and that is what makes prose
+// insufficient: a checkout with NO state dir fails loudly (`active parked
+// sidecar missing`), but one with a STALE state dir accepts the envelope,
+// prints `ok=true`, and the runner never sees it. `intake-owner-decision.js`
+// resolves every path from `--repo-root` (its `defaults()`), so binding the
+// command to an absolute root removes the guess instead of documenting it.
+function repoRootForStateDir(stateDir) {
+  // stateDir is `<repo>/scripts/.intake-runner-state` — by construction for the
+  // default, and by convention for an explicit `--state-dir`.
+  return path.resolve(stateDir, '..', '..');
+}
 
 // Mirrors intake-park-taxonomy.json's decision-required class. Kept as a local
 // constant rather than read from the taxonomy so a taxonomy read failure can
@@ -59,9 +76,10 @@ const REASON_GUIDANCE = {
     what: 'The printer is confirmed and shippable, but its `series_group` does not exactly match '
       + 'any existing sibling in the catalog. Auto-ship requires an exact match; inventing a new '
       + 'series label is a taxonomy call only you can make.',
-    how: (id) => [
+    how: (id, repoRoot) => [
       '# pick the label — either an existing sibling group, or a new one you are establishing',
-      `node scripts/intake-owner-decision.js approve-series --candidate ${id} \\`,
+      `node ${repoRoot}/scripts/intake-owner-decision.js approve-series --candidate ${id} \\`,
+      `  --repo-root ${repoRoot} \\`,
       '  --series-group "<the exact series_group label>" --apply',
     ].join('\n'),
   },
@@ -70,17 +88,19 @@ const REASON_GUIDANCE = {
       + 'pipeline will not pick a winner on its own. Give it the source that settles it — your URLs '
       + 'are treated as LEADS: research re-runs against them and anything they do not substantiate '
       + 'still parks.',
-    how: (id) => [
+    how: (id, repoRoot) => [
       '# --source is repeatable; --field names what is still unresolved',
-      `node scripts/intake-owner-decision.js provide-evidence --candidate ${id} \\`,
+      `node ${repoRoot}/scripts/intake-owner-decision.js provide-evidence --candidate ${id} \\`,
+      `  --repo-root ${repoRoot} \\`,
       '  --edge rd3-external-evidence --source "<url>" --field <field_name> --apply',
     ].join('\n'),
   },
   'review-split': {
     what: 'The two PD5 reviewers disagreed (one GO, one NO-GO). Overriding a reviewer judgment is '
       + 'an owner call, and it still has to clear the retry gate afterwards.',
-    how: (id) => [
-      `node scripts/intake-owner-decision.js provide-evidence --candidate ${id} \\`,
+    how: (id, repoRoot) => [
+      `node ${repoRoot}/scripts/intake-owner-decision.js provide-evidence --candidate ${id} \\`,
+      `  --repo-root ${repoRoot} \\`,
       '  --edge owner-instruction --source "<url backing your call>" --apply',
     ].join('\n'),
   },
@@ -89,9 +109,10 @@ const REASON_GUIDANCE = {
 const GENERIC_GUIDANCE = {
   what: 'This park is in the `decision-required` class: it has no retry bound and no timer. '
     + 'It will sit exactly as it is until you record a decision.',
-  how: (id) => [
+  how: (id, repoRoot) => [
     '# see the sanctioned re-entry edges in scripts/intake-park-taxonomy.json',
-    `node scripts/intake-owner-decision.js provide-evidence --candidate ${id} \\`,
+    `node ${repoRoot}/scripts/intake-owner-decision.js provide-evidence --candidate ${id} \\`,
+    `  --repo-root ${repoRoot} \\`,
     '  --edge owner-instruction --source "<url backing your call>" --apply',
   ].join('\n'),
 };
@@ -156,7 +177,7 @@ function guidanceFor(reason) {
   return REASON_GUIDANCE[reason] || GENERIC_GUIDANCE;
 }
 
-function buildBody(park) {
+function buildBody(park, repoRoot = DEFAULT_REPO_ROOT) {
   const id = park.candidateId;
   const guidance = guidanceFor(park.reason);
   const parkedAt = park.firstParkedAt ? ` on ${String(park.firstParkedAt).slice(0, 10)}` : '';
@@ -176,13 +197,18 @@ ${guidance.what}
 **How to record the decision**
 
 \`\`\`bash
-${guidance.how(id)}
+${guidance.how(id, repoRoot)}
 \`\`\`
 
-Run it from the repo root. It writes an owner-decision envelope into the candidate's parked
-sidecar; the next scheduled run calls \`intake-owner-decision.js verify-reentry\` and only an
-\`ok=true\` envelope re-enters the pipeline. Every normal gate — evidence, both reviewers, live
-verify, custody — still runs afterwards.
+The \`--repo-root\` above is the checkout the runner actually reads, so you can run this from any
+directory. Do not drop it and do not point it at a different clone: the parked sidecars are
+gitignored and host-local, and a clone carrying a **stale** copy of them will accept the envelope
+and print \`ok=true\` while the runner never sees it.
+
+It writes an owner-decision envelope into the candidate's parked sidecar; the next scheduled run
+calls \`intake-owner-decision.js verify-reentry\` and only an \`ok=true\` envelope re-enters the
+pipeline. Every normal gate — evidence, both reviewers, live verify, custody — still runs
+afterwards.
 
 ---
 Commenting here is fine for your own notes, but a comment is **not** a decision: prose never
@@ -227,10 +253,10 @@ function planSync(parks, openIssues) {
   return { toOpen, toClose, existing };
 }
 
-function createIssue(park, repoArgs) {
+function createIssue(park, repoArgs, repoRoot) {
   const out = gh(['issue', 'create', '--label', DECISION_LABEL,
     '--title', issueTitle(park),
-    '--body', buildBody(park), ...repoArgs]);
+    '--body', buildBody(park, repoRoot), ...repoArgs]);
   return Number((out.match(/\/issues\/(\d+)/) || [])[1]) || null;
 }
 
@@ -281,9 +307,10 @@ function syncIssues(options) {
   }
 
   if (plan.toOpen.length > 0) ensureLabel(repoArgs);
+  const repoRoot = repoRootForStateDir(stateDir);
   const opened = [];
   for (const park of plan.toOpen) {
-    opened.push({ candidateId: park.candidateId, issue: createIssue(park, repoArgs) });
+    opened.push({ candidateId: park.candidateId, issue: createIssue(park, repoArgs, repoRoot) });
   }
   const closed = [];
   for (const issue of plan.toClose) {
@@ -306,7 +333,8 @@ function syncIssues(options) {
 
 function openIssueFor(options) {
   const candidateId = assertCandidate(options.candidate);
-  const park = collectDecisionParks(options.stateDir || DEFAULT_STATE_DIR)
+  const stateDir = options.stateDir || DEFAULT_STATE_DIR;
+  const park = collectDecisionParks(stateDir)
     .find((p) => p.candidateId === candidateId);
   if (!park) {
     throw new Error(`${candidateId} is not a decision-required park in the parked store`);
@@ -316,7 +344,7 @@ function openIssueFor(options) {
   if (existing) return { changed: false, action: 'open', issue: existing.number };
   if (!options.apply) return { changed: false, action: 'open', issue: null, wouldOpen: candidateId };
   ensureLabel(repoArgs);
-  return { changed: true, action: 'open', issue: createIssue(park, repoArgs) };
+  return { changed: true, action: 'open', issue: createIssue(park, repoArgs, repoRootForStateDir(stateDir)) };
 }
 
 function closeIssueFor(options) {
@@ -353,7 +381,7 @@ function parseCli(argv) {
 }
 
 module.exports = {
-  collectDecisionParks, buildBody, issueTitle, planSync,
+  collectDecisionParks, buildBody, issueTitle, planSync, repoRootForStateDir,
   syncIssues, openIssueFor, closeIssueFor, writeReceipt, receiptPath,
   DECISION_LABEL, DECISION_REASONS,
 };
