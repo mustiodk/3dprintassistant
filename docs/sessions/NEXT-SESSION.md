@@ -1,78 +1,130 @@
 # 3dpa — Next Session Kickoff
 
-**Purpose:** inspect the next scheduled outcome for #28, then implement the
-`epoxy_resin` taxonomy tracked by #35 before resuming Hi intake. The #32
-iOS-train scoping session remains below.
+**Purpose:** run the `ender_3_s1_pro` re-entry on the mac-mini under the new
+manufacturer-conflict ladder, and confirm the ladder actually changes the
+outcome. The #32 iOS-train scoping block is preserved below.
 
-**Last updated:** 2026-08-12, after source-only evidence re-entry for #28 and
-the Hi epoxy plate correction.
+**Last updated:** 2026-08-15, after closing #34 and adding the
+manufacturer-vs-manufacturer resolution ladder.
 
 ---
 
-# LOCKED NEXT — inspect the next mac-mini run
+# LOCKED NEXT — #28 / #36 re-entry, on the mac-mini
 
-Nothing here is blocked on code. The parked sidecars are gitignored
-(`.gitignore:26`) and host-local, so this cannot be done from the iMac; the
-runner host is confirmed from
-`scripts/launchd/dk.mragile.3dpa-intake.plist:34`
+**This cannot run from the iMac.** The parked sidecars are gitignored
+(`.gitignore:26`) and host-local. The runner host is the mac-mini, confirmed
+from `scripts/launchd/dk.mragile.3dpa-intake.plist:34`
 (`/Users/mustafaozturk-macmini/Library/Logs/`).
 
-**#28 is already authorized for the next scheduled run. No owner command is
-needed now.** The runner must use the automation checkout, not the dev tree:
-`~/.local/share/3dpa-intake/checkout/3dprintassistant`
-(`install-intake-runner.sh:64` — `INSTALL_ROOT` has no default; the
-authoritative value is `WorkingDirectory` in the installed plist). The failure
-is asymmetric: a checkout with **no** state dir fails loudly
-(`active parked sidecar missing`), one with a **stale** state dir writes the
-envelope, prints `ok=true`, and the runner never reads it —
-[#34](https://github.com/mustiodk/3dprintassistant/issues/34).
+## First, sync the automation checkout
 
-If the path is not there:
+The fixes are on `origin/main` (`733e9fb`). The runner reads the automation
+checkout, **not** the dev tree:
+
+```bash
+cd ~/.local/share/3dpa-intake/checkout/3dprintassistant && git fetch origin && git log --oneline -1 origin/main
+```
+
+If `INSTALL_ROOT` is not there, the authoritative value is `WorkingDirectory` in
+the installed plist:
 
 ```bash
 grep -A1 WorkingDirectory ~/Library/LaunchAgents/dk.mragile.3dpa-intake.plist
 ```
 
-## Verified state
+The bootstrap syncs this checkout at the start of each scheduled run, so on a
+normal day you can simply let 12:00 do it. Verify rather than assume.
 
-- **The runner is healthy** — custody commits on 2026-08-06, 08-07, 08-08,
-  08-09, 08-10; daily LaunchAgent at 12:00.
-- [#28](https://github.com/mustiodk/3dprintassistant/issues/28) is re-entry-ready
-  under canonical candidate ID `ender_3_s1_pro`; its envelope supplies sources
-  only for `max_speed` and `max_acceleration` and has passed `verify-reentry`.
-- [#29](https://github.com/mustiodk/3dprintassistant/issues/29) remains parked:
-  its stock plate is `epoxy_resin`, not `epoxy_flexible` or `textured_pei`.
-  Implement [#35](https://github.com/mustiodk/3dprintassistant/issues/35)
-  before any Hi re-entry decision.
+## Then record the decision
 
-## #28 `ender_3_s1_pro` — no owner action; inspect scheduled outcome
+Same three leads as 2026-08-12 — nothing new is needed, because the ladder, not
+the sources, is what changed. The manual is the one that now wins:
 
-The owner evidence envelope is already applied and verified. The next scheduled
-runner pass must independently re-derive both numeric fields and run every
-normal evidence, dual-review, live-verification, overlay, and custody gate.
-Do not add values to the envelope or close the issue manually.
+```bash
+node ~/.local/share/3dpa-intake/checkout/3dprintassistant/scripts/intake-owner-decision.js provide-evidence --candidate ender_3_s1_pro \
+  --repo-root ~/.local/share/3dpa-intake/checkout/3dprintassistant \
+  --edge rd3-external-evidence \
+  --source "https://www.creality.com/products/creality-ender-3-s1-pro-3d-printer" \
+  --field max_speed --dry-run
+```
 
-## #29 `hi` — blocked on #35
+Check `ok=true`, then rerun with `--apply` in place of `--dry-run`, then:
+
+```bash
+node ~/.local/share/3dpa-intake/checkout/3dprintassistant/scripts/intake-owner-decision.js verify-reentry --candidate ender_3_s1_pro --repo-root ~/.local/share/3dpa-intake/checkout/3dprintassistant
+```
+
+Only `OWNERDECISION ok=true action=verify-reentry` authorizes re-entry. Replace
+the `--source` URL with the actual manual V1.4 PDF URL from #36's run note if you
+have it to hand — the manual is the spec-grade source rung 1 turns on.
+
+**Substitute the real absolute path** if `INSTALL_ROOT` differs from the default
+above; `--repo-root` must point at the checkout the runner reads. A clone with a
+**stale** state dir accepts the envelope, prints `ok=true`, and is never read —
+that asymmetry is exactly what #34 was about.
+
+## What to check on the next run
+
+This is the point of the session, not a formality. The ladder is **policy read
+by the research agent, not enforced code** — the validator structurally cannot
+see a source conflict (see below). So the first real proof is behavioural:
+
+- Does the run resolve `max_speed` to **150** citing the manual's spec table,
+  rather than re-parking `needs-source-resolution` a third time?
+- Does it carry a **risk flag** and dispatch **both** reviewers, as the ladder
+  requires? A silent auto-ship would be a defect in the rule as written.
+- If it re-parks anyway, read the resolution note before touching anything: the
+  ladder may need a rung, or the researcher may not be reading the runbook
+  section at all. That distinction is the whole finding.
+
+## Why the owner cannot simply supply the number
+
+Do not relitigate this. `OWNER_ATTESTABLE_FIELDS` is
+`{enclosure, series, available_plates}` and
+`scripts/validate-candidate-evidence.js:55` says *"Nothing numeric may ever be
+added — a wrong temperature or speed damages hardware or ruins a print, and no
+amount of owner confidence changes that."*
+`validate-candidate-evidence-attested.test.js` TC3 asserts rejection per numeric
+field, on purpose. The ladder exists because that door is correctly shut.
+
+---
+
+# THEN — #29 `hi` is UNBLOCKED (changed 2026-08-15)
+
+**The 2026-08-12 resume surface said #29 was blocked on #35. That is no longer
+true.** #35 closed 2026-08-13 and `epoxy_resin` exists at `engine.js:363` plus
+the full compatibility matrix (`engine.js:386-392`).
+
+So the Creality Hi taxonomy decision can proceed through the normal gate:
+
+```bash
+node ~/.local/share/3dpa-intake/checkout/3dprintassistant/scripts/intake-owner-decision.js approve-series --candidate hi \
+  --repo-root ~/.local/share/3dpa-intake/checkout/3dprintassistant \
+  --series-group "Hi Series" --apply
+```
+
+Before applying, confirm the parked candidate's plate value actually reflects
+`epoxy_resin` — it was researched before the type existed:
 
 ```bash
 cd ~/.local/share/3dpa-intake/checkout/3dprintassistant && ls scripts/.intake-runner-state/parked/hi/ && node -e 'const fs=require("fs");const d="scripts/.intake-runner-state/parked/hi";const f=fs.readdirSync(d).find(n=>n.startsWith("candidate-"));const p=JSON.parse(fs.readFileSync(d+"/"+f));console.log(JSON.stringify({file:f,series_group:p.printersJsonRow?.series_group,available_plates:p.printersJsonRow?.available_plates,riskFlags:p.riskFlags},null,2))'
 ```
 
-The stock plate is manufacturer-classified as epoxy resin. Implement #35 first:
-add `epoxy_resin` to engine/picker/compatibility/locales/intake validation/tests
-and mirror the engine/data change to iOS. Then refresh the parked candidate and
-apply the already-supported `Hi Series` taxonomy decision through normal gates.
+If it still says `epoxy_flexible` or `textured_pei`, the candidate needs
+refreshing before the taxonomy decision — the correct canonical ID is
+`epoxy_resin` per [#35](https://github.com/mustiodk/3dprintassistant/issues/35).
 
-## Opened 2026-08-12, not blocking
+---
 
-- [#33](https://github.com/mustiodk/3dprintassistant/issues/33) — add `seturn`
-  to `resinKeywords` + a Scout test. The owner-approved proposal from
-  `run-20260729T100106Z` was never applied; guardrails untouched since
-  2026-06-15.
-- [#34](https://github.com/mustiodk/3dprintassistant/issues/34) — the generated
-  decision-issue text says "run it from the repo root", which is the wrong root
-  and fails silently in the stale-dev-tree case. One-line fix in
-  `intake-decision-issue.js`.
+# Also open, not blocking
+
+- **[#36](https://github.com/mustiodk/3dprintassistant/issues/36) still carries
+  the pre-fix text.** `d2c39d3` fixed the generator, but `planSync` leaves an
+  existing issue alone, so the sweep will not rewrite it. Close #36 to have the
+  next sweep regenerate it correctly, or edit it by hand. Owner call.
+- [#33](https://github.com/mustiodk/3dprintassistant/issues/33) — add `seturn` to
+  `resinKeywords` + a Scout test. Owner-approved back in `run-20260729T100106Z`
+  and never applied; guardrails untouched since 2026-06-15.
 
 ---
 
@@ -102,10 +154,7 @@ Cold start 3dpa and 3dpa-ios.
 `git branch -vv` and confirm which branch you are on before trusting any local
 ROADMAP or NEXT-SESSION; a checkout parked on a feature branch can be "current"
 with its own upstream while `main` is dozens of commits behind. That exact
-failure has now bitten **four** cold starts — most recently 2026-08-12, where
-this very warning went unread because it was read from the stale branch, whose
-copy predates it. A per-project resume surface cannot protect a stale checkout
-of that project. K3
+failure has bitten **four** cold starts. K3
 [`2026-08-12-sync-health-reports-current-on-a-stale-feature-branch`](../../../ai-operating-model/docs/findings/2026-08-12-sync-health-reports-current-on-a-stale-feature-branch.md)
 proposes moving the mitigation into the `claude-sync` health line, which lives
 outside every project repo.
@@ -209,12 +258,6 @@ decision. Build it if and when a consumer appears.
 convention — web is master, lands first) or is held so both surfaces move
 together with the train. Does not block anything either way.
 
-**Other still-open items:** #28 is now authorized and waits for the next
-mac-mini run; #29 waits on #35's `epoxy_resin` implementation. The
-`provide-evidence` shape cannot carry researched numeric values, so #28 supplies
-sources only. The iOS mirror has 3 intentionally unpushed commits under the
-push gate; Android remains health-only/missing.
-
 ---
 
 ## Standing rules that bite on this project
@@ -223,9 +266,12 @@ push gate; Android remains health-only/missing.
   reading `main`'s copy, not a feature branch's.
 - No mutation on an unverified premise. Verify with a real tool call in the SAME
   turn and state the outcome inline; citing an earlier turn does not count.
-  (2026-08-11: a validator was first called with the wrong argument shape and
-  silently validated the on-disk file, returning a meaningless PASS. Check that
-  the output describes what you actually passed it.)
+- **Validate the fix LOCUS, not just the diagnosis.** New on 2026-08-15: a
+  correct diagnosis carried a wrong implementation site into a status report, and
+  the proposed rule would have been dead code in a file that structurally cannot
+  observe the condition. Before naming an enforcement site, check that the code
+  path can see what it is meant to enforce — one `grep` answered it. K3
+  [`2026-08-15-recommended-fix-locus-would-have-been-dead-code`](../../../ai-operating-model/docs/findings/2026-08-15-recommended-fix-locus-would-have-been-dead-code.md).
 - One finding = one commit.
 - Web is master; iOS mirrors `engine.js` byte-identical. **`data/printers.json`
   is deliberately NOT identical** — web 81 printer rows, iOS bundled 78, the
@@ -234,6 +280,8 @@ push gate; Android remains health-only/missing.
 - iOS `main` stays push-gated. Web pushes freely.
 - **A green local macOS run of the shell suites proves less than a green CI run.**
   bash 3.2 does not apply `set -e` to a failing `[[ ]]`.
+- **Several node suites use `node:test`, whose tail line is `ℹ duration_ms`
+  regardless of outcome.** Check exit codes, not the last line of output.
 - Shell suites mix `#!/usr/bin/env bash` and `#!/bin/zsh`. Invoke via `./"$f"`.
 - Committed ≠ deployed. The intake pipeline runs from
   `~/.local/share/3dpa-intake/checkout/3dprintassistant`; verify there.
@@ -245,5 +293,5 @@ push gate; Android remains health-only/missing.
 <<< END <<<
 
 Maintenance note: regenerated on Trigger A / Trigger B / explicit owner ask only.
-This revision was a Trigger A wrap-up (2026-08-12); the #32 scoping block below
-the LOCKED NEXT section is preserved verbatim from the 2026-08-11 owner ask.
+This revision was a Trigger A wrap-up (2026-08-15); the #32 scoping block below
+the LOCKED NEXT section is preserved from the 2026-08-11 owner ask.
