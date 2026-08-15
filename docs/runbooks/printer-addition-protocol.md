@@ -152,8 +152,49 @@ Classify every source used for a candidate:
 If manufacturer data conflicts with reseller/review/community data, use the
 manufacturer value as the proposed value only when the model/revision/region
 clearly matches. Record the conflict as a risk flag and dispatch review before
-shipping. If two manufacturer sources conflict, the candidate is
-`needs-source-resolution` and must not ship until resolved.
+shipping.
+
+#### Manufacturer-versus-manufacturer conflicts
+
+Class alone does not settle these, because "manufacturer" covers both a
+specification table and a marketing headline. Work this ladder in order and stop
+at the first rung that resolves the field:
+
+1. **Specification-grade outranks marketing copy.** A figure stated in a spec
+   table, user manual, datasheet, or the manufacturer's own firmware
+   configuration outranks one appearing only in page-title, headline, or
+   promotional copy with no supporting spec table. Take the specification-grade
+   value, cite *both* sources, record a risk flag. The field may be `confirmed`:
+   the disagreement is resolved by authority, not split.
+2. **Newer revision outranks older**, when both are specification-grade and the
+   documents are explicitly versioned for the same model and region.
+3. **Otherwise take the lower value**, for fields with a safe direction — every
+   numeric ceiling in the critical list has one (`max_speed`,
+   `max_acceleration`, `max_nozzle_temp`, `max_bed_temp`, `max_chamber_temp`).
+   Under-driving a printer is recoverable; over-driving it is not. Cite both
+   sources and record a risk flag. This value is `inferred`, never `confirmed` —
+   the sources genuinely contradict — so per "Field confidence" below it cannot
+   by itself make the candidate `ship-ready`.
+
+A conflict resolved by this ladder always carries a risk flag and always
+dispatches review. It never auto-ships silently.
+
+Park `needs-source-resolution` only when the ladder does not resolve the field:
+the sources are the same class *and* the same grade with no revision order, the
+field has no safe direction, or no manufacturer source states it at all. A park
+is the outcome when authority is genuinely tied — not the default for any
+disagreement.
+
+Rationale: before 2026-08-15 any manufacturer-versus-manufacturer disagreement
+parked immediately, and the only exit was an owner decision. That exit cannot
+close a conflict of this shape. `OWNER_ATTESTABLE_FIELDS` is `{enclosure,
+series, available_plates}` and numeric safety fields are never attestable, so
+the owner may supply *sources*, never a value — and when both competing sources
+are already known, supplying them again reproduces the same park. `ender_3_s1_pro`
+did exactly that: parked 2026-08-10 on manual V1.4 (150 mm/s, spec table, p.12)
+versus a store page title (160 mm/s, no spec table), re-entered with three owner
+leads on 2026-08-12, and re-parked on 2026-08-13 on the identical field. Rung 1
+resolves it to 150, which is also what shipped sibling `ender_3_s1` carries.
 
 ### Field confidence
 
@@ -260,7 +301,8 @@ Assisted research / Assistant outcomes:
 
 - `unverified-model` — no authoritative source confirms the model; do not claim
   universal nonexistence.
-- `needs-source-resolution` — required evidence is missing or conflicting.
+- `needs-source-resolution` — required evidence is missing, or conflicting in a
+  way the "Manufacturer-versus-manufacturer conflicts" ladder does not resolve.
 - `needs-owner-taxonomy` — owner must approve a new brand, new series group, or
   non-obvious taxonomy.
 - `needs-taxonomy-decision` — model does not map cleanly to the current engine
