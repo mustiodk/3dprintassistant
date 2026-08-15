@@ -4,7 +4,7 @@ const { spawnSync } = require('node:child_process');
 const { mkdtempSync, rmSync, writeFileSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const path = require('node:path');
-const { validateCandidateEvidence } = require('./validate-candidate-evidence.js');
+const { validateCandidateEvidence, KNOWN_PLATE_IDS } = require('./validate-candidate-evidence.js');
 
 const SOURCE = 'https://creality.com/products/k2-se';
 
@@ -500,4 +500,50 @@ test('CLI fails clearly when the candidate id is duplicated in the catalog', () 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr,
     /^\[validate-candidate-evidence\] expected exactly one materialized catalog row for k2_se; found 2$/m);
+});
+
+// ─── Plate vocabulary (2026-08-15) ──────────────────────────────────────────
+// `available_plates` reaches engine.js's `plate_not_on_printer` guard, so an id
+// the catalog does not define silently breaks a real compatibility check. The
+// owner-attestation path already refused unknown ids via KNOWN_PLATE_IDS; the
+// researcher-drafted path did not, which is how the parked `hi` candidate came
+// to carry `epoxy_flexible` — an id that appears nowhere in engine.js or data/.
+//
+// The accepted list is written out literally rather than iterated from the
+// implementation's own set: a test whose input is derived from the code under
+// test is an identity that cannot fail (2026-08-10, the coverage-guard finding).
+const CATALOG_PLATE_IDS = [
+  'cool_plate', 'engineering_plate', 'epoxy_resin', 'high_temp_plate',
+  'satin_pei', 'smooth_glass', 'smooth_pei', 'textured_pei',
+];
+
+test('the exported plate vocabulary matches the shipped catalog exactly', () => {
+  assert.deepEqual([...KNOWN_PLATE_IDS].sort(), [...CATALOG_PLATE_IDS].sort());
+});
+
+test('a researcher-drafted plate id outside the vocabulary parks as research-defect', () => {
+  const candidate = baseCandidate();
+  candidate.printersJsonRow.available_plates = confirmed(['epoxy_flexible']);
+  const result = validateCandidateEvidence(candidate);
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'research-defect');
+  assert.equal(result.reviewRequests, 0);
+  assert.match(result.errors.join('\n'), /unknown plate id\(s\) for available_plates: epoxy_flexible/);
+});
+
+test('an unknown plate id is rejected even alongside valid ones', () => {
+  const candidate = baseCandidate();
+  candidate.printersJsonRow.available_plates = confirmed(['textured_pei', 'epoxy_flexible']);
+  const result = validateCandidateEvidence(candidate);
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /unknown plate id\(s\) for available_plates: epoxy_flexible/);
+});
+
+test('every catalog plate id is accepted', () => {
+  for (const id of CATALOG_PLATE_IDS) {
+    const candidate = baseCandidate();
+    candidate.printersJsonRow.available_plates = confirmed([id]);
+    const result = validateCandidateEvidence(candidate);
+    assert.equal(result.ok, true, `${id} should be accepted but was rejected`);
+  }
 });

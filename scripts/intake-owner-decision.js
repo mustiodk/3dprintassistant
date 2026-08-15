@@ -537,10 +537,12 @@ function buildAttestation({ value, source, claim, answeredBy, answeredAt, issueN
 // engine.js's `plate_not_on_printer` warning, so a typo or a stray quote
 // fragment becoming a catalog-visible plate id would silently break a real
 // compatibility check — comma-splitting arbitrary text was not enough.
-const KNOWN_PLATE_IDS = new Set([
-  'cool_plate', 'engineering_plate', 'epoxy_resin', 'high_temp_plate',
-  'satin_pei', 'smooth_glass', 'smooth_pei', 'textured_pei',
-]);
+//
+// Imported rather than redeclared (2026-08-15): this guard used to exist only
+// here, so an OWNER attestation was checked against the vocabulary while a
+// RESEARCHER-drafted value went through unchecked. The list now lives with the
+// evidence gate every candidate passes through, and both paths share it.
+const { KNOWN_PLATE_IDS } = require('./validate-candidate-evidence.js');
 
 const ATTESTED_ENUMS = {
   enclosure: new Set(['none', 'passive', 'active_heated']),

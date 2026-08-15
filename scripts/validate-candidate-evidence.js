@@ -69,6 +69,28 @@ const OWNER_ATTESTABLE_FIELDS = new Set([
   'available_plates',
 ]);
 
+// Plate vocabulary derived from the shipped catalog. `available_plates` reaches
+// engine.js's `plate_not_on_printer` warning, so an id the catalog does not
+// define silently breaks a real compatibility check rather than failing loudly.
+//
+// This list lives HERE, next to the evidence gate that every candidate passes
+// through, and `intake-owner-decision.js` imports it — the same direction as
+// OWNER_ATTESTABLE_FIELDS above. It previously lived only in the decision
+// script, which meant an OWNER attestation was checked against it while a
+// RESEARCHER-drafted value was not. That asymmetry is how the parked `hi`
+// candidate came to carry `epoxy_flexible`, an id present in neither engine.js
+// nor data/ (2026-08-15; the canonical id is `epoxy_resin`, issue #35).
+const KNOWN_PLATE_IDS = new Set([
+  'cool_plate', 'engineering_plate', 'epoxy_resin', 'high_temp_plate',
+  'satin_pei', 'smooth_glass', 'smooth_pei', 'textured_pei',
+]);
+
+function unknownPlateIds(field) {
+  const value = field && typeof field === 'object' ? field.value : undefined;
+  if (!Array.isArray(value)) return [];
+  return value.filter((id) => !KNOWN_PLATE_IDS.has(id));
+}
+
 function isHttpUrl(value) {
   if (!nonEmptyString(value)) return false;
   try {
@@ -354,6 +376,11 @@ function validateCandidateEvidence(candidate, options = {}) {
     }
   }
 
+  const unknownPlates = unknownPlateIds(row.available_plates);
+  if (unknownPlates.length) {
+    errors.push(`unknown plate id(s) for available_plates: ${unknownPlates.join(', ')}`);
+  }
+
   if (!notesCarryAppCapProvenance(row.max_acceleration, row.notes)) {
     errors.push('app-cap max_acceleration requires value and unpublished-source rationale in notes');
   }
@@ -438,6 +465,7 @@ module.exports = {
   CRITICAL_FIELDS,
   OPTIONAL_CRITICAL_FIELDS,
   OWNER_ATTESTABLE_FIELDS,
+  KNOWN_PLATE_IDS,
   hasAbsenceRationale,
   hasCompleteSourceSweep,
   validateMaterializedParity,
