@@ -1,7 +1,7 @@
 {
   "schema": "printer-intake-guardrails@1",
-  "version": 1,
-  "lastRatified": "2026-06-15",
+  "version": 2,
+  "lastRatified": "2026-08-15",
   "brandAliases": {
     "bambu": "bambu_lab",
     "bambulab": "bambu_lab",
@@ -75,7 +75,8 @@
     "form 2",
     "form 3",
     "form 4",
-    "mono x"
+    "mono x",
+    "seturn"
   ],
   "nonFdmTech": [
     "resin",
@@ -93,7 +94,28 @@
     "dlp"
   ],
   "_provenance": {
-    "bmbulab": { "added": "2026-06-15", "by": "S3 Gate 2", "why": "Discord typo of 'Bambu Lab'; the 2026-06-14 backlog 'Bmbulab X2D' surfaced as a needs-research false positive (X2D is bundled). Alias so it dedupes." },
-    "sparkx": { "added": "2026-06-15", "by": "S3 Gate 2", "why": "'Sparkx i7' is Creality's bundled sparkx_i7; there is no 'sparkx' brand. Alias to creality so the model dedupes (2026-06-14 backlog false positive)." }
+    "bmbulab": {
+      "added": "2026-06-15",
+      "by": "S3 Gate 2",
+      "why": "Discord typo of 'Bambu Lab'; the 2026-06-14 backlog 'Bmbulab X2D' surfaced as a needs-research false positive (X2D is bundled). Alias so it dedupes."
+    },
+    "sparkx": {
+      "added": "2026-06-15",
+      "by": "S3 Gate 2",
+      "why": "'Sparkx i7' is Creality's bundled sparkx_i7; there is no 'sparkx' brand. Alias to creality so the model dedupes (2026-06-14 backlog false positive)."
+    },
+    "resinKeywords::seturn": {
+      "added": "2026-08-15",
+      "by": "issue-33",
+      "value": "seturn",
+      "confidence": "stated",
+      "rationale": "requester misspelling of Elegoo Saturn; 'Seturn' does not substring-match 'saturn', so the MSLA decline fell through to assisted research",
+      "evidence": [
+        {
+          "candidateKey": "req:1785203205572:834d466e",
+          "runId": "run-20260729T100106Z"
+        }
+      ]
+    }
   }
 }

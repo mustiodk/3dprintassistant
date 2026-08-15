@@ -148,7 +148,14 @@ try {
 
   // ── apply path (function-level) ──
   const baseCfg = JSON.parse(fs.readFileSync(REAL_CONFIG, 'utf8'));
-  check('precondition: real config is version 1', baseCfg.version === 1);
+  // Version assertions are RELATIVE to whatever the ratified config is at now.
+  // These used to hardcode 1 -> 2, so the first real guardrail ratification after
+  // 2026-06-15 broke five checks that were testing the bump, not the number
+  // (#33, 2026-08-15). The behaviour under test is "applying an effective diff
+  // bumps by exactly one and re-applying does not".
+  const baseVersion = baseCfg.version;
+  check('precondition: real config has an integer version',
+    Number.isInteger(baseVersion) && baseVersion >= 1, `got ${baseVersion}`);
   const ev = (k) => [{ candidateKey: k, runId: '2026-06-12T00:00:00.000Z' }];
   const diff = { schema: SCHEMA, changes: [
     { action: 'add', target: 'brandAliases.banbu', value: 'bambu_lab', evidence: ev('k1'), confidence: 'stated', rationale: 'typo of bambu lab' },
@@ -158,7 +165,7 @@ try {
 
   const a1 = applyDiff(baseCfg, diff, { by: 'test', date: '2026-06-16' });
   check('apply: 3 effective changes', a1.effective.length === 3, JSON.stringify(a1.effective));
-  check('apply: version bumped 1 -> 2', a1.cfg.version === 2);
+  check('apply: version bumped by exactly one', a1.cfg.version === baseVersion + 1, `got ${a1.cfg.version} from ${baseVersion}`);
   check('apply: lastRatified set', a1.cfg.lastRatified === '2026-06-16');
   check('apply: banbu alias added', a1.cfg.brandAliases.banbu === 'bambu_lab');
   check('apply: w/box added to modelSuffixStrip', a1.cfg.modelSuffixStrip.includes('w/box'));
@@ -166,12 +173,12 @@ try {
   check('apply: _provenance keyed by target for banbu', !!a1.cfg._provenance['brandAliases.banbu'] && a1.cfg._provenance['brandAliases.banbu'].added === '2026-06-16');
   check('apply: _provenance keyed by name::value for w/box', !!a1.cfg._provenance['modelSuffixStrip::w/box']);
   check('apply: _tombstone written for retired mars', !!a1.cfg._tombstones['resinKeywords::mars'] && a1.cfg._tombstones['resinKeywords::mars'].value === 'mars');
-  check('apply: input config not mutated (still version 1)', baseCfg.version === 1);
+  check('apply: input config not mutated (version unchanged)', baseCfg.version === baseVersion);
 
   // idempotency (function-level): re-apply onto the result → nothing effective
   const a2 = applyDiff(a1.cfg, diff, { by: 'test', date: '2026-06-17' });
   check('apply idempotent: 0 effective on re-apply', a2.effective.length === 0);
-  check('apply idempotent: version stays 2 (no bump)', a2.cfg.version === 2);
+  check('apply idempotent: version stays put (no second bump)', a2.cfg.version === baseVersion + 1);
   check('apply idempotent: lastRatified unchanged', a2.cfg.lastRatified === '2026-06-16');
 
   // retire-value mismatch → refuse (the deferred Gate 2 MEDIUM, handled here)
@@ -210,7 +217,7 @@ try {
 
     run(['--file', diffPath, '--config', cfgPath, '--apply', '--watermark-file', wmPath, '--watermark', '2026-06-13T10:00:00.000Z']);
     const after1 = fs.readFileSync(cfgPath, 'utf8');
-    check('CLI apply: version bumped to 2', JSON.parse(after1).version === 2);
+    check('CLI apply: version bumped by exactly one', JSON.parse(after1).version === baseVersion + 1);
     check('CLI apply: watermark advanced', JSON.parse(fs.readFileSync(wmPath, 'utf8')).lastRunId === '2026-06-13T10:00:00.000Z');
 
     run(['--file', diffPath, '--config', cfgPath, '--apply', '--watermark-file', wmPath]);   // re-apply

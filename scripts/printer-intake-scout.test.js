@@ -699,6 +699,41 @@ let adv, advRaw;
   try { fs.rmSync(outDir, { recursive: true, force: true }); } catch (_) {}
 }
 
+// ── TC51 — the `seturn` misspelling declines deterministically (issue #33) ────
+//
+// run-20260729T100106Z researched "Elegoo seturn 4 ultra 16k" and declined it
+// correctly as MSLA/resin — but only after burning an assisted-research lane,
+// because `Seturn` does not substring-match the `saturn` keyword. The
+// retrospective's owner-approved proposal (append `seturn`) was ratified in the
+// outcomes ledger and never written to the guardrail. This pins the token.
+//
+// The `saturn` case is asserted alongside it so a future edit cannot "fix" the
+// typo by replacing the correct spelling rather than adding to it.
+{
+  console.log('TC51 — Elegoo "seturn" misspelling declines deterministically (#33)');
+  const queue = [
+    { _key: 'i33-seturn', lane: 'form', receivedAt: '2026-07-29T10:00:00.000Z',
+      fields: [{ id: 'brand', value: 'Elegoo' }, { id: 'model', value: 'Seturn 4 Ultra 16K' }] },
+    { _key: 'i33-saturn', lane: 'form', receivedAt: '2026-07-29T10:01:00.000Z',
+      fields: [{ id: 'brand', value: 'Elegoo' }, { id: 'model', value: 'Saturn 4 Ultra 16K' }] },
+  ];
+  const qf51 = path.join(os.tmpdir(), `pi-i33-${process.pid}.json`);
+  fs.writeFileSync(qf51, JSON.stringify(queue));
+  const r = run(['--queue', qf51]);
+  const rep = parse(r.stdout) || {};
+  const items = rep.items || [];
+  const byReqKey = (k) => items.find(it => it.request && it.request.key === k);
+
+  const seturn = byReqKey('i33-seturn');
+  check('TC51 "Seturn 4 Ultra 16K" → declined-non-fdm (not needs-research)',
+    seturn && seturn.outcome === 'declined-non-fdm', `got ${seturn && seturn.outcome}`);
+  const saturn = byReqKey('i33-saturn');
+  check('TC51 correctly-spelled "Saturn 4 Ultra 16K" still declined-non-fdm',
+    saturn && saturn.outcome === 'declined-non-fdm', `got ${saturn && saturn.outcome}`);
+
+  fs.unlinkSync(qf51);
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');

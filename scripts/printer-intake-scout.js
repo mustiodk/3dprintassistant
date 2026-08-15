@@ -239,7 +239,7 @@ function fdmDecline(brand, model, notes, guardrails) {
 // canonical, validator-checked copy); they exist only as a crash-proof fallback.
 const GUARDRAILS_DEFAULTS = {
   schema: 'printer-intake-guardrails@1',
-  version: 1,
+  version: 2,
   brandAliases: {
     bambu: 'bambu_lab', bambulab: 'bambu_lab',
     creality: 'creality', prusa: 'prusa', prusaresearch: 'prusa',
@@ -252,9 +252,12 @@ const GUARDRAILS_DEFAULTS = {
     'qidi', 'flashforge', 'artillery', 'anker', 'ankermake', 'voron', 'voxelab'],
   familyTokens: ['ender', 'kobra', 'neptune', 'mk', 'sv', 'x1', 'p1', 'a1', 'mega'],
   modelSuffixStrip: ['w/cfs', 'with cfs', '+cfs', '(cfs)', 'combo', 'bundle', 'w/ams', 'w/ ams'],
+  // `seturn` is last because apply-guardrails-diff.js APPENDS array additions and
+  // the fallback-parity test compares these arrays in order. Keep new entries at
+  // the tail so this list stays byte-comparable with the ratified JSON (#33).
   resinKeywords: ['photon', 'saturn', 'mars', 'halot', 'sonic', 'phrozen', 'formlabs',
     'jupiter', 'mighty', 'proxima', 'shuffle', 'nova3d', 'peopoly',
-    'form 1', 'form 2', 'form 3', 'form 4', 'mono x'],
+    'form 1', 'form 2', 'form 3', 'form 4', 'mono x', 'seturn'],
   nonFdmTech: ['resin', 'msla', 'sla', 'dlp', 'sls', 'mjf', 'lcd printer'],
   nonFdmNoteAcronyms: ['sls', 'mjf', 'msla', 'dlp'],
   _provenance: {},
