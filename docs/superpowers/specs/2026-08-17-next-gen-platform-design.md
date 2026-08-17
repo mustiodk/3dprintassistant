@@ -63,13 +63,17 @@ Web/sync portability is added — and only then advertised — at Train 3.
   portable to non-Apple surfaces (web). Conversations themselves do not sync in
   v1 — see below.
 - **Account required only at credit purchase.** The signed-out taster is
-  **text-only and hard-capped** (resolves review P0-2): no photos without
-  sign-in, N questions per device per period (N set at plan time), platform
-  attestation in front of it (App Attest / DeviceCheck on iOS, Turnstile on
-  web), a global taster kill switch, and a ratified worst-case daily cash cap
-  for the whole taster pool. Pro purchase on iOS works without an account
-  (StoreKit local entitlement + Apple restore); signing in is *offered* there to
-  make it portable.
+  **text-only and hard-capped** (resolves review P0-2), with these numbers
+  **ratified here, not deferred**: **5 text questions per device per rolling
+  30 days**; platform attestation in front of it (App Attest / DeviceCheck on
+  iOS, Turnstile on web — no attestation, no taster); a **global taster pool
+  hard cap of USD 10 provider spend per day**, auto-disabling the taster when
+  reached (typed "taster unavailable today" response); plus a manual kill
+  switch. Worst-case daily cash burn is therefore bounded at $10 by
+  construction. The owner may tune these numbers with usage data, but a number
+  is always ratified — never open-ended. Pro purchase on iOS works without an
+  account (StoreKit local entitlement + Apple restore); signing in is *offered*
+  there to make it portable.
 - **AI chat history is local per device in v1.** Only the balance is server-side.
   History sync is a candidate future Pro sweetener, not v1 scope.
 
@@ -111,10 +115,12 @@ Design constraints carried from #32 (binding):
    event, no golden-snapshot movement.
 
 **Setup contents (resolves review P1-5):** a setup is a **partial app-state
-preset**, not an informal hardware triple. v1 fields: `printer`, `nozzle`,
-`filament`, and **`plate` (optional)** — the engine's warning layer already
-enforces plate×printer and plate×material correctness, so plate belongs to
-hardware identity. Goals, surface, strength, speed, environment, support,
+preset**, not an informal hardware triple, and it uses the app state's own key
+names (`printer`, `nozzle`, `material`, `build_plate`) so applying a setup is a
+merge, not a translation. v1 fields: `printer`, `nozzle`, `material`, and
+**`build_plate` (optional)** — the engine's warning layer already enforces
+plate×printer and plate×material correctness, so the plate belongs to hardware
+identity. Goals, surface, strength, speed, environment, support,
 colors and user level remain per-print state a setup never pins. `profileMode`
 follows the app's existing persistence, not the setup.
 
@@ -142,7 +148,7 @@ Shape sketch (final schema at plan time):
   "filaments": [{ "material_id": "petg_basic" }],
   "setups":    [{ "id": "<uuid>", "name": "Functional rig",
                   "printer": "x1c", "nozzle": "hrd_0.6",
-                  "filament": "petg_basic", "plate": "textured_pei" }],
+                  "material": "petg_basic", "build_plate": "textured_pei" }],
   "default_setup": "<uuid>"
 }
 ```
@@ -176,7 +182,23 @@ arithmetic, never silently clamped); tare vs net weight; negative-balance
 prevention at fold time; deleted/archived-spool behavior for the event journal;
 import idempotency keys for the bambuinventory bridge; and formula-injection-
 safe CSV export. The `spool_id` linkage reserved for Workshop outcomes in the
-July set stays reserved.
+July set stays reserved. Directional sketch (ratified shape at the Train 2
+plan gate):
+
+```json
+{
+  "schema": "3dpa_inventory_v1",
+  "spools": { "<spool_uuid>": {
+    "material_id": "petg_basic", "material_display": "Bambu PETG-HF",
+    "color_hex": "1A1A1A", "brand": "Bambu Lab",
+    "net_weight_mg": 1000000, "tare_weight_mg": 216000,
+    "price": null, "archived_at": null,
+    "import_meta": null } },
+  "events": [ { "id": "<event_uuid>", "spool": "<spool_uuid>",
+    "type": "usage", "delta_mg": -200000,
+    "at": "2026-08-17T12:00:00Z", "note": null } ]
+}
+```
 
 **Explicitly not v1** (stay on backlog): Gmail order intake, AMS/MQTT live state,
 humidity sensors, Spoolman sync (#041/#043/#045/#048). bambuinventory remains the
@@ -286,7 +308,15 @@ discipline (rewrite-not-append, evidence before production GO) applies.
   Account deletion with a positive balance warns the user, exports the ledger
   in the account export, and forfeits the balance (credits are spent with
   Apple, not held as user cash — no cash-out path exists). `admin_adjust` is
-  the owner-audited support-recovery mechanism.
+  the owner-audited support-recovery mechanism and, like every event, cannot
+  take a balance below zero (ledger invariant, enforced at append).
+  **Spend is two-phase (resolves round-2 P0-3 residual):** each AI request
+  carries a client idempotency key; the Worker appends `reserve` (priced
+  before send), then `settle` on provider success or `release` on
+  failure/timeout — a settle never exceeds its reserve, a retry with the same
+  key returns the recorded outcome instead of double-charging, and orphaned
+  reserves auto-release after a bounded TTL. The user-visible balance treats
+  reserved amounts as unavailable until settled or released.
 - **GDPR lifecycle** (export, deletion saga, kill switch) adopts the July SYN-11
   design, extended to cover the credit ledger and AI data.
 
@@ -307,7 +337,7 @@ discipline (rewrite-not-append, evidence before production GO) applies.
 |---|---|---|
 | **1 — My Gear + Setups** | Both surfaces (web free push; iOS = the planned next train, likely 1.2.0). Pool + setups + picker filtering + new-item badge. No backend, no account, no engine change. | This spec ratified + adversarially reviewed. Design details via normal writing-plans flow. |
 | **2 — Inventory + Pro (iOS)** | `3dpa_inventory_v1`, Pro non-consumable IAP (StoreKit-local under the §1 Pro contract), bambuinventory import. **Parallel backend workstream starts:** accounts + credit ledger + AI proxy on staging; #38 D1 (provider eval) + D2 (business case → SKU table) run here. | Train 1 shipped. Inventory schema ratified (§3). ASC: new IAP + review screenshots (lessons from 1.1.3 applied). **Privacy recount gate (review P2-11):** `privacy.html` + the App Privacy label are recounted against what Train 2 actually collects *before* submission — the current page's "no purchase history" claims predate even the Tip Jar. |
-| **3 — AI Buddy (iOS) → web** | Chat + photos + taster + credit packs + sign-in on iOS; then web accounts + web AI; then **sync joins Pro** (gear/inventory/Workshop). | #38 D1/D2 gates green + owner GO (D4). Privacy policy rewrite live before any production collection (July C14-16 rule). Staging canary per SYN-14 discipline. |
+| **3 — AI Buddy (iOS) → web** | Chat + photos + taster + credit packs + sign-in on iOS; then web accounts + web AI; then **sync joins Pro** (gear/inventory/Workshop). | #38 D1/D2 gates green + owner GO (D4) — **gating the AI surface only** (round-2 finding): accounts, web Pro portability and sync ride the same backend but their launch gates are independent of the AI gates, so a delayed or failed AI business case never blocks sync joining Pro. Privacy policy rewrite live before any production collection (July C14-16 rule). Staging canary per SYN-14 discipline. |
 
 Each train is independently shippable and independently valuable. No train
 blocks on a later train's unknowns. iOS release mechanics follow the standing
@@ -334,9 +364,9 @@ engine-impact evaluation at that train's plan time.
 
 1. Pro price point and credit pack sizes/prices — produced by the D2 calculator,
    presented as the #38 SKU table with margins per usage scenario.
-2. Free taster: the exact N (questions/device/period) and the ratified
-   worst-case daily cash cap. (Shape is decided in §1: text-only, attested,
-   kill-switched.)
+2. ~~Free taster allowance~~ — resolved in §1: 5 text questions / device /
+   rolling 30 days, $10/day global pool cap with auto-disable, attested,
+   kill-switched. Numbers tunable with data; never open-ended.
 3. ~~Setup contents~~ — resolved in §2: partial app-state preset; plate included,
    goals/environment excluded.
 4. Gear "new items" badge mechanics (count since last visit vs since setup).
@@ -357,9 +387,12 @@ Per the re-affirmed SYN-17 discipline and the work-protocol Full lane:
    `codex/next-gen-platform-review/bridge-2026-08-17-122452-955169.md`); all
    findings are dispositioned in this revision. A confirmation round on the
    applied fixes is required before ratification.
-3. **Identity matrix (review P1-9):** before the Train 3 implementation plan, a
-   short 2026 comparison — Firebase vs direct Apple+Google OIDC on Workers/D1
-   sessions vs Supabase/Auth0-class — with the winner's dependency and ops
-   costs explicitly accepted. Firebase remains the working default meanwhile.
+3. **Identity matrix (review P1-9 — deliberate deferral, accepted as partial):**
+   before the Train 3 implementation plan, a short 2026 comparison — Firebase
+   vs direct Apple+Google OIDC on Workers/D1 sessions vs Supabase/Auth0-class —
+   with the winner's dependency and ops costs explicitly accepted. Deferred on
+   purpose: identity is not on Train 1–2's critical path, and a matrix written
+   now would be re-litigated against a changed landscape at Train 3 anyway.
+   Firebase remains the working default meanwhile.
 4. Only then: writing-plans for Train 1 (and only Train 1 — later trains get
    their plans when their turn comes, against then-current reality).
