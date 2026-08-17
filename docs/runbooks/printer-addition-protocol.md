@@ -232,6 +232,119 @@ before promotion beyond `needs-research`. `max_nozzle_temp` and `max_bed_temp`
 must be sourced from manufacturer data unless explicitly approved after conflict
 review.
 
+#### Absence rationale — the shape the gate actually accepts
+
+The paragraph above states the *intent* of an absence rationale. This states the
+**machine shape**, because `validate-candidate-evidence.js` accepts exactly one
+and rejects everything else — including a rationale that is factually perfect but
+uses different key names. Every claim below is checkable against that file; line
+references are to it.
+
+**Only three fields may use the absence route at all.** `ABSENCE_BOOLEAN_FIELDS`
+is `{active_chamber_heating, has_camera, has_lidar}` (`:36-40`), and `fieldPasses`
+(`:240-243`) additionally requires `evidenceType: "absence-rationale"` and a
+literal `value: false`.
+
+**Every other field must take the manufacturer route**, even when the honest
+answer is "this printer has none". `multi_color_systems` is the one that bites:
+it is profile/safety-critical, it is *not* owner-attestable, and it is not in the
+absence set — so no absence rationale, however well sourced, can ever satisfy it.
+A printer with no multi-material system carries `value: []` on the manufacturer
+route, which is correct and expected rather than a gap: every shipped catalog row
+has the key, and sibling `ender_3_s1` carries `[]`.
+
+```json
+"multi_color_systems": {
+  "value": [],
+  "confidence": "confirmed",
+  "evidenceType": "manufacturer",
+  "source": "https://www.creality.com/products/creality-ender-3-s1-pro-fdm-3d-printer"
+}
+```
+
+**The manufacturer route** (`hasValidManufacturerSource`, `:177-189`) needs all
+of: `confidence: "confirmed"`, `evidenceType: "manufacturer"`, and a `source`
+that parses as an `http(s)` URL.
+
+**The absence route** (`hasAbsenceRationale`, `:135-156`) needs all five of these,
+spelled exactly this way — a missing `omissionSafeBecause` fails as hard as a bad
+URL, and a free-text `rationale` key satisfies nothing:
+
+```json
+"has_camera": {
+  "value": false,
+  "confidence": "confirmed",
+  "evidenceType": "absence-rationale",
+  "absenceRationale": {
+    "sourceClassesChecked": ["official-product-page", "manual", "support-wiki"],
+    "checkedSources": [
+      { "canonicalSource": "creality.com/products/creality-ender-3-s1-pro-fdm-3d-printer",
+        "retrievedAt": "2026-08-17T10:00:00Z" }
+    ],
+    "normallyAdvertisedIfPresent": "…what the manufacturer would advertise if the feature were present…",
+    "omissionSafeBecause": "…why silence is safe to read as absence for this field…"
+  }
+}
+```
+
+- `sourceClassesChecked` — at least one entry must come from the closed
+  vocabulary `MANUFACTURER_SOURCE_CLASSES` (`:28-34`):
+  `official-product-page`, `manual`, `support-wiki`, `manufacturer-spec-sheet`,
+  `manufacturer-firmware-profile`. Invented near-misses such as
+  `manufacturer-manual` or `manufacturer-product-page` are **not** in the set and
+  fail the check. Carrying all three of `official-product-page` + `manual` +
+  `support-wiki` additionally satisfies `hasCompleteSourceSweep` (`:163-169`),
+  which is what lets a genuine gap park as `world-absent` rather than
+  `research-defect`.
+- `checkedSources[].retrievedAt` — required on **every** entry and must parse as
+  a date. It is easy to omit because the prose rule never mentions it.
+
+**The two source formats are not the same shape.** This is the single easiest way
+to fail, because the same page is written two different ways in one packet:
+
+| Where | Required form | Example |
+|---|---|---|
+| `field.source` (manufacturer route) | full URL, must parse as http/https | `https://www.creality.com/products/creality-hi` |
+| `absenceRationale.checkedSources[].canonicalSource` | normalized identity — no scheme, no `www.`, no trailing slash | `creality.com/products/creality-hi` |
+
+`isCanonicalSourceIdentity` (`:125-133`) is true only when
+`canonicalSource(v) === v`, so the value must **already** be normalized.
+`canonicalSource()` (`scripts/lib/intake-source-normalizer.js`) drops the scheme,
+lowercases the host, strips a leading `www.`, drops the fragment, deletes
+`utm_source|utm_medium|utm_campaign|utm_term|utm_content|ref`, sorts the
+remaining query, and trims trailing slashes.
+
+**A non-canonical entry hides the real failure.** The pre-check at `:362-368`
+errors on any field whose `checkedSources` are not already normalized and then
+`continue`s — skipping `fieldPasses` at `:370` for that field entirely. So
+canonicalising the URLs *moves* the error rather than removing it: the field then
+fails on whatever the deeper check would have said. Fix the route and the format
+in the same pass, never the format alone.
+
+**`notes` is a manufacturer-route field with one extra rule.** It must pass the
+manufacturer route like any other (`:354-356`), and then
+`notesCarryManufacturerCitation` (`:305-325`) requires at least one note line to
+contain a URL that canonicalises to the *same* identity as the field's own
+`source`. A notes block citing only a blog post while `source` points at the
+product page fails, even though both are real manufacturer URLs.
+
+**Parity is checked separately.** `validateMaterializedParity` (`:246-303`)
+deep-compares every key of `printersJsonRow` against the materialized
+`data/printers.json` row. A punctuation or unicode drift between the two
+hand-authored copies fails the candidate with `does not match the materialized
+catalog row` and is a diff-and-align job, not an evidence problem — decide which
+side is authoritative rather than assuming the catalog is.
+
+Rationale: added 2026-08-17. `ender_3_s1_pro` and `hi` both reached this gate for
+the first time on 2026-08-16 — earlier runs died upstream on an unresolved
+`max_speed`, so the packet's shape had never been exercised. Both packets used a
+free-text `rationale` key, the out-of-vocabulary classes `manufacturer-manual` /
+`manufacturer-product-page`, no `retrievedAt`, non-normalized `www.` identities,
+and the absence route for `multi_color_systems`. None of that was documented
+anywhere the research agent reads: the prose rule under "Field confidence"
+describes the intent and never the schema. The gate was not tightened — the
+protocol simply never carried the shape.
+
 #### App-side acceleration cap (`max_acceleration` only)
 
 `max_acceleration` is the one profile/safety-critical field that may ship without
