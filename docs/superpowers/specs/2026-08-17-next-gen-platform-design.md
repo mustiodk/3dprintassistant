@@ -26,7 +26,7 @@ One sentence each, in the user's language:
 | Tier | Price | What you get |
 |---|---|---|
 | **Free** | 0 | Everything free today, plus **My Gear**: pick the printers, filaments and nozzles you own, save named Setups, and the app pre-fills itself. Local, no account needed, forever. |
-| **Pro** | one-time IAP (price at D2 gate) | **The workshop manager package:** filament inventory (headline), cloud sync of your data (gear, Workshop profiles, inventory) across devices, and future premium features. |
+| **Pro** | one-time IAP (price at D2 gate) | **The workshop manager package.** Contents *grow over time* under the Pro contract below: at Train 2 it is filament inventory (local, this device); Train 3 adds cloud sync of your data (gear, Workshop profiles, inventory); future premium features accrue to every past buyer. |
 | **AI credits** | prepaid consumable packs | The **AI 3D Expert Buddy**. Balance lives on your free account, spendable from any signed-in device (iOS first, web fast-follow, macOS if/when it ships). |
 
 Design rationale the tiers encode:
@@ -42,6 +42,18 @@ Design rationale the tiers encode:
   "balance lives on the account" (like a phone plan) separately from "my data
   syncs with Pro". This is the framing that keeps mixed continuity coherent.
 
+**The Pro contract (binding — resolves review P0-1/P0-4):** Pro is one SKU whose
+feature set only ever grows. At any moment, its store listing and purchase
+screen describe **only what it includes that day** — a buyer is never charged
+for an undelivered promise, so there is nothing to refund against and no
+App Review "coming soon" exposure. Every past buyer receives every later Pro
+feature at no charge (grandfathering is inherent to the SKU, not a courtesy).
+At Train 2, Pro is fully self-contained without any backend: the entitlement is
+StoreKit-local, restore is Apple's own non-consumable restore, refunds are
+Apple-side and the app re-derives the entitlement from StoreKit current
+entitlements on launch (a refunded purchase disappears and the feature locks).
+Web/sync portability is added — and only then advertised — at Train 3.
+
 ### Account model
 
 - **Nothing local ever requires an account.** Configurator, My Gear, and (for Pro
@@ -50,10 +62,14 @@ Design rationale the tiers encode:
   balance (spendable from any signed-in device), and making the Pro entitlement
   portable to non-Apple surfaces (web). Conversations themselves do not sync in
   v1 — see below.
-- **Account required only at credit purchase.** A few free taster AI questions
-  work signed-out (funnel; own abuse budget — §5). Pro purchase on iOS works
-  without an account (StoreKit local entitlement + Apple restore); signing in is
-  *offered* there to make it portable.
+- **Account required only at credit purchase.** The signed-out taster is
+  **text-only and hard-capped** (resolves review P0-2): no photos without
+  sign-in, N questions per device per period (N set at plan time), platform
+  attestation in front of it (App Attest / DeviceCheck on iOS, Turnstile on
+  web), a global taster kill switch, and a ratified worst-case daily cash cap
+  for the whole taster pool. Pro purchase on iOS works without an account
+  (StoreKit local entitlement + Apple restore); signing in is *offered* there to
+  make it portable.
 - **AI chat history is local per device in v1.** Only the balance is server-side.
   History sync is a candidate future Pro sweetener, not v1 scope.
 
@@ -94,6 +110,21 @@ Design constraints carried from #32 (binding):
 4. **App-layer only.** No `engine.js` change, no `data/` change, no byte-mirror
    event, no golden-snapshot movement.
 
+**Setup contents (resolves review P1-5):** a setup is a **partial app-state
+preset**, not an informal hardware triple. v1 fields: `printer`, `nozzle`,
+`filament`, and **`plate` (optional)** — the engine's warning layer already
+enforces plate×printer and plate×material correctness, so plate belongs to
+hardware identity. Goals, surface, strength, speed, environment, support,
+colors and user level remain per-print state a setup never pins. `profileMode`
+follows the app's existing persistence, not the setup.
+
+**Lifecycle (resolves review P1-6):** pool entries and setups are keyed maps
+with `archived_at` flags — never hard-deleted rows. Setups keep denormalized
+display labels so a setup referencing an archived pool item (or an id that has
+left the catalog) still renders; each setup carries a derived validation state
+(`valid` / `missing_pool_ref` / `missing_catalog_ref`) and the UI offers repair
+instead of failing. Ordering is stable and explicit.
+
 **Storage (decides #32 Q1):** a new dedicated local store, **`3dpa_gear_v1`**
 (web `localStorage`; iOS a Codable JSON file beside the existing app-state
 persistence), NOT a section of the Workshop envelope. Rationale: the Workshop
@@ -111,10 +142,13 @@ Shape sketch (final schema at plan time):
   "filaments": [{ "material_id": "petg_basic" }],
   "setups":    [{ "id": "<uuid>", "name": "Functional rig",
                   "printer": "x1c", "nozzle": "hrd_0.6",
-                  "filament": "petg_basic" }],
+                  "filament": "petg_basic", "plate": "textured_pei" }],
   "default_setup": "<uuid>"
 }
 ```
+
+(Sketch only — the ratified schema at plan time uses the keyed-map + archived
++ denormalized-label lifecycle model above.)
 
 All ids come from the existing catalog vocabularies (`printers.json`,
 `materials.json`, `nozzles.json`); no free-text ids.
@@ -134,6 +168,15 @@ All ids come from the existing catalog vocabularies (`printers.json`,
 - **One-time import from bambuinventory** (backlog #040): the field-by-field
   mapping table ratified in July (Claude APD5) is the contract; `import_meta`
   passthrough keeps it lossless.
+
+**Schema ratification requirement (resolves review P1-7):** before the Train 2
+implementation plan, the inventory schema is ratified with at least: stable
+spool ids and event ids; units (mg integers per the July mechanics — checked
+arithmetic, never silently clamped); tare vs net weight; negative-balance
+prevention at fold time; deleted/archived-spool behavior for the event journal;
+import idempotency keys for the bambuinventory bridge; and formula-injection-
+safe CSV export. The `spool_id` linkage reserved for Workshop outcomes in the
+July set stays reserved.
 
 **Explicitly not v1** (stay on backlog): Gmail order intake, AMS/MQTT live state,
 humidity sensors, Spoolman sync (#041/#043/#045/#048). bambuinventory remains the
@@ -191,6 +234,18 @@ chat entry on Home. iOS first; web fast-follow once accounts exist.
 - Budget enforcement: per-account and global spend ceilings, rate limits,
   provider-outage fallback message. Observability without logging conversation
   content by default.
+- **Photos are transient (resolves review P1-8):** the Worker forwards images to
+  the provider and never persists them — no R2, no D1 blobs, consistent with
+  the no-new-storage-primitives posture. Size caps and EXIF/metadata stripping
+  at the edge; the privacy policy states "photos are processed, not stored."
+  Server-side photo retention (e.g. for a "my past diagnoses" feature) is a
+  future decision that brings R2 + deletion/export machinery with it, never a
+  side effect.
+- **Context is an allowlisted schema, not ad-hoc stuffing (review P2-10):**
+  `ai_context_v1` = catalog ids, numeric profile outputs, warning ids/text,
+  provenance labels, and explicitly-marked untrusted user text blocks, with
+  hard text/image budgets. Imported third-party profiles and all free text are
+  untrusted data by construction.
 
 **Credits:** consumable IAP packs (small/medium/large; SKUs and prices produced
 by the #38 D2 business-case gate — the reproducible calculator with p50/p90/
@@ -220,6 +275,18 @@ discipline (rewrite-not-append, evidence before production GO) applies.
   in Train 3; StoreKit signed-transaction validation + App Store Server API
   reconciliation per the SYN-16 mechanics, now covering two SKU types
   (non-consumable Pro, consumable credits).
+- **Credit ledger semantics (resolves review P0-3):** the balance is derived
+  from an append-only, immutable event ledger with the enumerated event types
+  `purchase` / `spend` / `refund` / `revoke` / `admin_adjust`; credits do not
+  expire in v1. A credit purchase grants balance **only after server-side
+  StoreKit transaction validation** — no client-asserted grants. Spends are
+  server-gated, so negative balances cannot occur; Apple refund notifications
+  (ASSN v2) post compensating `refund` events, which may legitimately drive a
+  balance to a floor of zero. Family Sharing is disabled for credit SKUs.
+  Account deletion with a positive balance warns the user, exports the ledger
+  in the account export, and forfeits the balance (credits are spent with
+  Apple, not held as user cash — no cash-out path exists). `admin_adjust` is
+  the owner-audited support-recovery mechanism.
 - **GDPR lifecycle** (export, deletion saga, kill switch) adopts the July SYN-11
   design, extended to cover the credit ledger and AI data.
 
@@ -239,7 +306,7 @@ discipline (rewrite-not-append, evidence before production GO) applies.
 | Train | Content | Preconditions / gates |
 |---|---|---|
 | **1 — My Gear + Setups** | Both surfaces (web free push; iOS = the planned next train, likely 1.2.0). Pool + setups + picker filtering + new-item badge. No backend, no account, no engine change. | This spec ratified + adversarially reviewed. Design details via normal writing-plans flow. |
-| **2 — Inventory + Pro (iOS)** | `3dpa_inventory_v1`, Pro non-consumable IAP (StoreKit-local), bambuinventory import. **Parallel backend workstream starts:** accounts + credit ledger + AI proxy on staging; #38 D1 (provider eval) + D2 (business case → SKU table) run here. | Train 1 shipped. ASC: new IAP + review screenshots (lessons from 1.1.3 applied). |
+| **2 — Inventory + Pro (iOS)** | `3dpa_inventory_v1`, Pro non-consumable IAP (StoreKit-local under the §1 Pro contract), bambuinventory import. **Parallel backend workstream starts:** accounts + credit ledger + AI proxy on staging; #38 D1 (provider eval) + D2 (business case → SKU table) run here. | Train 1 shipped. Inventory schema ratified (§3). ASC: new IAP + review screenshots (lessons from 1.1.3 applied). **Privacy recount gate (review P2-11):** `privacy.html` + the App Privacy label are recounted against what Train 2 actually collects *before* submission — the current page's "no purchase history" claims predate even the Tip Jar. |
 | **3 — AI Buddy (iOS) → web** | Chat + photos + taster + credit packs + sign-in on iOS; then web accounts + web AI; then **sync joins Pro** (gear/inventory/Workshop). | #38 D1/D2 gates green + owner GO (D4). Privacy policy rewrite live before any production collection (July C14-16 rule). Staging canary per SYN-14 discipline. |
 
 Each train is independently shippable and independently valuable. No train
@@ -267,9 +334,11 @@ engine-impact evaluation at that train's plan time.
 
 1. Pro price point and credit pack sizes/prices — produced by the D2 calculator,
    presented as the #38 SKU table with margins per usage scenario.
-2. Free taster: exact allowance (N questions/device/period) and abuse cap.
-3. Setup contents: does a setup pin a build plate / environment default too?
-   (Lean: printer + nozzle + filament only in v1.)
+2. Free taster: the exact N (questions/device/period) and the ratified
+   worst-case daily cash cap. (Shape is decided in §1: text-only, attested,
+   kill-switched.)
+3. ~~Setup contents~~ — resolved in §2: partial app-state preset; plate included,
+   goals/environment excluded.
 4. Gear "new items" badge mechanics (count since last visit vs since setup).
 5. iOS train numbering (1.2.0 gear / 1.3.0 inventory / 1.4.0 AI assumed; owner
    confirms at each train start per the version-per-train rule).
@@ -284,7 +353,13 @@ Per the re-affirmed SYN-17 discipline and the work-protocol Full lane:
    single statement of what we're building).
 2. **Adversarial review:** one hostile sub-agent round + one cross-model round
    (`bridge --mode codex-only` per current routing), patch to zero P0–P2.
-   Explicit challenge list: the Firebase default (§5), the credits/Pro seam
-   (§1), taster abuse surface (§4), the two-store forever-promise shapes (§2–3).
-3. Only then: writing-plans for Train 1 (and only Train 1 — later trains get
+   Round 1 ran 2026-08-17 (NO-GO, 4 P0 / 5 P1 / 2 P2 — transcript at
+   `codex/next-gen-platform-review/bridge-2026-08-17-122452-955169.md`); all
+   findings are dispositioned in this revision. A confirmation round on the
+   applied fixes is required before ratification.
+3. **Identity matrix (review P1-9):** before the Train 3 implementation plan, a
+   short 2026 comparison — Firebase vs direct Apple+Google OIDC on Workers/D1
+   sessions vs Supabase/Auth0-class — with the winner's dependency and ops
+   costs explicitly accepted. Firebase remains the working default meanwhile.
+4. Only then: writing-plans for Train 1 (and only Train 1 — later trains get
    their plans when their turn comes, against then-current reality).
