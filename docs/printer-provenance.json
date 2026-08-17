@@ -771,6 +771,88 @@
           "evidenceType": "manufacturer"
         }
       }
+    },
+    "ender_3_s1_pro": {
+      "runId": "run-20260817T100446Z",
+      "shippedAt": "2026-08-17T10:24:00.000Z",
+      "resolution": "auto-shipped",
+      "fields": {
+        "series": {
+          "source": "https://www.creality.com/products/creality-ender-3-s1-pro-fdm-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "series_group": {
+          "source": "https://www.creality.com/products/creality-ender-3-s1-pro-fdm-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "enclosure": {
+          "source": "https://www.creality.com/products/creality-ender-3-s1-pro-fdm-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "extruder_type": {
+          "source": "https://www.creality.com/blog/the-differences-of-ender-3-s1-ender-3-s1-plus",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_nozzle_temp": {
+          "source": "https://m.media-amazon.com/images/I/B1VeQWylTYL.pdf",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_bed_temp": {
+          "source": "https://m.media-amazon.com/images/I/B1VeQWylTYL.pdf",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_speed": {
+          "source": "https://m.media-amazon.com/images/I/B1VeQWylTYL.pdf",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_acceleration": {
+          "source": "https://github.com/CrealityOfficial/Ender-3S1/blob/s1_pro_plus/Marlin/Configuration.h",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "available_nozzle_sizes": {
+          "source": "https://m.media-amazon.com/images/I/B1VeQWylTYL.pdf",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "multi_color_systems": {
+          "source": "https://www.creality.com/products/creality-ender-3-s1-pro-fdm-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "available_plates": {
+          "source": "https://www.creality.com/blog/the-differences-of-ender-3-s1-ender-3-s1-plus",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "active_chamber_heating": {
+          "source": "https://www.creality.com/products/creality-ender-3-s1-pro-fdm-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "absence-rationale"
+        },
+        "has_camera": {
+          "source": "https://www.creality.com/products/creality-ender-3-s1-pro-fdm-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "absence-rationale"
+        },
+        "has_lidar": {
+          "source": "https://www.creality.com/products/creality-ender-3-s1-pro-fdm-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "absence-rationale"
+        },
+        "notes": {
+          "source": "https://www.creality.com/products/creality-ender-3-s1-pro-fdm-3d-printer",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        }
+      }
     }
   }
 }
