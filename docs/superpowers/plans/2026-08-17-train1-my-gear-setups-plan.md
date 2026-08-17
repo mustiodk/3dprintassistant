@@ -153,6 +153,10 @@ console.log('# gear-store.js tests\n');
     validateSetup(ok, { ...pool, printers: [{ ...pool.printers[0], archived_at: '2026-01-01' }] }, CATALOGS) === 'missing_pool_ref');
   check('TC3 missing_catalog_ref (id left catalog)',
     validateSetup({ ...ok, printer: 'gone_printer' }, pool, CATALOGS) === 'missing_catalog_ref');
+  check('TC3 missing_pool_ref (nozzle not owned on that printer)',
+    validateSetup({ ...ok, nozzle: 'std_0.4' },
+      { ...pool, printers: [{ id: 'x1c', nozzles: ['hrd_0.6'], archived_at: null }] },
+      CATALOGS) === 'missing_pool_ref');
 }
 
 // TC4 — applySetupToState merges ONLY hardware keys, returns new object
@@ -233,10 +237,17 @@ function createGearStore(storage) {
     try { env = JSON.parse(raw); } catch (_) { return _empty(); }
     if (!env || typeof env !== 'object' || env.v !== VERSION) return _empty();
     const base = _empty();
+    const norm = { printers: _normPrinterRow, filaments: _normFilamentRow, setups: _normSetupRow };
     for (const k of ['printers', 'filaments', 'setups']) {
-      if (env[k] && typeof env[k] === 'object' && !Array.isArray(env[k])) base[k] = env[k];
+      if (env[k] && typeof env[k] === 'object' && !Array.isArray(env[k])) {
+        for (const [id, row] of Object.entries(env[k])) {
+          if (typeof id !== 'string' || !id) continue;
+          const clean = norm[k](row);
+          if (clean) base[k][id] = clean;
+        }
+      }
     }
-    if (Array.isArray(env.order)) base.order = env.order.filter(id => base.setups[id]);
+    if (Array.isArray(env.order)) base.order = [...new Set(env.order)].filter(id => base.setups[id]);
     if (typeof env.default_setup === 'string' && base.setups[env.default_setup]) base.default_setup = env.default_setup;
     if (env.catalog_seen && typeof env.catalog_seen === 'object') {
       base.catalog_seen = { printers: Number(env.catalog_seen.printers) || 0,
@@ -246,6 +257,29 @@ function createGearStore(storage) {
   }
 
   function _write(env) { try { storage.setItem(KEY, JSON.stringify(env)); } catch (_) {} }
+
+  // Row normalizers — malformed localStorage must never leak bad shapes into
+  // the forever schema (review P2-6). Applied field-by-field in _read.
+  function _normPrinterRow(r) {
+    if (!r || typeof r !== 'object') return null;
+    return { nozzles: Array.isArray(r.nozzles) ? r.nozzles.filter(n => typeof n === 'string') : [],
+             added_at: typeof r.added_at === 'string' ? r.added_at : _now(),
+             archived_at: typeof r.archived_at === 'string' ? r.archived_at : null };
+  }
+  function _normFilamentRow(r) {
+    if (!r || typeof r !== 'object') return null;
+    return { added_at: typeof r.added_at === 'string' ? r.added_at : _now(),
+             archived_at: typeof r.archived_at === 'string' ? r.archived_at : null };
+  }
+  function _normSetupRow(r) {
+    if (!r || typeof r !== 'object') return null;
+    return { name: String(r.name || ''), printer: String(r.printer || ''),
+             nozzle: String(r.nozzle || ''), material: String(r.material || ''),
+             build_plate: typeof r.build_plate === 'string' ? r.build_plate : null,
+             label: String(r.label || ''),
+             created_at: typeof r.created_at === 'string' ? r.created_at : _now(),
+             archived_at: typeof r.archived_at === 'string' ? r.archived_at : null };
+  }
 
   // ── pool ──
   function getPool() {
@@ -299,8 +333,14 @@ function createGearStore(storage) {
   function updateSetup(id, patch) {
     const env = _read();
     if (!env.setups[id] || !patch || typeof patch !== 'object') return;
-    const allowed = ['name', 'printer', 'nozzle', 'material', 'build_plate', 'label'];
-    for (const k of allowed) if (k in patch) env.setups[id][k] = patch[k];
+    // same coercions as saveSetup — a patch can't smuggle non-string shapes in
+    const s = env.setups[id];
+    if ('name' in patch) s.name = String(patch.name || '');
+    if ('printer' in patch) s.printer = String(patch.printer || '');
+    if ('nozzle' in patch) s.nozzle = String(patch.nozzle || '');
+    if ('material' in patch) s.material = String(patch.material || '');
+    if ('build_plate' in patch) s.build_plate = typeof patch.build_plate === 'string' ? patch.build_plate : null;
+    if ('label' in patch) s.label = String(patch.label || '');
     _write(env);
   }
   function archiveSetup(id) {
@@ -354,6 +394,8 @@ function validateSetup(setup, pool, catalogs) {
   const pp = (pool.printers || []).find(p => p.id === setup.printer && p.archived_at === null);
   const pf = (pool.filaments || []).find(f => f.id === setup.material && f.archived_at === null);
   if (!pp || !pf) return 'missing_pool_ref';
+  // Setups draw from owned gear: the nozzle must be in the owned printer's set.
+  if (!Array.isArray(pp.nozzles) || !pp.nozzles.includes(setup.nozzle)) return 'missing_pool_ref';
   return 'valid';
 }
 
@@ -406,27 +448,38 @@ git commit -m "feat(gear): 3dpa_gear_v1 store — pool, setups, default, catalog
 
 Boot rule (spec'd here, binding): **the persisted `3dpa_state_v1` session wins; the default setup applies only when state restore returns false** (fresh visitor/new device/expired storage). Insert after the existing restore call (the function containing `app.js:204`):
 
+**`state` is a `const` object (`app.js:66`) — NEVER reassign it.** Merge in
+place with `Object.assign`, and re-render through the file's real path:
+`render()` (`app.js:1580`) plus `buildFilters()` / `restoreChipSelections()`
+exactly as the existing restore block does after it mutates state.
+
 ```js
 const Gear = createGearStore(window.localStorage);
 
 function applyActiveSetup(setupId) {
   const setup = Gear.listSetups().find(s => s.id === setupId && s.archived_at === null);
   if (!setup) return false;
-  state = applySetupToState(setup, state);
-  persistState();            // existing 3dpa_state_v1 writer (app.js:199)
-  renderAll();               // existing full re-render entry point
+  Object.assign(state, applySetupToState(setup, state));
+  // persist + re-render exactly as the app.js:199-210 restore block does:
+  try { localStorage.setItem('3dpa_state_v1', StateCodec.encodeForStorage(state)); } catch (_) {}
+  buildFilters();
+  restoreChipSelections();
+  render();
   renderSetupSwitcher();
   return true;
 }
 
-// boot: fresh sessions start on the default setup
-if (!restored) {             // `restored` = boolean the existing restore path returns
+// boot: fresh sessions start on the default setup — insert where the existing
+// restore call's boolean result is in scope (the caller of app.js:204):
+if (!restored) {
   const def = Gear.getDefaultSetup();
-  if (def) { state = applySetupToState(def, state); }
+  if (def) { Object.assign(state, applySetupToState(def, state)); }
 }
 ```
 
-(Adopt the file's actual names for `persistState`/`renderAll`/`restored` at the insertion site — they exist in the restore block already; do not invent parallel paths.)
+(Bind to the restore call's actual boolean variable name at the insertion
+site; if the call result is currently discarded, capture it — do not invent a
+parallel restore path.)
 
 - [ ] **Step 3: Switcher UI**
 
@@ -458,6 +511,14 @@ Call `renderSetupSwitcher()` from the same place `renderAll()` finishes its top-
 
 `locales/en.json`: `"gearSwitcherTitle": "My setups"`, `"gearOpen": "My Gear"`.
 `locales/da.json`: `"gearSwitcherTitle": "Mine opsætninger"`, `"gearOpen": "Mit udstyr"`.
+
+- [ ] **Step 4b: Extend the browser-globals contract**
+
+`scripts/browser-globals.test.js` (`:16-18` holds the protected-globals list)
+asserts what the ready browser exposes; `index.html:249-255` is the script
+source of truth. Add `createGearStore`, `validateSetup` and
+`applySetupToState` to the asserted set so a future refactor can't silently
+drop the tag or the exports. Run: `node scripts/browser-globals.test.js` → green.
 
 - [ ] **Step 5: Browser verification (preview tools)**
 
@@ -518,7 +579,7 @@ git commit -m "feat(gear): My Gear management panel on web — pool, setups, new
 
 Binding semantics (spec §2 constraint 1): when the pool is non-empty, the pool REPLACES the `core`/`primary` set as the *initially visible* group, rendered under a labeled **"Your gear"** group header (a text label — visually distinct from compat dimming, which stays untouched); everything else stays reachable behind the existing `+N more` affordance (`pickerShowMore` for brands, `showAll` for chips). Empty pool → today's behavior exactly (core/primary defaults). The engine's `core:` tag and compat logic are not touched.
 
-- [ ] **Step 1: Brand row** — in the `app.js:472` block: `const ownedBrands = new Set(pool.printers.filter(p => !p.archived_at).map(p => Engine.getPrinter(p.id)?.brand))` (use the existing brand lookup the row already relies on); when non-empty and `!pickerShowMore`, `visible = brands.filter(b => ownedBrands.has(b.id))` with the "Your gear" group label above and the show-more chip labeled with the remaining count.
+- [ ] **Step 1: Brand row** — in the `app.js:472` block: `const ownedBrands = new Set(pool.printers.filter(p => !p.archived_at).map(p => Engine.getPrinter(p.id)?.manufacturer))` — the printer row's brand field is **`manufacturer`** (`data/printers.json`, consumed at `app.js:457`/`:571`), NOT `brand`; when non-empty and `!pickerShowMore`, `visible = brands.filter(b => ownedBrands.has(b.id))` with the "Your gear" group label above and the show-more chip labeled with the remaining count. Browser-verify with an owned NON-primary brand (e.g. Sovol) to prove the mapping.
 - [ ] **Step 2: Material/nozzle chips** — in the `app.js:742` loop: when pool non-empty, `isHidden = !showAll && !ownedIds.has(item.id)` (ownedIds from `getPool()` filaments / active printer's nozzles) replacing the `item.core === false` clause; group label rendered before the first owned chip.
 - [ ] **Step 3: Printer chips within a brand** — same treatment using pool printer ids.
 - [ ] **Step 4: Browser verification** — with a pool: pickers open on "Your gear" + show-more reveals the rest; incompatible-but-owned items still render the compat treatment on top (select ASA-incompatible printer/nozzle combo and confirm the dimming still fires); with an empty pool: pixel-identical to today (compare against production in a second tab).
@@ -573,7 +634,8 @@ git commit -m "feat(gear): pool-first pickers with Your-gear grouping on web (Tr
 - Consumes: `GearStore.shared.defaultSetup()`, `GearStore.apply(_:to:)`.
 - Produces: `HomeView` behavior — when a default setup exists: primary CTA reads `Strings.Gear.continueWith(setupName)` and applies the setup to `appState` then `router.push(.goals)` (skipping brand/printer/material/nozzle pickers); a secondary row lists other active setups (tap = apply+push) + a "My Gear" link (Task 8's route). No default setup → today's CTA to `.brandPicker` unchanged.
 
-- [ ] **Step 1:** Extract the decision into a testable helper `GearHomeCTA.destination(defaultSetup:) -> (title: String, appliesSetup: Bool)`; write its test first (default present/absent), run RED (TDD-RED breadcrumb rule: inverted-first on the present-case assertion, flip after observing the failure, leave `// RED demo verified 2026-08-…` comment).
+- [ ] **Step 0: Capture the restore signal.** `AppStatePersistence.restore` returns a Bool but `ContentView.init()` currently discards it (`ContentView.swift:53-55`). Capture it into an environment-visible flag (e.g. `appState.didRestorePersistedState`) — the boot rule is the same as web: **a restored session wins; the default setup applies only when restore returned false.** Home's "Continue with [setup]" CTA still renders whenever a default exists; what it must NOT do is silently overwrite a restored state at appear-time.
+- [ ] **Step 1:** Extract the decision into a testable helper `GearHomeCTA.destination(defaultSetup:didRestore:) -> (title: String, appliesSetup: Bool)`; write its tests first (default present/absent × restored true/false — four cases, incl. *restored non-default state is not overwritten*), run RED (TDD-RED breadcrumb rule: inverted-first on one representative, flip after observing the failure, leave `// RED demo verified 2026-08-…` comment).
 - [ ] **Step 2:** Implement helper + wire `HomeView` CTA; switcher row styled with existing `SharedComponents` chip pattern; spring-feel selection consistent with the app's animation conventions (owner UI preference).
 - [ ] **Step 3:** Run the full unit bundle (`-only-testing:3DPrintAssistantTests`) → green.
 - [ ] **Step 4:** Simulator proof: seed via `GearStore.shared` in a debug hook, screenshot Home with switcher, verify skip-to-goals flow and that clearing the default restores the old CTA. (Simulator tools; attach panel if the owner is watching.)
@@ -604,7 +666,7 @@ git commit -m "feat(gear): pool-first pickers with Your-gear grouping on web (Tr
 ### Task 9: iOS pool-first pickers
 
 **Files:**
-- Modify: `3DPrintAssistant/Views/Configurator/BrandPickerView.swift` (`:7-8` primary consumption), `MaterialPickerView.swift` (`:13-25` featured/more split), the nozzle picker view (locate via `grep -rn "std_0.4" 3DPrintAssistant/Views/Configurator/`)
+- Modify: `3DPrintAssistant/Views/Configurator/BrandPickerView.swift` (`:7-8` primary consumption), **`PrinterPickerView.swift` (`:48-63` model list, `:108-112` brand-model loading — the printer-model step lives here, not in BrandPicker)**, `MaterialPickerView.swift` (`:13-25` featured/more split), the nozzle picker view (locate via `grep -rn "std_0.4" 3DPrintAssistant/Views/Configurator/`)
 - Test: extend `GearStoreTests.swift` with the list-splitting helper tests.
 
 **Interfaces:**
@@ -612,7 +674,7 @@ git commit -m "feat(gear): pool-first pickers with Your-gear grouping on web (Tr
 - Produces: pickers open on a "Your gear" section when the pool is non-empty (`featuredIds`/`primary` stay the empty-pool fallback — spec #32 Q7); "Show all" reveals the rest; compat dimming untouched.
 
 - [ ] **Step 1:** Testable helper `GearPickerSplit.split(all: [String], owned: Set<String>) -> (featured: [String], more: [String])` — owned non-empty → featured = owned∩all in catalog order; owned empty → nil signal to use existing behavior. TDD (RED first with the batch's inverted-first breadcrumb or degenerate-RED commit-body note per project rule).
-- [ ] **Step 2:** Wire into the three pickers with a `Text(Strings.Gear.yourGear)` section header; keep each file's existing structure (featured/more arrays swap source, rendering unchanged).
+- [ ] **Step 2:** Wire into the four pickers (Brand, **Printer — split the `:48-63` model list into owned/more using pool printer ids**, Material, Nozzle) with a `Text(Strings.Gear.yourGear)` section header; keep each file's existing structure (featured/more arrays swap source, rendering unchanged).
 - [ ] **Step 3:** Full unit bundle + `ScreenCaptureUITests` smoke → green; simulator screenshots of each picker with and without a pool.
 - [ ] **Step 4:** Commit local: `git commit -m "feat(gear): pool-first pickers with featured fallback (Train 1)"`
 
@@ -627,6 +689,7 @@ git commit -m "feat(gear): pool-first pickers with Your-gear grouping on web (Tr
 - [ ] **Step 2:** iOS: full XCTest bundle + UITest smoke green by exit code; repo state = clean tree, N commits ahead, **unpushed** (push gate — push only at 1.2.0 train composition with owner authorization).
 - [ ] **Step 3:** Cross-surface parity spot-check: export the web envelope from localStorage, drop it into the iOS parity fixture location, run `GearStoreTests` → green.
 - [ ] **Step 4:** Update ROADMAP (statuses, next: 1.2.0 composition gates: MARKETING_VERSION bump, release notes incl. Elegoo iOS row from #31, TestFlight dispatch, owner device acceptance) and comment on #32 with the shipped scope; leave the issue open until iOS ships.
+- [ ] **Step 4b:** Analytics-bias disclosure (spec §2 constraint 3, review P2-8): add one caveat line to the `/analytics` dashboard near the `top_printers` / `top_materials` cards (`analytics.html:839-840`) — "since 2026-08 (My Gear), these reflect configured selections filtered by users' own gear" — so future ranking decisions aren't made on silently-biased data.
 - [ ] **Step 5:** Commit docs: `git commit -m "docs(gear): Train 1 status — web live, iOS local under push gate"`
 
 ---
