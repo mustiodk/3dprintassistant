@@ -299,8 +299,9 @@ discipline (rewrite-not-append, evidence before production GO) applies.
   (non-consumable Pro, consumable credits).
 - **Credit ledger semantics (resolves review P0-3):** the balance is derived
   from an append-only, immutable event ledger with the enumerated event types
-  `purchase` / `spend` / `refund` / `revoke` / `admin_adjust`; credits do not
-  expire in v1. A credit purchase grants balance **only after server-side
+  `purchase` / `reserve` / `settle` / `release` / `refund` / `revoke` /
+  `admin_adjust` — there is no standalone `spend` type; a spend IS the
+  `reserve`→`settle` pair defined below. Credits do not expire in v1. A credit purchase grants balance **only after server-side
   StoreKit transaction validation** — no client-asserted grants. Spends are
   server-gated, so negative balances cannot occur; Apple refund notifications
   (ASSN v2) post compensating `refund` events, which may legitimately drive a
