@@ -226,12 +226,17 @@ pre-sold. Every Pro claim is recounted at each train's submission.
 chat, grounded; **photos from day one** (owner override of the text-only default —
 a photo of stringing is the diagnosis; cost difference is priced into credits).
 
+> **Companion spec:** identity/loyalty architecture, model selection, context
+> budgets, the apply-loop and the eval suite live in
+> [`2026-08-17-ai-buddy-design.md`](2026-08-17-ai-buddy-design.md). That doc
+> owns how the buddy works; this section owns tiers, cost rails and sequencing.
+
 | Family | In v1 | Notes |
 |---|---|---|
 | 🔧 Diagnose | ✅ | "Why did this fail?" — photo + symptoms + exact setup → ranked causes, next steps; follow-ups in-thread; guided calibration walkthroughs |
 | 🤔 Decide | ✅ | Material/nozzle/printer choice questions grounded in the catalogs |
 | 📚 Learn | ✅ | Explain settings/trade-offs; beginner onboarding |
-| 🧪 Plan/Act | ⏭ v1.5 | Settings-patch proposals with explicit user review-and-apply UX; never silent mutation (#38 constraint) |
+| 🧪 Plan/Act | ✅ v1 (input-side) / ⏭ v1.5 (value deltas) | **v1: input-side proposal cards** — the buddy proposes changed *configurator answers* (environment, support, nozzle…), user reviews and applies, the **engine regenerates everything** (cannot produce an invalid profile by construction). v1.5: output-side value deltas through the existing Workshop tuning ("Mine") rail. Never silent mutation (#38 constraint). Owner-locked 2026-08-17; details in the companion spec §2. |
 | 🔗 Connected | ⏭ v2 | Inventory-aware ("enough PETG left?"), fleet-aware answers — the moat; needs Trains 1–2 shipped |
 
 **Entry points:** contextual "Ask 3DPA" on Output and Troubleshooter (opens chat
@@ -358,8 +363,9 @@ engine-impact evaluation at that train's plan time.
 - Community/sharing layer (#022), hosted engine API (#044).
 - Android (own program, gated on AG0), macOS (backlog #037 — but all account/
   credit design must not preclude it).
-- Engine tool-calling for AI v1; AI-initiated profile mutation in any version
-  (explicit user apply only, when v1.5 ships).
+- Engine tool-calling for AI v1; AI-initiated profile mutation in any version —
+  every change is a user tap on a rendered proposal card: input-side cards in
+  v1, Workshop-tuning value deltas in v1.5 (companion spec §2).
 
 ## 9. Open questions (to resolve at plan time, not blockers to ratification)
 
