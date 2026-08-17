@@ -515,6 +515,8 @@ const COMBOS = [
     state: stateDefault({ printer: 'adventurer_3', nozzle: 'std_0.4', material: 'pla_basic' }) },
   { id: 21, label: 'Anycubic Kobra 2 Neo + 0.4 std + PLA Basic + Standard/Balanced (entry-level open-frame bedslinger, 250mm/s, 2500mm/s² accel, 110°C bed)',
     state: stateDefault({ printer: 'kobra_2_neo', nozzle: 'std_0.4', material: 'pla_basic' }) },
+  { id: 22, label: 'Creality Ender-3 S1 Pro + 0.4 std + PLA Basic + Standard/Balanced (Ender Series sibling of ender_3_s1, firmware-sourced 500mm/s² accel, ladder-resolved 150mm/s cap, 110°C bed)',
+    state: stateDefault({ printer: 'ender_3_s1_pro', nozzle: 'std_0.4', material: 'pla_basic' }) },
 ];
 
 // ─── Main ───────────────────────────────────────────────────────────────────

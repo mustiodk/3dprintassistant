@@ -428,6 +428,32 @@
       ]
     },
     {
+      "id": "ender_3_s1_pro",
+      "name": "Ender-3 S1 Pro",
+      "manufacturer": "creality",
+      "series": "bedslinger",
+      "series_group": "Ender Series",
+      "enclosure": "none",
+      "active_chamber_heating": false,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 300,
+      "max_bed_temp": 110,
+      "max_speed": 150,
+      "max_acceleration": 500,
+      "has_lidar": false,
+      "has_camera": false,
+      "multi_color_systems": [],
+      "available_plates": ["textured_pei"],
+      "available_nozzle_sizes": [0.4],
+      "notes": [
+        "Open-frame Ender Series bed-slinger — 220×220×270mm build volume, Sprite full-metal dual-gear direct extruder (80N extrusion force) — https://www.creality.com/products/creality-ender-3-s1-pro-fdm-3d-printer",
+        "PEI spring steel build plate standard (vs PC spring steel on base Ender-3 S1); CR-Touch 16-point auto bed leveling — https://www.creality.com/blog/the-differences-of-ender-3-s1-ender-3-s1-plus",
+        "max_speed=150mm/s: manufacturer-vs-manufacturer conflict resolved by the specification-grade-outranks-marketing-copy ladder (docs/runbooks/printer-addition-protocol.md). Official User Manual V1.4 Device Specifications table (Shenzhen Creality 3D Technology Co., Ltd, page 12/14) states 'Printing Speed: Up to 150 mm/s, recommended 50 mm/s' — a specification table. store.creality.com Canada product-page TITLE states 'max speed 160mm/s' with no supporting spec table (marketing copy only, confirmed by direct fetch). Rung 1 applies: spec-grade value taken as confirmed. Matches shipped sibling ender_3_s1 (150mm/s). Sources: https://m.media-amazon.com/images/I/B1VeQWylTYL.pdf (manual, spec table) and https://store.creality.com/ca/products/ender-3-s1-pro-3d-printer (title-only, marketing copy).",
+        "max_acceleration 500mm/s2 (X/Y) is Creality's official shipped firmware default, not an app-side cap — Ender-3S1/Marlin/Configuration.h DEFAULT_MAX_ACCELERATION (s1_pro_plus branch, ENDER_3S1_PRO target): https://github.com/CrealityOfficial/Ender-3S1/blob/s1_pro_plus/Marlin/Configuration.h",
+        "No camera, no LiDAR, single extruder (no multi-color system) per official User Manual V1.4 (Device Specifications table + Accessory Kit Items list, silent on all three) — https://www.creality.com/products/creality-ender-3-s1-pro-fdm-3d-printer"
+      ]
+    },
+    {
       "id": "k1",
       "name": "K1",
       "manufacturer": "creality",
