@@ -184,6 +184,28 @@ console.log('# gear-store.js tests\n');
   check('TC5 floor 0 when catalog shrinks', s.catalogNews({ printers: 79, materials: 19 }).printers === 0);
 }
 
+// TC7 — malformed rows are normalized on read, never leaked (review P2-6)
+{
+  const bad = JSON.stringify({ v: 1,
+    printers: { x1c: { nozzles: 'not-an-array', archived_at: 42 }, '': { nozzles: [] } },
+    filaments: { petg_basic: null },
+    setups: { s1: { name: 7, printer: 'x1c', nozzle: 'hrd_0.6', material: 'petg_basic',
+                    build_plate: 9, label: null }, s2: 'garbage' },
+    order: ['s1', 's1', 's2', 'ghost'], default_setup: 's2',
+    catalog_seen: { printers: 'x', materials: null } });
+  const s = createGearStore(mockStorage({ '3dpa_gear_v1': bad }));
+  const p = s.getPool().printers.find(p => p.id === 'x1c');
+  check('TC7 printer row normalized', !!p && Array.isArray(p.nozzles) && p.archived_at === null);
+  check('TC7 empty-string id dropped', !s.getPool().printers.some(p => p.id === ''));
+  check('TC7 null filament row dropped', s.getPool().filaments.length === 0);
+  const setups = s.listSetups();
+  check('TC7 setup coerced + garbage dropped', setups.length === 1
+    && setups[0].name === '7' && setups[0].build_plate === null && setups[0].label === '');
+  check('TC7 order deduped + ghost/garbage filtered', setups.map(x => x.id).join() === 's1');
+  check('TC7 default pointing at dropped setup cleared', s.getDefaultSetup() === null);
+  check('TC7 catalog_seen coerced to numbers', s.catalogNews({ printers: 1, materials: 1 }).printers === 1);
+}
+
 // TC6 — corruption + quota resilience (workshop-store posture)
 {
   const s = createGearStore(mockStorage({ '3dpa_gear_v1': '{not json' }));
@@ -505,7 +527,7 @@ function renderSetupSwitcher() {
 }
 ```
 
-Call `renderSetupSwitcher()` from the same place `renderAll()` finishes its top-level render.
+Call `renderSetupSwitcher()` at the end of `render()` (`app.js:1580`) so every top-level re-render refreshes the switcher's active chip.
 
 - [ ] **Step 4: Locale keys**
 
@@ -696,6 +718,6 @@ git commit -m "feat(gear): pool-first pickers with Your-gear grouping on web (Tr
 
 ## Self-Review (run after writing — completed 2026-08-17)
 
-1. **Spec coverage:** §2 pool ✓(T1/T3/T8) · setups+default ✓(T1/T2/T7) · partial-preset keys ✓(T1 TC4) · lifecycle/orphans ✓(T1 TC3, T3.3, T8.3) · dedicated store forever-shape ✓(T1) · picker filtering + distinct treatment ✓(T4/T9) · new-items badge ✓(T1 TC5, T3.4, T8.1) · analytics caveat = no new events, nothing to do · app-layer only ✓(T5.2 drift proof).
+1. **Spec coverage:** §2 pool ✓(T1/T3/T8) · setups+default ✓(T1/T2/T7) · partial-preset keys ✓(T1 TC4) · lifecycle/orphans ✓(T1 TC3/TC7, T3.3, T8.3) · dedicated store forever-shape ✓(T1) · picker filtering + distinct treatment ✓(T4/T9) · new-items badge ✓(T1 TC5, T3.4, T8.1) · analytics caveat ✓(no new events; dashboard bias disclosure at T10.4b) · app-layer only ✓(T5.2 drift proof).
 2. **Placeholder scan:** none — every code step carries real code or an exact existing-pattern binding.
 3. **Type consistency:** `createGearStore/validateSetup/applySetupToState` names match across T1→T4; iOS `GearStore`/`GearSetup`/`apply` match T6→T9; envelope keys identical in T1 spec block and T6 parity fixture.
