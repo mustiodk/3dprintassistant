@@ -19,6 +19,9 @@
     "ender_3_s1": {
       "reason": "awaiting-registry"
     },
+    "ender_3_s1_pro": {
+      "reason": "awaiting-registry"
+    },
     "guider_3": {
       "reason": "absent-upstream",
       "note": "Upstream has Guider 2s, Guider 3 Ultra and Guider4, but no plain Guider 3."
