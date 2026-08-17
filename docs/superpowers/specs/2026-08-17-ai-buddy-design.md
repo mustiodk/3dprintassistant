@@ -135,9 +135,14 @@ A card is a deterministic artifact, not free text with a button:
   allowlisted keys and catalog-valid values — mechanical checks only; the
   **client engine** owns cross-field truth: before the card's Apply enables,
   the client runs the engine preflight on (current state + changes) and
-  renders the **warnings delta** on the card. A delta that *adds* engine
-  warnings requires an explicit second confirm naming them; a delta hitting
-  the correctness layer (e.g. plate not on this printer) renders blocked.
+  renders the **warnings delta** on the card. Three outcomes, defined against
+  the engine's actual API (`docs/3dpa-context.md` — engine public API):
+
+  | Preflight outcome | Definition (engine calls) | Card behavior |
+  |---|---|---|
+  | **Blocked** | Any proposed id absent from the current catalogs; nozzle reported `compatible: false` by `getCompatibleNozzlesForPrinter(material, printer)`; build plate not offered by the proposed printer (the plate guard in `getWarnings`); or `getBuildPlateCompatibility(material, plate)` = `'avoid'` | Apply disabled; card explains why, offers the nearest non-blocked alternative when one exists |
+  | **Confirm** | `getWarnings(proposed state)` contains warning ids not present in `getWarnings(current state)`; or `getBuildPlateCompatibility` = `null` (unknown combination — fail-closed) | Second explicit confirm naming each added warning verbatim |
+  | **Clean** | Neither of the above | Single-tap apply |
 - Allowed keys v1: the configurator's own input state (printer, nozzle,
   material, build_plate, environment, support, colors, useCase, surface,
   strength, speed, profileMode); anything else drops the card (not just the
