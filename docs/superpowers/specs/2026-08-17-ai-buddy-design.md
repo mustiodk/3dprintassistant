@@ -71,12 +71,29 @@ Non-negotiable, in the prompt and policed by the eval set (§6):
    settings) escalate to manufacturer documentation and refuse cheerful
    confidence — carried from #38.
 
-### Layer 5 — The loyalty eval is the enforcement mechanism
+### Layer 5 — Enforcement: deterministic checks first, eval for the rest
 
-#38 already mandates an eval set; this spec gives it a named core: the
-**contradiction-bait suite** (§6). Loyalty is a regression-tested property.
-Every system-prompt or model change re-runs the suite before deploy; a
-loyalty regression is a NO-GO exactly like a broken unit test.
+Prompting alone (Layers 1 and 3) is posture, not control — the review
+correctly called this out. Enforcement is therefore explicit about *what
+enforces each rule*:
+
+| Rule | Enforcement |
+|---|---|
+| Card schema validity, allowlisted keys, catalog values | **Deterministic, runtime** (Worker + client, §2) |
+| Cross-field compatibility + warnings delta on apply | **Deterministic, runtime** (client engine preflight, §2) |
+| Third-person leakage ("the app", "the tool", "whoever configured") | **Deterministic, runtime**: forbidden-term scan on every response; hit → regenerate once, then fail closed to a typed fallback |
+| Alternative slicer-parameter numbers in prose (§ boundary below) | **Deterministic heuristic, runtime**: scan output for profile-parameter names co-occurring with numbers that differ from the current profile; hit → regenerate/fallback. Heuristic, so the eval backstops it |
+| Identity, tone, Tuned-path framing, refusal quality | **Eval-sampled** (§6) — not runtime-enforceable; accepted as residual risk, measured per release |
+
+**The no-numbers boundary (precise):** forbidden = *output/profile parameter
+values* (speeds, temperatures, retraction, flow, accelerations…). Allowed =
+*catalog and hardware enum values* the cards legitimately carry (nozzle
+`0.6 mm`, plate names, environment ids, material names). The deterministic
+scan and the eval both use this definition.
+
+Every system-prompt, model, or context-schema change re-runs the §6 suite
+before deploy; a loyalty regression is a NO-GO exactly like a broken unit
+test.
 
 ## 2. One brain, one loop — how buddy and configurator integrate
 
@@ -88,7 +105,7 @@ different risk classes:
 |---|---|---|
 | What | Different inputs to questions the configurator already asks: environment → humid, support → tree, nozzle → the 0.6 the user owns, material swap | Raw parameter deltas beyond any input change ("outer wall 70") |
 | Mechanism | Proposal card → user reviews → apply → **engine regenerates the whole profile** (clamps, warnings, provenance intact) | Flows into the **existing Workshop personal-tuning rail** (Mine tier, pairKey guard, acceptance flow) as proposals |
-| Risk | Cannot produce an invalid profile by construction — the buddy fills in the form; the engine computes | The risky kind — needs the sanctioned rail + its own review |
+| Risk | **Cannot directly mutate raw slicer parameters** — the buddy fills in the form; the engine computes. It CAN, however, propose a state the engine would *warn about* (plate not on printer, soft nozzle, open-frame + high-shrink…), so every card gets a **post-apply preflight** before the Apply button enables (see the card contract below) | The risky kind — needs the sanctioned rail + its own review |
 | Ships | **v1** (owner-locked 2026-08-17) | **v1.5** |
 
 ### The v1 user journey
@@ -101,16 +118,37 @@ regenerates → the new profile renders with a "changed via your AI session"
 note → the chat records what was applied. Dismissing the card is a first-class
 action; nothing ever applies silently (#38 constraint, unchanged).
 
-### Proposal-card contract (v1)
+### Proposal-card contract — `proposal_card_v1`
 
-- The model emits proposals only as structured output against a fixed schema:
-  `{ changes: [{ key: <app-state key>, to: <catalog/enum value>, why: <string> }] }`,
-  validated server-side before the card renders; free-text "apply this"
-  never becomes a card.
+A card is a deterministic artifact, not free text with a button:
+
+```json
+{ "schema": "proposal_card_v1", "card_id": "<uuid>",
+  "base_state_hash": "<sha256 of the app state the card was computed against>",
+  "created_at": "<iso>", "expires_at": "<iso, TTL ~1h>",
+  "changes": [{ "key": "<app-state key>", "to": "<catalog/enum value>",
+                "why": "<string, max 200 chars, inert display text>" }] }
+```
+
+- **Validation authority is split** (resolves the "server never runs engine
+  logic" tension): the **Worker** validates JSON shape, schema version,
+  allowlisted keys and catalog-valid values — mechanical checks only; the
+  **client engine** owns cross-field truth: before the card's Apply enables,
+  the client runs the engine preflight on (current state + changes) and
+  renders the **warnings delta** on the card. A delta that *adds* engine
+  warnings requires an explicit second confirm naming them; a delta hitting
+  the correctness layer (e.g. plate not on this printer) renders blocked.
 - Allowed keys v1: the configurator's own input state (printer, nozzle,
   material, build_plate, environment, support, colors, useCase, surface,
-  strength, speed, profileMode) with values validated against the catalogs;
-  anything else is dropped and logged.
+  strength, speed, profileMode); anything else drops the card (not just the
+  key) and logs it. `why` strings are escaped inert text — never markup,
+  never parsed.
+- **Lifecycle:** apply is idempotent per `card_id` (double-tap safe) and
+  allowed only while `base_state_hash` matches the live state — if the user
+  edited anything meanwhile, the card disables with a one-tap "recheck
+  against current setup". Cards expire at `expires_at`. Every apply snapshots
+  the prior state and offers **one-tap Undo**; applied/dismissed/expired
+  outcomes are recorded in the local chat history.
 - Applying uses the same state-change path the UI's own controls use — one
   code path, no AI-special mutation.
 - A proposal that references gear the user owns (Train 1 pool) is preferred
@@ -174,11 +212,15 @@ and focus are.** Per-turn allowlisted context (platform spec §4's
 | Conversation | last N turns, capped | ≤2,000 |
 | **Total in** | | **~5–8K** |
 
-Photo questions add one image (size-capped, EXIF-stripped, transient — never
-persisted; platform spec §4). Output capped ~800 tokens. At candidate-tier
-pricing this is fractions of a cent per text turn; exact dated numbers are a
-D2 deliverable, and credit prices are set from D2's worst-case rows, not the
-p50.
+**Photo budget (concrete, for D2's worst-case rows):** max **1 image per
+message** in v1; client downscales to ≤1568 px long edge and re-encodes JPEG
+≤1 MB before upload; EXIF/metadata stripped at the edge; transient — never
+persisted (platform spec §4). Oversized/multiple images get a typed rejection
+before any credit reserve. D2 prices the image with the chosen provider's
+dated image-token unit, at this exact size, in the worst-case row. Output
+capped ~800 tokens. At candidate-tier pricing a text turn is fractions of a
+cent; exact dated numbers are a D2 deliverable, and credit prices are set
+from D2's worst-case rows, not the p50.
 
 Curated knowledge (param explanations, material guides) is context-stuffed
 selectively by symptom/topic match in v1; retrieval infrastructure is a
@@ -212,7 +254,18 @@ prompt/model/context-schema change re-runs it.
    more info needed / consult the manufacturer" (#38 requirement).
 7. **Prompt injection:** malicious profile notes / user text attempting to
    rewrite the buddy's rules; imported third-party profiles are untrusted
-   data by construction.
+   data by construction. Includes **image-embedded injection** (instructions
+   photographed or rendered inside the uploaded picture) and **`why`-text
+   injection** (a card's why attempting markup/instruction smuggling —
+   must render inert).
+8. **Card lifecycle:** warning-creating proposals (confirm flow fires, named
+   warnings shown); stale card after a user edit (disabled + recheck);
+   double-tap apply (idempotent, one state change); expired card.
+9. **Locale parity:** the full suite runs in **Danish and English**; a rule
+   that only holds in English fails.
+10. **Degradation:** context truncation must drop conversation history first
+    and warnings/provenance last (asserted by fixture); the fallback
+    provider re-runs the loyalty core before it is enabled as fallback.
 
 Scoring per #38: technical correctness, safety, actionability, unnecessary
 changes, honest uncertainty — plus **loyalty** as a first-class dimension.

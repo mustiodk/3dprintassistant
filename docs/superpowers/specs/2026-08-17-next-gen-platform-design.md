@@ -236,7 +236,7 @@ a photo of stringing is the diagnosis; cost difference is priced into credits).
 | 🔧 Diagnose | ✅ | "Why did this fail?" — photo + symptoms + exact setup → ranked causes, next steps; follow-ups in-thread; guided calibration walkthroughs |
 | 🤔 Decide | ✅ | Material/nozzle/printer choice questions grounded in the catalogs |
 | 📚 Learn | ✅ | Explain settings/trade-offs; beginner onboarding |
-| 🧪 Plan/Act | ✅ v1 (input-side) / ⏭ v1.5 (value deltas) | **v1: input-side proposal cards** — the buddy proposes changed *configurator answers* (environment, support, nozzle…), user reviews and applies, the **engine regenerates everything** (cannot produce an invalid profile by construction). v1.5: output-side value deltas through the existing Workshop tuning ("Mine") rail. Never silent mutation (#38 constraint). Owner-locked 2026-08-17; details in the companion spec §2. |
+| 🧪 Plan/Act | ✅ v1 (input-side) / ⏭ v1.5 (value deltas) | **v1: input-side proposal cards** — the buddy proposes changed *configurator answers* (environment, support, nozzle…), user reviews and applies, the **engine regenerates everything** (the buddy cannot directly mutate raw slicer parameters; an engine preflight gates Apply and surfaces any warnings the change would add — companion spec §2). v1.5: output-side value deltas through the existing Workshop tuning ("Mine") rail. Never silent mutation (#38 constraint). Owner-locked 2026-08-17. |
 | 🔗 Connected | ⏭ v2 | Inventory-aware ("enough PETG left?"), fleet-aware answers — the moat; needs Trains 1–2 shipped |
 
 **Entry points:** contextual "Ask 3DPA" on Output and Troubleshooter (opens chat
