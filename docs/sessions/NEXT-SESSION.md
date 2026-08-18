@@ -4,11 +4,24 @@
 The specs are ratified, the plan survived three adversarial rounds to zero
 findings, and web tasks ship value before iOS work begins.
 
-**Last updated:** 2026-08-18, mac-mini wrap-up. Entry point UNCHANGED — Train 1
-execution. Yesterday's `hi` decision was consumed by the 12:00 run: it shipped
-live, carried an unsourced 0.8mm nozzle, and was corrected the same hour
-(`67bfb60` + `037b722`, overlay `2026081802`, live-verified). `ender_3_pro`'s
-decision is now written and tomorrow's run is its test.
+**Last updated:** 2026-08-19 ~00:40, mac-mini wrap-up (second session of 08-18).
+Entry point UNCHANGED — Train 1 execution.
+
+**In flight, needs no work but do not lose it: iOS 1.1.4 is `Waiting for Review`.**
+Build `202608182214` (`991deba`), **Manual Release selected** — approval does NOT
+ship it; releasing is a deliberate owner action, and after releasing, verify the
+Danish storefront reports 1.1.4. Review takes up to 48h and the outcome arrives
+by email. If it is **rejected**, read
+`3dprintassistant-ios/docs/app-store-v1.1.4-submit.md` first — it carries the
+exact build, the submitted copy, and the acceptance gates.
+
+**Known-broken and deliberately left: the WEB nozzle picker.** `app.js:1536`
+calls `Engine.getCompatibleNozzles(state.material)`, so every printer offers all
+nine nozzle sizes even ones it cannot mount. iOS was fixed this session
+(`7c695d9`); the owner chose iOS-only, so **web and iOS now behave differently**.
+A task chip is filed. Read
+[`2026-08-18-green-suite-never-touched-the-screens.md`](../../../ai-operating-model/docs/findings/2026-08-18-green-suite-never-touched-the-screens.md)
+before touching it — the engine is correct, the call site is the bug.
 
 ---
 
@@ -113,10 +126,26 @@ trusting it (autostash-pop wedge, 2026-08-16).
 - `state` in app.js is a `const` (`app.js:66`) — merge with `Object.assign`,
   re-render via `render()` (`app.js:1580`); the printer row's brand field is
   `manufacturer`, not `brand`.
+- A green engine suite says nothing about whether the SCREEN calls the right
+  engine function. When a function has a narrower variant, grep its call sites;
+  "tests only" is the bug. Keep one test per interactive screen that performs
+  the real gesture (2026-08-18: two user-visible bugs past 213 green tests).
+- Verify a RED fails for the INTENDED reason before trusting it, and read test
+  totals from the `.xcresult` bundle, never a piped console tail.
+- SwiftUI: press animations come from a `ButtonStyle`'s `configuration.isPressed`.
+  A `DragGesture(minimumDistance: 0)` inside a `ScrollView` starves the pan
+  recognizer and silently kills scrolling. `EdgeSwipeBack.swift` is UIKit-backed
+  on purpose — do not "simplify" it into a SwiftUI gesture.
+- Before pasting into App Store Connect, dump the LIVE field values
+  (`description`, `whatsNew`, `promotionalText`, `notes`) and read them in full.
+  ASC auto-carries review notes from the previous version, so they arrive
+  pre-filled and read as already-correct; the prepared submit doc only covers
+  what its author thought to change.
 
 <<< END <<<
 
 Maintenance note: regenerated on Trigger A / Trigger B / explicit owner ask
-only. This revision was the 2026-08-17 Trigger A wrap-up (mac-mini): entry
-point changed from the two-packet repair (DONE — shipped/decided) to Train 1
-execution; #32 scoping superseded by the ratified platform spec.
+only. This revision was the 2026-08-18 evening Trigger A wrap-up (mac-mini,
+closed ~00:40 on 08-19): entry point UNCHANGED (Train 1 execution). Added the
+in-flight 1.1.4 review state, the deliberately-unfixed web nozzle picker, and
+four standing rules earned by shipping two user-visible bugs past a green suite.
