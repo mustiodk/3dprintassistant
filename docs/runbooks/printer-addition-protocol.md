@@ -176,6 +176,23 @@ at the first rung that resolves the field:
    the sources genuinely contradict — so per "Field confidence" below it cannot
    by itself make the candidate `ship-ready`.
 
+Rung 2 requires an explicit revision marker on both documents. An undated
+marketing, blog, or comparison page is **not** a "newer revision" for this rung,
+even when it is plainly more recent than the manual: a comparison table
+published years after release restates specifications without revising them, and
+treating it as a revision inverts rung 3's safe direction on every field where
+the later restatement is higher. Use rung 2 only where both documents carry an
+explicit version or revision identifier for the same model and region (manual
+V1.4 vs V2.0). Otherwise fall through to rung 3.
+
+`ender_3_pro` is the worked example. Creality's V.2.0 Ender-3 Pro assembly
+manual states `Nozzle Temp. ≤250℃`, `Bed Temp. ≤100℃`, and
+`Printing Speed ≤180mm/s，Normal 30-60mm/s`. An undated store comparison page
+restates the same three fields as 260℃, 110℃ and 100mm/s. Rung 1 does not
+separate them — both are specification-grade — and rung 2 does not apply,
+because the comparison page carries no revision identity. Rung 3 resolves all
+three to the lower value: 250 / 100 / 100, `inferred`, review dispatched.
+
 A conflict resolved by this ladder always carries a risk flag and always
 dispatches review. It never auto-ships silently.
 
