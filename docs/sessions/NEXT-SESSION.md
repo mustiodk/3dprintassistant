@@ -4,14 +4,11 @@
 The specs are ratified, the plan survived three adversarial rounds to zero
 findings, and web tasks ship value before iOS work begins.
 
-**Last updated:** 2026-08-17, at the mac-mini wrap-up that ratified the
-next-gen platform. The former two-packet repair block is DONE (`ender_3_s1_pro`
-shipped live 2026-08-17; `hi` is an owner decision, see below). The former #32
-scoping block is superseded by the ratified spec.
-
-**MACHINE:** web tasks (1–5) run anywhere with node. iOS tasks (6–10) need a
-Mac with full Xcode — the mac-mini is verified (Xcode 26.5 + iOS 26.5 sim);
-verify per machine with `xcode-select -p` before starting task 6.
+**Last updated:** 2026-08-18, mac-mini wrap-up. Entry point UNCHANGED — Train 1
+execution. Yesterday's `hi` decision was consumed by the 12:00 run: it shipped
+live, carried an unsourced 0.8mm nozzle, and was corrected the same hour
+(`67bfb60` + `037b722`, overlay `2026081802`, live-verified). `ender_3_pro`'s
+decision is now written and tomorrow's run is its test.
 
 ---
 
@@ -37,19 +34,27 @@ verify per machine with `xcode-select -p` before starting task 6.
 
 ## Also open (not this session unless the owner says so)
 
-- **`hi` owner decision** — parked `judgment-on-evidence` (event-only) after a
-  *legitimate* R1 objection: `available_nozzle_sizes=[0.4,0.6,0.8]` cites the
-  K2 Plus quick-swap kit page, which is not a Hi source. Options: supply
-  Hi-specific kit-compatibility evidence, or restrict to `[0.4]`. Expect the
-  decision issue from the sweep; `verify-reentry` remains the only gate.
-- **`ender_3_pro`** — new park `needs-source-resolution` (2026-08-17 run);
-  expect its issue.
-- **K3 `enterResearchRepair` no-caller** — one-repair-pass bound is agent
-  policy, not enforced code
-  (`ai-operating-model/docs/findings/2026-08-17-one-bounded-repair-pass-has-no-enforcing-caller.md`).
-  Mitigation locus needs validation before building; owner call.
-- **iOS 1.1.4** — implementation-complete, owner-gated (push, TestFlight,
-  device acceptance, authenticated explicit-zero dashboard check).
+- **`ender_3_pro`** — decision WRITTEN 2026-08-18 (`rd3-external-evidence`,
+  `verify-reentry ok=true`, 3 leads: the V.2.0 manual PDF, PrusaSlicer's
+  `Creality.ini`, the Creality comparison table). Tomorrow's run is the test.
+  Expect the ladder's rung 3 to take the lower value on all three contested
+  fields — **250 / 100 / 100**, `inferred`, review dispatched — plus `500`
+  acceleration and `bowden`. If it lands anything higher on the temperatures,
+  rung 2 was misapplied and `307d72e` is the guard that should have stopped it.
+- **`hi` has no owner-notification path.** Its `judgment-on-evidence` class
+  matches neither `isDecisionPark`'s class test nor `DECISION_REASONS` (which
+  has `review-split`, not `review-no-go`); a sweep dry-run returns `opened=0`.
+  One-line fix available, but whether these parks *should* raise issues is a
+  design call — locus-validate first.
+- **K3 objection-vs-claim** — `open`, three mitigations recorded, none built.
+  The retry gate verifies that an objection was answered, never that the answer
+  supports the value. Owner call.
+- **K4 scope-check gap** — `recurrence-seen`. Owner overruled an over-scoped
+  closing recommendation; the rule that was supposed to prevent it only arms
+  when designing against an ask.
+- **iOS 1.1.4** — implementation-complete, owner-gated. iOS is now **ahead 3**
+  (`13f149f`, `991720f`, `2169dd3` — all data mirrors) under the push gate.
+- **K3 `enterResearchRepair` no-caller** — unchanged from 2026-08-17.
 
 ---
 
@@ -101,6 +106,10 @@ trusting it (autostash-pop wedge, 2026-08-16).
   `set -e` / `[[ ]]`). `node:test` tails say nothing — check exit codes.
 - Committed ≠ deployed; the intake pipeline runs from
   `~/.local/share/3dpa-intake/checkout/3dprintassistant` (separate clone).
+- An AI research answer's verbatim quote is a claim until you fetch the page;
+  "three tools agree" is one source if they cite the same unretrievable page.
+- An objection being satisfied does not make its claim true — check the value,
+  not just that the question was answered.
 - `state` in app.js is a `const` (`app.js:66`) — merge with `Object.assign`,
   re-render via `render()` (`app.js:1580`); the printer row's brand field is
   `manufacturer`, not `brand`.
