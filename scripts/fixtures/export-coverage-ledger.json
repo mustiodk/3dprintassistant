@@ -26,6 +26,9 @@
       "reason": "absent-upstream",
       "note": "Upstream has Guider 2s, Guider 3 Ultra and Guider4, but no plain Guider 3."
     },
+    "hi": {
+      "reason": "awaiting-registry"
+    },
     "kobra_2_neo": {
       "reason": "awaiting-registry"
     },
