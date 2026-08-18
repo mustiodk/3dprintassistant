@@ -670,6 +670,33 @@
       ]
     },
     {
+      "id": "hi",
+      "name": "Hi",
+      "manufacturer": "creality",
+      "series": "bedslinger",
+      "series_group": "Hi Series",
+      "enclosure": "none",
+      "active_chamber_heating": false,
+      "extruder_type": "direct_drive",
+      "max_nozzle_temp": 300,
+      "max_bed_temp": 100,
+      "max_speed": 500,
+      "max_acceleration": 12000,
+      "has_lidar": false,
+      "has_camera": true,
+      "multi_color_systems": ["cfs"],
+      "available_plates": ["epoxy_resin"],
+      "available_nozzle_sizes": [0.4, 0.6, 0.8],
+      "notes": [
+        "Direct-drive bed-slinger, die-cast aluminum frame, linear-rail X-axis, dual-shaft Y-axis, 260x260x300mm build volume — https://www.creality.com/products/creality-hi-combo",
+        "Flexible Epoxy Build Plate (Creality's own store lists it as 'Creality Hi Epoxy Resin Build Plate') — https://www.creality.com/support/creality-hi-combo",
+        "Optional CFS (Creality Filament System): up to 4 units / 16 colors, automated material loading/unloading, RFID-enabled auto settings; Combo variant ships one CFS unit — https://www.creality.com/products/creality-hi-combo",
+        "Built-in camera with physical privacy cap, Creality Cloud remote monitoring — https://www.creality.com/products/creality-hi-combo",
+        "Quick-swap tri-metal nozzle (hardened-steel tip, titanium heatbreak, copper-alloy body), stock 0.4mm; official Unicorn Quick-Swap Nozzle Kit (compatibility text: 'K2/K2 Plus/Creality Hi') adds 0.6/0.8mm — https://store.creality.com/products/unicorn-k2-plus-quick-swap-nozzle-kit",
+        "No LiDAR, no active chamber heating (open-frame) per official product page and support spec sheet, both silent on both features while itemizing other sensing/thermal specs"
+      ]
+    },
+    {
       "id": "core_one",
       "name": "CORE One",
       "manufacturer": "prusa",
