@@ -853,6 +853,88 @@
           "evidenceType": "manufacturer"
         }
       }
+    },
+    "hi": {
+      "runId": "run-20260818T100000Z",
+      "shippedAt": "2026-08-18T10:28:23.000Z",
+      "resolution": "auto-shipped",
+      "fields": {
+        "series": {
+          "source": "https://www.creality.com/blog/how-the-creality-hi-3d-printer-redefines",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "series_group": {
+          "source": "https://www.creality.com/blog/how-the-creality-hi-3d-printer-redefines",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "enclosure": {
+          "source": "https://www.creality.com/support/creality-hi-combo",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "extruder_type": {
+          "source": "https://www.creality.com/support/creality-hi-combo",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_nozzle_temp": {
+          "source": "https://www.creality.com/support/creality-hi-combo",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_bed_temp": {
+          "source": "https://www.creality.com/support/creality-hi-combo",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_speed": {
+          "source": "https://www.creality.com/support/creality-hi-combo",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "max_acceleration": {
+          "source": "https://www.creality.com/support/creality-hi-combo",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "available_nozzle_sizes": {
+          "source": "https://store.creality.com/products/unicorn-k2-plus-quick-swap-nozzle-kit",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "multi_color_systems": {
+          "source": "https://www.creality.com/products/creality-hi-combo",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "available_plates": {
+          "source": "https://www.creality.com/support/creality-hi-combo",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "active_chamber_heating": {
+          "source": null,
+          "confidence": "confirmed",
+          "evidenceType": "absence-rationale"
+        },
+        "has_camera": {
+          "source": "https://www.creality.com/products/creality-hi-combo",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        },
+        "has_lidar": {
+          "source": null,
+          "confidence": "confirmed",
+          "evidenceType": "absence-rationale"
+        },
+        "notes": {
+          "source": "https://www.creality.com/products/creality-hi-combo",
+          "confidence": "confirmed",
+          "evidenceType": "manufacturer"
+        }
+      }
     }
   }
 }
