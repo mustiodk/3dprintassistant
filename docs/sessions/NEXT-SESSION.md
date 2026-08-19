@@ -4,8 +4,20 @@
 The specs are ratified, the plan survived three adversarial rounds to zero
 findings, and web tasks ship value before iOS work begins.
 
-**Last updated:** 2026-08-19 ~00:40, mac-mini wrap-up (second session of 08-18).
-Entry point UNCHANGED — Train 1 execution.
+**Last updated:** 2026-08-19 evening, mac-mini wrap-up (2.0 redesign prompt prep).
+Entry point UNCHANGED — Train 1 execution. The owner opened the **2.0 redesign**
+track this session; it runs in his design tool, not here, and does not block
+Train 1's web tasks.
+
+**New parallel track: the 2.0 redesign.** Direction locked ("Quiet Instrument
+Panel"), prompt prepared at
+[`../prompts/2026-08-19-ios-2.0-redesign-prompt-v2-claude.md`](../prompts/2026-08-19-ios-2.0-redesign-prompt-v2-claude.md).
+When it returns with a chosen direction + token sheet, land that as a design spec
+under `docs/superpowers/specs/` **before Train 1's iOS UI tasks (6-10)**. Tasks
+1-5 (web store, boot/switcher, panel, pickers, drift-proof) are design-independent
+and can proceed either way. Two decisions are binding on the redesign and easy to
+lose: a gear pre-fills **hardware only** (intent stays per print, so no
+"Generate Profile" CTA), and **Workshop is star-save-from-Output, not a catalog**.
 
 **In flight, needs no work but do not lose it: iOS 1.1.4 is `Waiting for Review`.**
 Build `202608182214` (`991deba`), **Manual Release selected** — approval does NOT
@@ -47,13 +59,13 @@ before touching it — the engine is correct, the call site is the bug.
 
 ## Also open (not this session unless the owner says so)
 
-- **`ender_3_pro`** — decision WRITTEN 2026-08-18 (`rd3-external-evidence`,
-  `verify-reentry ok=true`, 3 leads: the V.2.0 manual PDF, PrusaSlicer's
-  `Creality.ini`, the Creality comparison table). Tomorrow's run is the test.
-  Expect the ladder's rung 3 to take the lower value on all three contested
-  fields — **250 / 100 / 100**, `inferred`, review dispatched — plus `500`
-  acceleration and `bowden`. If it lands anything higher on the temperatures,
-  rung 2 was misapplied and `307d72e` is the guard that should have stopped it.
+- **`ender_3_pro` did NOT resolve.** The 2026-08-19 12:11 run
+  (`run-20260819T100138Z`) re-parked it `needs-source-resolution` (custody
+  `447c534`) instead of taking rung 3's lower values (250 / 100 / 100) from the
+  decision written 08-18. **Read the run's own account before assuming why** —
+  per the 2026-08-16 finding, a run report's explanation of its own failure is a
+  claim, not evidence. Same run declined `centauri_combo_2` as a correct
+  duplicate (`a439fc1`).
 - **`hi` has no owner-notification path.** Its `judgment-on-evidence` class
   matches neither `isDecisionPark`'s class test nor `DECISION_REASONS` (which
   has `review-split`, not `review-no-go`); a sweep dry-run returns `opened=0`.
@@ -119,6 +131,11 @@ trusting it (autostash-pop wedge, 2026-08-16).
   `set -e` / `[[ ]]`). `node:test` tails say nothing — check exit codes.
 - Committed ≠ deployed; the intake pipeline runs from
   `~/.local/share/3dpa-intake/checkout/3dprintassistant` (separate clone).
+- Before writing instructions ADDRESSED to a named external tool/model/service,
+  verify what it is. The no-unverified-premise rule arms on mutation, not on
+  authorship, so a plausible name-mapping goes unchecked and silently shapes the
+  whole document (2026-08-19: an HTML-artifact prompt written for Claude Design,
+  which is a canvas product).
 - An AI research answer's verbatim quote is a claim until you fetch the page;
   "three tools agree" is one source if they cite the same unretrievable page.
 - An objection being satisfied does not make its claim true — check the value,
@@ -145,7 +162,8 @@ trusting it (autostash-pop wedge, 2026-08-16).
 <<< END <<<
 
 Maintenance note: regenerated on Trigger A / Trigger B / explicit owner ask
-only. This revision was the 2026-08-18 evening Trigger A wrap-up (mac-mini,
-closed ~00:40 on 08-19): entry point UNCHANGED (Train 1 execution). Added the
-in-flight 1.1.4 review state, the deliberately-unfixed web nozzle picker, and
-four standing rules earned by shipping two user-visible bugs past a green suite.
+only. This revision was the 2026-08-19 Trigger A wrap-up (mac-mini): entry point
+UNCHANGED (Train 1 execution). Added the parallel 2.0 redesign track and its
+two binding decisions, corrected the `ender_3_pro` expectation against what the
+12:11 run actually did, and added the verify-the-tool rule. The 1.1.4 review
+state is unchanged — still `Waiting for Review`, no ruling seen.
