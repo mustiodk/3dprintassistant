@@ -1,7 +1,7 @@
 # 2026-08-20 — Gear model v2: specification
 
-**Status:** revised after one adversarial review round (§9); **awaiting owner
-ratification**. Supersedes §2 of
+**Status:** **RATIFIED by the owner 2026-08-20** ("Nej jeg er enig"), after one
+adversarial review round (§9). Supersedes §2 of
 [`2026-08-17-next-gen-platform-design.md`](2026-08-17-next-gen-platform-design.md)
 in full.
 
@@ -429,28 +429,31 @@ the new one.
 
 ## 7. Open questions
 
-1. **`userLevel`** — pinnable like any other field under D3, and the schema treats it as
-   one; no inconsistency there. The open question is whether it should *also* have a
-   single home in settings, since it describes the user rather than the hardware, and a
-   user who pins it to four gears then has four places to change it. A settings default
-   that gears may override is additive and needs no migration, so this can be settled
-   after v1 without cost.
-2. **Repair UX for `stale`** — the state is defined; the interaction is not.
-3. **Does web get Inventory?** Inventory is Pro (D15), and Pro is bought through the App
-   Store. A web user has no purchase path today.
-4. **Migration from the parked branch's format** — believed unnecessary (nothing shipped),
-   but the owner's own browser may hold test data from the preview server. Confirm before
-   assuming zero installed base.
+1. ~~**`userLevel`** — should it also have a home in settings?~~ **Closed: no.** Pinnable
+   like any other field, and nothing more.
+2. **Repair UX for `stale`** — the state is defined; the interaction is not. Still open,
+   and it is a plan-time question rather than a schema one. Confirmed worth having: catalog
+   ids **do** get removed (`aa0826e` reverted the Voxelab Aries; `2284207` deleted the
+   `sparkx` brand), and version skew between web and iOS makes the state common.
+3. **Does web get Inventory?** Owner intent is yes — reachable on web, or unlocked if
+   bought through the App Store. **Blocked on D18b**: the existing inventory is a
+   single-user PHP/MySQL server app, and opening it needs the accounts D16 removed.
+   Cross-platform entitlement without accounts is unresolved alongside it.
+4. ~~**Migration from the parked branch's format.**~~ **Closed: not a real question.**
+   Nothing shipped; any preview-server test data is the controller's problem to clear.
 
 ---
 
 ## 8. Review requirements before implementation
 
-1. Adversarial review of this spec, with the schema and the sync section as the focus.
-2. Owner ratification of §1 and §2, since they supersede a previously ratified spec.
-3. A re-plan against this spec — the 2026-08-17 Train 1 plan is void, not amendable.
-4. Web is the first surface and therefore **freezes the format** (D14). No web write
-   reaches a real user until §2 has passed 1–3.
+1. ✅ Adversarial review of this spec (§9).
+2. ✅ Owner ratification of §1 and §2 — given 2026-08-20.
+3. ⬜ **A sync spec, before web ships.** §4 designs this schema *for* sync, but that is
+   analysis, not a reviewed specification. Web is the first surface and therefore
+   **freezes the format** (D14) — if a sync spec later needs a different record model, the
+   format is already in users' browsers. The sync spec must therefore land before a web
+   write reaches a real user. It need not block planning or building.
+4. ⬜ A re-plan against this spec — the 2026-08-17 Train 1 plan is void, not amendable.
 
 
 ---
