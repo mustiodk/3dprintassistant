@@ -81,3 +81,52 @@ cannot skip everything — it lands the user on the first unanswered step. (Cont
 call, not owner-stated; flag if wrong.)
 
 **Resolves:** the guard question raised by M5/M8.
+
+---
+
+## D5 — Saving from a run shows a small checkbox dialog
+
+The offer to save appears after a manually-configured run. It opens a short dialog with
+the D2 default seven **pre-checked**; every other field the user just answered can be
+ticked to pin it as well.
+
+Rejected: silent one-tap save of the seven (loses the fields the user wanted), and saving
+everything (locks `useCase`/`strength`/`speed` that few users mean to fix).
+
+**Resolves:** M2 — the finding the owner raised in his own words, and the only finding in
+this review that was never design-sourced.
+
+---
+
+## D6 — There is no "build a gear" page
+
+Gears are born **only** by saving after a configurator run. "My Gear" is a list: edit, set
+default, delete. No empty form, no separate acquisition screen.
+
+Rationale: a new printer has to be configured once anyway, so a gear arises naturally from
+work the user was already doing. This is a **deliberate departure from the design**, whose
+`2a` artboard is a dedicated single-page builder — recorded because it is the kind of gap
+a later reader would otherwise read as an oversight.
+
+**Resolves:** M3, and removes the three-tab panel entirely.
+
+---
+
+## D7 — The name field pre-fills from hardware
+
+Suggests `X1C · 0.4 · PLA Basic`, overwritable. Chosen over an intent-derived suggestion
+("Everyday PLA") because most users own one printer and differentiate by nozzle and
+filament — a hardware name stays unambiguous in a list where an intent name may not.
+
+**Resolves:** M5. The design's self-contradiction (auto-name from intent, while intent is
+never stored) dissolves under D5 — at save time the intent *has* been answered — but the
+hardware form was chosen anyway.
+
+---
+
+## M4 — dissolved, no decision needed
+
+AMS is not user input. `engine.js:1053-1080` classifies the feed system from the
+**printer's** `multi_color_systems` catalog field; the user-facing question is `colors`
+(single / 2–4 / 5+), already a per-print field under D2. The design's `AMS` chip was
+display of a catalog fact. Nothing to store, and the original M4 question is void.
