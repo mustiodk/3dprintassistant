@@ -306,3 +306,82 @@ The +25 CR referral in `3a` is not important now and moves to a future update. O
 | Pro tier + credit purchase | StoreKit, extending the existing consumables work |
 | ~~Accounts + backend~~ | removed by D16 |
 | ~~Referral~~ | deferred by D17 |
+
+---
+
+## D18 — 2.0 ships as one release; Pro delivers cloud sync + AI Expert
+
+The owner rejected splitting the release. The reasoning is commercial, not technical, and
+it is correct: Pro must feel worth its price **on launch day**, and drip-feeding the Pro
+features means the first buyers pay for a fraction.
+
+> "ideen er at brugerne skal føle at den store opdatering er de 99 kr værd.. den effekt får
+> vi ikke hvis cloud sync, inventory, ai, printer link alle kommer step by step"
+
+**Ruling.** 2.0 contains My Gear, the tab shell, light mode, Settings, **cloud sync** and
+**AI Expert**. **Inventory** and **Printer Link** follow afterwards for Pro holders.
+
+An earlier controller recommendation proposed shipping Inventory and AI in different
+releases; it applied engineering sequencing logic to a pricing question and is withdrawn.
+
+### D18a — the "coming soon" framing must not reach the App Store
+
+The owner's phrasing was that Inventory and Printer Link arrive "som kommer snart .. til
+dem som køber pro". **Marketing them that way at the point of purchase is a rejection
+risk**, verified against the current guidelines rather than assumed:
+
+- **2.1(a) App Completeness** — *"placeholder text, empty websites, and other temporary
+  content should be scrubbed before submission."* Over 40% of rejections are 2.1.
+- **2.3.1(a) Accurate Metadata** — features must be described specifically and
+  **accessible for review**.
+- **3.1.2(a)** — a subscription must *"provide ongoing value to the customer."*
+
+**Resolution — framing only, the plan is unchanged.** Pro is sold on what works on the
+day: **cloud sync + AI Expert**. Inventory and Printer Link ship later as **free additions
+for existing Pro holders**, announced outside the store listing (Discord, site, in-app
+after purchase). No "coming soon" in the App Store description, the paywall, or the
+purchase flow.
+
+This is also commercially stronger than a promise: a buyer who receives something new
+without paying again feels rewarded, and it produces the second wow moment the owner
+wanted — without it reading as a split of something already paid for.
+
+### D18b — the Inventory backend question is deferred, not answered
+
+Inventory leaving 2.0's launch scope defers, but does not resolve, the conflict found this
+session: the owner's existing inventory (`Projects/bambuinventory/`) is **PHP + MySQL on
+Simply.com**, single-user, with the database as its source of truth. Opening it to other
+users needs accounts and a backend — exactly what D16 removed. The choice remains:
+
+- **local-first inventory**, iCloud-synced like gears — no server, but no Gmail order
+  import and no humidity sensors in the user-facing version; or
+- **the server app opened up** — a real inventory, but accounts and running costs return.
+
+It must be answered before Inventory is planned, and it affects whether login returns.
+
+### D18c — Printer Link is further along than the review assumed
+
+`bambuinventory/printer_sync.py` already subscribes to the Bambu P1S local MQTT broker and
+normalizes partial reports, with AMS slot tracking and RFID metadata. The hard part —
+Bambu's undocumented protocol — is solved and running. Porting it into iOS is a port, not
+an invention.
+
+Two limits stand: it is **iOS-only** (a browser cannot reach a printer on the LAN), and
+Bambu's protocol is unofficial and breaks with firmware updates, so it carries permanent
+maintenance.
+
+---
+
+## Answers to the spec's open questions (§7)
+
+1. **`userLevel`** — **No** separate home in settings. Pinnable like any other field, and
+   that is all.
+2. **Do catalog ids disappear?** — **Yes, verified in history**, twice: `aa0826e` reverted
+   the Voxelab Aries, removing printer `aries` and brand `voxelab`; `2284207` moved the
+   SPARKX i7 to Creality and deleted the `sparkx` brand. Rare, but real — and the more
+   frequent case is version skew, where iOS ships an older catalog than web. The `stale`
+   state in spec §3.1 earns its place.
+3. **Does web get Inventory?** — Yes in intent: reachable from web, or unlocked if bought
+   through the App Store. **Blocked on D18b**, and cross-platform entitlement without
+   accounts is itself unresolved.
+4. **Test data in the owner's browser** — not a real question; withdrawn.
