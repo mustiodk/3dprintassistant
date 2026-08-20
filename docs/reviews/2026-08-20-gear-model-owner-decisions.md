@@ -170,3 +170,91 @@ grouping (spec §2 constraint 1 survives intact).
 targets, step 3 from the picker and step 5 from Home — is void under D4: a gear fills what
 it has pinned and lands the user on the first unanswered step, so there are no fixed step
 numbers to reconcile.
+
+---
+
+## D11 — The catalog-news line lives on Home
+
+A short line beneath the gear cards — *"3 new printers since last time · 214 in the
+catalog"*. It exists because D10 puts the user's own things first, which would otherwise
+make new catalog entries invisible to anyone with gears (spec §2 constraint 2).
+
+It moves off the My Gear panel, which D6 reduced to a list.
+
+**Resolves:** M10.
+
+---
+
+## D12 — iOS waits for the new shell; 2.0 ships as one release
+
+> "3dpa 2.0 skal bygges samlet og releases på en gang.. jeg vil gerne have at brugerne får
+> en wow oplevelse … udover små bug fixes så er den næste release 2.0"
+
+**Ruling.** iOS does not receive gear inside today's `NavigationStack`. The tab shell is
+built first, and **all of 2.0 lands in a single App Store release**. Between now and then,
+iOS ships only small bug fixes.
+
+**Resolves:** M11 — and supersedes the framing of the question as filed, which offered
+gear-into-today's-app as the recommended path.
+
+---
+
+## D13 — What 2.0 contains
+
+Established across this session, from the design's Settings artboards (`3a`/`4b`) and the
+owner's scope statement:
+
+| Component | Status today |
+|---|---|
+| My Gear | designed here (D1–D11); web build parked |
+| Cloud sync — Apple ID sign-in, E2E encryption, device list | no accounts, no backend |
+| AI Expert + credit economy | not built |
+| Inventory (Pro) | not built |
+| Printer Link — LAN/MQTT for Bambu, Prusa Link, Moonraker, live telemetry surfaced in three places | not built |
+| Four-tab shell | app has **no tab bar at all** today |
+| Light mode — Dark / Light / Auto | `preferredColorScheme(.dark)` is hard-locked; ~49 hardcoded colours |
+| Settings screen as designed | does not exist in this form |
+| Pro tier + credit purchase | tip-jar consumables exist; a Pro tier does not |
+| Referral (+25 CR) | not built |
+
+Four of these need infrastructure that does not exist: a server with accounts, an AI
+backend with credit accounting, three printer protocols, and a paid tier beyond the
+current consumables. **Recorded so the size is not rediscovered later** — the owner has
+made the call, and it is a legitimate one.
+
+**Absorbs:** M12 (light mode) and M13 (Printer Link / referrals) — both are in scope, so
+neither remains a question. M14 (first-run vocabulary) is void under D6 and D9: a first
+run has no gears, so Home is simply the CTA.
+
+---
+
+## D14 — Web ships gear when it is complete; it is not held for 2.0
+
+Web stays continuous-deploy. Gear goes live on web once it is finished against this
+decision record — finished, not partial (the owner's original park ruling stands).
+
+**The consequence that matters most, stated plainly:** web shipping first means **web
+freezes the schema**. Once a real user's browser holds a gear, 2.0's cloud sync must read
+that exact format. Therefore the envelope must be designed for *all* of D13 — gear,
+inventory, sync-as-wire-format — **before** web ships, not for gear alone.
+
+This is the one ordering that avoids a migration, and it raises the bar on the re-model
+above what the parked branch was ever asked to meet.
+
+---
+
+## D15 — Monetization model
+
+Pro unlocks **cloud sync + Inventory + access to AI Expert**. AI usage is then bought as
+**credits on top**, so usage stays margin-positive.
+
+Pricing is settled outside this review against an agreed high-level business case and is
+explicitly not reopened here.
+
+---
+
+## Status
+
+All 14 findings from the mismatch review are resolved, absorbed or void.
+Remaining engineering inputs: **S1–S3** (envelope defects found by the adversarial gate)
+carry into the re-model as requirements, per the review's recommendation 5.
