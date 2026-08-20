@@ -10,7 +10,8 @@ branch (9 commits, unmerged), measured against the 2.0 design
 the plan. Nobody reviewed the plan against the design — the design landed after the
 plan was ratified.
 
-**Sources, in order of authority for this review**
+**Sources.** Authority runs to the spec; the design is input. See the premise correction
+under *Assessment* — the design is not a requirements document.
 
 1. The design's own `BRIEF` artboard — six numbered decisions, written by the designer.
 2. The 13 flow artboards (`1a`–`1o`, `2a`, `3a`) and their motion/behaviour notes.
@@ -370,28 +371,39 @@ of the current model would give the app **three** ways to acquire gear — the b
 pool tabs, and the setup editor — where the design has one page and one banner. That is
 more half-finished, not less.
 
-**The premise this conclusion rests on, stated explicitly** (the adversarial gate was
-right that the original draft left it implicit): *the 2.0 design is now binding.* If it
-were merely a proposal, the branch implements the ratified repo contract faithfully and
-the strongest case would be to merge.
+**Premise correction (owner ruling, 2026-08-20).** An earlier revision of this document
+asserted that the 2.0 design is *binding*. That is wrong and the owner corrected it:
 
-That case deserves to be written down rather than assumed away:
+> "ui design is just a design document about how it can look like.. it maybe shows how i
+> imagine some features and you should always ask me to verify if there is a mismatch but
+> dont take the ui design as requirements as in the spec"
 
-> The branch implements exactly what spec §2 ratified. The design is unverified,
-> out-of-repo, and internally contradictory in at least one place (M5). A stored pool can
+So the design is **input, not authority**. Spec §2 remains the ratified contract. Every
+finding below is a **question for the owner**, not a defect proven against a requirement.
+Where this document says the build "should" match the design, read it as "the design
+differs here — rule on it."
+
+This weakens the design-sourced findings and leaves one untouched: **M2 is owner-sourced.**
+The owner described the missing flow in his own words — *"i'm on start page, i select
+brand, printer, nozzle, filament and get a 'add to your gear option'"* — before this
+review read the design brief. The design agreeing with him is corroboration, not the
+source.
+
+The merge-as-is case therefore deserves fair statement:
+
+> The branch implements exactly what spec §2 ratified. The design is out-of-repo,
+> unratified, and internally contradictory in at least one place (M5). A stored pool can
 > sit behind a gear-first UI. Inventory is plausibly a sibling store, not a replacement.
 > The branch carries tested mechanics and a near-zero blast radius — no user has gear
 > today, so the feature is additive by construction.
 
-It does not carry, because the owner made the design binding twice: by ruling that a
-half-finished product does not ship, and by asking for this review before the iOS half.
-Against a binding design, merging would ship a public UI the design replaces **and**
-freeze a permanent envelope before the model behind it is settled.
+What defeats it is not the design's authority. It is (a) the owner's own product ruling
+that a half-finished feature does not ship, with M2 naming what is missing, and (b) the
+fact that merging freezes a permanent envelope that the adversarial gate has just shown
+carries three real defects (S1–S3).
 
-**So the park decision is confirmed on independent evidence.** The branch was parked on
-the owner's product judgement; this review finds that the data model underneath it is the
-expensive part — because it is the part declared permanent, and because the adversarial
-gate found three real defects (S1–S3) in the very envelope that was about to be frozen.
+**The park decision therefore still holds**, on the owner's product judgement (M2) plus
+the envelope defects (S1–S3) — not on the design's authority, which it does not have.
 
 ## Recommendation
 
