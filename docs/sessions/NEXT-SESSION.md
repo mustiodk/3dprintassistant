@@ -1,87 +1,91 @@
 # 3dpa — Next Session Kickoff
 
-**Purpose:** execute the GO'd Train 1 implementation plan (My Gear + Setups).
-The specs are ratified, the plan survived three adversarial rounds to zero
-findings, and web tasks ship value before iOS work begins.
+**Purpose:** ratify the sync spec, answer the inventory-architecture question, then
+re-plan Train 1's web half against the two new specs.
 
-**Last updated:** 2026-08-20, mac-mini wrap-up (temperature-units decision + iOS 1.1.4 release).
-Entry point UNCHANGED — Train 1 execution. The owner opened the **2.0 redesign**
-track this session; it runs in his design tool, not here, and does not block
-Train 1's web tasks.
-
-**New parallel track: the 2.0 redesign.** Direction locked ("Quiet Instrument
-Panel"), prompt prepared at
-[`../prompts/2026-08-19-ios-2.0-redesign-prompt-v2-claude.md`](../prompts/2026-08-19-ios-2.0-redesign-prompt-v2-claude.md).
-When it returns with a chosen direction + token sheet, land that as a design spec
-under `docs/superpowers/specs/` **before Train 1's iOS UI tasks (6-10)**. Tasks
-1-5 (web store, boot/switcher, panel, pickers, drift-proof) are design-independent
-and can proceed either way. Two decisions are binding on the redesign and easy to
-lose: a gear pre-fills **hardware only** (intent stays per print, so no
-"Generate Profile" CTA), and **Workshop is star-save-from-Output, not a catalog**.
-
-**Released; no work remains: iOS 1.1.4 is live.** The owner confirmed approval
-and manual release. Apple DK + US lookups both returned `version: 1.1.4` on
-2026-08-20 with release timestamp `2026-08-19T17:54:22Z`. Build
-`202608182214` came from `991deba`; the iOS repo is clean/current at `1e3de11`.
-
-**Product decision: keep Celsius/metric only.** The temperature-units research
-confirmed this is the printer/slicer ecosystem's operational convention,
-including US-facing workflows. The owner chose no action. Do not add a
-Fahrenheit preference or broad metric/imperial toggle from this research alone.
-
-**Known-broken and deliberately left: the WEB nozzle picker.** `app.js:1536`
-calls `Engine.getCompatibleNozzles(state.material)`, so every printer offers all
-nine nozzle sizes even ones it cannot mount. iOS was fixed this session
-(`7c695d9`); the owner chose iOS-only, so **web and iOS now behave differently**.
-A task chip is filed. Read
-[`2026-08-18-green-suite-never-touched-the-screens.md`](../../../ai-operating-model/docs/findings/2026-08-18-green-suite-never-touched-the-screens.md)
-before touching it — the engine is correct, the call site is the bug.
+**Last updated:** 2026-08-20, mac-mini wrap-up (gear model remodelled; spec §2 withdrawn).
+**Entry point CHANGED.** Train 1 execution is no longer the entry point — the plan is
+void, not amendable.
 
 ---
 
-# THE SESSION — execute Train 1
+## What changed, in one paragraph
 
-**Plan (read it in full, then execute task-by-task):**
-`docs/superpowers/plans/2026-08-17-train1-my-gear-setups-plan.md`
+The Train 1 branch was reviewed clean and recommended for merge. The owner then found it
+half-finished, and a mismatch review found why: **a gear is a shortcut, not an
+inventory.** The ratified spec §2 built two layers — a stored pool of owned hardware, plus
+setups drawn from it — and the owner's product has one. Eighteen decisions replaced the
+model. `train1-my-gear-setups` stays **parked, unmerged, unpushed** at `a6fa1f9`. Nothing
+shipped, so the permanent envelope is still free — which is the only reason this is rework
+rather than a migration.
 
-- 10 TDD tasks: web store → boot/switcher → My Gear panel → pool-first
-  pickers → drift-proof+push · iOS store (web-parity fixture) → Home CTA →
-  screens → pickers · close-out (ROADMAP/#32/analytics note).
-- The plan header requires `superpowers:subagent-driven-development`
-  (recommended) or `superpowers:executing-plans` — **owner picks at session
-  start**; subagent-driven is the plan's recommendation.
-- Specs behind it (consult on any ambiguity — the plan argues from them):
-  `docs/superpowers/specs/2026-08-17-next-gen-platform-design.md` (§2) and,
-  for later trains, `2026-08-17-ai-buddy-design.md`.
-- **Engine and data are untouched by construction** — Task 5 proves it with
-  `engine-golden-snapshot.js --check` (NO DRIFT). If any task seems to need an
-  engine edit, STOP and surface it.
-- Web commits push per task (CI must be green); **iOS commits stay local**
-  under the push gate until the owner composes the 1.2.0 train.
+## Read these first (they are the authority now)
+
+1. [`docs/reviews/2026-08-20-gear-model-owner-decisions.md`](../reviews/2026-08-20-gear-model-owner-decisions.md) — **D1–D18.** The binding record. Read it before the specs.
+2. [`docs/superpowers/specs/2026-08-20-gear-model-v2-spec.md`](../superpowers/specs/2026-08-20-gear-model-v2-spec.md) — **RATIFIED.** Supersedes §2 of the 2026-08-17 spec.
+3. [`docs/superpowers/specs/2026-08-20-sync-v1-spec.md`](../superpowers/specs/2026-08-20-sync-v1-spec.md) — **awaiting ratification.**
+4. [`docs/reviews/2026-08-20-train1-vs-2-0-design-mismatch-review.md`](../reviews/2026-08-20-train1-vs-2-0-design-mismatch-review.md) — the 14 findings, for background only. The decisions above supersede it.
+
+**Do not** treat `docs/superpowers/plans/2026-08-17-train1-my-gear-setups-plan.md` as live.
+It is void.
+
+## The standing frame that governs everything here
+
+**The 2.0 UI design is a design document, not requirements.** It shows how the owner
+imagines a feature could look. Every build-vs-design mismatch is a **question for him**,
+never a verdict against the build. Keep provenance separable — a finding sourced from the
+owner's own words carries weight a design-sourced one does not.
+
+---
+
+# THE SESSION
+
+## 1. Ratify the sync spec (or take corrections)
+
+It has been through one Codex round; six must-fix corrected, each verified in code first.
+Two things must happen before its plan is written:
+
+- **`CKSyncEngine` verified against live Apple documentation.** The doc page could not be
+  retrieved during research and the spec says so explicitly. Confirm it can express §3's
+  per-field-group merge and tombstone precedence, or the merge moves into the adapter.
+- **Owner ratification.**
+
+## 2. Answer D18b — the next real product decision
+
+**Local-first inventory vs. the existing server app.** `Projects/bambuinventory/` is
+single-user **PHP + MySQL on Simply.com** with the database as its source of truth.
+Opening it to other users needs accounts — exactly what D16 removed when the owner asked
+whether sync could work without a login. The choice gates web Inventory and cross-platform
+Pro entitlement.
+
+## 3. Then re-plan Train 1's web half
+
+Against the two new specs, from scratch. Web ships gear when complete (D14) and therefore
+**freezes the envelope**, so the sync spec must be ratified first.
+
+**Three shipped `workshop-store.js` defects land before web ships gear**, not with sync:
+
+- **D-1** `remove()` hard-deletes with no tombstone (`:176-180`) — additive fix
+- **D-3** `addOutcome` bumps the value timestamp (`:201`) — additive fix
+- **D-5** `_read()` returns `[]` on version mismatch (`:35`) and a later `_write` persists
+  that over real data — **the only non-additive fix, and the most dangerous under
+  cross-platform skew**
 
 ## Also open (not this session unless the owner says so)
 
-- **`ender_3_pro` did NOT resolve.** The 2026-08-19 12:11 run
-  (`run-20260819T100138Z`) re-parked it `needs-source-resolution` (custody
-  `447c534`) instead of taking rung 3's lower values (250 / 100 / 100) from the
-  decision written 08-18. **Read the run's own account before assuming why** —
-  per the 2026-08-16 finding, a run report's explanation of its own failure is a
-  claim, not evidence. Same run declined `centauri_combo_2` as a correct
-  duplicate (`a439fc1`).
-- **`hi` has no owner-notification path.** Its `judgment-on-evidence` class
-  matches neither `isDecisionPark`'s class test nor `DECISION_REASONS` (which
-  has `review-split`, not `review-no-go`); a sweep dry-run returns `opened=0`.
-  One-line fix available, but whether these parks *should* raise issues is a
-  design call — locus-validate first.
-- **K3 objection-vs-claim** — `open`, three mitigations recorded, none built.
-  The retry gate verifies that an objection was answered, never that the answer
-  supports the value. Owner call.
-- **K4 scope-check gap** — `recurrence-seen`. Owner overruled an over-scoped
-  closing recommendation; the rule that was supposed to prevent it only arms
-  when designing against an ask.
-- **iOS 1.1.4** — live on the App Store; Apple DK + US storefront checks green.
-  The iOS repo is clean/current. Future iOS train work remains push-gated.
-- **K3 `enterResearchRepair` no-caller** — unchanged from 2026-08-17.
+- **`ender_3_pro` did NOT resolve.** Re-parked `needs-source-resolution` by
+  `run-20260819T100138Z`. Read the run's own account before assuming why — a run report's
+  explanation of its own failure is a claim, not evidence.
+- **`hi` has no owner-notification path** — one-line fix available, but locus-validate first.
+- **The web nozzle picker is still wrong** — `app.js:1536` calls
+  `Engine.getCompatibleNozzles(state.material)`, so every printer offers all nine sizes.
+  iOS was fixed 2026-08-18; web and iOS behave differently. The engine is correct; the call
+  site is the bug.
+- **Web light theme fails AA on production today** — green `#009a6a` measures 3.60:1, link
+  `#0b7fc4` 4.33:1.
+- **Two findings opened 2026-08-20**, both `open`:
+  [review gauntlet said merge](../../../ai-operating-model/docs/findings/2026-08-20-review-gauntlet-scoped-to-the-plan-said-merge.md) ·
+  [fixed a class then missed it next door](../../../ai-operating-model/docs/findings/2026-08-20-fixed-a-defect-class-then-missed-it-next-door.md)
 
 ---
 
@@ -89,7 +93,8 @@ before touching it — the engine is correct, the call site is the bug.
 
 >>> START >>>
 
-Cold start 3dpa. Today's task: execute the Train 1 (My Gear + Setups) plan.
+Cold start 3dpa. Today's task: ratify the sync spec, answer D18b (local-first vs.
+server-backed inventory), then re-plan Train 1's web half.
 
 **Read in order:**
 1. `Projects/CLAUDE.md` (top-level protocol — routing + standing rules)
@@ -99,72 +104,45 @@ Cold start 3dpa. Today's task: execute the Train 1 (My Gear + Setups) plan.
 5. `3dprintassistant/docs/sessions/INDEX.md`
 6. The last 3 session logs in full
 7. This file
-8. `docs/superpowers/plans/2026-08-17-train1-my-gear-setups-plan.md` — the
-   task source; read fully before the first task.
+8. `docs/reviews/2026-08-20-gear-model-owner-decisions.md` — **D1–D18, the binding record**
+9. `docs/superpowers/specs/2026-08-20-gear-model-v2-spec.md` (ratified) and
+   `docs/superpowers/specs/2026-08-20-sync-v1-spec.md` (awaiting ratification)
 
-**Repo health first — check the BRANCH, not just the health line.** Run
-`git branch -vv`; a checkout parked on a feature branch reads "current"
-against its own upstream (bit four cold starts). `3dprintassistant-ios: current`
-is expected today; future local train commits may show `ahead:N` under the push
-gate and are not automatically a problem. If health says `dirty`, run `git ls-files -u` before
-trusting it (autostash-pop wedge, 2026-08-16).
+**Repo health first — check the BRANCH, not just the health line.** Run `git branch -vv`.
+`3dprintassistant` may read `no-upstream` if the checkout is parked on
+`train1-my-gear-setups`, which has never been pushed — that is expected, not a problem.
+Switch to `main` before reading tracking docs. If health says `dirty`, run
+`git ls-files -u` before trusting it.
 
 **Process:**
-- Announce execution mode (subagent-driven recommended vs inline) and get the
-  owner's pick before Task 1.
-- TDD every task exactly as written: failing test → RED observed → minimal
-  implementation → green → commit. One task = one commit (plus fix commits if
-  a gate rejects).
-- Web tasks: push after each green task; confirm CI green before the next.
-- Task 5 gates the web half: walkthrough green + golden NO DRIFT + production
-  smoke. Task 10 closes the train (parity spot-check, ROADMAP, #32 comment).
+- The 2026-08-17 Train 1 plan is **void**. Do not amend it; re-plan from the new specs.
+- The parked branch is a reference implementation, not a base to build on. Its mechanics
+  survive (soft-delete, row normalizers, the `{ok, error}` contract, apply-time
+  bookkeeping); its model does not.
+- Verify `CKSyncEngine` against live Apple docs before any plan commits to it.
 
 ## Standing rules that bite on this project
 
+- **A UI design document is input, not requirements.** Surface mismatches as questions.
+- Keep finding provenance separable — owner-sourced beats design-sourced.
+- **A read must never bump a write timestamp.** When you fix one instance, grep every
+  adjacent store in the same session.
 - ROADMAP is truth. Read fully before reporting status — from `main`.
 - No mutation on an unverified premise; verify in the SAME turn, state inline.
 - Validate the fix LOCUS before building an enforcement site.
 - A tool's account of why it failed is a claim, not evidence.
-- Look for the applier before hand-editing generated/ratified state.
-- One finding = one commit. Web is master; iOS mirrors `engine.js`
-  byte-identical; `data/printers.json` is deliberately NOT identical.
-- iOS `main` stays push-gated. Web pushes freely.
-- A green local macOS shell-suite run proves less than green CI (bash 3.2
-  `set -e` / `[[ ]]`). `node:test` tails say nothing — check exit codes.
-- Committed ≠ deployed; the intake pipeline runs from
-  `~/.local/share/3dpa-intake/checkout/3dprintassistant` (separate clone).
-- Before writing instructions ADDRESSED to a named external tool/model/service,
-  verify what it is. The no-unverified-premise rule arms on mutation, not on
-  authorship, so a plausible name-mapping goes unchecked and silently shapes the
-  whole document (2026-08-19: an HTML-artifact prompt written for Claude Design,
-  which is a canvas product).
-- An AI research answer's verbatim quote is a claim until you fetch the page;
-  "three tools agree" is one source if they cite the same unretrievable page.
-- An objection being satisfied does not make its claim true — check the value,
-  not just that the question was answered.
-- `state` in app.js is a `const` (`app.js:66`) — merge with `Object.assign`,
-  re-render via `render()` (`app.js:1580`); the printer row's brand field is
-  `manufacturer`, not `brand`.
-- A green engine suite says nothing about whether the SCREEN calls the right
-  engine function. When a function has a narrower variant, grep its call sites;
-  "tests only" is the bug. Keep one test per interactive screen that performs
-  the real gesture (2026-08-18: two user-visible bugs past 213 green tests).
-- Verify a RED fails for the INTENDED reason before trusting it, and read test
-  totals from the `.xcresult` bundle, never a piped console tail.
-- SwiftUI: press animations come from a `ButtonStyle`'s `configuration.isPressed`.
-  A `DragGesture(minimumDistance: 0)` inside a `ScrollView` starves the pan
-  recognizer and silently kills scrolling. `EdgeSwipeBack.swift` is UIKit-backed
-  on purpose — do not "simplify" it into a SwiftUI gesture.
-- Before pasting into App Store Connect, dump the LIVE field values
-  (`description`, `whatsNew`, `promotionalText`, `notes`) and read them in full.
-  ASC auto-carries review notes from the previous version, so they arrive
-  pre-filled and read as already-correct; the prepared submit doc only covers
-  what its author thought to change.
+- An AI research answer's verbatim quote is a claim until you fetch the page.
+- Before writing instructions ADDRESSED to a named external tool, verify what it is.
+- One finding = one commit. iOS `main` stays push-gated; web pushes freely.
+- `MARKETING_VERSION` bumps per release train, never per TestFlight iteration.
+- A green engine suite says nothing about whether the SCREEN calls the right function.
+- `state` in app.js is a `const` (`app.js:66`) — merge with `Object.assign`; the printer
+  row's brand field is `manufacturer`, not `brand`.
+- Committed ≠ deployed.
 
 <<< END <<<
 
-Maintenance note: regenerated on Trigger A / Trigger B / explicit owner ask
-only. This revision was the 2026-08-20 Trigger A wrap-up (mac-mini): entry point
-UNCHANGED (Train 1 execution). Recorded iOS 1.1.4 as publicly live after Apple
-DK + US verification, removed stale owner-gate/ahead state, and locked the
-temperature-units research as a no-action Celsius/metric product decision.
+Maintenance note: regenerated on Trigger A / Trigger B / explicit owner ask only. This
+revision was the 2026-08-20 Trigger A wrap-up (mac-mini): entry point **CHANGED** from
+Train 1 execution to sync-spec ratification + the inventory decision, after the gear model
+was replaced by owner decisions D1–D18.
