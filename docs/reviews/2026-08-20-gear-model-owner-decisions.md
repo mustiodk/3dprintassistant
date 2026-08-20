@@ -258,3 +258,51 @@ explicitly not reopened here.
 All 14 findings from the mismatch review are resolved, absorbed or void.
 Remaining engineering inputs: **S1–S3** (envelope defects found by the adversarial gate)
 carry into the re-model as requirements, per the review's recommendation 5.
+
+---
+
+## D16 — Cloud sync ships in two versions, and v1 needs no login
+
+> "Version 1 kun apple enheder, version 2 web med paringskode"
+
+**v1 — Apple devices via iCloud.** iPhone ↔ iPad ↔ Mac sync with **no app-level login**:
+the device's existing iCloud account is the identity, and Apple handles storage,
+encryption and conflict transport. Web keeps storing locally, as today.
+
+**v2 — web via a pairing code, later.** The app shows a code, the user enters it on web,
+the two share data. Still no password and no account — but it does need a small server,
+and losing every device loses the data.
+
+**This removes the account system and the backend from 2.0** — two of the four
+infrastructure gaps D13 listed. Remaining gaps: the AI backend with credit accounting,
+and the three printer protocols.
+
+**Note the design departure:** `3a` shows *"SIGNED IN · APPLE ID"* with a named user. v1
+has no such row. Recorded so it is not read later as something forgotten.
+
+**Engineering input for the re-model (not an owner decision):** syncing the envelope as a
+single blob gives last-write-wins, so two devices editing different gears can lose one.
+Per-gear records sync cleanly. This is a real constraint on the schema and belongs in the
+re-model alongside S1–S3.
+
+---
+
+## D17 — Referral is deferred
+
+The +25 CR referral in `3a` is not important now and moves to a future update. Out of 2.0.
+
+---
+
+## Revised 2.0 scope after D16 and D17
+
+| Component | Infrastructure needed |
+|---|---|
+| My Gear | none — designed here |
+| Cloud sync v1 (Apple devices, iCloud) | **none** — no accounts, no server |
+| AI Expert + credits | **AI backend + credit accounting** |
+| Inventory (Pro) | none beyond local storage |
+| Printer Link (Bambu / Prusa Link / Moonraker) | **three vendor protocols** |
+| Four-tab shell · light mode · Settings screen | none |
+| Pro tier + credit purchase | StoreKit, extending the existing consumables work |
+| ~~Accounts + backend~~ | removed by D16 |
+| ~~Referral~~ | deferred by D17 |
