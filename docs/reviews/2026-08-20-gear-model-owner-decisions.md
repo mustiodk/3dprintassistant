@@ -130,3 +130,43 @@ AMS is not user input. `engine.js:1053-1080` classifies the feed system from the
 **printer's** `multi_color_systems` catalog field; the user-facing question is `colors`
 (single / 2–4 / 5+), already a per-print field under D2. The design's `AMS` chip was
 display of a catalog fact. Nothing to store, and the original M4 question is void.
+
+---
+
+## D8 — Home shows three gear cards, with a door at four
+
+Active gear plus the two most recently used. At four or more gears an "all gears" row
+opens the full list. Home's height is bounded regardless of how many gears exist.
+
+The `⚙` header switcher built on the parked branch is withdrawn — D4's cards replace it.
+
+**Resolves:** M6.
+
+---
+
+## D9 — The primary Home CTA starts a fresh run
+
+Reads "New setup" (DA: *Ny opsætning*) and always begins at brand selection. The gear
+cards own the shortcut role via D4's generate control; the CTA owns "something different
+this time."
+
+This reframes M7 rather than answering it as filed. The original question was wording
+(`Configure print` vs `Continue with [gear]`); D4 removed the CTA's shortcut role
+entirely, so the question became what the button is *for*.
+
+**Resolves:** M7.
+
+---
+
+## D10 — Pickers surface the user's own brands and printers first
+
+On a fresh run, a "Yours" group leads the brand and printer pickers, with the full catalog
+beneath. Derived from the user's gears — **not** from a stored pool, which D1 removed.
+
+The engine's compatibility dimming is untouched and must stay visually distinct from this
+grouping (spec §2 constraint 1 survives intact).
+
+**Resolves:** M8's remaining half. The jump-target half — the design's two different
+targets, step 3 from the picker and step 5 from Home — is void under D4: a gear fills what
+it has pinned and lands the user on the first unanswered step, so there are no fixed step
+numbers to reconcile.
