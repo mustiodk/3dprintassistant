@@ -4,7 +4,7 @@
 The specs are ratified, the plan survived three adversarial rounds to zero
 findings, and web tasks ship value before iOS work begins.
 
-**Last updated:** 2026-08-19 evening, mac-mini wrap-up (2.0 redesign prompt prep).
+**Last updated:** 2026-08-20, mac-mini wrap-up (temperature-units decision + iOS 1.1.4 release).
 Entry point UNCHANGED — Train 1 execution. The owner opened the **2.0 redesign**
 track this session; it runs in his design tool, not here, and does not block
 Train 1's web tasks.
@@ -19,13 +19,15 @@ and can proceed either way. Two decisions are binding on the redesign and easy t
 lose: a gear pre-fills **hardware only** (intent stays per print, so no
 "Generate Profile" CTA), and **Workshop is star-save-from-Output, not a catalog**.
 
-**In flight, needs no work but do not lose it: iOS 1.1.4 is `Waiting for Review`.**
-Build `202608182214` (`991deba`), **Manual Release selected** — approval does NOT
-ship it; releasing is a deliberate owner action, and after releasing, verify the
-Danish storefront reports 1.1.4. Review takes up to 48h and the outcome arrives
-by email. If it is **rejected**, read
-`3dprintassistant-ios/docs/app-store-v1.1.4-submit.md` first — it carries the
-exact build, the submitted copy, and the acceptance gates.
+**Released; no work remains: iOS 1.1.4 is live.** The owner confirmed approval
+and manual release. Apple DK + US lookups both returned `version: 1.1.4` on
+2026-08-20 with release timestamp `2026-08-19T17:54:22Z`. Build
+`202608182214` came from `991deba`; the iOS repo is clean/current at `1e3de11`.
+
+**Product decision: keep Celsius/metric only.** The temperature-units research
+confirmed this is the printer/slicer ecosystem's operational convention,
+including US-facing workflows. The owner chose no action. Do not add a
+Fahrenheit preference or broad metric/imperial toggle from this research alone.
 
 **Known-broken and deliberately left: the WEB nozzle picker.** `app.js:1536`
 calls `Engine.getCompatibleNozzles(state.material)`, so every printer offers all
@@ -77,8 +79,8 @@ before touching it — the engine is correct, the call site is the bug.
 - **K4 scope-check gap** — `recurrence-seen`. Owner overruled an over-scoped
   closing recommendation; the rule that was supposed to prevent it only arms
   when designing against an ask.
-- **iOS 1.1.4** — implementation-complete, owner-gated. iOS is now **ahead 3**
-  (`13f149f`, `991720f`, `2169dd3` — all data mirrors) under the push gate.
+- **iOS 1.1.4** — live on the App Store; Apple DK + US storefront checks green.
+  The iOS repo is clean/current. Future iOS train work remains push-gated.
 - **K3 `enterResearchRepair` no-caller** — unchanged from 2026-08-17.
 
 ---
@@ -102,9 +104,9 @@ Cold start 3dpa. Today's task: execute the Train 1 (My Gear + Setups) plan.
 
 **Repo health first — check the BRANCH, not just the health line.** Run
 `git branch -vv`; a checkout parked on a feature branch reads "current"
-against its own upstream (bit four cold starts). `3dprintassistant-ios:
-ahead:N` is expected (push gate — includes the run's own `13f149f` mirror
-commit), not a problem. If health says `dirty`, run `git ls-files -u` before
+against its own upstream (bit four cold starts). `3dprintassistant-ios: current`
+is expected today; future local train commits may show `ahead:N` under the push
+gate and are not automatically a problem. If health says `dirty`, run `git ls-files -u` before
 trusting it (autostash-pop wedge, 2026-08-16).
 
 **Process:**
@@ -162,8 +164,7 @@ trusting it (autostash-pop wedge, 2026-08-16).
 <<< END <<<
 
 Maintenance note: regenerated on Trigger A / Trigger B / explicit owner ask
-only. This revision was the 2026-08-19 Trigger A wrap-up (mac-mini): entry point
-UNCHANGED (Train 1 execution). Added the parallel 2.0 redesign track and its
-two binding decisions, corrected the `ender_3_pro` expectation against what the
-12:11 run actually did, and added the verify-the-tool rule. The 1.1.4 review
-state is unchanged — still `Waiting for Review`, no ruling seen.
+only. This revision was the 2026-08-20 Trigger A wrap-up (mac-mini): entry point
+UNCHANGED (Train 1 execution). Recorded iOS 1.1.4 as publicly live after Apple
+DK + US verification, removed stale owner-gate/ahead state, and locked the
+temperature-units research as a no-action Celsius/metric product decision.
