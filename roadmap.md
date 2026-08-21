@@ -22,6 +22,12 @@ It depends on exactly these constructs. Break one and that part stops rendering:
   ## Decisions             A phase whose title is exactly "Decisions" renders as
                            the amber "waiting on you" block instead of a phase.
 
+THIS PAGE IS PUBLIC. It is served at 3dprintassistant.com/roadmap so it can be read
+from a phone. Keep unreleased pricing, and the specifics of defects that are live in a
+shipped app, OUT of it — both drifted in on 2026-08-21 and were removed the same day.
+Full detail lives in docs/planning/2-0-PROGRAM-PLAN.md and
+docs/reviews/2026-08-20-gear-model-owner-decisions.md, neither of which is served.
+
 RULES THAT KEEP THE NUMBERS HONEST:
   - Only tick a box when the work is genuinely done AND verified.
   - Never tick a box for "in progress" — that is what Status is for.
@@ -32,14 +38,10 @@ RULES THAT KEEP THE NUMBERS HONEST:
 ## Decisions
 
 **Status:** active
-**Why:** The big ones are answered. What's left is the price, which waits until just before launch.
+**Why:** The big ones are answered. What's left waits until closer to launch.
 
-- [x] **What does Pro contain?** Cloud sync, Filament Inventory, and access to the AI Expert — credits bought separately.
-- [x] **Is Inventory free or Pro?** Pro.
-- [x] **Does Pro come with any AI Expert credits?** Yes — a batch comes free with it.
-- [x] **Is Pro a one-off or a subscription?** A one-off purchase.
-- [ ] **How much is one credit worth?** Everything about how credits behave is already written — one per message, photos cost more than text, the price is shown before you send, and a failed answer never charges you. The only missing piece is the exchange rate, which comes from costing a real question against the model we pick. That is research, not a decision, and I can do it.
-- [ ] **What does Pro cost?** Deliberately left until just before launch. It does not hold anything up — the price is one number dropped into a plan that is otherwise finished.
+- [x] **What 3DPA Pro is, and what it includes** — settled.
+- [ ] **Pricing** — decided closer to launch. Nothing waits on it.
 
 ## 1. Web — My Gear
 
@@ -50,7 +52,7 @@ RULES THAT KEEP THE NUMBERS HONEST:
 
 - [x] Storage format — frozen and reviewed
 - [x] Validation and apply logic
-- [x] Three data-loss bugs in the saved-profiles store, plus five more found reviewing the fixes
+- [x] Eight fixes to how saved profiles are stored, found while building this
 - [x] Save-as-gear dialog after a run
 - [x] Gear cards on the configurator page — redesigned to the Claude Design 1a direction
 - [x] Manage gears — rename, set default, archive
@@ -67,12 +69,12 @@ RULES THAT KEEP THE NUMBERS HONEST:
 **Status:** next
 **Why:** Small, cheap, and everything on iOS is stuck behind them.
 
-- [ ] **iOS deletes come back from the dead.** `WorkshopStore.swift` has no `archived_at` field, and every iOS write rebuilds the whole file from typed objects — so any iOS write strips the deletion markers the web app just started writing. A profile you delete on web returns after an iOS backup round-trip. Live today; blocks cloud sync.
-- [ ] **Write the iOS storage contract before any iOS gear code.** Every existing iOS store rebuilds its file from typed objects, which drops anything it doesn't recognise. The gear format requires the opposite — untouched round-tripping of unknown fields — so the house pattern must not be copied.
+- [ ] **Align the iOS saved-profiles store with the web one** before cloud sync. The two disagree about how a record is written, and sync needs them to agree.
+- [ ] **Write the iOS storage contract before any iOS gear code**, so the two platforms cannot drift apart on the shared format.
 - [ ] Bundle the app's real fonts on iOS — about an hour, fixes 17 places rendering the wrong font since launch
 - [ ] Light mode — design is done; iOS needs 6 dark locks unpicked and ~49 hardcoded colours replaced
-- [ ] Fix the web light theme's two unreadable accent colours (they fail the accessibility standard today)
-- [ ] Fix the web nozzle picker offering sizes your printer can't fit — one line
+- [ ] Improve two accent colours in the light theme for better contrast
+- [ ] Nozzle picker: only offer sizes that fit the chosen printer
 
 ## 3. Write the missing specs
 
@@ -80,7 +82,7 @@ RULES THAT KEEP THE NUMBERS HONEST:
 **Why:** 2.0 ships as one release, so an unwritten spec on any one feature stalls all of it. Four of the seven pieces have nothing written.
 
 - [ ] **Pro tier** — what's bought, price, entitlement, what happens if it lapses. Everything commercial depends on it.
-- [ ] **AI Expert** — draft exists, needs sign-off. The long pole: the only piece needing a backend and credit accounting.
+- [ ] **AI Expert** — draft exists, needs sign-off. The long pole: the only part that needs a backend.
 - [ ] **Tab bar, Settings and light mode** — one spec, they're the same surface
 - [ ] **Cloud sync implementation plan** — spec is ratified; three technical questions to answer first
 
@@ -119,4 +121,4 @@ RULES THAT KEEP THE NUMBERS HONEST:
 - [ ] Filament brand profiles
 - [ ] Export as a printable sheet
 - [ ] Restore the AMS purge calculator — engine, styling and text are all there; only the screen is missing
-- [ ] Two small web nits found during My Gear QA and deliberately deferred: the duplicate-gear check doesn't collapse a repeated value (only reachable by hand-editing a share link), and the printer picker leaves behind one unused event listener each time it rebuilds
+- [ ] Two small internal tidy-ups noted during My Gear testing
