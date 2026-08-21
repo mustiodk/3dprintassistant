@@ -672,6 +672,101 @@ function row(extra) {
     !('top_level_junk' in JSON.parse(st._map.get(KEY)).gears[fresh]));
 }
 
+// G30 — GATE R4 MUST-FIX: the pair comparison must be STRUCTURAL, not a
+// delimited string. Serializing (value, label) pairs into one key with
+// separator characters collides whenever a conforming value or label CONTAINS a
+// separator — and a collision here means a real caller patch is silently
+// treated as a no-op: not written, clock not moved, no error returned.
+// Probe supplied verbatim by the gate.
+{
+  const SEP1 = String.fromCharCode(1);   // the old key's value/label separator
+  const SEP2 = String.fromCharCode(2);   // the old key's element separator
+  const seed = (fields, labels) => mockStorage({ [KEY]: JSON.stringify({ v: 1, gears: { g1: {
+    name: 'G', fields: fields, labels: labels,
+    created_at: T_OLD, updated_at: T_OLD, last_used_at: null, archived_at: null,
+  } }, settings: {} }) });
+
+  {
+    // before: material ['a'] labelled ['b<SEP2>c<SEP1>d']
+    // patch : material ['a','c'] labelled ['b','d']
+    // Both serialize to  a<SEP1>b<SEP2>c<SEP1>d  under the old string key.
+    const st = seed({ printer: 'x1c', material: ['a'] }, { material: ['b' + SEP2 + 'c' + SEP1 + 'd'] });
+    const s = createGearStore(st);
+    const r = s.update('g1', { fields: { material: ['a', 'c'] }, labels: { material: ['b', 'd'] } });
+    check('G30 the colliding patch reports ok', r.ok === true);
+    const a = JSON.parse(st._map.get(KEY)).gears.g1;
+    check('G30 a real patch is NOT swallowed by a separator collision',
+      a.fields.material.join('|') === 'a|c',
+      'persisted ' + JSON.stringify(a.fields.material) + ' — both states serialize identically');
+    check('G30 and its labels landed', a.labels.material.join('|') === 'b|d');
+    check('G30 and the clock moved', a.updated_at !== T_OLD);
+  }
+  {
+    // an absent label must not be conflated with an empty-string label
+    const st = seed({ printer: 'x1c', material: 'a' }, {});
+    const s = createGearStore(st);
+    s.update('g1', { labels: { material: '' } });
+    const a = JSON.parse(st._map.get(KEY)).gears.g1;
+    check('G30 an absent label differs from an empty-string label',
+      a.labels.material === '' && a.updated_at !== T_OLD);
+  }
+  {
+    // a value containing the separators is ONE value, and stays one
+    const st = seed({ printer: 'x1c', material: ['x' + SEP2 + 'y'] }, {});
+    const s = createGearStore(st);
+    const before = JSON.parse(st._map.get(KEY)).gears.g1.updated_at;
+    s.update('g1', { fields: { material: ['x' + SEP2 + 'y'] } });
+    check('G30 an identical separator-bearing value is still a no-op',
+      JSON.parse(st._map.get(KEY)).gears.g1.updated_at === before);
+    s.update('g1', { fields: { material: ['x', 'y'] } });
+    check('G30 but splitting it into two values is a real change',
+      JSON.parse(st._map.get(KEY)).gears.g1.fields.material.join('|') === 'x|y');
+  }
+}
+
+// G31 — GATE R4 SHOULD-FIX: a redundant archive/restore is a no-op.
+// restore() on an already-active row moved updated_at with no content change,
+// which under sync manufactures an edit that can win a later merge — the same
+// class as every other finding in this file.
+{
+  const fresh = () => mockStorage({ [KEY]: JSON.stringify({ v: 1, gears: { g1: {
+    name: 'G', fields: { printer: 'x1c' }, labels: {},
+    created_at: T_OLD, updated_at: T_OLD, last_used_at: null, archived_at: null,
+  } }, settings: {} }) });
+  {
+    const st = fresh();
+    const s = createGearStore(st);
+    check('G31 restoring an already-active gear reports ok', s.restore('g1').ok === true);
+    check('G31 and does NOT move updated_at',
+      JSON.parse(st._map.get(KEY)).gears.g1.updated_at === T_OLD);
+  }
+  {
+    const st = fresh();
+    const s = createGearStore(st);
+    s.archive('g1');
+    const afterArchive = JSON.parse(st._map.get(KEY)).gears.g1.updated_at;
+    check('G31 archive moved the clock', afterArchive !== T_OLD);
+    s.archive('g1');
+    check('G31 archiving an already-archived gear is a no-op',
+      JSON.parse(st._map.get(KEY)).gears.g1.updated_at === afterArchive);
+  }
+  {
+    // Seeded archived, so "the clock moved" is decidable. Archiving live and
+    // then restoring in the same tick produces identical ISO strings — _now()
+    // is millisecond-resolution, and that has now produced a false RED twice in
+    // this codebase.
+    const st = mockStorage({ [KEY]: JSON.stringify({ v: 1, gears: { g1: {
+      name: 'G', fields: { printer: 'x1c' }, labels: {},
+      created_at: T_OLD, updated_at: T_OLD, last_used_at: null, archived_at: T_OLD,
+    } }, settings: {} }) });
+    const s = createGearStore(st);
+    check('G31 a real restore does move the clock',
+      (s.restore('g1'), JSON.parse(st._map.get(KEY)).gears.g1.updated_at !== T_OLD));
+    check('G31 and clears the tombstone',
+      JSON.parse(st._map.get(KEY)).gears.g1.archived_at === null);
+  }
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');

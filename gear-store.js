@@ -555,24 +555,31 @@ function createGearStore(storage) {
         const after  = _normFieldsAndLabels(effF, effL);
         const before = _normFieldsAndLabels(beforeF, beforeL);
 
-        // Compare the PAIRS, not the two maps independently. _sameMap treats an
-        // array as a SET, which is correct for a value — a reordering of
-        // `useCase` is not a content edit — but wrong for a label, where the
-        // position IS the association. Comparing `labels` as a set would call
-        // (a->Ay, b->Bee) and (a->Bee, b->Ay) equal and silently drop a real
-        // re-labelling. Both sides are already lockstep-sorted by value here, so
-        // an exact positional comparison of the pair is the correct test.
-        const _pairKey = (fMap, lMap, k) => {
-          const v = fMap[k], l = lMap[k];
-          if (v === undefined && l === undefined) return '\u0000absent';
-          if (Array.isArray(v)) {
-            return v.map((x, i) => x + '\u0001' + (Array.isArray(l) ? l[i] : '')).join('\u0002');
-          }
-          return String(v) + '\u0001' + (l === undefined ? '' : String(l));
+        // Compare the PAIRS, not the two maps independently, and compare them
+        // STRUCTURALLY. _sameMap treats an array as a SET, which is correct for
+        // a value — reordering `useCase` is not a content edit — but wrong for a
+        // label, where the position IS the association: set-wise it would call
+        // (a->Ay, b->Bee) equal to (a->Bee, b->Ay) and silently drop a real
+        // re-labelling.
+        //
+        // An earlier fix serialized each pair into one delimited string. That is
+        // lossy: a conforming value or label may CONTAIN the delimiters, so two
+        // genuinely different pair-states collide and a real caller patch is
+        // dropped with no error and no clock movement. Both sides are already
+        // lockstep-sorted by value here, so an element-by-element comparison is
+        // exact and cannot collide.
+        const _sameSide = (a, b) => {
+          const aA = Array.isArray(a), bA = Array.isArray(b);
+          if (aA !== bA) return false;
+          if (!aA) return a === b;              // covers undefined vs '' correctly
+          if (a.length !== b.length) return false;
+          for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+          return true;
         };
         for (let i = 0; i < touched.length && !pairsChanged; i++) {
           const k = touched[i];
-          if (_pairKey(before.fields, before.labels, k) !== _pairKey(after.fields, after.labels, k)) {
+          if (!_sameSide(before.fields[k], after.fields[k])
+              || !_sameSide(before.labels[k], after.labels[k])) {
             pairsChanged = true;
           }
         }
@@ -640,15 +647,22 @@ function createGearStore(storage) {
   // part of the record's content. A hard delete cannot travel under sync — any
   // device still holding the row would re-upload it and the deletion would undo
   // itself — so death is a tombstone, never a removal.
+  // A redundant archive/restore is a NO-OP. Moving `updated_at` without a
+  // content change manufactures an edit that can win a later sync merge — the
+  // same class as every other defect this file has closed.
   function archive(id) {
-    return _mutate(id, () => {
+    return _mutate(id, dto => {
+      if (dto.archived_at) return { skipWrite: true };
       const now = _now();
       return { patch: { archived_at: now, updated_at: now } };
     });
   }
 
   function restore(id) {
-    return _mutate(id, () => ({ patch: { archived_at: null, updated_at: _now() } }));
+    return _mutate(id, dto => {
+      if (!dto.archived_at) return { skipWrite: true };
+      return { patch: { archived_at: null, updated_at: _now() } };
+    });
   }
 
   // ─── Settings ──────────────────────────────────────────────────────────────
