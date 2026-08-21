@@ -478,6 +478,97 @@ function row(extra) {
     mismatches === 0, mismatches + ' of ' + cases.length + ' disagree');
 }
 
+// G24 — GATE R2 MUST-FIX: an ORPHAN label is still data we are writing.
+// _validateWrite skipped any label whose field was absent, so a mis-shaped
+// label for an unpinned field walked straight into storage.
+{
+  const s = createGearStore(mockStorage());
+  check('G24 an orphan label of the wrong TYPE is rejected',
+    s.save({ name: 'g', fields: { printer: 'x1c' },
+             labels: { material: { bad: true } } }).error === 'bad-label');
+  check('G24 an orphan label array of non-strings is rejected',
+    s.save({ name: 'g', fields: { printer: 'x1c' },
+             labels: { material: [1, 2] } }).error === 'bad-label');
+  check('G24 nothing was persisted by the rejected writes', s.list().length === 0);
+  check('G24 a well-formed orphan label is still allowed (a label outlives its field)',
+    s.save({ name: 'g', fields: { printer: 'x1c' },
+             labels: { material: 'PLA Basic' } }).ok === true);
+}
+
+// G25 — GATE R2 MUST-FIX: a content write changes what it changes and NOTHING else.
+// _mutate rebuilt the row from a normalized DTO, so renaming or archiving a row
+// that already held non-conforming data silently rewrote that data too. Same
+// class as the touch() bug: a small edit must not launder unrelated bytes.
+{
+  const messy = () => JSON.stringify({ v: 1, gears: { g1: {
+    name: 'Before',
+    fields: { printer: 'x1c', surface: 42, useCase: ['zulu', 'alpha', 'zulu'] },
+    labels: { printer: 'X1 Carbon', material: ['orphan', 'pair'] },
+    created_at: T_OLD, updated_at: T_OLD, last_used_at: null, archived_at: null,
+    top_level_junk: 'from a hand edit',
+  } }, settings: {} });
+
+  {
+    const st = mockStorage({ [KEY]: messy() });
+    const s = createGearStore(st);
+    check('G25 a name-only update reports ok', s.update('g1', { name: 'After' }).ok === true);
+    const a = JSON.parse(st._map.get(KEY)).gears.g1;
+    check('G25 the name changed', a.name === 'After');
+    check('G25 updated_at moved', a.updated_at !== T_OLD);
+    check('G25 the non-conforming value was NOT laundered', a.fields.surface === 42);
+    check('G25 the unsorted array was NOT re-sorted',
+      a.fields.useCase.join(',') === 'zulu,alpha,zulu');
+    check('G25 the orphan label array survived', a.labels.material.join(',') === 'orphan,pair');
+  }
+  {
+    const st = mockStorage({ [KEY]: messy() });
+    const s = createGearStore(st);
+    s.archive('g1');
+    const a = JSON.parse(st._map.get(KEY)).gears.g1;
+    check('G25 archive set the tombstone', typeof a.archived_at === 'string');
+    check('G25 archive moved updated_at', a.updated_at !== T_OLD);
+    check('G25 archive did NOT launder fields', a.fields.surface === 42
+      && a.fields.useCase.join(',') === 'zulu,alpha,zulu');
+    check('G25 archive did NOT launder labels', a.labels.material.join(',') === 'orphan,pair');
+    check('G25 archive left the name alone', a.name === 'Before');
+  }
+  {
+    const st = mockStorage({ [KEY]: messy() });
+    const s = createGearStore(st);
+    s.update('g1', { fields: { nozzle: 'std_0.4' } });
+    const a = JSON.parse(st._map.get(KEY)).gears.g1;
+    check('G25 a fields patch applies the patched key', a.fields.nozzle === 'std_0.4');
+    check('G25 and normalizes only what it wrote, leaving the rest',
+      a.fields.surface === 42 && a.fields.useCase.join(',') === 'zulu,alpha,zulu');
+  }
+}
+
+// G26 — GATE R2: G22's offset and missing-ms rows were hidden behind the
+// impossible-date row taking first place. Test each in isolation.
+{
+  const only = (created) => createGearStore(mockStorage({ [KEY]: JSON.stringify({ v: 1, gears: {
+    good: row({ created_at: T_MID, last_used_at: null }),
+    probe: row({ created_at: created, last_used_at: null }),
+  }, settings: {} }) })).list().map(g => g.id).join(',');
+  check('G26 a +02:00 offset sorts last even against an OLDER valid row',
+    only('2099-01-01T00:00:00.000+02:00') === 'good,probe');
+  check('G26 a missing millisecond field sorts last even against an OLDER valid row',
+    only('2099-01-01T00:00:00Z') === 'good,probe');
+  check('G26 an impossible date sorts last even against an OLDER valid row',
+    only('9999-99-99T99:99:99.999Z') === 'good,probe');
+  check('G26 a genuinely NEWER valid row does lead', only('2099-01-01T00:00:00.000Z') === 'probe,good');
+}
+
+// G27 — GATE R2: G18's canonical-order claim checked get(), not the bytes.
+{
+  const st = mockStorage();
+  const s = createGearStore(st);
+  const id = s.save({ name: 'g', fields: { printer: 'x1c', useCase: ['zulu', 'alpha'] } }).gear.id;
+  const persisted = JSON.parse(st._map.get(KEY)).gears[id].fields.useCase;
+  check('G27 the canonical order is in the PERSISTED bytes, not just in get()',
+    persisted.join(',') === 'alpha,zulu');
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');

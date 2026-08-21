@@ -390,7 +390,13 @@ function createGearStore(storage) {
     for (let i = 0; i < lk.length; i++) {
       const k = lk[i];
       if (_isReserved(k) || LABEL_KEYS.indexOf(k) === -1) continue;   // dropped
-      if (!(k in f)) continue;                          // a label for an unpinned field
+      if (!(k in f)) {
+        // An ORPHAN label — for a field this gear does not pin. It is kept (a
+        // label outlives its field, §2.3), so it is still data we are writing
+        // and must still conform. Only the mirror-shape rule is inapplicable.
+        if (!_conformingValue(l[k])) return 'bad-label';
+        continue;
+      }
       if (!_conformingLabel(l[k], f[k])) return 'bad-label';
     }
     return null;
@@ -424,6 +430,16 @@ function createGearStore(storage) {
   // Only the touched row is rewritten; every other row goes back exactly as it
   // was read. That is what makes G12 hold — a later, unrelated write must not
   // repair a sibling's unparseable `created_at`.
+  // A content write changes exactly what it changes. The mutator returns a PATCH
+  // of persisted keys, which is applied to the RAW stored row — it does not
+  // rebuild the row from a normalized DTO.
+  //
+  // Rebuilding was the same defect class as the old touch(): a row holding
+  // non-conforming data (a hand edit, an older build, another implementation)
+  // would have that data silently deduped, re-sorted and re-shaped as a side
+  // effect of renaming it or archiving it. Read-side normalization is for
+  // reading (§2.5); it must never launder bytes the user did not touch, and
+  // §2.3's "read-side repair never writes" is the same principle one step over.
   function _mutate(id, fn) {
     const env = _readEnv();
     if (env._skew) return { ok: false, error: 'version-skew' };
@@ -431,12 +447,17 @@ function createGearStore(storage) {
     const raw = env.gears[id];
     if (!_isPlainMap(raw)) return { ok: false, error: 'not-found' };
     const dto = _toDto(id, raw).dto;
-    const r = fn(dto);
+    const r = fn(dto, raw);
     if (r && r.error) return r.error && r.error.ok === false ? r.error : r;
     if (r && r.skipWrite) return { ok: true, gear: dto };
-    env.gears[id] = _toPersist(dto);
+    const patch = (r && r.patch) || {};
+    const pk = Object.keys(patch);
+    for (let i = 0; i < pk.length; i++) {
+      if (PERSIST_KEYS.indexOf(pk[i]) === -1) continue;   // never widen the row
+      raw[pk[i]] = patch[pk[i]];
+    }
     const w = _writeEnv(env);
-    return w.ok ? { ok: true, gear: dto } : w;
+    return w.ok ? { ok: true, gear: _toDto(id, raw).dto } : w;
   }
 
   // Set equality, not sequence equality: reordering an array field is not a
@@ -470,27 +491,36 @@ function createGearStore(storage) {
   }
 
   function update(id, patch) {
-    return _mutate(id, dto => {
+    return _mutate(id, (dto, raw) => {
       const p = _isPlainMap(patch) ? patch : {};
       // Same boundary rule as save(): our API must not CREATE a non-conforming
       // value or a mis-shaped label, even though reading tolerates both.
-      if ('fields' in p || 'labels' in p) {
-        const probeFields = Object.create(null);
-        let pk = Object.keys(dto.fields);
-        for (let i = 0; i < pk.length; i++) probeFields[pk[i]] = dto.fields[pk[i]];
-        if (_isPlainMap(p.fields)) {
-          pk = Object.keys(p.fields);
-          for (let i = 0; i < pk.length; i++) probeFields[pk[i]] = p.fields[pk[i]];
+      // Validate ONLY what this call writes — not the whole post-image. A row
+      // may already hold non-conforming data from a hand edit (§2.5 blesses
+      // those) or from another implementation; refusing to let the user patch a
+      // DIFFERENT key on such a row would make their gear un-editable, and the
+      // patch-based write below already guarantees the bad bytes are preserved
+      // untouched rather than laundered.
+      if (_isPlainMap(p.fields)) {
+        const pk = Object.keys(p.fields);
+        for (let i = 0; i < pk.length; i++) {
+          if (_isReserved(pk[i])) continue;
+          if (!_conformingValue(p.fields[pk[i]])) return { error: { ok: false, error: 'bad-value' } };
         }
-        const probeLabels = Object.create(null);
-        pk = Object.keys(dto.labels);
-        for (let i = 0; i < pk.length; i++) probeLabels[pk[i]] = dto.labels[pk[i]];
-        if (_isPlainMap(p.labels)) {
-          pk = Object.keys(p.labels);
-          for (let i = 0; i < pk.length; i++) probeLabels[pk[i]] = p.labels[pk[i]];
+      }
+      if (_isPlainMap(p.labels)) {
+        const pk = Object.keys(p.labels);
+        for (let i = 0; i < pk.length; i++) {
+          const k = pk[i];
+          if (_isReserved(k) || LABEL_KEYS.indexOf(k) === -1) continue;
+          if (!_conformingValue(p.labels[k])) return { error: { ok: false, error: 'bad-label' } };
+          // Mirror-shape is checked against the EFFECTIVE value for that key.
+          const eff = (_isPlainMap(p.fields) && (k in p.fields)) ? p.fields[k] : dto.fields[k];
+          if (eff !== undefined && _conformingValue(eff)
+              && !_conformingLabel(p.labels[k], eff)) {
+            return { error: { ok: false, error: 'bad-label' } };
+          }
         }
-        const bad = _validateWrite(probeFields, probeLabels);
-        if (bad) return { error: { ok: false, error: bad } };
       }
 
       const nextName = ('name' in p)
@@ -504,8 +534,9 @@ function createGearStore(storage) {
       let mergedLabels = dto.labels;
       if ('fields' in p || 'labels' in p) {
         const fIn = Object.create(null);
-        let k = Object.keys(dto.fields);
-        for (let i = 0; i < k.length; i++) fIn[k[i]] = dto.fields[k[i]];
+        const _rf = _isPlainMap(raw.fields) ? raw.fields : {};
+        let k = Object.keys(_rf);
+        for (let i = 0; i < k.length; i++) { if (!_isReserved(k[i])) fIn[k[i]] = _rf[k[i]]; }
         if (_isPlainMap(p.fields)) {
           k = Object.keys(p.fields);
           for (let i = 0; i < k.length; i++) {
@@ -514,8 +545,9 @@ function createGearStore(storage) {
           }
         }
         const lIn = Object.create(null);
-        k = Object.keys(dto.labels);
-        for (let i = 0; i < k.length; i++) lIn[k[i]] = dto.labels[k[i]];
+        const _rl = _isPlainMap(raw.labels) ? raw.labels : {};
+        k = Object.keys(_rl);
+        for (let i = 0; i < k.length; i++) { if (!_isReserved(k[i])) lIn[k[i]] = _rl[k[i]]; }
         if (_isPlainMap(p.labels)) {
           k = Object.keys(p.labels);
           for (let i = 0; i < k.length; i++) {
@@ -523,9 +555,53 @@ function createGearStore(storage) {
             lIn[k[i]] = p.labels[k[i]];
           }
         }
-        const nl = _normFieldsAndLabels(fIn, lIn);
-        mergedFields = nl.fields;
-        mergedLabels = nl.labels;
+        // Normalize ONLY the keys this patch names, then overlay them onto the
+        // stored maps. Normalizing the whole merged map would re-sort and dedupe
+        // keys the user did not touch — the same laundering the patch-based
+        // write exists to prevent, just one level in.
+        const touchedF = Object.create(null), touchedL = Object.create(null);
+        if (_isPlainMap(p.fields)) {
+          const tk = Object.keys(p.fields);
+          for (let i = 0; i < tk.length; i++) {
+            if (_isReserved(tk[i])) continue;
+            touchedF[tk[i]] = p.fields[tk[i]];
+            // A label must ride along so the pair permutation stays in lockstep.
+            if (tk[i] in lIn) touchedL[tk[i]] = lIn[tk[i]];
+          }
+        }
+        if (_isPlainMap(p.labels)) {
+          const tk = Object.keys(p.labels);
+          for (let i = 0; i < tk.length; i++) {
+            if (_isReserved(tk[i])) continue;
+            touchedL[tk[i]] = p.labels[tk[i]];
+            if (!(tk[i] in touchedF) && (tk[i] in fIn)) touchedF[tk[i]] = fIn[tk[i]];
+          }
+        }
+        const nl = _normFieldsAndLabels(touchedF, touchedL);
+
+        // Base on the RAW stored maps, not the read-normalized DTO — starting from
+        // the DTO would bake read-side normalization into the write, which is
+        // exactly the laundering this whole change exists to stop.
+        const rawF = _isPlainMap(raw.fields) ? raw.fields : {};
+        const rawL = _isPlainMap(raw.labels) ? raw.labels : {};
+
+        mergedFields = Object.create(null);
+        let mk = Object.keys(rawF);
+        for (let i = 0; i < mk.length; i++) {
+          if (_isReserved(mk[i])) continue;
+          mergedFields[mk[i]] = rawF[mk[i]];
+        }
+        mk = Object.keys(nl.fields);
+        for (let i = 0; i < mk.length; i++) mergedFields[mk[i]] = nl.fields[mk[i]];
+
+        mergedLabels = Object.create(null);
+        mk = Object.keys(rawL);
+        for (let i = 0; i < mk.length; i++) {
+          if (_isReserved(mk[i])) continue;
+          mergedLabels[mk[i]] = rawL[mk[i]];
+        }
+        mk = Object.keys(nl.labels);
+        for (let i = 0; i < mk.length; i++) mergedLabels[mk[i]] = nl.labels[mk[i]];
       }
 
       if (!_hasPrinter(mergedFields)) return { error: 'required-printer' };
@@ -535,11 +611,15 @@ function createGearStore(storage) {
         || !_sameMap(dto.labels, mergedLabels);
       if (!changed) return { skipWrite: true };
 
-      dto.name = nextName;
-      dto.fields = mergedFields;
-      dto.labels = mergedLabels;
-      dto.updated_at = _now();   // spec §4.2 — a content edit moves the value clock
-      return null;
+      // Patch only what this call actually changed. A name-only update must not
+      // rewrite `fields`, or it launders whatever non-conforming data was there.
+      const out = { updated_at: _now() };   // §4.2 — a content edit moves the value clock
+      if (nextName !== dto.name) out.name = nextName;
+      if ('fields' in p || 'labels' in p) {
+        if (!_sameMap(dto.fields, mergedFields)) out.fields = mergedFields;
+        if (!_sameMap(dto.labels, mergedLabels)) out.labels = mergedLabels;
+      }
+      return { patch: out };
     });
   }
 
@@ -570,20 +650,14 @@ function createGearStore(storage) {
   // device still holding the row would re-upload it and the deletion would undo
   // itself — so death is a tombstone, never a removal.
   function archive(id) {
-    return _mutate(id, dto => {
+    return _mutate(id, () => {
       const now = _now();
-      dto.archived_at = now;
-      dto.updated_at = now;
-      return null;
+      return { patch: { archived_at: now, updated_at: now } };
     });
   }
 
   function restore(id) {
-    return _mutate(id, dto => {
-      dto.archived_at = null;
-      dto.updated_at = _now();
-      return null;
-    });
+    return _mutate(id, () => ({ patch: { archived_at: null, updated_at: _now() } }));
   }
 
   // ─── Settings ──────────────────────────────────────────────────────────────
