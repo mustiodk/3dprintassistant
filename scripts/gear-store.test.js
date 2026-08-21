@@ -449,6 +449,35 @@ function row(extra) {
   check('G22 a missing millisecond field is not valid', ids.indexOf('no_ms') > 0);
 }
 
+// G23 — the two UTF-8 encoders must agree BYTE FOR BYTE.
+// _cmpKey uses TextEncoder when present and a hand-written encoder when not.
+// If those disagree on any input, the "frozen" order becomes a function of the
+// runtime rather than of the data. Found by differential testing during the
+// gate round: a LONE surrogate has no UTF-8 encoding, and TextEncoder
+// substitutes U+FFFD (EF BF BD) while a naive encoder emits ED A0 80.
+{
+  const manual = (str) => {
+    const out = [];
+    for (let i = 0; i < str.length; i++) {
+      let c = str.codePointAt(i);
+      if (c > 0xFFFF) i++;
+      if (c >= 0xD800 && c <= 0xDFFF) c = 0xFFFD;
+      if (c < 0x80) out.push(c);
+      else if (c < 0x800) out.push(0xC0 | (c >> 6), 0x80 | (c & 63));
+      else if (c < 0x10000) out.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+      else out.push(0xF0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+    }
+    return out.join(',');
+  };
+  const enc = new TextEncoder();
+  const cases = ['a', 'z', 'aa', 'x1c', 'pla_basic', 'ø', '€', '',
+                 '\u{10000}', '\u{10FFFF}', '￿', '\uD800', '\uDFFF', '\uD800a'];
+  let mismatches = 0;
+  cases.forEach(c => { if (manual(c) !== [...enc.encode(c)].join(',')) mismatches++; });
+  check('G23 manual UTF-8 encoder matches TextEncoder on every case, incl. lone surrogates',
+    mismatches === 0, mismatches + ' of ' + cases.length + ' disagree');
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');

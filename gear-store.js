@@ -96,6 +96,12 @@ function createGearStore(storage) {
     for (let i = 0; i < str.length; i++) {
       let c = str.codePointAt(i);
       if (c > 0xFFFF) i++;                     // consumed a surrogate pair
+      // A LONE surrogate is not a scalar value and has no UTF-8 encoding.
+      // TextEncoder substitutes U+FFFD (WHATWG); this must match it exactly, or
+      // the two comparators disagree on that key and the "frozen" order becomes
+      // a function of whether TextEncoder happens to exist. Verified against
+      // TextEncoder: a lone surrogate encodes to EF BF BD, not ED A0 80.
+      if (c >= 0xD800 && c <= 0xDFFF) c = 0xFFFD;
       if (c < 0x80) out.push(c);
       else if (c < 0x800) out.push(0xC0 | (c >> 6), 0x80 | (c & 63));
       else if (c < 0x10000) out.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
