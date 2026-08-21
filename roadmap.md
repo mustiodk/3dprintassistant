@@ -36,8 +36,10 @@ RULES THAT KEEP THE NUMBERS HONEST:
 
 - [x] **What does Pro contain?** Cloud sync, Filament Inventory, and access to the AI Expert — credits bought separately.
 - [x] **Is Inventory free or Pro?** Pro.
-- [ ] **Does Pro come with any AI Expert credits, or none at all?** As it stands, buying Pro unlocks the AI Expert but you would still need to buy credits before asking it anything. Worth deciding how that should feel.
-- [ ] **What does Pro cost, and is it a one-off or a subscription?** Deliberately left until just before launch. It does not hold anything up — the price is one number dropped into a plan that is otherwise finished.
+- [x] **Does Pro come with any AI Expert credits?** Yes — a batch comes free with it.
+- [x] **Is Pro a one-off or a subscription?** A one-off purchase.
+- [ ] **How much is one credit worth?** Everything about how credits behave is already written — one per message, photos cost more than text, the price is shown before you send, and a failed answer never charges you. The only missing piece is the exchange rate, which comes from costing a real question against the model we pick. That is research, not a decision, and I can do it.
+- [ ] **What does Pro cost?** Deliberately left until just before launch. It does not hold anything up — the price is one number dropped into a plan that is otherwise finished.
 
 ## 1. Web — My Gear
 

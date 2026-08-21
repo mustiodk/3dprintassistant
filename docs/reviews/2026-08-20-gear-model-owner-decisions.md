@@ -491,3 +491,62 @@ requires a subscription to *"provide ongoing value"* — if Pro ends up as a sub
 rather than a one-time unlock, an entitlement that unlocks a feature the user cannot
 actually use without a second purchase is worth pressure-testing before submission.
 Bundling a starter allowance is the common shape. **Not decided here.**
+
+---
+
+## D20 — ANSWERED 2026-08-21: Pro is a one-time purchase and ships with free credits
+
+**Owner ruling, verbatim:** *"Pro er engangskøb, og fx 10 gratis kreditter følger med..
+dog skal jeg finde ud af hvad kredit betyder, hvad de kan bruges til og hvor meget osv
+før vi fastsætter en kredit grænse."*
+
+**Settled:** Pro is a **one-time purchase** — a non-consumable IAP, consistent with
+`SYN-01`'s "one-time 3dpa Pro unlock". Credit packs are **consumables** on top. A starter
+allowance **does** come with Pro; the number is pending.
+
+**Pending, and correctly so:** the size of the allowance, which cannot be chosen before a
+credit has a defined value.
+
+### One-time purchase closes the 3.1.2(a) exposure
+
+Guideline 3.1.2(a) — *"a subscription must provide ongoing value"* — governs
+**subscriptions**. A non-consumable unlock is not one. The concern raised in D19 about
+selling an entitlement to a feature the user cannot use without a second purchase does not
+apply as a guideline risk. It remains a *product* judgement, and the starter allowance
+answers it anyway.
+
+### It activates a known App Store Connect trap
+
+Credit packs are the app's **first consumable** IAPs. App Store Connect blocks a
+standalone first-consumable submission: *"Your first consumable in-app purchase must be
+submitted with a new app version."* The IAPs and the version must travel as one
+submission, and **Add for Review on the version page is a dropdown** — picking the
+existing draft merges them and clears the block; creating a new submission splits them and
+the block survives, which reads like the fix failed. Learned the hard way on the Tip Jar
+submission, 2026-07-25. Budget for it in the release plan rather than discovering it at
+submission.
+
+### Most of "what a credit means" is already specified — check before re-deciding
+
+The [AI Expert draft](../superpowers/specs/2026-08-17-ai-buddy-design.md) already fixes the
+mechanics. Re-opening them is not required:
+
+| Already specified | Where |
+|---|---|
+| A credit is spent **per message**, not per session or per token | §3 (credit display), §8 |
+| **Text and photo messages are priced differently**, and the price is shown **before** sending | §3 |
+| A failed send **never** burns a credit — two-phase reserve/settle over an append-only ledger | §3, §8 |
+| Balance lives in the chat header; "insufficient credits" is a typed state that deep-links the pack sheet | §3 |
+| One image per message, downscaled ≤1568px / ≤1MB, oversized rejected **before** any reserve | §5 |
+| Balance is the **only** server-side user state; history stays on-device | §3 |
+| A free taster independent of Pro: 5 text questions/device/30 days, attested, $10/day pool cap, kill switch | §8 |
+
+**What is genuinely missing is one thing: the exchange rate**, and the spec already names
+what produces it — *"credit prices are set from **D2's worst-case rows**, not the p50."*
+D2 is dated cost modelling for the chosen model: what one text turn and one photo turn
+actually cost at the ~5–8K input budget in §5, priced with the provider's dated units.
+
+**So the sequence is:** D2 (dated cost model) → the exchange rate (1 message = 1 credit?
+does a photo cost 3?) → the starter allowance → the pack prices. The owner's instinct to
+define the unit before the limit is right; D2 is the piece that defines it, and it is
+research, not a decision.
