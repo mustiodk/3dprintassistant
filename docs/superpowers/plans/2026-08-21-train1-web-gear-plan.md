@@ -169,53 +169,55 @@ nothing else in this plan changes.**
 
 ---
 
-## ⛔ BLOCKING — one owner decision before Task 4 can be written
+## ✅ RESOLVED — the array-order decision (was blocking)
 
-**Execution stops here.** Round 2 of the gate closed nine of ten findings, and the tenth
-is not mine to close: it is a **frozen-format** decision that contradicts a **ratified**
-spec.
+**Decision: store UTF-8 bytewise ascending; impose engine item order only at apply and
+display. Plus set equality as a merge rule.** Both ratified specs amended 2026-08-21.
 
-**The question: in what order are multi-value arrays stored?**
+Resolved by convergent independent analysis rather than escalation — an architect subagent
+and a Codex cross-model gate, each asked to **attack** the leading option, both landing on
+the same answer at ~90% confidence. Transcript:
+[`../../reviews/bridge-2026-08-21-114109-120505.md`](../../reviews/bridge-2026-08-21-114109-120505.md).
 
-Ratified spec §2.4 says: *"Duplicates removed; order normalized to the engine's own item
-order at write time, **so two devices that pin the same set produce the same value**."*
+**Why bytewise.** Engine item order is a property of a *build* — the two `multi`
+vocabularies are source literals in `getFilters` (`engine.js:532-538`, `:610-617`) and web
+auto-deploys while iOS ships a bundled snapshot. Canonicalizing to engine order turns a
+**version** difference into a **content** difference: the same set written on two builds
+produces different bytes, so under §4.2 whole-record LWW a write that changed nothing
+visible outranks a real edit on the other device. That is §4.2's *"reading must never
+outrank writing"* re-entering through a different door.
 
-The store is forbidden from importing the engine (§2.4, same paragraph), so it cannot know
-engine order on its own. That leaves two ways to honour the sentence, and they freeze
-different bytes:
+**Verified corroboration, not invention:** both platforms already sort these exact two
+fields for cross-platform identity — `app.js:1669,1677` and `ProfileKeyHasher.swift:27,34`.
+Independently arrived at, twice, already shipped.
 
-**Option A — inject the engine order into the store.** The caller passes
-`{ useCase: ['prototype','functional',…] }` the same way catalogs are injected for
-validation. The spec's words are satisfied literally, the no-engine-import property
-survives, and `["functional","decorative"]` is stored in engine order.
+**One motivating claim was wrong and is corrected:** adding a printer, nozzle or material
+cannot reorder a multi field — those feed only `multi: false` filters
+(`engine.js:508-513`). The real trigger is a hand edit to the two inline vocabularies.
+Neither has ever changed, nothing enforces append-only, and no test pins their order.
 
-**Option B — store bytewise-sorted, apply engine order at read.**
-`["decorative","functional"]` is stored; the engine order is imposed when the gear is
-applied.
+**Three consequences now binding on Tasks 4 and 5:**
 
-**Why this is not a coin flip.** The spec's stated *purpose* is that two devices pinning
-the same set produce the same value. **Option A delivers that only when both devices run
-the same engine version.** Web and iOS ship independently and the spec itself says version
-skew between them is the common case (§2.1, §2.4 — *"an iOS build that has not learned a
-key"*). If a new `useCase` is inserted mid-list on web before iOS gets it, the two devices
-write different arrays for the same user selection, and sync sees a value conflict where
-there is none. **Option B is unconditional: bytewise order is identical on every device,
-every version, forever.**
+1. **Reuse `_cmpKey` for the array sort**, not plain `<`. Same UTF-8 comparator as the gear-id
+   tie-break. (All 267 catalog and filter ids are ASCII today — verified — so plain sort
+   agrees in practice; the comparator is the contract, not a workaround.)
+2. **`labels` is permuted in lockstep with its value array** — sort the (value, label)
+   **pairs**, never two independent sorts, or a stale label attaches to the wrong id.
+   Latent today (all four labelled fields are `multi: false`) and live the moment §2.1's
+   cardinality promise is exercised.
+3. **`update()` treats an array field as unchanged when the SET is unchanged** — it must not
+   move `updated_at`. This closes the failure above *even if a future implementation gets
+   the canonical order wrong*, which is the property you want on a format that can never
+   be reformatted.
 
-So the ratified sentence names a mechanism that partly defeats its own stated goal.
+**Zero plan rework:** `G4` already asserts `'decorative,functional'` and `V7` already
+asserts engine order at apply. Choosing the other option would have required rewriting
+both plus the `save`/`update` signatures.
 
-**Recommendation: Option B, with a one-line amendment to spec §2.4** changing "the
-engine's own item order" to "bytewise ascending", keeping the rationale sentence exactly
-as written — because bytewise is what actually delivers it. Engine order remains the
-*display and apply* order, which is where it belongs.
-
-**Why it must be decided now, not during Task 4:** the first real browser write freezes
-`3dpa_gear_v1` (D14). Arrays are value fields under sync (sync spec §3.1), so the stored
-order is part of the format. Changing it afterwards is a migration on strangers' machines.
-
-**Cost of the decision being wrong is asymmetric.** Option B costs a spec amendment.
-Option A costs a spurious value conflict every time web and iOS disagree about a filter's
-item order — silent, intermittent, and only visible once sync ships.
+**Raised separately, and it is worse than the question that surfaced it:**
+`workshop-store.js:201` stores `state` verbatim, so shipped `useCase`/`special` arrays hold
+*click* order — already frozen in real users' browsers, in a store that syncs. Filed as
+**D-6** in the sync spec §5. Set equality is the only rule that can reach it.
 
 ---
 
@@ -554,7 +556,11 @@ Non-negotiables, each traceable to a spec line:
 computes `invalid` in memory. Every map is `Object.create(null)`, including `fields` and
 `labels`. Reserved keys (`__proto__`, `constructor`, `prototype`) are dropped as gear ids
 **and** as field keys, and each drop increments a counter exposed by `diagnostics()`.
-`update()` merges into a fresh null-prototype object, never `Object.assign({}, …)`.
+`update()` merges into a fresh null-prototype object, never `Object.assign({}, …)`, and
+**treats an array-valued field as unchanged when the set is unchanged** — a reordering must
+not move `updated_at`. Array values are sorted with **`_cmpKey`** (UTF-8 bytes), and where a
+field has a parallel `labels` array the sort is a permutation over the **(value, label)
+pairs**.
 `_writeEnv` refuses when the envelope is version-skewed, exactly as `workshop-store.js`
 now does.
 

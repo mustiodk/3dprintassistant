@@ -217,7 +217,7 @@ onto a product where nozzle and material are what distinguish gears.
 | **Values** | A string, or an array of strings. **Cardinality is not fixed by the schema.** |
 | **Required** | `printer` must be present and non-empty. A gear without it is rejected at write time. |
 | **Empty array** | `[]` means *pinned as none* — "I have no special requirements, do not ask." Distinct from the key being absent, which means *ask me*. |
-| **Array hygiene** | Duplicates removed; order normalized to the engine's own item order at write time, so two devices that pin the same set produce the same value. |
+| **Array hygiene** | Duplicates removed; order normalized at write time to **UTF-8 bytewise ascending** — a comparison every implementation can perform without consulting the engine — so two devices that pin the same set produce the same value regardless of which engine version each is running. Where a field carries a parallel `labels` array (§2.3), the sort is a **permutation applied to the (value, label) pairs**, never two independent sorts. *(Amended 2026-08-21 — see below.)* |
 | **Unknown keys** | **Preserved, never dropped.** Ignored when applying. |
 | **Catalog validation** | Not performed by the store. |
 
@@ -227,6 +227,51 @@ array of strings, and whether a given key *should* be one or the other is checke
 time against the engine's current `multi` flag. A mismatch coerces (single→array takes the
 one value; array→single takes the first and marks the gear `degraded`). This is what keeps
 a future cardinality change out of the migration column in §2.1.
+
+> **Amendment 2026-08-21 — the stored order is bytewise, not the engine's item order.**
+> This section originally said arrays normalize to the engine's own item order at write
+> time. That mechanism partly defeats the goal the same sentence states. Engine item order
+> is a property of a *build*: the two `multi` vocabularies are source literals inside
+> `getFilters` (`engine.js:532-538`, `:610-617`), and `profileMode` shows a filter's items
+> can even vary with app *state* (`engine.js:570-572`). Web auto-deploys from `main` while
+> iOS ships a bundled snapshot of `engine.js`, so the two surfaces routinely run different
+> engine versions — which §2.1 already treats as normal.
+>
+> Canonicalizing to engine order therefore turns a **version** difference into a **content**
+> difference: the same set written on two builds produces different `fields` bytes, and
+> under §4.2's whole-record last-write-wins a write that changed nothing the user can see
+> would outrank a real edit made on the other device. That is precisely the failure §4.2
+> spends its most emphatic paragraph closing — *"Reading must never outrank writing"* —
+> re-entering through a different door.
+>
+> Bytewise order is a function of the values alone, so it is stable across versions,
+> platforms and locales — the same reason §2.3 requires a bytewise `id` tie-break and
+> forbids `localeCompare`. **Bytewise means the UTF-8 byte sequence**, not JavaScript's `<`
+> (UTF-16 code units) and not Swift's `String` ordering; for today's `[a-z0-9_]` ids all
+> three agree — verified, all 267 catalog and filter ids are ASCII — and the format is
+> frozen for ids that may not.
+>
+> Engine order remains the **display and apply** order and is restored when a gear is
+> applied (§3.3). It is deliberately not the order at rest.
+>
+> **Corroboration, not invention:** both platforms already independently chose sorted order
+> as the canonical form of a multi selection, for exactly this cross-platform-identity
+> purpose — `app.js:1669,1677` (`[...state.useCase].sort()` in the analytics profile key)
+> and `ProfileKeyHasher.swift:27,34` (`state.useCase.sorted()`). Shipped on both surfaces,
+> arrived at twice, independently.
+>
+> **One claim that motivated this was wrong and is corrected here:** adding a printer,
+> nozzle or material *cannot* reorder a multi-value field — those data files feed only
+> `multi: false` filters (`engine.js:508-513`). The trigger is narrower than first argued:
+> a hand edit to the two inline vocabularies in `engine.js`. Neither has ever changed
+> (`git log -S` returns only the initial commit), but nothing enforces append-only, no test
+> pins their order, and `_MATERIAL_ORDER` (`engine.js:422-429`) is proof this project
+> curates item order editorially rather than by appending.
+>
+> Decided by convergent independent analysis — an architect subagent and a Codex
+> cross-model gate, both ~90% confidence, each asked to attack the recommendation rather
+> than confirm it. Transcript:
+> [`../../reviews/bridge-2026-08-21-114109-120505.md`](../../reviews/bridge-2026-08-21-114109-120505.md).
 
 **Unknown keys are preserved** because the two platforms will run different engine
 versions. An iOS build that has not learned a key must round-trip a gear without deleting
