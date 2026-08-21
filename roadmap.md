@@ -47,14 +47,15 @@ RULES THAT KEEP THE NUMBERS HONEST:
 - [x] Storage format — frozen and reviewed
 - [x] Validation and apply logic
 - [x] Three data-loss bugs in the saved-profiles store, plus five more found reviewing the fixes
+- [x] Save-as-gear dialog after a run
+- [x] Gear cards on the configurator page — redesigned to the Claude Design 1a direction
+- [x] Manage gears — rename, set default, archive
+- [x] Pickers lead with your own brands and printers
+- [x] Catalog-news line — "3 new printers since last time" — so new printers stay visible once your own are on top
+- [x] One Save button with two explained options, replacing two adjacent "Save" buttons
 
 ### Remaining
 
-- [ ] Save-as-gear dialog after a run
-- [ ] Gear cards on the configurator page
-- [ ] Manage gears — rename, set default, archive
-- [ ] Pickers lead with your own brands and printers
-- [ ] Catalog-news line — "3 new printers since last time" — so new printers stay visible once your own are on top
 - [ ] Final checks and ship
 
 ## 2. Groundwork for 2.0
