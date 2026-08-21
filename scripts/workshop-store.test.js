@@ -449,6 +449,75 @@ console.log('# workshop-store.js tests\n');
     && JSON.parse(ok.exportJSON()).profiles.length === 1);
 }
 
+// ── TC-R2 — an archived profile is immutable ──
+// Codex gate MUST-FIX against D-1. Before the soft delete, remove() made the
+// row vanish, so rename/addOutcome/removeOutcome on a deleted profile were
+// impossible by construction. _read() now returns archived rows, and those
+// call sites only looked up by id — so a deleted profile became mutable.
+{
+  console.log('TC-R2 — archived profiles are immutable');
+  const ws = createWorkshopStore(mockStorage());
+  const p = ws.save('Doomed', STATE_A).profile;
+  const oc = ws.addOutcome(p.id, { note: 'before delete' }).outcome;
+  ws.remove(p.id);
+
+  check('rename refuses on an archived row', ws.rename(p.id, 'Zombie').error === 'not-found');
+  check('addOutcome refuses on an archived row', ws.addOutcome(p.id, { note: 'x' }).error === 'not-found');
+  check('removeOutcome refuses on an archived row', ws.removeOutcome(p.id, oc.id).error === 'not-found');
+  const row = ws.listArchived().find(x => x.id === p.id);
+  check('the archived row was not mutated', row.name === 'Doomed' && row.journal.length === 1);
+}
+
+// ── TC-R3 — a non-string archived_at fails CLOSED ──
+// Codex gate SHOULD-FIX. _read() mapped any non-string archived_at to null,
+// so a hand-edited or foreign `archived_at: true` resurrected a deleted row.
+// Absent and null mean live; anything else truthy means archived.
+{
+  console.log('TC-R3 — unknown tombstone shapes fail closed');
+  function seededTombstone(v) {
+    return createWorkshopStore(mockStorage({ '3dpa_workshop_v1': JSON.stringify({
+      v: 1, profiles: [{ id: 'p1', name: 'X', state: STATE_A, created: '2020-01-01T00:00:00.000Z',
+                         updated: '2020-01-01T00:00:00.000Z', archived_at: v }] }) }));
+  }
+  check('archived_at: true is treated as archived', seededTombstone(true).list().length === 0);
+  check('archived_at: 1 is treated as archived', seededTombstone(1).list().length === 0);
+  check('archived_at: {} is treated as archived', seededTombstone({}).list().length === 0);
+  check('archived_at: null is live', seededTombstone(null).list().length === 1);
+  check('archived_at: "" is live', seededTombstone('').list().length === 1);
+  check('a real ISO tombstone is archived', seededTombstone('2026-01-01T00:00:00.000Z').list().length === 0);
+}
+
+// ── TC-R4 — every mutator surfaces skew, including revertTuning ──
+// Codex gate SHOULD-FIX: revertTuning returned not-found under skew. It never
+// persisted, but the skew contract says the condition must surface.
+{
+  console.log('TC-R4 — revertTuning surfaces skew');
+  const future = JSON.stringify({ v: 999, profiles: [] });
+  const ws = createWorkshopStore(mockStorage({ '3dpa_workshop_v1': future }));
+  check('revertTuning reports version-skew',
+    ws.revertTuning('x1c|pla_basic', 'nozzle_temp_delta').error === 'version-skew');
+  check('dismissSuggestion reports version-skew',
+    ws.dismissSuggestion('x1c|pla_basic').error === 'version-skew');
+}
+
+// ── TC-R5 — the D-1 assertions actually discriminate ──
+// Codex gate OBSERVATION: "list() hides the removed profile" and "get() hides
+// it" pass under a hard delete too. The discriminating property is that the
+// underlying row COUNT does not shrink.
+{
+  console.log('TC-R5 — soft delete is observable in storage');
+  const st = mockStorage();
+  const ws = createWorkshopStore(st);
+  const a = ws.save('A', STATE_A).profile;
+  ws.save('B', STATE_B);
+  const before = JSON.parse(st._map.get('3dpa_workshop_v1')).profiles.length;
+  ws.remove(a.id);
+  const after = JSON.parse(st._map.get('3dpa_workshop_v1')).profiles;
+  check('the stored row count does not shrink on delete', after.length === before);
+  check('and the deleted row carries an ISO tombstone',
+    /^\d{4}-\d{2}-\d{2}T/.test(after.find(x => x.id === a.id).archived_at));
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');

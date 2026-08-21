@@ -36,9 +36,19 @@ function createWorkshopStore(storage) {
     if (!Array.isArray(env.profiles)) return [];
     return env.profiles
       .filter(p => p && typeof p === 'object' && p.id && p.state && typeof p.state === 'object')
-      // D-1: absent archived_at reads as LIVE, so existing envelopes and
-      // existing user backup files keep working with no migration.
-      .map(p => (typeof p.archived_at === 'string' ? p : Object.assign(p, { archived_at: null })));
+      // D-1: absent, null and '' read as LIVE, so existing envelopes and
+      // existing user backup files keep working with no migration. Anything
+      // else truthy is an archived_at we do not understand — from a hand edit,
+      // a foreign writer, or a future build — and it FAILS CLOSED. Mapping it
+      // to null would resurrect a row the user deleted, which is the outcome
+      // this whole defect class exists to prevent.
+      .map(p => {
+        if (typeof p.archived_at === 'string') return p;
+        if (p.archived_at === undefined || p.archived_at === null) {
+          return Object.assign(p, { archived_at: null });
+        }
+        return Object.assign(p, { archived_at: '' + p.archived_at });
+      });
   }
 
   function _isLive(p) { return !p.archived_at; }
@@ -148,6 +158,7 @@ function createWorkshopStore(storage) {
   }
 
   function revertTuning(pairKey, offsetKey) {
+    const _sk = _skewed(); if (_sk) return _sk;   // surface skew, not 'not-found'
     const env = _readEnv();
     const tuning = _tuningOf(env);
     const entry = tuning.accepted.find(e => e.pairKey === pairKey && e.offsetKey === offsetKey);
@@ -199,7 +210,8 @@ function createWorkshopStore(storage) {
     const _sk = _skewed(); if (_sk) return _sk;
     const profiles = _read();
     const p = profiles.find(x => x.id === id);
-    if (!p) return { ok: false, error: 'not-found' };
+    // An archived row is a tombstone, not an editable profile (Codex gate).
+    if (!p || !_isLive(p)) return { ok: false, error: 'not-found' };
     p.name = String(newName || '').trim() || p.name;
     p.updated = _now();
     return _write(profiles);
@@ -224,7 +236,7 @@ function createWorkshopStore(storage) {
     const _sk = _skewed(); if (_sk) return _sk;
     const profiles = _read();
     const p = profiles.find(x => x.id === profileId);
-    if (!p) return { ok: false, error: 'not-found' };
+    if (!p || !_isLive(p)) return { ok: false, error: 'not-found' };
     const rec = {
       id: _newId(),
       result: (outcome && outcome.result === 'failed') ? 'failed' : 'worked',
@@ -249,7 +261,7 @@ function createWorkshopStore(storage) {
     const _sk = _skewed(); if (_sk) return _sk;
     const profiles = _read();
     const p = profiles.find(x => x.id === profileId);
-    if (!p || !Array.isArray(p.journal)) return { ok: false, error: 'not-found' };
+    if (!p || !_isLive(p) || !Array.isArray(p.journal)) return { ok: false, error: 'not-found' };
     const next = p.journal.filter(o => o.id !== outcomeId);
     if (next.length === p.journal.length) return { ok: false, error: 'not-found' };
     p.journal = next;
