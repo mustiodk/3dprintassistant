@@ -169,6 +169,56 @@ nothing else in this plan changes.**
 
 ---
 
+## ⛔ BLOCKING — one owner decision before Task 4 can be written
+
+**Execution stops here.** Round 2 of the gate closed nine of ten findings, and the tenth
+is not mine to close: it is a **frozen-format** decision that contradicts a **ratified**
+spec.
+
+**The question: in what order are multi-value arrays stored?**
+
+Ratified spec §2.4 says: *"Duplicates removed; order normalized to the engine's own item
+order at write time, **so two devices that pin the same set produce the same value**."*
+
+The store is forbidden from importing the engine (§2.4, same paragraph), so it cannot know
+engine order on its own. That leaves two ways to honour the sentence, and they freeze
+different bytes:
+
+**Option A — inject the engine order into the store.** The caller passes
+`{ useCase: ['prototype','functional',…] }` the same way catalogs are injected for
+validation. The spec's words are satisfied literally, the no-engine-import property
+survives, and `["functional","decorative"]` is stored in engine order.
+
+**Option B — store bytewise-sorted, apply engine order at read.**
+`["decorative","functional"]` is stored; the engine order is imposed when the gear is
+applied.
+
+**Why this is not a coin flip.** The spec's stated *purpose* is that two devices pinning
+the same set produce the same value. **Option A delivers that only when both devices run
+the same engine version.** Web and iOS ship independently and the spec itself says version
+skew between them is the common case (§2.1, §2.4 — *"an iOS build that has not learned a
+key"*). If a new `useCase` is inserted mid-list on web before iOS gets it, the two devices
+write different arrays for the same user selection, and sync sees a value conflict where
+there is none. **Option B is unconditional: bytewise order is identical on every device,
+every version, forever.**
+
+So the ratified sentence names a mechanism that partly defeats its own stated goal.
+
+**Recommendation: Option B, with a one-line amendment to spec §2.4** changing "the
+engine's own item order" to "bytewise ascending", keeping the rationale sentence exactly
+as written — because bytewise is what actually delivers it. Engine order remains the
+*display and apply* order, which is where it belongs.
+
+**Why it must be decided now, not during Task 4:** the first real browser write freezes
+`3dpa_gear_v1` (D14). Arrays are value fields under sync (sync spec §3.1), so the stored
+order is part of the format. Changing it afterwards is a migration on strangers' machines.
+
+**Cost of the decision being wrong is asymmetric.** Option B costs a spec amendment.
+Option A costs a spurious value conflict every time web and iOS disagree about a filter's
+item order — silent, intermittent, and only visible once sync ships.
+
+---
+
 ## Corrected file structure
 
 | File | Responsibility |
