@@ -224,11 +224,114 @@ function gear(fields, labels) {
 // distinction the spec exists to protect. Only a foreign build can produce this
 // shape, so it is reported but not treated as a loss.
 {
+  // SUPERSEDED 2026-08-21 by V15. This originally asserted that `[]` survives
+  // into `resolved` on a single-valued field, to keep "pinned as none" distinct
+  // from "absent". The cross-model gate traced the consequence: app state has no
+  // scalar-none representation, so the array is persisted into a scalar slot and
+  // the user is shown an invalid-preset warning. The distinction is preserved AT
+  // REST by the store; it simply cannot be carried into app state. Kept as a
+  // record of the reversal rather than deleted.
   const r = inspectGear(gear({ printer: 'x1c', surface: [] }), CAT, META);
-  check('V13 [] survives on a single-valued field',
-    Array.isArray(r.resolved.surface) && r.resolved.surface.length === 0);
-  check('V13 and is distinguishable from the key being absent', 'surface' in r.resolved);
-  check('V13 and is reported', r.notes.some(n => n.key === 'surface'));
+  check('V13 (superseded) [] is reported rather than silently dropped',
+    r.notes.some(n => n.key === 'surface'));
+  check('V13 (superseded) and is NOT carried into app state', !('surface' in r.resolved));
+}
+
+// V14 — GATE MUST-FIX: 'mine' must degrade with REAL filter metadata.
+// engine.js:571 spreads `mine` into profileMode.items ONLY when personal tuning
+// exists for that printer|material pair. So when tuning is absent — which is
+// exactly the case spec §3.2 is about — `mine` is NOT in items, and a plain
+// membership check rejects it as an unknown id and marks the gear stale.
+//
+// The earlier fixture always listed `mine` while mineAvailable was false, which
+// is a state the real engine can never produce. The test passed for the wrong
+// reason. These use realistic metadata.
+{
+  const REAL_NO_TUNING = { filters: [
+    { key: 'printer',  multi: false, items: [{ id: 'x1c' }, { id: 'a1' }] },
+    { key: 'material', multi: false, items: [{ id: 'pla_basic' }] },
+    // no `mine` — the engine omits it when there is no tuning for the pair
+    { key: 'profileMode', multi: false, items: [{ id: 'safe' }, { id: 'tuned' }] },
+  ], mineAvailable: () => false };
+
+  const REAL_WITH_TUNING = { filters: [
+    { key: 'printer',  multi: false, items: [{ id: 'x1c' }, { id: 'a1' }] },
+    { key: 'material', multi: false, items: [{ id: 'pla_basic' }] },
+    { key: 'profileMode', multi: false, items: [{ id: 'safe' }, { id: 'tuned' }, { id: 'mine' }] },
+  ], mineAvailable: () => true };
+
+  const g = gear({ printer: 'x1c', material: 'pla_basic', profileMode: 'mine' });
+
+  const r = inspectGear(g, CAT, REAL_NO_TUNING);
+  check('V14 a gear pinning mine with no tuning DEGRADES, not stale', r.state === 'degraded',
+    'got ' + r.state + ' — membership rejected a conditional value before the conditional ran');
+  check('V14 and applies safe', r.resolved.profileMode === 'safe');
+  check('V14 and says why', r.notes.some(n => n.key === 'profileMode' && n.reason === 'mine-unavailable'));
+
+  const r2 = inspectGear(g, CAT, REAL_WITH_TUNING);
+  check('V14 mine survives when the engine offers it and tuning exists',
+    r2.state === 'ok' && r2.resolved.profileMode === 'mine');
+
+  // A genuinely unknown profileMode value is still stale.
+  const bad = gear({ printer: 'x1c', material: 'pla_basic', profileMode: 'invented' });
+  const r3 = inspectGear(bad, CAT, REAL_NO_TUNING);
+  check('V14 an actually-unknown profileMode is still stale', r3.state === 'stale');
+  check('V14 and is left unset', !('profileMode' in r3.resolved));
+}
+
+// V15 — GATE MUST-FIX: [] on a single-valued field must not reach app state.
+// state-codec.js:28 declares `surface` kind:'single'. Applying surface:[] would
+// persist an array in a scalar slot, URL-encode it as `sq=`, make
+// resolveProfile fall back to 'standard', and make getWarnings (engine.js:1663)
+// report an INVALID PRESET to the user. The distinction between "pinned as
+// none" and "absent" is preserved AT REST by the store; app state has no
+// representation for it, so `resolved` must not carry it.
+{
+  const r = inspectGear(gear({ printer: 'x1c', surface: [] }), CAT, META);
+  check('V15 [] on a single-valued field is NOT applied to state',
+    !('surface' in r.resolved),
+    'an array in a scalar slot triggers a bogus invalid-preset warning downstream');
+  check('V15 and it is reported rather than silent',
+    r.notes.some(n => n.key === 'surface'));
+  check('V15 and the gear is not marked stale for it', r.state !== 'stale');
+  // On a MULTI field, [] is meaningful and must survive.
+  const r2 = inspectGear(gear({ printer: 'x1c', useCase: [] }), CAT, META);
+  check('V15 [] on a multi field still survives as pinned-as-none',
+    Array.isArray(r2.resolved.useCase) && r2.resolved.useCase.length === 0);
+}
+
+// V16 — GATE SHOULD-FIX: apply must not alias arrays into app state, and must
+// not leave state half-applied when a dependency throws.
+{
+  const resolved = { printer: 'x1c', useCase: ['functional'] };
+  const state = { printer: null, useCase: [] };
+  applyGearToState(resolved, state, {
+    resetFields: () => { state.printer = null; state.useCase = []; },
+    setActiveSlicer: () => {}, getSlicerForPrinter: () => 'bambu_studio',
+    setExpandedBrand: () => {}, collapsePicker: () => {},
+    printerRow: () => ({ manufacturer: 'bambu_lab' }),
+  });
+  state.useCase.push('decorative');
+  check('V16 state arrays are copies, not aliases of resolved',
+    resolved.useCase.length === 1,
+    'pushing to state.useCase mutated the caller-owned resolved object');
+}
+{
+  const state = { printer: 'old', surface: 'fine' };
+  const snapshot = JSON.stringify(state);
+  let threw = false;
+  try {
+    applyGearToState({ printer: 'x1c' }, state, {
+      resetFields: () => { state.printer = null; state.surface = null; },
+      setActiveSlicer: () => {},
+      getSlicerForPrinter: () => { throw new Error('engine unavailable'); },
+      setExpandedBrand: () => {}, collapsePicker: () => {},
+      printerRow: () => ({ manufacturer: 'bambu_lab' }),
+    });
+  } catch (_) { threw = true; }
+  check('V16 a throwing dependency does not leave state half-applied',
+    threw === false && state.printer === 'x1c',
+    'state=' + JSON.stringify(state) + ' snapshot=' + snapshot);
 }
 
 console.log('');

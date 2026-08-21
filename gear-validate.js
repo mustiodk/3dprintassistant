@@ -131,6 +131,15 @@ var inspectGear, applyGearToState, gearDisplayName, gearDerivedBrandIds, gearDer
   // consults the filter's own items. A catalog-backed field whose Set was not
   // injected falls back to the filter items rather than passing everything —
   // an absent catalog must not become an accidental amnesty.
+  // Values whose membership in the engine's item list is CONDITIONAL on app
+  // state rather than on the value being valid. Today there is exactly one
+  // (`profileMode: 'mine'`, engine.js:568-572); it is enumerated rather than
+  // inferred so a future conditional value is a deliberate addition here.
+  var CONDITIONAL_VALUES = { profileMode: { mine: true } };
+  function _isConditionalValue(key, value) {
+    return !!(CONDITIONAL_VALUES[key] && CONDITIONAL_VALUES[key][value]);
+  }
+
   function _isMember(key, value, filter, catalogs) {
     const name = _own(CATALOG_OF, key) ? CATALOG_OF[key] : null;
     if (name && _isMap(catalogs) && catalogs[name] && typeof catalogs[name].has === 'function') {
@@ -218,8 +227,19 @@ var inspectGear, applyGearToState, gearDisplayName, gearDerivedBrandIds, gearDer
       if (!shape) { stale = true; notes.push({ key: key, reason: 'invalid-type', value: _noteValue(raw) }); continue; }
 
       // 2 — membership, over every member, BEFORE any coercion.
+      //
+      // CONDITIONAL values are exempt. `engine.js:571` spreads `mine` into
+      // profileMode.items ONLY when personal tuning exists for the current
+      // printer|material pair — so in exactly the situation spec §3.2 is about
+      // (the tuning was deleted, or this device never had it), `mine` is absent
+      // from `items` and a plain membership test would reject it as an unknown
+      // id and mark the gear stale. §3.2 requires it to DEGRADE to `safe` and
+      // say so. `mine` is part of the vocabulary whose AVAILABILITY is
+      // conditional, not an unknown value, so membership must let it through to
+      // step 4, which is the rule that actually owns this decision.
       const missing = [];
       for (let j = 0; j < shape.values.length; j++) {
+        if (_isConditionalValue(key, shape.values[j])) continue;
         if (!_isMember(key, shape.values[j], f, catalogs)) missing.push(shape.values[j]);
       }
       if (missing.length > 0) {
@@ -231,6 +251,21 @@ var inspectGear, applyGearToState, gearDisplayName, gearDerivedBrandIds, gearDer
       // 3 — cardinality coercion (spec §2.4). This is what keeps a future
       // `multi` flip out of the migration column in §2.1.
       let out;
+      if (!f.multi && shape.multi && shape.values.length === 0) {
+        // `[]` on a SINGLE-valued field. At rest the store keeps it and the
+        // "pinned as none" vs "absent" distinction survives — but app state has
+        // no representation for it: `state-codec.js:28` declares `surface`
+        // kind:'single', so applying it would persist an array in a scalar slot,
+        // URL-encode it as `sq=`, make resolveProfile fall back, and make
+        // getWarnings (`engine.js:1663`) show the user an INVALID PRESET for a
+        // field they deliberately left open.
+        //
+        // So it is reported and left UNSET, which makes the wizard ask — the
+        // closest honest behaviour app state can express. Not stale: the gear is
+        // not corrupt, we simply cannot carry this pin into a scalar field.
+        notes.push({ key: key, reason: 'empty-pin-unrepresentable', value: _noteValue(raw) });
+        continue;
+      }
       if (shape.multi && shape.values.length === 0) {
         // `[]` is "pinned as none" — the user said "I have no special
         // requirements, do not ask" — and is distinct from the key being
@@ -358,29 +393,53 @@ var inspectGear, applyGearToState, gearDisplayName, gearDerivedBrandIds, gearDer
     if (!_isMap(state)) return;
     const d = _isMap(deps) ? deps : {};
 
+    // Everything that can THROW is computed before app state is touched. An
+    // earlier version reset and merged first, so a dependency that threw left
+    // the configurator half-applied: the previous answers cleared, the new ones
+    // partly in, and no slicer routed. Nothing here is transactional, so the
+    // only honest guarantee is that a failure happens before the mutation
+    // rather than in the middle of it.
+    const printer = (_isMap(resolved) && _isNonEmptyString(resolved.printer))
+      ? resolved.printer : null;
+
+    let slicer = null, brand = null;
+    if (printer) {
+      // setActiveSlicer takes a SLICER id, not a printer id (engine.js:979).
+      // The plan's original draft passed the printer straight through, which the
+      // cross-model gate caught: it would have silently selected no slicer.
+      if (typeof d.getSlicerForPrinter === 'function' && typeof d.setActiveSlicer === 'function') {
+        try {
+          const v = d.getSlicerForPrinter(printer);
+          if (_isNonEmptyString(v)) slicer = v;
+        } catch (_) { slicer = null; }
+      }
+      // The picker's expanded group comes from the printer row's `manufacturer`.
+      // The row also carries a `brand` field and it is NOT the one to use.
+      if (typeof d.printerRow === 'function' && typeof d.setExpandedBrand === 'function') {
+        try {
+          const row = d.printerRow(printer);
+          if (_isMap(row) && _isNonEmptyString(row.manufacturer)) brand = row.manufacturer;
+        } catch (_) { brand = null; }
+      }
+    }
+
     if (typeof d.resetFields === 'function') d.resetFields();
-    if (_isMap(resolved)) Object.assign(state, resolved);
 
-    // Read the printer back off state rather than off `resolved`: after the
-    // reset+merge, state is what the app actually holds, and a gear that pinned
-    // no printer must not re-route the slicer to a stale one.
-    const printer = state.printer;
-    if (!_isNonEmptyString(printer)) return;
-
-    // setActiveSlicer takes a SLICER id, not a printer id (engine.js:979). The
-    // plan's original draft passed the printer straight through, which the
-    // cross-model gate caught: it would have silently selected no slicer.
-    if (typeof d.getSlicerForPrinter === 'function' && typeof d.setActiveSlicer === 'function') {
-      const slicer = d.getSlicerForPrinter(printer);
-      if (_isNonEmptyString(slicer)) d.setActiveSlicer(slicer);
+    // Copy arrays rather than aliasing them into app state. `state.useCase` is
+    // mutated in place on every chip click (app.js:1565); aliasing would let a
+    // click reach back into the caller's `resolved` object — and, through it,
+    // into whatever produced it.
+    if (_isMap(resolved)) {
+      const k = Object.keys(resolved);
+      for (let i = 0; i < k.length; i++) {
+        const v = resolved[k[i]];
+        state[k[i]] = Array.isArray(v) ? v.slice() : v;
+      }
     }
 
-    // The picker's expanded group comes from the printer row's `manufacturer`.
-    // The row also carries a `brand` field and it is NOT the one to use.
-    if (typeof d.printerRow === 'function' && typeof d.setExpandedBrand === 'function') {
-      const row = d.printerRow(printer);
-      if (_isMap(row) && _isNonEmptyString(row.manufacturer)) d.setExpandedBrand(row.manufacturer);
-    }
+    if (!printer) return;
+    if (slicer) d.setActiveSlicer(slicer);
+    if (brand) d.setExpandedBrand(brand);
 
     // Last: a printer is set, so the picker has nothing left to ask.
     if (typeof d.collapsePicker === 'function') d.collapsePicker();
