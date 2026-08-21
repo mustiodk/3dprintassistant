@@ -435,10 +435,14 @@ the new one.
    and it is a plan-time question rather than a schema one. Confirmed worth having: catalog
    ids **do** get removed (`aa0826e` reverted the Voxelab Aries; `2284207` deleted the
    `sparkx` brand), and version skew between web and iOS makes the state common.
-3. **Does web get Inventory?** Owner intent is yes — reachable on web, or unlocked if
-   bought through the App Store. **Blocked on D18b**: the existing inventory is a
-   single-user PHP/MySQL server app, and opening it needs the accounts D16 removed.
-   Cross-platform entitlement without accounts is unresolved alongside it.
+3. ~~**Does web get Inventory?**~~ **Unblocked 2026-08-21 — D18b answered: Inventory is
+   local-first and iCloud-synced**, so it is a sibling local store (§4.5) exactly as this
+   spec anticipated, and no accounts return. `bambuinventory` stays the owner's private
+   tool; the owner separately ruled Gmail import and Zigbee sensors out of product scope.
+   Web reachability follows the same limit as gear sync — local on web until sync v2's
+   pairing code. **Cross-platform Pro entitlement without accounts remains unresolved**,
+   and so does whether Inventory is free (`SYN-01`) or Pro (`D18`) — a pricing question,
+   recorded in D18b.
 4. ~~**Migration from the parked branch's format.**~~ **Closed: not a real question.**
    Nothing shipped; any preview-server test data is the controller's problem to clear.
 
@@ -448,11 +452,13 @@ the new one.
 
 1. ✅ Adversarial review of this spec (§9).
 2. ✅ Owner ratification of §1 and §2 — given 2026-08-20.
-3. ⬜ **A sync spec, before web ships.** §4 designs this schema *for* sync, but that is
-   analysis, not a reviewed specification. Web is the first surface and therefore
-   **freezes the format** (D14) — if a sync spec later needs a different record model, the
-   format is already in users' browsers. The sync spec must therefore land before a web
-   write reaches a real user. It need not block planning or building.
+3. ✅ **A sync spec, before web ships** — [sync v1](2026-08-20-sync-v1-spec.md),
+   **RATIFIED 2026-08-21** after adversarial review and `CKSyncEngine` verification against
+   live Apple documentation. It did not require a different record model, so **this
+   schema is confirmed and the format may be frozen by a web write.** It did, however,
+   surface five defects in shipped `workshop-store.js`, three of which (D-1, D-3, D-5)
+   must land **before web ships gear** — they belong in the re-plan below, not in a later
+   sync milestone.
 4. ⬜ A re-plan against this spec — the 2026-08-17 Train 1 plan is void, not amendable.
 
 
