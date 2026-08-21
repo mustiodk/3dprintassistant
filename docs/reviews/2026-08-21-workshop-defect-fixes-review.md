@@ -29,7 +29,19 @@ one already caught and rewritten before the D-3 commit.
 
 ---
 
-## Deferred — owner call required
+## Deferred — RECLASSIFIED 2026-08-21: these are mine to resolve, not the owner's
+
+**Correction.** These were originally filed as "owner call required." That was wrong.
+DEF-1 and DEF-2 are **technical** questions with answers discoverable from the code, the
+specs and an adversarial review — high stakes raises the review bar, it does not transfer
+the decision. DEF-3 is a wording clarification. The owner does not hold the technical
+context to arbitrate any of them, and asking him to stalls the work.
+
+**Correct handling, applied when sync is planned:** resolve each the way the array-order
+question was resolved on the same day — an architect subagent plus a cross-model gate,
+both instructed to attack the leading option, then decide and record the reasoning. They
+block *planning sync*; they do not block web shipping gear, so they are queued rather than
+escalated.
 
 ### DEF-1 · In-profile tombstones are not old-client compatible on envelope `v:1`
 
@@ -53,7 +65,7 @@ proposed fix carries no authority on its own.
 - The risk becomes real **the day sync ships**, which is exactly when the spec intends
   the merge rules to arrive anyway.
 
-**The decision this actually needs.** Whether to keep in-profile tombstones (spec as
+**The decision this needs, to be made by gated analysis rather than escalation.** Whether to keep in-profile tombstones (spec as
 ratified, simpler, matches gears) or move to an envelope-level ledger (better old-client
 behaviour, diverges from the gear model). **It must be settled before sync is planned**,
 not before web ships gear.
@@ -66,7 +78,7 @@ downloads, and an old client reading that file treats the row as live.
 
 This is **sync spec §9.2, already listed as open**: *"a user importing an old backup
 then sees archived rows return, which is arguably correct for a restore and arguably
-surprising."* Unchanged here. Same owner call, same timing — before sync is planned.
+surprising."* Unchanged here. Same treatment, same timing — gated analysis before sync is planned.
 
 ### DEF-3 · `journal_updated` fallback wording
 
