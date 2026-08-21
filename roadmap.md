@@ -31,11 +31,13 @@ RULES THAT KEEP THE NUMBERS HONEST:
 
 ## Decisions
 
-**Status:** blocked
-**Why:** Nothing else in 2.0 can be specified until these two are answered.
+**Status:** active
+**Why:** The big ones are answered. What's left is the price, which waits until just before launch.
 
-- [ ] **What does Pro cost, and what does it contain?** 99 DKK was researched but never confirmed; one-time vs subscription is open. Blocks the Pro spec, and the AI Expert spec can't price a credit until it exists.
-- [ ] **Is Inventory free or Pro?** July said free and local-first. August said "for Pro holders". A third decision says only sync was ever Pro — which points to free.
+- [x] **What does Pro contain?** Cloud sync, Filament Inventory, and access to the AI Expert — credits bought separately.
+- [x] **Is Inventory free or Pro?** Pro.
+- [ ] **Does Pro come with any AI Expert credits, or none at all?** As it stands, buying Pro unlocks the AI Expert but you would still need to buy credits before asking it anything. Worth deciding how that should feel.
+- [ ] **What does Pro cost, and is it a one-off or a subscription?** Deliberately left until just before launch. It does not hold anything up — the price is one number dropped into a plan that is otherwise finished.
 
 ## 1. Web — My Gear
 

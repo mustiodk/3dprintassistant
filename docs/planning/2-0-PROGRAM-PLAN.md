@@ -48,6 +48,7 @@ These are settled and should not be re-litigated. Source:
 | **D14** | **Web ships gear when it is complete**, not held for the 2.0 release. Web and iOS are decoupled here. |
 | **D1–D13, D17** | The gear model itself: a gear is a shortcut, not an inventory. |
 | **D18b** | **Inventory is local-first and iCloud-synced.** No server, no accounts. `bambuinventory` stays your private tool. |
+| **D19** | **Pro contains cloud sync, Inventory, and access to AI Expert** (credits sold separately). Price set before go-live. Reverses `SYN-01`'s "Inventory is free". **D18a still governs the launch listing:** Inventory ships after 2.0, so day-one Pro is sold on sync + AI Expert only. |
 
 **The standing frame:** the 2.0 UI design is a *design document*, not requirements. Every
 build-vs-design mismatch is a question for you.
@@ -63,7 +64,7 @@ Verified against the repo on 2026-08-21. **This is the important table.**
 | **My Gear** | ✅ D1–D13 | ✅ [gear model v2](../superpowers/specs/2026-08-20-gear-model-v2-spec.md) **RATIFIED** | ✅ [web plan](../superpowers/plans/2026-08-21-train1-web-gear-plan.md), gated | 🟡 **web storage + logic done**; no UI | Web UI (Tasks 6–9); **iOS: nothing** |
 | **Cloud sync** | ✅ D15, D16 | ✅ [sync v1](../superpowers/specs/2026-08-20-sync-v1-spec.md) **RATIFIED** | ❌ none | ❌ | **Implementation plan.** 3 open items must be answered first (§5) |
 | **AI Expert** | 🟡 shape agreed | 🟡 [ai-buddy](../superpowers/specs/2026-08-17-ai-buddy-design.md) **DRAFT**, not ratified | ❌ none | ❌ | Ratify the spec, then a plan. **Needs a backend + credit accounting** — the one remaining infrastructure gap |
-| **Pro tier** | ✅ D15, D18 | ❌ **none** | ❌ none | 🟡 StoreKit exists from the Tip Jar | **Spec needed**: what Pro is, price, purchase flow, entitlement, what happens on lapse |
+| **Pro tier** | ✅ D15, D18, **D19 (contents)** | ❌ **none** | ❌ none | 🟡 StoreKit exists from the Tip Jar | **Spec needed** — now unblocked: contents are settled, price is a named value filled in before go-live. Still to define: purchase flow, entitlement, lapse behaviour |
 | **Tab shell** | 🟡 iOS only | 🟡 in [2.0 design](../superpowers/specs/2026-08-20-ios-2.0-quiet-instrument-panel-design.md) | ❌ none | ❌ | **Web has no equivalent decision.** Web has 4 views and no Home |
 | **Light mode** | ✅ design done | 🟡 tokens in the 2.0 design spec | ❌ none | ❌ | iOS: 6 dark locks + ~49 hardcoded colour sites. **Web light theme fails WCAG AA today** (§6) |
 | **Settings screen** | 🟡 in the design | 🟡 artboard only | ❌ none | ❌ | **Spec needed**: what it contains |
@@ -93,14 +94,16 @@ correct. Everything remaining is reversible.
 
 ---
 
-## 5. Open decisions that block planning
+## 5. Open decisions
 
-Four, and they are genuinely blocking — not polish.
+Three of the original four are answered. What is left does not block writing specs.
 
 | # | Question | Blocks | Type |
 |---|---|---|---|
-| **O1** | **Is Inventory free or Pro?** `SYN-01` (owner-locked, July) says free; `D18` says "for Pro holders". | Inventory spec; Pro spec | **Yours** — pricing |
-| **O2** | **What does Pro cost and contain?** 99 DKK was researched but never confirmed. One-time or subscription? | Pro spec, App Store setup | **Yours** — pricing |
+| ~~**O1**~~ | ~~Is Inventory free or Pro?~~ **ANSWERED 2026-08-21: Pro.** Deliberately reverses `SYN-01`'s "free" clause — see [D19](../reviews/2026-08-20-gear-model-owner-decisions.md). | — | resolved |
+| ~~**O2a**~~ | ~~What does Pro contain?~~ **ANSWERED 2026-08-21: cloud sync, Inventory, and access to AI Expert — credits sold separately.** | — | resolved |
+| **O2b** | **What does Pro cost, and is it one-time or a subscription?** Deferred by the owner to before go-live. Does not block the Pro spec, which can name the price as a single value; it blocks App Store product creation, so it gates submission. | App Store setup | **Yours** — pricing |
+| **O5** | **Does Pro include a starter allowance of AI Expert credits, or zero?** "Access, credits extra" read strictly means paying for Pro and still not being able to ask anything. Touches 3.1.2(a) if Pro is a subscription. | AI Expert spec, Pro spec | **Yours** — product |
 | ~~**O3**~~ | ~~Does web get a tab shell?~~ **ANSWERED 2026-08-21: no, and web does not wait for iOS.** Web My Gear is a **standalone deliverable** in the existing Configure view. iOS will be its own thing and may reuse ideas, not code. Consistent with D14. | — | resolved |
 | **O4** | Three technical items deferred from the sync gate: tombstone location, whether archived rows belong in backups, and a spec-wording fix. | Sync plan | **Mine** — I resolve these with a gated analysis |
 
@@ -125,9 +128,10 @@ The principle: **write the specs that are missing before building anything else*
 D18 says 2.0 ships as one release — so a feature that turns out to need a backend, or a
 decision you have not made, stalls the whole train.
 
-### Phase A — close the decisions (you, ~1 session)
-O1, O2, O3 above. I bring you each one framed as a plain-English choice with a
-recommendation. O4 I resolve myself.
+### Phase A — close the decisions
+O1, O2a and O3 are **answered**. What remains: **O2b** (price and one-time-vs-subscription,
+which you have deferred to before go-live) and **O5** (whether Pro includes any AI Expert
+credits). Neither blocks writing the Pro spec. O4 I resolve myself.
 
 ### Phase B — write the missing specs (~3–4 sessions)
 In this order, because each constrains the next:
@@ -156,12 +160,13 @@ Store listing (D18a).
 
 ## 8. What I recommend you do next
 
-**Phase A.** Three questions, all yours, none technical: is Inventory free or Pro, what
-does Pro cost and contain, and does the web app get a tab shell.
+**Write the Pro spec.** It is unblocked as of 2026-08-21: D19 settles what Pro contains,
+and the price is a single named value you fill in before go-live rather than a
+prerequisite for specifying anything.
 
-They are small to answer and they unblock everything. Until O2 is settled I cannot write
-the Pro spec, and until the Pro spec exists the AI Expert spec cannot say what a credit
-costs or who gets one.
+One question does still reach into the AI Expert spec: **O5** — whether Pro includes a
+starter allowance of credits or none at all. That decides whether the AI Expert spec
+opens with "you have N questions" or "buy credits to begin", which is a different feature.
 
 **Train 1's web UI is unblocked and is being built now** (owner, 2026-08-21). O3 is
 answered: web My Gear is a standalone deliverable that does not wait for the iOS shell

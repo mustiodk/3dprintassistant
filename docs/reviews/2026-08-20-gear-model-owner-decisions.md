@@ -435,3 +435,59 @@ maintenance.
    through the App Store. **Blocked on D18b**, and cross-platform entitlement without
    accounts is itself unresolved.
 4. **Test data in the owner's browser** — not a real question; withdrawn.
+
+---
+
+## D19 — ANSWERED 2026-08-21: what Pro contains
+
+**Owner ruling, verbatim:** *"Prisen fastsætter vi før golive. Pro indeholder cloud sync,
+inventory og adgang til ai expert (kredit er ekstra)."*
+
+**Pro contains three things:**
+
+| | |
+|---|---|
+| **Cloud sync** | Already ratified as Pro (D15). Unchanged. |
+| **Inventory** | **Now Pro.** This closes the question left open at the end of D18b. |
+| **AI Expert — access** | Pro buys the *ability to use* it. **Credits are a separate purchase.** |
+
+**Price is deliberately deferred to before go-live.** It is not blocked work: the Pro spec
+can be written against this contents list, with the price as a single named value filled
+in later. The App Store product itself cannot be created without it, so it gates
+submission, not specification.
+
+### This reverses SYN-01, deliberately
+
+`SYN-01` ([merged decision set](../superpowers/specs/2026-07-12-my3dpa-merged-decision-set.md))
+is tagged **OWNER-LOCKED** and reads *"Filament inventory is **free** and local-first."*
+D19 supersedes that clause. The rest of SYN-01 — sync as the one-time Pro unlock,
+never-data-hostage on lapse, no spool caps — is untouched. Recorded explicitly because a
+later reader finding an OWNER-LOCKED line contradicted by a newer decision should see that
+the reversal was intended rather than overlooked. Note that SYN-01's document is
+`Status: DRAFT` pending MG0, so nothing binding was broken.
+
+### It does NOT relax D18a, and that constraint now binds harder
+
+D18a stands unchanged: **the App Store listing, the paywall and the purchase flow may sell
+Pro only on what works the day it ships.** Inventory ships *after* 2.0, so on launch day
+Pro is sold on **cloud sync + AI Expert**, and Inventory is announced to existing Pro
+holders outside the store listing when it arrives.
+
+What Pro *contains over its lifetime* and what the listing *may claim on day one* are two
+different statements. D19 is the first; D18a governs the second. A listing that names
+Inventory before it exists is the 2.1(a) / 2.3.1(a) rejection risk D18a was written to
+avoid.
+
+**Consequence for sequencing:** if the owner would rather sell Inventory as part of Pro at
+launch, Inventory must move *into* 2.0 rather than after it. That is a scope decision, not
+a marketing one, and it is not taken here.
+
+### Open, and it is a product call
+
+**Does Pro include a starter allowance of AI Expert credits, or zero?** "Access, credits
+extra" read strictly means a buyer pays for Pro and still cannot ask the AI Expert
+anything without paying again. Beyond how that reads to a buyer, guideline **3.1.2(a)**
+requires a subscription to *"provide ongoing value"* — if Pro ends up as a subscription
+rather than a one-time unlock, an entitlement that unlocks a feature the user cannot
+actually use without a second purchase is worth pressure-testing before submission.
+Bundling a starter allowance is the common shape. **Not decided here.**
