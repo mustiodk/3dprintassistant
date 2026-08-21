@@ -356,7 +356,16 @@ read-only local exporter.
 
 **Login does not return.** This was the decision's main risk and it is closed.
 
-**The original framing overstated the trade, and that is why the answer is one-sided.**
+**Owner scope ruling, same day, and it settles this more simply than the analysis below.**
+On being shown the ruling, the owner stated plainly: *"i dont see zigbee, gmail in scope
+for this inventory."* **Gmail order import and eWeLink/Zigbee humidity sensors are out of
+scope for the product Inventory as a product decision** — not merely blocked by cost or
+verification burden. The technical analysis that follows was derived before this and
+reaches the same place, but it is corroboration; **this line is the authority.** Keep the
+provenance separable: nothing downstream should cite the restricted-scope argument as the
+reason those features are absent when the owner simply does not want them.
+
+**The original framing also overstated the trade, which is why the answer is one-sided.**
 The 2026-08-20 wording said local-first costs "no Gmail order import and no humidity
 sensors in the user-facing version." Verified against the code on 2026-08-21, none of the
 three server-side features is shippable to other users at all:
