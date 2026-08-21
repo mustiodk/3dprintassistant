@@ -186,6 +186,7 @@ the same order from the same data, so:
 **Read-side repair never writes.** Any normalization the decoder performs is in memory
 only. A write happens because the user did something, never because a file was read. This
 is a general rule and the `created_at` case above is one instance of it.
+*(Amended 2026-08-21 — a second instance, `catalog_seen`; see below.)*
 
 **`settings` is a separate object** so a conflict over `active_gear` can never touch the
 gears (§4).
@@ -208,6 +209,60 @@ onto a product where nozzle and material are what distinguish gears.
 
 **`last_used_at` is on the record** so it syncs with the gear — but it is deliberately
 *not* part of conflict resolution (§4.2).
+
+> **Amendment 2026-08-21 — `catalog_seen` advances only on a user action.**
+> §2.2 defines `catalog_seen` and D11 defines the catalog-news line it feeds, but neither
+> said *when* the counter advances. The web build resolved that silence by advancing it
+> during render, and QA measured the result: opening the app and touching nothing rewrote
+> `settings` and moved `settings.updated_at` — finding
+> [F-1](../../reviews/2026-08-21-my-gear-web-qa-report.md). The gap is in this spec, not
+> only in that code, so it is closed here.
+>
+> **The rule.** `catalog_seen` advances when the user opens or interacts with the printer
+> picker — the moment at which they have in fact seen the catalog. Rendering the news line
+> never advances it.
+>
+> Three qualifications, each load-bearing:
+>
+> - **First run shows nothing, and writes nothing.** With no `catalog_seen` entry there is
+>   no news to show — 83 printers are not 83 arrivals — so the line is suppressed. The
+>   baseline is recorded by the same user action as any other advance, never on the render
+>   that suppressed the line. A user who never opens the picker simply keeps seeing no
+>   line, which is the correct outcome. *(Corrected 2026-08-21 after review: the first
+>   draft of this amendment permitted a first-run baseline write during render as "the one
+>   write permitted without a user action". Measured, that write moved `settings.updated_at`
+>   — an absent counter is not "unchanged", so the no-op guard below cannot catch it — and
+>   because a platform that never writes `catalog_seen` at all leaves the counter absent on
+>   every record it sends, the exception re-armed on every such sync rather than firing once
+>   per device. The rule admits no exception.)*
+> - **The line stays visible for the rest of the page load** after being marked seen, and
+>   is gone on the next load. Vanishing under the user's cursor is a worse outcome than one
+>   paint of staleness.
+> - **A repeat mark with unchanged counts remains a no-op write** — the `settings`
+>   unchanged-guard — so a second visit to the picker cannot move `updated_at` either.
+>
+> **Why this is a correctness rule and not tidiness.** `settings.updated_at` is what
+> resolves a settings conflict (§4.2), and under sync v1 it is specifically the timestamp
+> that decides `active_gear` ([sync v1 §1.1](2026-08-20-sync-v1-spec.md)). A render-time
+> advance therefore lets a device the user merely looked at carry its *stale* `active_gear`
+> over a default chosen deliberately on another device minutes earlier: a read outranking a
+> write, which the rule above forbids in general and which §4.2 names as the failure it
+> exists to prevent. The counter itself cannot conflict destructively — it merges max-wins
+> per counter — so all of the damage is done by the timestamp the write moves, which is why
+> the unchanged-guard is part of the rule rather than an optimization.
+>
+> **The alternative was not taken.** Keeping the render-time write and exempting a
+> `catalog_seen`-only change from the `updated_at` bump removes the sync symptom while
+> leaving a page load writing to storage — which is the behaviour the rule above actually
+> forbids.
+>
+> **What this still leaves for sync planning.** `settings.updated_at` is simultaneously
+> `active_gear`'s conflict timestamp, so *any* legitimate `catalog_seen` write republishes
+> that device's `active_gear` as the newer one. Moving the trigger to a user action makes
+> that legitimate under §4.2 rather than a read outranking a write, and the unchanged-guard
+> removes the common repeat — but the sharp edge is structural. The real fix is a separate
+> timestamp for `active_gear`, which is a sync-spec change. Raise it when sync is planned;
+> it is the same shape as sync spec D-3.
 
 ### 2.4 Field rules
 

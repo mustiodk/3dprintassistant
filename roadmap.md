@@ -63,6 +63,8 @@ RULES THAT KEEP THE NUMBERS HONEST:
 **Status:** next
 **Why:** Small, cheap, and everything on iOS is stuck behind them.
 
+- [ ] **iOS deletes come back from the dead.** `WorkshopStore.swift` has no `archived_at` field, and every iOS write rebuilds the whole file from typed objects — so any iOS write strips the deletion markers the web app just started writing. A profile you delete on web returns after an iOS backup round-trip. Live today; blocks cloud sync.
+- [ ] **Write the iOS storage contract before any iOS gear code.** Every existing iOS store rebuilds its file from typed objects, which drops anything it doesn't recognise. The gear format requires the opposite — untouched round-tripping of unknown fields — so the house pattern must not be copied.
 - [ ] Bundle the app's real fonts on iOS — about an hour, fixes 17 places rendering the wrong font since launch
 - [ ] Light mode — design is done; iOS needs 6 dark locks unpicked and ~49 hardcoded colours replaced
 - [ ] Fix the web light theme's two unreadable accent colours (they fail the accessibility standard today)
@@ -113,3 +115,4 @@ RULES THAT KEEP THE NUMBERS HONEST:
 - [ ] Filament brand profiles
 - [ ] Export as a printable sheet
 - [ ] Restore the AMS purge calculator — engine, styling and text are all there; only the screen is missing
+- [ ] Two small web nits found during My Gear QA and deliberately deferred: the duplicate-gear check doesn't collapse a repeated value (only reachable by hand-editing a share link), and the printer picker leaves behind one unused event listener each time it rebuilds
