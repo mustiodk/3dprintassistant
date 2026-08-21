@@ -263,6 +263,58 @@ console.log('# workshop-store.js tests\n');
   check('atomic import: storage untouched on failure', st.getItem('3dpa_workshop_v1') === before);
 }
 
+// ── TC-D5 — a version-mismatched envelope is preserved, never overwritten ──
+// Sync spec D-5. Two destructive sites, not the one the spec named:
+//   _read()    :35 returns []                       -> benign alone
+//   _readEnv() :49 returns a fresh empty envelope    -> _write routes through
+//                                                       it, so the TUNING
+//                                                       LEDGER dies too
+// importJSON() :231 already refuses correctly and must stay untouched.
+{
+  console.log('TC-D5 — version-mismatched read is non-destructive');
+  const future = JSON.stringify({
+    v: 999,
+    profiles: [{ id: 'p1', name: 'Real', state: { printer: 'x1c' } }],
+    tuning: { accepted: [{ pairKey: 'x1c|pla_basic', offsetKey: 'nozzle_temp_delta', ops: [] }], dismissed: [] },
+  });
+  const st = mockStorage({ '3dpa_workshop_v1': future });
+  const ws = createWorkshopStore(st);
+
+  check('skew is reported', ws.hasVersionSkew() === true);
+  check('list() is empty under skew', ws.list().length === 0);
+
+  // The dangerous part: a write must REFUSE, not persist the empty read.
+  const w = ws.save('New profile', { printer: 'a1' });
+  check('save refuses under skew', w.ok === false && w.error === 'version-skew');
+
+  const after = JSON.parse(st._map.get('3dpa_workshop_v1'));
+  check('original envelope version survives', after.v === 999);
+  check('original profile survives',
+    Array.isArray(after.profiles) && after.profiles.length === 1 && after.profiles[0].id === 'p1');
+  check('tuning ledger survives too (the _readEnv site)',
+    !!after.tuning && Array.isArray(after.tuning.accepted) && after.tuning.accepted.length === 1);
+
+  // Every other mutator must refuse identically rather than silently no-op.
+  check('rename refuses under skew', ws.rename('p1', 'x').error === 'version-skew');
+  check('remove refuses under skew', ws.remove('p1').error === 'version-skew');
+  check('addOutcome refuses under skew', ws.addOutcome('p1', { note: 'n' }).error === 'version-skew');
+  check('addTuningOp refuses under skew',
+    ws.addTuningOp('x1c|pla_basic', 'nozzle_temp_delta', '°C',
+      { kind: 'accept', step: -5, clampMin: -15, clampMax: 15 }).error === 'version-skew');
+  const stillThere = JSON.parse(st._map.get('3dpa_workshop_v1'));
+  check('storage byte-identical after every refused mutator',
+    JSON.stringify(stillThere) === JSON.stringify(JSON.parse(future)));
+
+  // importJSON's own gate is a DIFFERENT thing and must keep refusing by format.
+  check('importJSON still refuses a foreign-version payload',
+    ws.importJSON(future).error === 'format');
+
+  // A normal envelope is completely unaffected.
+  const ok = createWorkshopStore(mockStorage());
+  check('no skew on a fresh store', ok.hasVersionSkew() === false);
+  check('normal save still works', ok.save('fine', STATE_A).ok === true);
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');

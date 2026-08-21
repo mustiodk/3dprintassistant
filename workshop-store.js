@@ -40,18 +40,33 @@ function createWorkshopStore(storage) {
   // Envelope-level read/write (IMPL-044 W3 gate B3). _readEnv returns the whole
   // envelope so additive sections (tuning) survive profile writes; W1-era
   // envelopes (no tuning) parse unchanged.
+  // D-5 (sync spec §5): a version-mismatched envelope must be PRESERVED, never
+  // overwritten. `_read` returning [] is benign on its own — the damage was
+  // that writes proceeded anyway, and because every write path goes
+  // _readEnv -> _writeEnv, an unrecognized envelope also took the tuning
+  // ledger with it. One guard on the write chokepoint closes all of them.
+  //
+  // Locally this never mattered: there has only ever been one version. Under
+  // sync and cross-platform version skew it is data loss, so it lands before
+  // web ships gear rather than with sync.
   function _readEnv() {
     let raw = null;
     try { raw = storage.getItem(KEY); } catch (_) { return { v: VERSION, profiles: [] }; }
     if (!raw) return { v: VERSION, profiles: [] };
     let env;
     try { env = JSON.parse(raw); } catch (_) { return { v: VERSION, profiles: [] }; }
-    if (!env || typeof env !== 'object' || env.v !== VERSION) return { v: VERSION, profiles: [] };
+    if (!env || typeof env !== 'object') return { v: VERSION, profiles: [] };
+    if (env.v !== VERSION) {
+      // Readable as JSON but not a version we understand. Report the skew and
+      // mark the envelope unwritable; callers surface it rather than clobber.
+      return { v: env.v, profiles: [], _skew: true };
+    }
     if (!Array.isArray(env.profiles)) env.profiles = [];
     return env;
   }
 
   function _writeEnv(env) {
+    if (env && env._skew) return { ok: false, error: 'version-skew' };
     try {
       storage.setItem(KEY, JSON.stringify(env));
       return { ok: true };
@@ -59,6 +74,13 @@ function createWorkshopStore(storage) {
       return { ok: false, error: (e && e.name === 'QuotaExceededError') ? 'quota' : 'storage' };
     }
   }
+
+  function hasVersionSkew() { return _readEnv()._skew === true; }
+
+  // Mutators that reach profiles via _read() would otherwise report
+  // 'not-found' under skew — technically harmless (the write still refuses)
+  // but a misleading reason. Surface the real one.
+  function _skewed() { return _readEnv()._skew === true ? { ok: false, error: 'version-skew' } : null; }
 
   function _write(profiles) {
     const env = _readEnv();
@@ -165,6 +187,7 @@ function createWorkshopStore(storage) {
   }
 
   function rename(id, newName) {
+    const _sk = _skewed(); if (_sk) return _sk;
     const profiles = _read();
     const p = profiles.find(x => x.id === id);
     if (!p) return { ok: false, error: 'not-found' };
@@ -174,6 +197,7 @@ function createWorkshopStore(storage) {
   }
 
   function remove(id) {
+    const _sk = _skewed(); if (_sk) return _sk;
     const profiles = _read();
     const next = profiles.filter(x => x.id !== id);
     if (next.length === profiles.length) return { ok: false, error: 'not-found' };
@@ -184,6 +208,7 @@ function createWorkshopStore(storage) {
   // Symptom tags reuse data/rules/troubleshooter.json symptom ids; the store
   // treats them as opaque strings (UI supplies/validates them via the engine).
   function addOutcome(profileId, outcome) {
+    const _sk = _skewed(); if (_sk) return _sk;
     const profiles = _read();
     const p = profiles.find(x => x.id === profileId);
     if (!p) return { ok: false, error: 'not-found' };
@@ -204,6 +229,7 @@ function createWorkshopStore(storage) {
   }
 
   function removeOutcome(profileId, outcomeId) {
+    const _sk = _skewed(); if (_sk) return _sk;
     const profiles = _read();
     const p = profiles.find(x => x.id === profileId);
     if (!p || !Array.isArray(p.journal)) return { ok: false, error: 'not-found' };
@@ -268,7 +294,8 @@ function createWorkshopStore(storage) {
   }
 
   return { list, get, save, rename, remove, addOutcome, removeOutcome, exportJSON, importJSON,
-           getTuning, addTuningOp, revertTuning, dismissSuggestion, getDismissal };
+           getTuning, addTuningOp, revertTuning, dismissSuggestion, getDismissal,
+           hasVersionSkew };
 }
 
 const WorkshopStore = (typeof localStorage !== 'undefined')
