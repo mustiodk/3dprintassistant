@@ -346,18 +346,59 @@ This is also commercially stronger than a promise: a buyer who receives somethin
 without paying again feels rewarded, and it produces the second wow moment the owner
 wanted — without it reading as a split of something already paid for.
 
-### D18b — the Inventory backend question is deferred, not answered
+### D18b — ANSWERED 2026-08-21: Inventory is local-first and iCloud-synced
 
-Inventory leaving 2.0's launch scope defers, but does not resolve, the conflict found this
-session: the owner's existing inventory (`Projects/bambuinventory/`) is **PHP + MySQL on
-Simply.com**, single-user, with the database as its source of truth. Opening it to other
-users needs accounts and a backend — exactly what D16 removed. The choice remains:
+**Ruling.** Inventory stores locally on the device and syncs through the mechanism
+ratified in the [sync v1 spec](../superpowers/specs/2026-08-20-sync-v1-spec.md). No
+server, no accounts, no running costs. **`Projects/bambuinventory/` stays the owner's
+private tool** and is not opened to other users; its only reuse boundary is as a
+read-only local exporter.
 
-- **local-first inventory**, iCloud-synced like gears — no server, but no Gmail order
-  import and no humidity sensors in the user-facing version; or
-- **the server app opened up** — a real inventory, but accounts and running costs return.
+**Login does not return.** This was the decision's main risk and it is closed.
 
-It must be answered before Inventory is planned, and it affects whether login returns.
+**The original framing overstated the trade, and that is why the answer is one-sided.**
+The 2026-08-20 wording said local-first costs "no Gmail order import and no humidity
+sensors in the user-facing version." Verified against the code on 2026-08-21, none of the
+three server-side features is shippable to other users at all:
+
+| Feature | Why it does not generalize (verified) |
+|---|---|
+| Gmail order import | The query is hardcoded to `from:noreply@bambulab.com subject:"order" "confirmed"` (`sync_emails.py:86`) — Bambu buyers only. And `gmail.readonly` is a Google **restricted scope**: shipping it requires OAuth verification plus a paid third-party security assessment with **annual revalidation** (verified against Google's scope documentation; published cost figures vary widely across sources and are not relied on here). This blocks it regardless of whether a server exists. |
+| eWeLink humidity sensors | Requires the user to own eWeLink Zigbee probes and surrender their eWeLink credentials; the device registry (`zigbee_sensors.json`) enumerates the owner's specific hardware. |
+| Printer / AMS link | Already settled in D18c as **iOS-only and LAN-local**. A browser cannot reach a printer on the LAN, so the most valuable inventory feature must run on-device — a server adds nothing to it. |
+
+**The server option also costs more than "accounts and running costs."** The existing app
+has **no multi-user foundation whatsoever** — no users table, no auth, no sessions, no
+`.htaccess` protection. Its entire multi-tenancy story is a hardcoded literal,
+`WHERE user_id = 1` (`api.php:44`). Opening it means building accounts, authentication,
+per-user isolation, GDPR deletion and export, and hosting from zero — reversing D16 three
+days after it was taken, and dragging the unresolved web-Pro-entitlement problem
+(sync spec §4.2) back in. It would also contradict `docs/3dpa-context.md`, which lists
+user accounts and cloud-side compute under what is deliberately out of scope.
+
+**Prior corroboration, stated with its real status.** `SYN-01` in
+[`../superpowers/specs/2026-07-12-my3dpa-merged-decision-set.md`](../superpowers/specs/2026-07-12-my3dpa-merged-decision-set.md)
+reads *"Filament inventory is **free and local-first**"* and is tagged OWNER-LOCKED;
+`SYN-10` draws the boundary as *"read-only local exporter; no PHP/MySQL/Gmail/MQTT
+reuse."* That document is **`Status: DRAFT`, pending MG0 ratification**, so it is not
+binding on its own — but an independent synthesis with the same facts reached the same
+answer.
+
+**What Inventory therefore gets, at no new infrastructure cost:** manual spool
+add/edit/remaining, auto-decrement from the AMS via Printer Link on iOS, low-stock
+warnings, configurator integration (app-layer only), cross-device sync for free via the
+ratified spec, and camera barcode/RFID scanning on iOS as the generic intake path that
+Gmail parsing could never be.
+
+**What is genuinely given up:** no automatic order import for any user; Inventory does not
+reach a browser on a non-Apple device until sync v2's pairing code (the same limit cloud
+sync already carries); and data lives on the user's devices.
+
+**Open, and deliberately not decided here — a pricing question, not an architecture one.**
+`SYN-01` (owner-locked, July) says Inventory is **free**; D18 says it follows *"for Pro
+holders"* and D18a phrases it as *"free additions for existing Pro holders."* Read against
+D15's *"only sync was ever Pro,"* free-for-everyone is the consistent reading, but it is an
+inference. **Settle it before Inventory is planned.**
 
 ### D18c — Printer Link is further along than the review assumed
 
