@@ -1049,7 +1049,12 @@ function renderWorkshop() {
     const mat     = p.state.material ? Engine.getMaterial(p.state.material) : null;
     const nz      = p.state.nozzle ? Engine.getNozzle(p.state.nozzle) : null;
     const meta    = [printer?.name, mat?.name, nz?.name].filter(Boolean).join(' · ') || '—';
-    const date    = (p.updated || p.created || '').slice(0, 10);
+    // D-3 split the value clock from the journal clock, so `updated` alone no
+    // longer moves when the user logs a print outcome. The card date means
+    // "last activity" to a reader, so derive it from both rather than letting
+    // a storage-correctness fix silently change what the UI shows.
+    const activity = [p.updated, p.journal_updated, p.created].filter(Boolean).sort().pop() || '';
+    const date    = activity.slice(0, 10);
     return `
       <div class="ws-card">
         <div class="ws-card-head">
