@@ -109,6 +109,7 @@ const expectations = [
   ['StateCodec', 'object', 'app.js:199 StateCodec.encodeForStorage'],
   ['WorkshopStore', 'object', 'app.js:888 — the INSTANCE, not the factory'],
   ['createWorkshopTuning', 'function', 'app.js:888 typeof createWorkshopTuning'],
+  ['GearStore', 'object', 'gear-store.js — the INSTANCE bound to localStorage, not the factory'],
 ];
 
 for (const [name, kind, why] of expectations) {
