@@ -490,134 +490,125 @@ function createGearStore(storage) {
     return true;
   }
 
+  // ─── update ────────────────────────────────────────────────────────────────
+  // Validation, the write, and the no-op decision are all computed from ONE
+  // basis: the intended post-image of every (value, label) PAIR this patch
+  // touches. Round 3 of the format gate found three separate defects that all
+  // came from those three answers having three different bases — a field could
+  // be changed out from under its label, a no-op against a malformed row moved
+  // `updated_at`, and a set-equal value write could be suppressed while its
+  // label was written, splitting the lockstep pair.
+  //
+  // A key is "touched" if the patch names it on either side. Untouched keys are
+  // carried through from the RAW row byte-for-byte — read-side normalization is
+  // for reading, and a write changes only what it changes (§2.3).
   function update(id, patch) {
     return _mutate(id, (dto, raw) => {
       const p = _isPlainMap(patch) ? patch : {};
-      // Same boundary rule as save(): our API must not CREATE a non-conforming
-      // value or a mis-shaped label, even though reading tolerates both.
-      // Validate ONLY what this call writes — not the whole post-image. A row
-      // may already hold non-conforming data from a hand edit (§2.5 blesses
-      // those) or from another implementation; refusing to let the user patch a
-      // DIFFERENT key on such a row would make their gear un-editable, and the
-      // patch-based write below already guarantees the bad bytes are preserved
-      // untouched rather than laundered.
-      if (_isPlainMap(p.fields)) {
-        const pk = Object.keys(p.fields);
-        for (let i = 0; i < pk.length; i++) {
-          if (_isReserved(pk[i])) continue;
-          if (!_conformingValue(p.fields[pk[i]])) return { error: { ok: false, error: 'bad-value' } };
-        }
-      }
-      if (_isPlainMap(p.labels)) {
-        const pk = Object.keys(p.labels);
-        for (let i = 0; i < pk.length; i++) {
-          const k = pk[i];
-          if (_isReserved(k) || LABEL_KEYS.indexOf(k) === -1) continue;
-          if (!_conformingValue(p.labels[k])) return { error: { ok: false, error: 'bad-label' } };
-          // Mirror-shape is checked against the EFFECTIVE value for that key.
-          const eff = (_isPlainMap(p.fields) && (k in p.fields)) ? p.fields[k] : dto.fields[k];
-          if (eff !== undefined && _conformingValue(eff)
-              && !_conformingLabel(p.labels[k], eff)) {
-            return { error: { ok: false, error: 'bad-label' } };
-          }
-        }
-      }
+      const rawF = _isPlainMap(raw.fields) ? raw.fields : {};
+      const rawL = _isPlainMap(raw.labels) ? raw.labels : {};
 
       const nextName = ('name' in p)
         ? (typeof p.name === 'string' ? p.name.trim() : String(p.name == null ? '' : p.name).trim())
         : dto.name;
 
-      // Merge into a FRESH null-prototype target, never Object.assign({}, …) —
-      // a patch parsed from JSON can carry a reserved key as a real own
-      // property, and the merge target must not be able to inherit it.
-      let mergedFields = dto.fields;
-      let mergedLabels = dto.labels;
-      if ('fields' in p || 'labels' in p) {
-        const fIn = Object.create(null);
-        const _rf = _isPlainMap(raw.fields) ? raw.fields : {};
-        let k = Object.keys(_rf);
-        for (let i = 0; i < k.length; i++) { if (!_isReserved(k[i])) fIn[k[i]] = _rf[k[i]]; }
-        if (_isPlainMap(p.fields)) {
-          k = Object.keys(p.fields);
-          for (let i = 0; i < k.length; i++) {
-            if (_isReserved(k[i])) continue;
-            fIn[k[i]] = p.fields[k[i]];
-          }
-        }
-        const lIn = Object.create(null);
-        const _rl = _isPlainMap(raw.labels) ? raw.labels : {};
-        k = Object.keys(_rl);
-        for (let i = 0; i < k.length; i++) { if (!_isReserved(k[i])) lIn[k[i]] = _rl[k[i]]; }
-        if (_isPlainMap(p.labels)) {
-          k = Object.keys(p.labels);
-          for (let i = 0; i < k.length; i++) {
-            if (_isReserved(k[i])) continue;
-            lIn[k[i]] = p.labels[k[i]];
-          }
-        }
-        // Normalize ONLY the keys this patch names, then overlay them onto the
-        // stored maps. Normalizing the whole merged map would re-sort and dedupe
-        // keys the user did not touch — the same laundering the patch-based
-        // write exists to prevent, just one level in.
-        const touchedF = Object.create(null), touchedL = Object.create(null);
-        if (_isPlainMap(p.fields)) {
-          const tk = Object.keys(p.fields);
-          for (let i = 0; i < tk.length; i++) {
-            if (_isReserved(tk[i])) continue;
-            touchedF[tk[i]] = p.fields[tk[i]];
-            // A label must ride along so the pair permutation stays in lockstep.
-            if (tk[i] in lIn) touchedL[tk[i]] = lIn[tk[i]];
-          }
-        }
-        if (_isPlainMap(p.labels)) {
-          const tk = Object.keys(p.labels);
-          for (let i = 0; i < tk.length; i++) {
-            if (_isReserved(tk[i])) continue;
-            touchedL[tk[i]] = p.labels[tk[i]];
-            if (!(tk[i] in touchedF) && (tk[i] in fIn)) touchedF[tk[i]] = fIn[tk[i]];
-          }
-        }
-        const nl = _normFieldsAndLabels(touchedF, touchedL);
+      const pf = _isPlainMap(p.fields) ? p.fields : null;
+      const pl = _isPlainMap(p.labels) ? p.labels : null;
 
-        // Base on the RAW stored maps, not the read-normalized DTO — starting from
-        // the DTO would bake read-side normalization into the write, which is
-        // exactly the laundering this whole change exists to stop.
-        const rawF = _isPlainMap(raw.fields) ? raw.fields : {};
-        const rawL = _isPlainMap(raw.labels) ? raw.labels : {};
+      let mergedFields = null, mergedLabels = null, pairsChanged = false;
 
+      if (pf || pl) {
+        // 1. Which keys does this patch touch?
+        const touched = [];
+        const seen = Object.create(null);
+        const add = (k) => { if (!_isReserved(k) && !seen[k]) { seen[k] = 1; touched.push(k); } };
+        if (pf) Object.keys(pf).forEach(add);
+        if (pl) Object.keys(pl).forEach(k => { if (LABEL_KEYS.indexOf(k) !== -1) add(k); });
+
+        // 2. The effective pair for each touched key, then validate the PAIR.
+        const effF = Object.create(null), effL = Object.create(null);
+        const beforeF = Object.create(null), beforeL = Object.create(null);
+        for (let i = 0; i < touched.length; i++) {
+          const k = touched[i];
+          const v = (pf && (k in pf)) ? pf[k] : rawF[k];
+          const l = (pl && (k in pl)) ? pl[k] : rawL[k];
+
+          if (v !== undefined && !_conformingValue(v)) return { error: { ok: false, error: 'bad-value' } };
+          if (l !== undefined && LABEL_KEYS.indexOf(k) !== -1) {
+            if (!_conformingValue(l)) return { error: { ok: false, error: 'bad-label' } };
+            // The mirror rule is checked against the value this label will
+            // actually accompany — including when only the FIELD moved.
+            if (v !== undefined && _conformingValue(v) && !_conformingLabel(l, v)) {
+              return { error: { ok: false, error: 'bad-label' } };
+            }
+          }
+          if (v !== undefined) effF[k] = v;
+          if (l !== undefined && LABEL_KEYS.indexOf(k) !== -1) effL[k] = l;
+          if (rawF[k] !== undefined) beforeF[k] = rawF[k];
+          if (rawL[k] !== undefined && LABEL_KEYS.indexOf(k) !== -1) beforeL[k] = rawL[k];
+        }
+
+        // 3. Normalize the touched pairs in lockstep — and normalize the BEFORE
+        //    image the same way, so the comparison is like-for-like. Because
+        //    normalization sorts pairs together, this comparison is set equality
+        //    over pairs: a pure reordering is not a content edit.
+        const after  = _normFieldsAndLabels(effF, effL);
+        const before = _normFieldsAndLabels(beforeF, beforeL);
+
+        // Compare the PAIRS, not the two maps independently. _sameMap treats an
+        // array as a SET, which is correct for a value — a reordering of
+        // `useCase` is not a content edit — but wrong for a label, where the
+        // position IS the association. Comparing `labels` as a set would call
+        // (a->Ay, b->Bee) and (a->Bee, b->Ay) equal and silently drop a real
+        // re-labelling. Both sides are already lockstep-sorted by value here, so
+        // an exact positional comparison of the pair is the correct test.
+        const _pairKey = (fMap, lMap, k) => {
+          const v = fMap[k], l = lMap[k];
+          if (v === undefined && l === undefined) return '\u0000absent';
+          if (Array.isArray(v)) {
+            return v.map((x, i) => x + '\u0001' + (Array.isArray(l) ? l[i] : '')).join('\u0002');
+          }
+          return String(v) + '\u0001' + (l === undefined ? '' : String(l));
+        };
+        for (let i = 0; i < touched.length && !pairsChanged; i++) {
+          const k = touched[i];
+          if (_pairKey(before.fields, before.labels, k) !== _pairKey(after.fields, after.labels, k)) {
+            pairsChanged = true;
+          }
+        }
+
+        // 4. Post-image: raw carried through, touched keys replaced.
         mergedFields = Object.create(null);
         let mk = Object.keys(rawF);
         for (let i = 0; i < mk.length; i++) {
-          if (_isReserved(mk[i])) continue;
+          if (_isReserved(mk[i]) || seen[mk[i]]) continue;
           mergedFields[mk[i]] = rawF[mk[i]];
         }
-        mk = Object.keys(nl.fields);
-        for (let i = 0; i < mk.length; i++) mergedFields[mk[i]] = nl.fields[mk[i]];
+        mk = Object.keys(after.fields);
+        for (let i = 0; i < mk.length; i++) mergedFields[mk[i]] = after.fields[mk[i]];
 
         mergedLabels = Object.create(null);
         mk = Object.keys(rawL);
         for (let i = 0; i < mk.length; i++) {
-          if (_isReserved(mk[i])) continue;
+          if (_isReserved(mk[i]) || seen[mk[i]]) continue;
           mergedLabels[mk[i]] = rawL[mk[i]];
         }
-        mk = Object.keys(nl.labels);
-        for (let i = 0; i < mk.length; i++) mergedLabels[mk[i]] = nl.labels[mk[i]];
+        mk = Object.keys(after.labels);
+        for (let i = 0; i < mk.length; i++) mergedLabels[mk[i]] = after.labels[mk[i]];
+
+        if (!_hasPrinter(mergedFields)) return { error: { ok: false, error: 'required-printer' } };
       }
 
-      if (!_hasPrinter(mergedFields)) return { error: 'required-printer' };
+      const nameChanged = nextName !== dto.name;
+      if (!nameChanged && !pairsChanged) return { skipWrite: true };
 
-      const changed = nextName !== dto.name
-        || !_sameMap(dto.fields, mergedFields)
-        || !_sameMap(dto.labels, mergedLabels);
-      if (!changed) return { skipWrite: true };
-
-      // Patch only what this call actually changed. A name-only update must not
-      // rewrite `fields`, or it launders whatever non-conforming data was there.
       const out = { updated_at: _now() };   // §4.2 — a content edit moves the value clock
-      if (nextName !== dto.name) out.name = nextName;
-      if ('fields' in p || 'labels' in p) {
-        if (!_sameMap(dto.fields, mergedFields)) out.fields = mergedFields;
-        if (!_sameMap(dto.labels, mergedLabels)) out.labels = mergedLabels;
+      if (nameChanged) out.name = nextName;
+      if (pairsChanged) {
+        // Written TOGETHER, always. Writing one side without the other is what
+        // splits a lockstep pair and mis-attaches a label to a value.
+        out.fields = mergedFields;
+        out.labels = mergedLabels;
       }
       return { patch: out };
     });

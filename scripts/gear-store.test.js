@@ -569,6 +569,109 @@ function row(extra) {
     persisted.join(',') === 'alpha,zulu');
 }
 
+// G28 — GATE R3: update() computes validation, the write, and the no-op decision
+// from ONE basis: the intended post-image of every (value, label) PAIR the patch
+// touches. Three defects came from those three answers having three bases.
+{
+  const seed = (fields, labels) => mockStorage({ [KEY]: JSON.stringify({ v: 1, gears: { g1: {
+    name: 'G', fields: fields, labels: labels,
+    created_at: T_OLD, updated_at: T_OLD, last_used_at: null, archived_at: null,
+  } }, settings: {} }) });
+
+  // R3-1: changing a FIELD must re-check the label already attached to it.
+  {
+    const s = createGearStore(seed({ printer: 'x1c', material: ['a','b'] },
+                                   { material: ['A','B'] }));
+    check('G28 narrowing a field under an array label is rejected',
+      s.update('g1', { fields: { material: 'pla_basic' } }).error === 'bad-label',
+      'a string value cannot carry a two-element label array');
+    check('G28 and nothing was written', s.get('g1').fields.material.join(',') === 'a,b');
+    check('G28 changing both together is accepted',
+      s.update('g1', { fields: { material: 'pla_basic' }, labels: { material: 'PLA Basic' } }).ok === true);
+  }
+
+  // R3-2: a no-op patch against a MALFORMED raw row must not move updated_at.
+  {
+    const st = seed({ printer: 'x1c', useCase: ['zulu','alpha','zulu'] }, {});
+    const s = createGearStore(st);
+    check('G28 an empty labels patch reports ok', s.update('g1', { labels: {} }).ok === true);
+    check('G28 and does NOT move updated_at on a malformed row',
+      JSON.parse(st._map.get(KEY)).gears.g1.updated_at === T_OLD,
+      'comparing normalized-DTO against raw-merged manufactured a content edit');
+    check('G28 and did not launder the malformed array',
+      JSON.parse(st._map.get(KEY)).gears.g1.fields.useCase.join(',') === 'zulu,alpha,zulu');
+  }
+
+  // R3-3: lockstep must not split. If the label side is written, the value side
+  // must be written with it — even when the value is set-equal to what is stored.
+  {
+    const st = seed({ printer: 'x1c', material: ['b','a'] }, { material: ['Bee','Ay'] });
+    const s = createGearStore(st);
+    check('G28 patching a same-SET array with new labels reports ok',
+      s.update('g1', { fields: { material: ['a','b'] }, labels: { material: ['Ay','Bee'] } }).ok === true);
+    const a = JSON.parse(st._map.get(KEY)).gears.g1;
+    // The property is that the pair ASSOCIATION is never split — not that bytes
+    // are rewritten. Stored (b->Bee, a->Ay) is the same pair set the patch asks
+    // for, so a no-op is correct here; what must never happen is one side being
+    // written without the other, which under the old code left b->Ay, a->Bee.
+    const persistedPairs = a.fields.material.map((v, i) => v + '->' + a.labels.material[i]).sort().join(',');
+    check('G28 the persisted pair association is intact', persistedPairs === 'a->Ay,b->Bee',
+      'persisted ' + JSON.stringify(a.fields.material) + ' / ' + JSON.stringify(a.labels.material));
+    const g = s.get('g1');
+    check('G28 read-back pairing is correct',
+      g.fields.material.join(',') === 'a,b' && g.labels.material.join(',') === 'Ay,Bee');
+  }
+  // The case that genuinely splits: patch ONLY the labels, reversed. The value
+  // side must move with them or the association inverts.
+  {
+    const st = seed({ printer: 'x1c', material: ['a','b'] }, { material: ['Ay','Bee'] });
+    const s = createGearStore(st);
+    check('G28 a labels-only patch reports ok',
+      s.update('g1', { labels: { material: ['Bee','Ay'] } }).ok === true);
+    const g = s.get('g1');
+    const pairs = g.fields.material.map((v, i) => v + '->' + g.labels.material[i]).sort().join(',');
+    check('G28 a labels-only patch re-associates coherently, never half-applied',
+      pairs === 'a->Bee,b->Ay', 'got ' + pairs);
+  }
+
+  // The genuine no-op must still be a no-op.
+  {
+    const st = seed({ printer: 'x1c', material: ['a','b'] }, { material: ['A','B'] });
+    const s = createGearStore(st);
+    s.update('g1', { fields: { material: ['b','a'] }, labels: { material: ['B','A'] } });
+    check('G28 a pure reordering of the SAME pairs is still a no-op',
+      JSON.parse(st._map.get(KEY)).gears.g1.updated_at === T_OLD);
+  }
+  // And a genuine change must still move the clock.
+  {
+    const st = seed({ printer: 'x1c', material: ['a','b'] }, { material: ['A','B'] });
+    const s = createGearStore(st);
+    s.update('g1', { fields: { material: ['a','c'] }, labels: { material: ['A','C'] } });
+    check('G28 a real pair change DOES move updated_at',
+      JSON.parse(st._map.get(KEY)).gears.g1.updated_at !== T_OLD);
+  }
+}
+
+// G29 — GATE R3 SHOULD-FIX, made explicit rather than left implicit.
+// A patch write preserves top-level junk on a hostile row. That is DELIBERATE:
+// pruning it would be a read-triggered rewrite of bytes the caller did not
+// touch, which is the defect class this file has now fixed three times. The
+// public API cannot CREATE such a key; only a hand edit can.
+{
+  const st = mockStorage({ [KEY]: JSON.stringify({ v: 1, gears: { g1: {
+    name: 'G', fields: { printer: 'x1c' }, labels: {},
+    created_at: T_OLD, updated_at: T_OLD, last_used_at: null, archived_at: null,
+    top_level_junk: 'from a hand edit',
+  } }, settings: {} }) });
+  const s = createGearStore(st);
+  s.touch('g1');
+  check('G29 a patch write preserves top-level junk (deliberate)',
+    JSON.parse(st._map.get(KEY)).gears.g1.top_level_junk === 'from a hand edit');
+  const fresh = s.save({ name: 'n', fields: { printer: 'x1c' }, top_level_junk: 'nope' }).gear.id;
+  check('G29 but the public API cannot create one',
+    !('top_level_junk' in JSON.parse(st._map.get(KEY)).gears[fresh]));
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');
