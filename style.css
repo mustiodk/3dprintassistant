@@ -1509,6 +1509,12 @@ footer {
 }
 
 /* ── Info modal ── */
+/* The universal `* { margin: 0 }` reset at the top of this file also strips the
+   browser's default `margin: auto` on <dialog>, which is what centres a modal in
+   its top layer. Every dialog in the app has therefore been rendering hard
+   against the top-left corner. Restoring it here fixes all six at once. */
+dialog { margin: auto; }
+
 dialog.info-modal {
   border: 1px solid var(--border2);
   border-radius: var(--r);
@@ -1715,6 +1721,10 @@ dialog.feedback-modal {
   padding: 10px 16px;
   font-family: 'DM Mono', monospace;
   font-size: 12px;
+  /* A sentence-length notice (a stale-gear apply, wsExportSkew) would otherwise
+     stretch into one full-viewport-wide line on desktop. */
+  max-width: min(520px, calc(100vw - 32px));
+  line-height: 1.55;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease, transform 0.45s cubic-bezier(0.34,1.56,0.64,1);
@@ -1972,4 +1982,496 @@ dialog.feedback-modal {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ── My Gear (Train 1) ─────────────────────────────────────────────────────────
+   A gear is a saved shortcut into the configurator, so its section sits at the
+   top of Configure. Everything below reuses the existing visual language: the
+   .ws-card radius/border/lift, the .export-btn action row, the chipPop entry,
+   and the mono uppercase micro-label used by .filter-section-label. */
+
+.gear-section { margin-bottom: 20px; }
+
+/* ── Section header ──────────────────────────────────────────────────────────
+   Three grey buttons of equal weight was most of why this section looked bad.
+   The actions are text links now: "+ Add gear" carries the accent, the rest
+   stay quiet. Design 1a. */
+.gear-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.gear-section-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text2);
+}
+.gear-section-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text2);
+  opacity: 0.6;
+}
+.gear-section-actions {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.gear-link {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: var(--text2);
+  transition: color 0.15s;
+  white-space: nowrap;
+}
+.gear-link:hover { color: var(--text3); }
+.gear-link-add { color: var(--green); }
+.gear-link-add:hover { color: var(--accent2); }
+
+/* ── Empty state (design 1b) ─────────────────────────────────────────────────
+   One quiet dashed row — an empty slot, not a panel. It carries its own
+   "+ Add your gear", because before this the section had no action at all on
+   first run. The configurator below keeps full weight. */
+.gear-empty {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px dashed var(--border2);
+  border-radius: var(--r);
+  padding: 14px 18px;
+}
+.gear-empty-text {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text2);
+  margin: 0;
+}
+.gear-empty-add {
+  flex: none;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--green);
+  background: var(--green-dim);
+  border: 1px solid var(--green-border);
+  border-radius: var(--r-sm);
+  padding: 8px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.gear-empty-add:hover { background: var(--green); color: var(--bg); }
+
+.gear-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+}
+
+/* Catalog news (D11). Quiet by design — it is a footnote to the cards above,
+   not an announcement. */
+.gear-news {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text2);
+  margin: 10px 0 0;
+}
+
+/* ── Card (design 1c) ────────────────────────────────────────────────────────
+   Body left, RUN rail right. One material change — tinted vs solid fill —
+   separates "look at this" from "run this", instead of two stacked buttons. */
+.gear-card {
+  position: relative;
+  display: flex;
+  min-height: 64px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  animation: chipPop 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
+  transition: border-color 0.2s;
+}
+.gear-card:hover { border-color: var(--border2); }
+.gear-card.is-default { border-color: var(--green-border); }
+
+.gear-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 3px;
+  background: none;
+  border: none;
+  padding: 12px 14px;
+  margin: 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  transition: background 0.15s;
+}
+.gear-card-body:hover { background: var(--surface2); }
+.gear-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+.gear-card-printer {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* D1 — nozzle + filament are what tell two gears apart, so they lead. */
+.gear-card-headline {
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text);
+  word-break: break-word;
+}
+.gear-card-nick {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text3);
+  word-break: break-word;
+}
+
+/* The run rail. Tinted at rest so it reads as available without shouting;
+   fills solid on hover. */
+.gear-run {
+  width: 76px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--green-dim);
+  border: none;
+  border-left: 1px solid var(--border);
+  color: var(--green);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.gear-run:hover { background: var(--green); color: var(--bg); }
+/* An unusable gear is shown so it can be seen and dealt with, but its run action
+   cannot succeed: tapping it used to wipe the whole configuration and report
+   "Loaded". Rendered as a dead rail — visibly not a button. */
+.gear-run.is-dead {
+  background: none;
+  color: var(--text2);
+  cursor: not-allowed;
+}
+.gear-run.is-dead .gear-run-label { font-size: 8px; letter-spacing: 0.1em; text-align: center; padding: 0 4px; }
+.gear-run-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+/* ── Badges: dot + microtext, never boxes (design 1c) ────────────────────────
+   An orange dot is enough alarm — what actually changed is explained in the
+   detail overlay, and a warning never blocks the run rail. */
+.gear-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+.gear-dot i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.gear-dot.is-default { color: var(--green); }
+.gear-dot.is-warn    { color: var(--orange); }
+
+/* Still used by the save dialog ("Always saved") and the All-gears modal, which
+   are boxed lists rather than cards — the dot vocabulary above is card-only. */
+.gear-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--green-dim);
+  border: 1px solid var(--green-border);
+  color: var(--green);
+  white-space: nowrap;
+}
+.gear-badge.is-warn {
+  background: var(--orange-dim);
+  border-color: var(--orange-border);
+  color: var(--orange);
+}
+
+.panel-header-actions { flex-wrap: wrap; justify-content: flex-end; }
+
+/* ── 360px (design 1d) ── */
+@media (max-width: 560px) {
+  .gear-grid { grid-template-columns: 1fr; gap: 8px; }
+  .gear-card { min-height: 60px; }
+  .gear-run  { width: 64px; }
+  .gear-section-head { flex-wrap: wrap; gap: 10px; }
+  .gear-empty { flex-direction: column; align-items: stretch; gap: 12px; }
+  .gear-empty-add { width: 100%; }
+}
+
+/* ── Save chooser ────────────────────────────────────────────────────────────
+   One Save button, two outcomes. Each option carries its own sentence, because
+   "★ Save" and "◆ Save gear" side by side told the user nothing about which was
+   which. Opened deliberately, so the gear offer is never unsolicited — which is
+   why it has no "don't offer this again". */
+.save-chooser { max-width: 480px; }
+.save-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  margin-top: 10px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+.save-choice:hover {
+  background: var(--surface2);
+  border-color: var(--green-border);
+}
+.save-choice-icon {
+  flex: none;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--green);
+}
+.save-choice-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.save-choice-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.save-choice-desc {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text2);
+}
+
+/* ── Gear dialogs ── */
+.gear-modal { max-width: 520px; }
+.gear-modal-intro { font-size: 12px; line-height: 1.6; color: var(--text2); margin-bottom: 14px; }
+.gear-field-label {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+.gear-pick-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 44vh;
+  overflow-y: auto;
+}
+.gear-pick-group-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text2);
+  margin: 12px 0 5px;
+}
+.gear-pick-group-label:first-child { margin-top: 0; }
+.gear-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.gear-pick:hover { background: var(--surface2); border-color: var(--border); }
+.gear-pick.is-required { cursor: default; }
+.gear-pick.is-required:hover { background: none; border-color: transparent; }
+.gear-pick-box { width: 15px; height: 15px; flex-shrink: 0; accent-color: var(--green); cursor: pointer; }
+.gear-pick.is-required .gear-pick-box { cursor: default; }
+.gear-pick-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.gear-pick-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text2);
+}
+.gear-pick-value { font-size: 13px; font-weight: 600; color: var(--text); word-break: break-word; }
+
+.gear-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+.gear-dismiss-btn {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  color: var(--text2);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--border2);
+  transition: color 0.15s;
+}
+.gear-dismiss-btn:hover { color: var(--orange); }
+.gear-primary-btn {
+  background: var(--green-dim);
+  border-color: var(--green-border);
+  color: var(--green);
+}
+.gear-primary-btn:hover {
+  color: var(--green);
+  border-color: var(--green);
+  box-shadow: 0 4px 14px var(--green-glow);
+}
+
+.gear-note {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text2);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--border2);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+.gear-note.is-warn { border-left-color: var(--orange); color: var(--text3); }
+
+.gear-review-list { display: flex; flex-direction: column; }
+.gear-review-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.gear-review-row:last-child { border-bottom: none; }
+.gear-review-key {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text2);
+  flex-shrink: 0;
+}
+.gear-review-val { font-size: 13px; font-weight: 600; color: var(--text); text-align: right; word-break: break-word; }
+.gear-review-val.is-stale { color: var(--text2); font-weight: 500; }
+.gear-review-flag {
+  display: inline-block;
+  margin-left: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--orange-dim);
+  border: 1px solid var(--orange-border);
+  color: var(--orange);
+}
+.gear-review-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 18px; }
+.gear-archive-btn:hover, .gear-archive-btn.is-armed { color: var(--orange); border-color: var(--orange-border); }
+
+.gear-row-list { display: flex; flex-direction: column; }
+.gear-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.gear-row:last-child { border-bottom: none; }
+.gear-row-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gear-row-name { font-size: 13px; font-weight: 700; color: var(--text); word-break: break-word; }
+.gear-row-meta { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text2); word-break: break-word; }
+.gear-row-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.gear-row-list.is-archived .gear-row-name { color: var(--text2); font-weight: 600; }
+
+/* ── D10: the user's own brands and printers lead the pickers ──────────────────
+   This is a GROUPING, not a compatibility signal. The engine's incompatible
+   dimming (.chip.incompatible — 25% opacity, greyscale, non-interactive) must
+   stay unmistakably different from it, so "Yours" is marked by a solid green
+   inset rule at full opacity and full colour, and never by opacity at all. */
+.chips-group-label {
+  flex: 0 0 100%;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text2);
+  margin: 6px 0 0;
+}
+.chips-group-label:first-child { margin-top: 0; }
+.chip.gear-owned:not(.selected),
+.model-chip.gear-owned:not(.selected) { box-shadow: inset 2px 0 0 var(--green); }
+.model-chip.gear-owned:not(.selected):hover {
+  box-shadow: inset 2px 0 0 var(--green), 0 4px 12px var(--green-glow);
+}
+
+@media (max-width: 768px) {
+  .gear-grid { grid-template-columns: 1fr; }
+  .gear-review-row { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .gear-review-val { text-align: left; }
+  .gear-row { flex-direction: column; align-items: flex-start; }
+  .gear-row-actions { width: 100%; }
 }

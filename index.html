@@ -92,6 +92,26 @@
 
 
   <div class="container" id="viewConfigure">
+    <!-- My Gear — saved shortcuts into the configurator. Sits at the top of
+         Configure because a gear is a shortcut INTO a run, and the top of
+         Configure is where a run begins. -->
+    <section class="gear-section" id="gearSection">
+      <div class="gear-section-head" id="gearSectionHead">
+        <span class="gear-section-title" id="gearSectionTitle">My gear</span>
+        <span class="gear-section-count" id="gearSectionCount"></span>
+        <div class="gear-section-actions">
+          <button class="gear-link gear-link-add" id="gearAddBtn"></button>
+          <button class="gear-link" id="gearAllBtn"></button>
+        </div>
+      </div>
+      <div class="gear-grid" id="gearGrid"></div>
+      <p class="gear-news" id="gearNews"></p>
+      <div class="gear-empty" id="gearEmpty">
+        <p class="gear-empty-text" id="gearEmptyText"></p>
+        <button class="gear-empty-add" id="gearEmptyAddBtn"></button>
+      </div>
+    </section>
+
     <div class="filters" id="filtersContainer"></div>
 
     <div class="empty-state" id="emptyState">
@@ -125,7 +145,7 @@
               <div class="panel-sub" id="panelProfSub">Process tab in Bambu Studio</div>
             </div>
             <div class="panel-header-actions">
-              <button class="save-btn" id="saveProfileBtn" title="Save this profile to your Workshop">★ Save</button>
+              <button class="save-btn" id="saveProfileBtn" title="Save this profile, or save your gear for next time">★ Save</button>
               <button class="share-btn" id="shareBtn" title="Copy a link that reproduces this exact profile">⤴ Share</button>
               <button class="compare-btn" id="compareLockBtn" title="Lock current profile as A to compare against a second configuration">⇌ Compare</button>
               <div class="export-group" id="exportGroup" style="display:none">
@@ -233,6 +253,70 @@
           <button class="export-btn" id="nameModalSave">Save</button>
         </div>
       </div>
+    </div>
+  </dialog>
+
+  <dialog id="saveChooserModal" class="info-modal gear-modal save-chooser">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <span class="modal-title" id="saveChooserTitle"></span>
+        <button class="modal-close" id="saveChooserClose" aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="modal-body">
+        <p class="gear-modal-intro" id="saveChooserIntro"></p>
+        <button class="save-choice" id="saveChoiceProfile">
+          <span class="save-choice-icon">&#x2605;</span>
+          <span class="save-choice-text">
+            <span class="save-choice-title" id="saveChoiceProfileTitle"></span>
+            <span class="save-choice-desc" id="saveChoiceProfileDesc"></span>
+          </span>
+        </button>
+        <button class="save-choice" id="saveChoiceGear">
+          <span class="save-choice-icon">&#x25C6;</span>
+          <span class="save-choice-text">
+            <span class="save-choice-title" id="saveChoiceGearTitle"></span>
+            <span class="save-choice-desc" id="saveChoiceGearDesc"></span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="gearSaveModal" class="info-modal gear-modal">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <span class="modal-title" id="gearSaveTitle"></span>
+        <button class="modal-close" id="gearSaveClose" aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="modal-body">
+        <p class="gear-modal-intro" id="gearSaveIntro"></p>
+        <label class="gear-field-label" id="gearSaveNameLabel" for="gearSaveName"></label>
+        <input class="name-input" id="gearSaveName" type="text" maxlength="60" autocomplete="off"/>
+        <div class="gear-pick-list" id="gearSaveFields"></div>
+        <div class="gear-modal-actions">
+          <button class="export-btn gear-primary-btn" id="gearSaveConfirm"></button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="gearReviewModal" class="info-modal gear-modal">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <span class="modal-title" id="gearReviewTitle"></span>
+        <button class="modal-close" id="gearReviewClose" aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="modal-body" id="gearReviewBody"></div>
+    </div>
+  </dialog>
+
+  <dialog id="gearAllModal" class="info-modal gear-modal">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <span class="modal-title" id="gearAllTitle"></span>
+        <button class="modal-close" id="gearAllClose" aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="modal-body" id="gearAllBody"></div>
     </div>
   </dialog>
 
