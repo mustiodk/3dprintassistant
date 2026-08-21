@@ -236,7 +236,11 @@ function createWorkshopStore(storage) {
     };
     if (!Array.isArray(p.journal)) p.journal = [];
     p.journal.push(rec);
-    p.updated = _now();
+    // D-3 (sync spec §3.1): appending to the journal is not editing the
+    // profile's values. Bumping `updated` here makes this device's STALE
+    // name/notes/state win the next value conflict, so the user loses the edit
+    // they made deliberately and keeps the one they made incidentally.
+    p.journal_updated = _now();
     const w = _write(profiles);
     return w.ok ? { ok: true, outcome: rec } : w;
   }
@@ -249,7 +253,7 @@ function createWorkshopStore(storage) {
     const next = p.journal.filter(o => o.id !== outcomeId);
     if (next.length === p.journal.length) return { ok: false, error: 'not-found' };
     p.journal = next;
-    p.updated = _now();
+    p.journal_updated = _now();   // D-3 — journal clock, not the value clock
     return _write(profiles);
   }
 

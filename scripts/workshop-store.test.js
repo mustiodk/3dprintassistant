@@ -360,6 +360,76 @@ console.log('# workshop-store.js tests\n');
   check('and the live sibling came back', ws4.list().length === 1 && ws4.list()[0].name === 'Live');
 }
 
+// ── TC-D3 — journal writes must not bump the VALUE timestamp ──
+// Sync spec D-3 / §3.1. Concretely: device A renames a profile at t1; device
+// B, still holding the old name, logs a print outcome at t2. B's write bumps
+// `updated`, so B's stale name/notes/state beat A's rename — while the
+// journal entry that actually changed merges fine. The user loses the edit
+// they made deliberately and keeps the one they made incidentally.
+//
+// The rule: appending to a record is not editing its values.
+//
+// NOTE ON TEST DESIGN: _now() is millisecond-resolution, so two writes in the
+// same tick produce identical ISO strings. Comparing a stamp taken just before
+// the call against the one just after is degenerate — it passes whether or not
+// the bump happened. Every assertion below is therefore anchored to a SEEDED
+// timestamp far in the past, so "unchanged" and "changed" are both decidable.
+{
+  console.log('TC-D3 — journal writes leave the value timestamp alone');
+  const T0 = '2020-01-01T00:00:00.000Z';   // unmistakably not "now"
+  function seeded(extra) {
+    return mockStorage({ '3dpa_workshop_v1': JSON.stringify({
+      v: 1,
+      profiles: [Object.assign({
+        id: 'p1', name: 'Original', state: STATE_A, notes: '',
+        created: T0, updated: T0, archived_at: null,
+      }, extra || {})],
+    }) });
+  }
+
+  {
+    const ws = createWorkshopStore(seeded());
+    const oc = ws.addOutcome('p1', { note: 'first print' });
+    check('addOutcome reports ok', oc.ok === true);
+    check('addOutcome leaves updated at the seeded value', ws.get('p1').updated === T0);
+    check('addOutcome moves journal_updated off the seed',
+      typeof ws.get('p1').journal_updated === 'string' && ws.get('p1').journal_updated !== T0);
+    check('the outcome was actually recorded', ws.get('p1').journal.length === 1);
+  }
+
+  {
+    const ws = createWorkshopStore(seeded({
+      journal: [{ id: 'o1', date: T0 }], journal_updated: T0,
+    }));
+    check('removeOutcome reports ok', ws.removeOutcome('p1', 'o1').ok === true);
+    check('removeOutcome leaves updated at the seeded value', ws.get('p1').updated === T0);
+    check('removeOutcome moves journal_updated off the seed', ws.get('p1').journal_updated !== T0);
+    check('the outcome was actually removed', ws.get('p1').journal.length === 0);
+  }
+
+  // The other half of the rule: a real value edit MUST still move `updated`,
+  // and must NOT disturb the journal clock.
+  {
+    const ws = createWorkshopStore(seeded({
+      journal: [{ id: 'o1', date: T0 }], journal_updated: T0,
+    }));
+    check('rename reports ok', ws.rename('p1', 'Renamed').ok === true);
+    check('rename DOES move updated off the seed', ws.get('p1').updated !== T0);
+    check('rename leaves journal_updated at the seeded value', ws.get('p1').journal_updated === T0);
+    check('the rename actually applied', ws.get('p1').name === 'Renamed');
+  }
+
+  // Records written before this change have no journal_updated. Absent is fine
+  // and must not be manufactured on read.
+  {
+    const ws = createWorkshopStore(seeded({ journal: [{ id: 'o1', date: T0 }] }));
+    check('a legacy row with no journal_updated still reads', ws.list().length === 1);
+    check('and its updated is untouched', ws.get('p1').updated === T0);
+    check('and journal_updated is not fabricated on read',
+      ws.get('p1').journal_updated === undefined);
+  }
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');
