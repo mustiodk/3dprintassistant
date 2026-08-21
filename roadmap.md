@@ -54,6 +54,7 @@ RULES THAT KEEP THE NUMBERS HONEST:
 - [ ] Gear cards on the configurator page
 - [ ] Manage gears — rename, set default, archive
 - [ ] Pickers lead with your own brands and printers
+- [ ] Catalog-news line — "3 new printers since last time" — so new printers stay visible once your own are on top
 - [ ] Final checks and ship
 
 ## 2. Groundwork for 2.0
