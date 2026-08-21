@@ -113,961 +113,774 @@ DEF-1 (tombstone location), DEF-2 (backups carrying archived rows), DEF-3 (spec 
 
 ---
 
+## Gate result — this plan was rewritten after a NO-GO
+
+Tasks 4–9 below are a **rewrite**, not the original draft. The original was gated by Codex
+(`bridge --mode codex-only`) before any code was written and came back **NO-GO with ten
+MUST-FIX**. Transcript:
+[`bridge-2026-08-21-103854-167671.md`](../../reviews/bridge-2026-08-21-103854-167671.md).
+
+**The root cause was mine and it is worth naming: I wrote the original against spec §1,
+§2.1–2.2 and §3, and skipped §2.3 "Why this shape."** That section carries the identity
+rule, the ordering rule, the total-order requirements and the never-repair-on-read rule —
+so four of the ten MUST-FIX were a single unread section. The other six were drift or
+missing product scope.
+
+| # | What was wrong | Corrected in |
+|---|---|---|
+| 1 | persisted `id` and `invalid` into the record; spec §2.3 says the record carries **no `id`** — the map key is identity | Task 4 (persisted row vs in-memory DTO) |
+| 2 | `_normGear` rewrote missing timestamps to `_now()`; §2.3 forbids read-side rewrites and says missing `created_at` sorts **last** via a sentinel | Task 4 |
+| 3 | archive/restore did not move `updated_at`; §4.2 counts `archived_at` as a content edit | Task 4 |
+| 4 | ordering used `last_used_at \|\| created_at`, so an unused new gear outranked a used one; §2.3 is nulls-last then `created_at` then **bytewise** id | Task 4 |
+| 5 | `inspectGear` applied unknown keys into `state`; §2.4 preserves them at rest and **ignores them when applying** | Task 5 |
+| 6 | only the four catalog fields were content-validated; engine enum values can disappear too and must go `stale` | Task 5 |
+| 7 | called `setActiveSlicer(printerId)`; the real API takes a **slicer** id — `setActiveSlicer(getSlicerForPrinter(p))` | Task 5 |
+| 8 | apply did not clear unpinned fields, so old answers survived and the wizard stopped asking | Task 5 |
+| 9 | no tasks for D6 (My Gear list/edit/delete), D9 ("New setup" CTA), D10 (own **printers**, not only brands), D11 (catalog-news line) | Tasks 7, 8, 9 |
+| 10 | `save_prompt_dismissed` had no setter | Task 4 |
+
+Seven SHOULD-FIX are folded in below: the `__proto__` fixture had to be a JSON **string**
+(an object literal never serializes the key, so the test proved nothing), `G9` and `V6`
+were vacuous, `mineAvailable` must be a per-printer+material predicate evaluated **after**
+cardinality coercion, `browser-globals.test.js` needs the two new globals, `update()` must
+merge into a null-prototype target, and the stale-repair string contradicted the
+out-of-scope list.
+
+### A structural error the plan gate did not catch, and the recon did
+
+**The web app has no Home screen.** It has four sibling views — `configure`,
+`troubleshoot`, `workshop`, `feedback` — switched by `setView()` (`app.js:832`). The only
+"Home" token in the repo is an outbound nav link to the marketing site
+(`index.html:84`). The "twelve stacked elements" that motivated the 2.0 redesign were in
+**`HomeView.swift`** — the iOS app. I carried an iOS finding into a web plan.
+
+D9, D10 and D11 all say "Home", and all three were decided against the iOS 2.0 design.
+
+**Plan-level decision, flagged for the owner rather than buried:** on web, gear lives in a
+**section at the top of the Configure view**, above `#filtersContainer`
+(`index.html:94`) — not as a fifth nav view. A gear is a shortcut *into* the configurator,
+and the top of Configure is where a run begins, so the shortcut belongs in the path the
+user is already on. A fifth view would make the shortcut require a detour.
+
+This is UI placement, it is reversible, and it does not touch the frozen storage format —
+so it is not worth blocking on. **If the owner wants a separate My Gear view on web to
+mirror the iOS tab shell, Tasks 7–9 move wholesale into a new `#viewMyGear` container and
+nothing else in this plan changes.**
+
+---
+
+## Corrected file structure
+
+| File | Responsibility |
+|---|---|
+| `gear-store.js` (create) | The `3dpa_gear_v1` envelope. Shape only. Reads never write. **Never imports the engine.** |
+| `gear-validate.js` (create) | Content validation against injected catalogs + apply. Takes full filter metadata and a `mineAvailable` predicate. |
+| `scripts/gear-store.test.js` (create) | Envelope, hostile envelope, ordering, timestamp discipline. |
+| `scripts/gear-validate.test.js` (create) | States, coercion, unknown-key handling, apply. |
+| `scripts/browser-globals.test.js` (modify) | Register the two new globals. |
+| `app.js` (modify) | Save prompt, gear section, My Gear list, picker lead, catalog-news line. |
+| `index.html`, `style.css`, `locales/*.json` (modify) | Markup, styling, strings. |
+
+---
+
 ## Task 4: `gear-store.js` — the envelope
 
-**Files:**
-- Create: `gear-store.js`
-- Create: `scripts/gear-store.test.js`
-- Modify: `index.html` (add `<script src="gear-store.js"></script>` before `app.js`)
+**Files:** Create `gear-store.js`, `scripts/gear-store.test.js`. Modify `index.html`,
+`scripts/browser-globals.test.js`.
 
-**Interfaces:**
-- Consumes: nothing. **Must not reference `Engine` or import any engine file.**
-- Produces:
-  - `createGearStore(storage) -> { list, get, save, update, archive, restore, getSettings, setActiveGear, markCatalogSeen, catalogNews, raw }`
-  - `list() -> Array<{ id, name, fields, labels, created_at, updated_at, last_used_at, archived_at }>` — live gears only, ordered by `last_used_at` descending then `created_at` descending (a total order; there is no stored `order`).
-  - `save({ name, fields, labels }) -> { ok: true, gear } | { ok: false, error: 'required-printer' | 'quota' | 'storage' | 'version-skew' }`
-  - `update(id, patch) -> { ok, error? }` — bumps `updated_at`.
-  - `touch(id) -> { ok }` — bumps **`last_used_at` only**. Using a gear is not editing it.
-  - `raw() -> { droppedReservedKeys: number, skew: boolean }` — diagnostics for surfacing, not silence.
+**Interfaces — produced:**
 
-- [ ] **Step 1: Write the failing test**
+- `createGearStore(storage)` → `{ list, get, save, update, touch, archive, restore, getSettings, setActiveGear, setSavePromptDismissed, markCatalogSeen, catalogNews, diagnostics }`
+- **In-memory DTO** (what `list`/`get` return): `{ id, name, fields, labels, created_at, updated_at, last_used_at, archived_at, invalid }`
+- **Persisted row** (what goes in `gears[id]`): `{ name, fields, labels, created_at, updated_at, last_used_at, archived_at }` — **no `id`, no `invalid`.** The key is identity (spec §2.3).
+- `save({ name, fields, labels })` → `{ ok: true, gear } | { ok: false, error: 'required-printer' | 'quota' | 'storage' | 'version-skew' }`
+- `touch(id)` moves **`last_used_at` only**. `update`/`archive`/`restore` move `updated_at` (§4.2: `archived_at` is a content edit).
 
-Create `scripts/gear-store.test.js`:
+**Ordering, verbatim from spec §2.3** — `last_used_at` descending with **nulls last** →
+`created_at` descending → **`id` ascending, bytewise**. `localeCompare` is explicitly
+forbidden: it is locale-dependent and would order differently on a Danish and an English
+device, breaking the total order sync needs.
+
+**Missing `created_at` sorts last via a fixed sentinel and is NEVER rewritten to now.**
+Read-side repair never writes (§2.3).
+
+- [ ] **Step 1: Write the failing test** — `scripts/gear-store.test.js`
+
+Header and helpers as in `scripts/workshop-store.test.js` (same `loadBrowserScript`,
+`check`, `mockStorage` shape). Then:
 
 ```js
-#!/usr/bin/env node
-// ─── Tests for gear-store.js (Train 1 web — My Gear) ────────────────────────
-// Run: node scripts/gear-store.test.js       Exit 0 all-green, 1 on failure.
-
-const { loadBrowserScript } = require('./load-browser-script.js');
-const { createGearStore } = loadBrowserScript('gear-store.js', ['createGearStore']);
-
-let failures = 0;
-function check(name, cond, detail) {
-  if (cond) console.log(`  ok   ${name}`);
-  else { console.log(`  FAIL ${name}${detail ? ' — ' + detail : ''}`); failures++; }
-}
-function mockStorage(initial) {
-  const map = new Map(Object.entries(initial || {}));
-  return { getItem: k => (map.has(k) ? map.get(k) : null),
-           setItem: (k, v) => map.set(k, String(v)),
-           removeItem: k => map.delete(k), _map: map };
-}
 const KEY = '3dpa_gear_v1';
-
-console.log('# gear-store.js tests\n');
+const T_OLD = '2020-01-01T00:00:00.000Z';
+const T_MID = '2021-01-01T00:00:00.000Z';
+const T_NEW = '2022-01-01T00:00:00.000Z';
+function envelope(gears, settings) {
+  return JSON.stringify({ v: 1, gears: gears || {}, settings: settings || {} });
+}
+function row(extra) {
+  return Object.assign({ name: 'G', fields: { printer: 'x1c' }, labels: {},
+    created_at: T_OLD, updated_at: T_OLD, last_used_at: null, archived_at: null }, extra || {});
+}
 
 // G1 — printer is required at write time (closes S2)
 {
   const s = createGearStore(mockStorage());
-  check('G1 empty gear is rejected', s.save({ name: 'x', fields: {} }).ok === false);
-  check('G1 rejection names the reason', s.save({ name: 'x', fields: {} }).error === 'required-printer');
-  check('G1 gear with a printer is accepted', s.save({ name: 'X1C', fields: { printer: 'x1c' } }).ok === true);
-  check('G1 nothing was persisted for the rejected write', s.list().length === 1);
+  check('G1 empty gear rejected', s.save({ name: 'x', fields: {} }).error === 'required-printer');
+  check('G1 nothing persisted for the rejected write', s.list().length === 0);
+  check('G1 gear with a printer accepted', s.save({ name: 'X1C', fields: { printer: 'x1c' } }).ok === true);
 }
 
-// G2 — empty array means "pinned as none"; absent means "ask me"
+// G2 — the PERSISTED row carries no id and no invalid flag (spec 2.3)
+{
+  const st = mockStorage();
+  const s = createGearStore(st);
+  const id = s.save({ name: 'g', fields: { printer: 'x1c' } }).gear.id;
+  const stored = JSON.parse(st._map.get(KEY)).gears[id];
+  check('G2 persisted row has no id field', !('id' in stored));
+  check('G2 persisted row has no invalid field', !('invalid' in stored));
+  check('G2 the in-memory DTO still exposes id', s.get(id).id === id);
+  check('G2 stored keys are exactly the spec set',
+    Object.keys(stored).sort().join(',') ===
+    'archived_at,created_at,fields,labels,last_used_at,name,updated_at');
+}
+
+// G3 — [] is pinned-as-none; an absent key means ask me
 {
   const s = createGearStore(mockStorage());
-  const r = s.save({ name: 'g', fields: { printer: 'x1c', special: [], useCase: ['functional'] } });
-  const g = s.get(r.gear.id);
-  check('G2 [] survives the round-trip', Array.isArray(g.fields.special) && g.fields.special.length === 0);
-  check('G2 an absent key stays absent', !('surface' in g.fields));
+  const id = s.save({ name: 'g', fields: { printer: 'x1c', special: [], useCase: ['functional'] } }).gear.id;
+  const g = s.get(id);
+  check('G3 [] survives the round-trip', Array.isArray(g.fields.special) && g.fields.special.length === 0);
+  check('G3 an absent key stays absent', !('surface' in g.fields));
 }
 
-// G3 — array hygiene: duplicates removed, order normalized
+// G4 — array hygiene: dedup + deterministic bytewise order
 {
   const s = createGearStore(mockStorage());
-  const r = s.save({ name: 'g', fields: { printer: 'x1c', useCase: ['b', 'a', 'b'] } });
-  const v = s.get(r.gear.id).fields.useCase;
-  check('G3 duplicates removed', v.length === 2);
-  check('G3 order normalized deterministically', v.join(',') === 'a,b');
+  const id = s.save({ name: 'g', fields: { printer: 'x1c', useCase: ['functional', 'decorative', 'functional'] } }).gear.id;
+  const v = s.get(id).fields.useCase;
+  check('G4 duplicates removed', v.length === 2);
+  check('G4 order is bytewise ascending', v.join(',') === 'decorative,functional');
 }
 
-// G4 — unknown keys are preserved, never dropped (version skew between platforms)
+// G5 — unknown keys are PRESERVED at rest (version skew between platforms)
 {
   const s = createGearStore(mockStorage());
-  const r = s.save({ name: 'g', fields: { printer: 'x1c', some_future_key: 'v' } });
-  check('G4 unknown key round-trips', s.get(r.gear.id).fields.some_future_key === 'v');
+  const id = s.save({ name: 'g', fields: { printer: 'x1c', some_future_key: 'v', another: ['a','b'] } }).gear.id;
+  check('G5 unknown string key round-trips', s.get(id).fields.some_future_key === 'v');
+  check('G5 unknown array key round-trips', s.get(id).fields.another.join(',') === 'a,b');
 }
 
-// G5 — hostile envelope: every map is null-prototype, incl. fields (closes S3)
+// G6 — reserved keys dropped AND counted.
+// The fixture MUST be a JSON string: an object literal never serializes a
+// __proto__ key, so an object-literal fixture proves nothing. (Gate SHOULD-FIX.)
 {
-  const s = createGearStore(mockStorage());
-  const r = s.save({ name: 'g', fields: { printer: 'x1c' } });
-  const g = s.get(r.gear.id);
-  check('G5 fields has null prototype', Object.getPrototypeOf(g.fields) === null);
-  check('G5 gears map has null prototype', Object.getPrototypeOf(s.raw().gears) === null);
-}
-
-// G6 — reserved keys are dropped AND counted, never silently
-{
-  const hostile = JSON.stringify({
-    v: 1,
-    gears: { '__proto__': { name: 'evil', fields: { printer: 'x1c' } },
-             'ok1': { name: 'good', fields: { printer: 'x1c', '__proto__': 'evil' } } },
-    settings: {},
-  });
+  const hostile = '{"v":1,"gears":{"__proto__":{"name":"evil","fields":{"printer":"x1c"}},'
+    + '"good":{"name":"good","fields":{"printer":"x1c","__proto__":"evil","constructor":"evil"},'
+    + '"labels":{},"created_at":"' + T_OLD + '","updated_at":"' + T_OLD + '",'
+    + '"last_used_at":null,"archived_at":null}},"settings":{}}';
+  check('G6 fixture really contains the key', hostile.indexOf('"__proto__"') !== -1);
   const s = createGearStore(mockStorage({ [KEY]: hostile }));
   check('G6 the good row survives', s.list().length === 1 && s.list()[0].name === 'good');
-  check('G6 the reserved field key is gone', !('__proto__' in Object.keys(s.list()[0].fields).reduce((a,k)=>(a[k]=1,a),{})));
-  check('G6 drops are counted', s.raw().droppedReservedKeys >= 2);
+  check('G6 reserved gear id dropped', s.get('__proto__') === null);
+  check('G6 reserved field key dropped',
+    Object.keys(s.list()[0].fields).indexOf('__proto__') === -1
+    && Object.keys(s.list()[0].fields).indexOf('constructor') === -1);
+  check('G6 drops are counted, not silent', s.diagnostics().droppedReservedKeys >= 3);
+  check('G6 no prototype pollution', ({}).evil === undefined && Object.prototype.evil === undefined);
+  check('G6 fields map is null-prototype', Object.getPrototypeOf(s.list()[0].fields) === null);
 }
 
-// G7 — type mismatches degrade, they do not throw, and siblings survive
+// G7 — type mismatches degrade, never throw; siblings survive
 {
-  const messy = JSON.stringify({
-    v: 1,
-    gears: { a: 'not-an-object',
-             b: { name: 'B', fields: 'not-a-map' },
-             c: { name: 'C', fields: { printer: 'x1c' }, created_at: 42 } },
-    settings: 'not-a-map',
-  });
-  let threw = false; let s;
-  try { s = createGearStore(mockStorage({ [KEY]: messy })); s.list(); } catch (_) { threw = true; }
-  check('G7 a hostile envelope does not throw', threw === false);
+  const messy = '{"v":1,"gears":{"a":"not-an-object","b":{"name":"B","fields":"not-a-map"},'
+    + '"c":' + JSON.stringify(row({ name: 'C' })) + '},"settings":"not-a-map"}';
+  let threw = false, s;
+  try { s = createGearStore(mockStorage({ [KEY]: messy })); s.list(); s.getSettings(); }
+  catch (_) { threw = true; }
+  check('G7 hostile envelope does not throw', threw === false);
   check('G7 the readable sibling survives', s.list().some(g => g.name === 'C'));
 }
 
-// G8 — a gear failing validation on read is RETAINED, not deleted
+// G8 — a gear failing required-field validation is RETAINED and flagged
 {
-  const noPrinter = JSON.stringify({
-    v: 1, gears: { z: { name: 'Z', fields: { material: 'pla_basic' } } }, settings: {},
-  });
-  const s = createGearStore(mockStorage({ [KEY]: noPrinter }));
+  const s = createGearStore(mockStorage({ [KEY]:
+    envelope({ z: row({ name: 'Z', fields: { material: 'pla_basic' } }) }) }));
   check('G8 the row is retained', s.get('z') !== null);
   check('G8 and flagged rather than dropped', s.get('z').invalid === true);
+  check('G8 and kept out of list()', s.list().every(g => g.id !== 'z'));
 }
 
-// G9 — using a gear moves last_used_at and NOT updated_at
+// G9 — touch moves last_used_at and NOT updated_at.
+// Seeded, because _now() is millisecond-resolution and a before/after compare
+// would pass either way. (Gate SHOULD-FIX + the Tasks 1-3 lesson.)
 {
-  const s = createGearStore(mockStorage());
-  const r = s.save({ name: 'g', fields: { printer: 'x1c' } });
-  const before = s.get(r.gear.id).updated_at;
-  s.touch(r.gear.id);
-  check('G9 touch leaves updated_at alone', s.get(r.gear.id).updated_at === before);
-  check('G9 touch moves last_used_at', s.get(r.gear.id).last_used_at >= before);
+  const s = createGearStore(mockStorage({ [KEY]: envelope({ g1: row() }) }));
+  check('G9 touch reports ok', s.touch('g1').ok === true);
+  check('G9 updated_at still at the seed', s.get('g1').updated_at === T_OLD);
+  check('G9 last_used_at moved off the seed',
+    typeof s.get('g1').last_used_at === 'string' && s.get('g1').last_used_at !== T_OLD);
 }
 
-// G10 — archive is soft and ordering is a total order
+// G10 — update / archive / restore DO move updated_at (spec 4.2)
 {
-  const s = createGearStore(mockStorage());
-  const a = s.save({ name: 'A', fields: { printer: 'x1c' } }).gear;
-  const b = s.save({ name: 'B', fields: { printer: 'a1' } }).gear;
-  s.archive(a.id);
-  check('G10 archived gear leaves list()', s.list().every(g => g.id !== a.id));
-  check('G10 archived row still exists', s.get(a.id) !== null && typeof s.get(a.id).archived_at === 'string');
-  s.restore(a.id);
-  check('G10 restore returns it', s.list().some(g => g.id === a.id));
-  s.touch(b.id);
-  check('G10 most-recently-used leads', s.list()[0].id === b.id);
+  const s = createGearStore(mockStorage({ [KEY]: envelope({ g1: row() }) }));
+  s.update('g1', { name: 'Renamed' });
+  check('G10 update moves updated_at', s.get('g1').updated_at !== T_OLD);
+  const s2 = createGearStore(mockStorage({ [KEY]: envelope({ g1: row() }) }));
+  s2.archive('g1');
+  check('G10 archive moves updated_at (archived_at is a content edit)',
+    s2.get('g1').updated_at !== T_OLD);
+  check('G10 archive sets a tombstone', typeof s2.get('g1').archived_at === 'string');
+  const s3 = createGearStore(mockStorage({ [KEY]: envelope({ g1: row({ archived_at: T_OLD }) }) }));
+  s3.restore('g1');
+  check('G10 restore moves updated_at', s3.get('g1').updated_at !== T_OLD);
+  check('G10 restore clears the tombstone', s3.get('g1').archived_at === null);
 }
 
-// G11 — a failed write is never reported as a save
+// G11 — total order: last_used_at desc NULLS LAST, then created_at desc, then id ASC bytewise
+{
+  const s = createGearStore(mockStorage({ [KEY]: envelope({
+    used_old:   row({ last_used_at: T_MID, created_at: T_OLD }),
+    used_new:   row({ last_used_at: T_NEW, created_at: T_OLD }),
+    never_used: row({ last_used_at: null,  created_at: T_NEW }),   // newest created, never used
+  }) }));
+  const ids = s.list().map(g => g.id);
+  check('G11 most recently used leads', ids[0] === 'used_new');
+  check('G11 a never-used gear sorts LAST even though it is newest', ids[2] === 'never_used');
+  check('G11 order is exactly spec order', ids.join(',') === 'used_new,used_old,never_used');
+}
+{
+  // id tie-break is bytewise ASCENDING, not locale collation. In da-DK collation
+  // 'aa' sorts after 'z'; bytewise it does not. This is why localeCompare is banned.
+  const s = createGearStore(mockStorage({ [KEY]: envelope({
+    z:  row({ last_used_at: T_MID, created_at: T_MID }),
+    aa: row({ last_used_at: T_MID, created_at: T_MID }),
+  }) }));
+  check('G11 id tie-break is bytewise ascending', s.list().map(g => g.id).join(',') === 'aa,z');
+}
+
+// G12 — a missing/unparseable created_at sorts LAST and is NEVER rewritten
+{
+  const st = mockStorage({ [KEY]: envelope({
+    good: row({ created_at: T_NEW, last_used_at: null }),
+    bad:  row({ created_at: 42,    last_used_at: null }),
+  }) });
+  const s = createGearStore(st);
+  check('G12 the unparseable row sorts last', s.list().map(g => g.id).join(',') === 'good,bad');
+  check('G12 reading did not write', JSON.parse(st._map.get(KEY)).gears.bad.created_at === 42);
+  s.touch('good');
+  check('G12 and a later write still did not repair the other row',
+    JSON.parse(st._map.get(KEY)).gears.bad.created_at === 42);
+}
+
+// G13 — a failed write is never reported as a save
 {
   const st = mockStorage();
   st.setItem = () => { const e = new Error('full'); e.name = 'QuotaExceededError'; throw e; };
-  const s = createGearStore(st);
-  const r = s.save({ name: 'g', fields: { printer: 'x1c' } });
-  check('G11 quota failure reports not-ok', r.ok === false);
-  check('G11 and names quota specifically', r.error === 'quota');
+  const r = createGearStore(st).save({ name: 'g', fields: { printer: 'x1c' } });
+  check('G13 quota failure reports not-ok', r.ok === false);
+  check('G13 and names quota specifically', r.error === 'quota');
 }
 
-console.log(failures ? `\n${failures} FAILURE(S)` : '\nall green');
-process.exit(failures ? 1 : 0);
+// G14 — version skew is preserved, never overwritten (same posture as workshop-store D-5)
+{
+  const st = mockStorage({ [KEY]: '{"v":999,"gears":{"keep":{"name":"Real"}},"settings":{}}' });
+  const s = createGearStore(st);
+  check('G14 save refuses under skew', s.save({ name: 'g', fields: { printer: 'x1c' } }).error === 'version-skew');
+  check('G14 the newer envelope is untouched', JSON.parse(st._map.get(KEY)).v === 999);
+  check('G14 and its data survives', JSON.parse(st._map.get(KEY)).gears.keep.name === 'Real');
+}
+
+// G15 — settings: setters exist and updated_at moves; catalog news is max-wins
+{
+  const s = createGearStore(mockStorage());
+  check('G15 setSavePromptDismissed exists', typeof s.setSavePromptDismissed === 'function');
+  s.setSavePromptDismissed(true);
+  check('G15 it persists', s.getSettings().save_prompt_dismissed === true);
+  s.markCatalogSeen({ printers: 80, materials: 19 });
+  const news = s.catalogNews({ printers: 83, materials: 19 });
+  check('G15 news counts only the delta', news.printers === 3 && news.materials === 0);
+  check('G15 news never goes negative', s.catalogNews({ printers: 70 }).printers === 0);
+  check('G15 settings maps are null-prototype',
+    Object.getPrototypeOf(s.getSettings().catalog_seen) === null);
+}
+
+// G16 — update() merges into a null-prototype target (gate SHOULD-FIX)
+{
+  const s = createGearStore(mockStorage({ [KEY]: envelope({ g1: row() }) }));
+  s.update('g1', { fields: JSON.parse('{"__proto__":"evil","nozzle":"std_0.4"}') });
+  check('G16 the patch cannot inject a reserved key', Object.keys(s.get('g1').fields).indexOf('__proto__') === -1);
+  check('G16 the legitimate patch field applied', s.get('g1').fields.nozzle === 'std_0.4');
+  check('G16 the pre-existing field survived', s.get('g1').fields.printer === 'x1c');
+  check('G16 update still requires printer',
+    s.update('g1', { fields: { printer: '' } }).error === 'required-printer');
+}
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run to verify it fails**
 
 Run: `node scripts/gear-store.test.js`
-Expected: FAIL — `gear-store.js` does not exist.
+Expected: FAIL — `gear-store.js` does not exist (`load-browser-script: cannot read`).
 
-- [ ] **Step 3: Write the implementation**
+- [ ] **Step 3: Implement `gear-store.js`**
 
-Create `gear-store.js`. Key decisions already made by the spec — implement them, do not re-derive:
+Non-negotiables, each traceable to a spec line:
 
 ```js
-// ─── 3D Print Assistant — Gear store (Train 1 web) ──────────────────────────
-// Versioned localStorage envelope at `3dpa_gear_v1`. A gear is a SHORTCUT: a
-// named partial snapshot of configurator answers. There is no ownership pool.
-//
-// This file validates SHAPE ONLY and must never import the engine. Catalog
-// (content) validation lives in gear-validate.js and takes injected catalogs.
+  // Identity lives in the map key. The record carries no `id` (spec §2.3) — an
+  // envelope like {"gears":{"a":{"id":"b"}}} is ambiguous and JS and Swift
+  // decoders could reasonably disagree about which wins.
+  const PERSIST_KEYS = ['name','fields','labels','created_at','updated_at','last_used_at','archived_at'];
 
-function createGearStore(storage) {
+  // Sorts last, and is NEVER written back (spec §2.3 — read-side repair never
+  // writes; the parked build rewrote to now(), which both diverges across
+  // devices and manufactures a spurious sync write).
+  const CREATED_SENTINEL = '0000-00-00T00:00:00.000Z';
 
-  const KEY = '3dpa_gear_v1';
-  const VERSION = 1;
-  const RESERVED = ['__proto__', 'constructor', 'prototype'];
+  function _cmp(a, b) { return a < b ? -1 : (a > b ? 1 : 0); }   // bytewise; localeCompare is forbidden
 
-  let droppedReservedKeys = 0;
-  let skew = false;
-
-  function _now() { return new Date().toISOString(); }
-  function _newId() {
-    try { if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID(); } catch (_) {}
-    return 'g_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
-  }
-  function _map(src) {
-    const out = Object.create(null);
-    if (!src || typeof src !== 'object') return out;
-    Object.keys(src).forEach(k => {
-      if (RESERVED.indexOf(k) !== -1) { droppedReservedKeys++; return; }
-      out[k] = src[k];
-    });
-    return out;
-  }
-  function _normValue(v) {
-    if (typeof v === 'string') return v;
-    if (Array.isArray(v)) {
-      const seen = Object.create(null); const out = [];
-      v.forEach(x => { if (typeof x === 'string' && !seen[x]) { seen[x] = 1; out.push(x); } });
-      return out.sort();          // deterministic across devices; apply-time re-orders for the engine
-    }
-    return null;                  // degrade: drop a value we cannot represent
-  }
-  function _normFields(src) {
-    const raw = _map(src); const out = Object.create(null);
-    Object.keys(raw).forEach(k => { const v = _normValue(raw[k]); if (v !== null) out[k] = v; });
-    return out;
-  }
-  function _normGear(id, r) {
-    if (!r || typeof r !== 'object') return null;
-    const fields = _normFields(r.fields);
-    const g = {
-      id: id,
-      name: typeof r.name === 'string' ? r.name : '',
-      fields: fields,
-      labels: _map(typeof r.labels === 'object' ? r.labels : null),
-      created_at:   typeof r.created_at   === 'string' ? r.created_at   : _now(),
-      updated_at:   typeof r.updated_at   === 'string' ? r.updated_at   : _now(),
-      last_used_at: typeof r.last_used_at === 'string' ? r.last_used_at : null,
-      archived_at:  typeof r.archived_at  === 'string' ? r.archived_at  : null,
-    };
-    // Retained, never deleted — but flagged. Deleting a user's data because we
-    // could not parse it is the worst available outcome (spec §2.5).
-    g.invalid = !(typeof fields.printer === 'string' && fields.printer);
-    return g;
-  }
-
-  function _empty() {
-    return { v: VERSION, gears: Object.create(null), settings: Object.create(null) };
-  }
-
-  function _read() {
-    droppedReservedKeys = 0; skew = false;
-    let raw = null;
-    try { raw = storage.getItem(KEY); } catch (_) { return _empty(); }
-    if (!raw) return _empty();
-    let env;
-    try { env = JSON.parse(raw); } catch (_) { return _empty(); }
-    if (!env || typeof env !== 'object') return _empty();
-    if (env.v !== VERSION) { skew = true; return { v: env.v, gears: Object.create(null), settings: Object.create(null), _skew: true }; }
-    const gears = Object.create(null);
-    const rows = _map(env.gears);
-    Object.keys(rows).forEach(id => { const g = _normGear(id, rows[id]); if (g) gears[id] = g; });
-    return { v: VERSION, gears: gears, settings: _map(env.settings) };
-  }
-
-  function _write(env) {
-    if (env && env._skew) return { ok: false, error: 'version-skew' };
-    try {
-      storage.setItem(KEY, JSON.stringify({ v: VERSION, gears: env.gears, settings: env.settings }));
-      return { ok: true };
-    } catch (e) {
-      return { ok: false, error: (e && e.name === 'QuotaExceededError') ? 'quota' : 'storage' };
-    }
-  }
-
-  function _live(g) { return !g.archived_at && !g.invalid; }
   function _order(a, b) {
-    const av = a.last_used_at || a.created_at, bv = b.last_used_at || b.created_at;
-    if (av !== bv) return av < bv ? 1 : -1;
-    return a.created_at < b.created_at ? 1 : (a.created_at > b.created_at ? -1 : (a.id < b.id ? -1 : 1));
-  }
-
-  function list() {
-    const env = _read();
-    return Object.keys(env.gears).map(k => env.gears[k]).filter(_live).sort(_order);
-  }
-  function get(id) { const env = _read(); return env.gears[id] || null; }
-
-  function save(input) {
-    const env = _read();
-    if (env._skew) return { ok: false, error: 'version-skew' };
-    const fields = _normFields(input && input.fields);
-    if (!(typeof fields.printer === 'string' && fields.printer)) {
-      return { ok: false, error: 'required-printer' };
+    const au = a.last_used_at, bu = b.last_used_at;
+    if (au !== bu) {
+      if (!au) return 1;            // nulls LAST, even if created most recently
+      if (!bu) return -1;
+      return -_cmp(au, bu);         // descending
     }
-    const id = _newId(); const t = _now();
-    env.gears[id] = { id: id, name: String((input && input.name) || ''), fields: fields,
-                      labels: _map(input && input.labels), created_at: t, updated_at: t,
-                      last_used_at: null, archived_at: null, invalid: false };
-    const w = _write(env);
-    return w.ok ? { ok: true, gear: env.gears[id] } : w;
+    const ac = _validIso(a.created_at) ? a.created_at : CREATED_SENTINEL;
+    const bc = _validIso(b.created_at) ? b.created_at : CREATED_SENTINEL;
+    if (ac !== bc) return -_cmp(ac, bc);
+    return _cmp(a.id, b.id);        // ascending, bytewise
   }
-
-  function update(id, patch) {
-    const env = _read();
-    if (env._skew) return { ok: false, error: 'version-skew' };
-    const g = env.gears[id];
-    if (!g) return { ok: false, error: 'not-found' };
-    if (patch && typeof patch.name === 'string') g.name = patch.name;
-    if (patch && patch.fields) {
-      const merged = _normFields(Object.assign({}, g.fields, patch.fields));
-      if (!(typeof merged.printer === 'string' && merged.printer)) return { ok: false, error: 'required-printer' };
-      g.fields = merged;
-    }
-    if (patch && patch.labels) g.labels = _map(Object.assign({}, g.labels, patch.labels));
-    g.updated_at = _now();
-    return _write(env);
-  }
-
-  function touch(id) {
-    const env = _read();
-    if (env._skew) return { ok: false, error: 'version-skew' };
-    const g = env.gears[id];
-    if (!g) return { ok: false, error: 'not-found' };
-    g.last_used_at = _now();          // NOT updated_at — using is not editing
-    return _write(env);
-  }
-
-  function _setArchived(id, value) {
-    const env = _read();
-    if (env._skew) return { ok: false, error: 'version-skew' };
-    if (!env.gears[id]) return { ok: false, error: 'not-found' };
-    env.gears[id].archived_at = value;
-    return _write(env);
-  }
-  function archive(id) { return _setArchived(id, _now()); }
-  function restore(id) { return _setArchived(id, null); }
-
-  function getSettings() {
-    const s = _read().settings;
-    return { active_gear: typeof s.active_gear === 'string' ? s.active_gear : null,
-             catalog_seen: _map(s.catalog_seen),
-             save_prompt_dismissed: s.save_prompt_dismissed === true,
-             updated_at: typeof s.updated_at === 'string' ? s.updated_at : null };
-  }
-  function _patchSettings(patch) {
-    const env = _read();
-    if (env._skew) return { ok: false, error: 'version-skew' };
-    Object.keys(patch).forEach(k => { env.settings[k] = patch[k]; });
-    env.settings.updated_at = _now();
-    return _write(env);
-  }
-  function setActiveGear(id) { return _patchSettings({ active_gear: id }); }
-  function markCatalogSeen(counts) { return _patchSettings({ catalog_seen: _map(counts) }); }
-  function catalogNews(current) {
-    const seen = getSettings().catalog_seen;
-    const out = Object.create(null);
-    Object.keys(_map(current)).forEach(k => {
-      out[k] = Math.max(0, (Number(current[k]) || 0) - (Number(seen[k]) || 0));
-    });
-    return out;
-  }
-
-  function raw() { const env = _read(); return { gears: env.gears, settings: env.settings,
-                                                 droppedReservedKeys: droppedReservedKeys, skew: skew }; }
-
-  return { list, get, save, update, touch, archive, restore,
-           getSettings, setActiveGear, markCatalogSeen, catalogNews, raw };
-}
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { createGearStore };
-}
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+`_toPersist(dto)` picks exactly `PERSIST_KEYS`. `_toDto(id, row)` synthesizes `id` and
+computes `invalid` in memory. Every map is `Object.create(null)`, including `fields` and
+`labels`. Reserved keys (`__proto__`, `constructor`, `prototype`) are dropped as gear ids
+**and** as field keys, and each drop increments a counter exposed by `diagnostics()`.
+`update()` merges into a fresh null-prototype object, never `Object.assign({}, …)`.
+`_writeEnv` refuses when the envelope is version-skewed, exactly as `workshop-store.js`
+now does.
 
-Run: `node scripts/gear-store.test.js`
-Expected: PASS, `all green`, exit 0.
+**`labels` is restricted to the four catalog-backed fields** — `printer`, `nozzle`,
+`material`, `build_plate` (spec §2.3) — and **mirrors the shape of the value it labels**:
+a string for a single-valued field, a parallel array for a multi-valued one. Any other key
+in `labels` is dropped on write.
 
-- [ ] **Step 5: Register the script and confirm CI's sloppy-mode classifier sees it**
+- [ ] **Step 4: Run to verify it passes** — `node scripts/gear-store.test.js` → all green.
 
-In `index.html`, add before the `app.js` tag:
+- [ ] **Step 5: Register the globals**
 
-```html
-<script src="gear-store.js"></script>
-```
+`index.html`: add `<script src="gear-store.js"></script>` before `app.js`.
+`scripts/browser-globals.test.js`: add `GearStore` to the expected-globals list
+(gate SHOULD-FIX — the contract currently covers only `StateCodec`, `WorkshopStore` and
+the tuning globals).
 
-Run: `node --input-type=commonjs --check < gear-store.js`
-Expected: no output (exit 0). CI tier 1/6 derives the sloppy-mode set from `index.html`, so registering the tag is what makes the check correct.
+Verify: `node --input-type=commonjs --check < gear-store.js` and
+`node scripts/browser-globals.test.js`.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add gear-store.js scripts/gear-store.test.js index.html
+git add gear-store.js scripts/gear-store.test.js scripts/browser-globals.test.js index.html
 git commit -m "feat(gear): gear-store.js — the 3dpa_gear_v1 envelope
 
-An open partial-state map over the engine's filter keys, per the ratified
-gear model v2 spec. Shape validation only; never imports the engine.
+An open partial-state map over the engine's filter keys, per the ratified gear
+model v2 spec. Shape validation only; never imports the engine.
 
-Closes the four defects the parked branch's review found: no stored order
-(S1/S4 — ordering is derived and total), printer required at write time (S2),
-and every map null-prototype including fields and labels (S3).
+Identity is the map key — the persisted row carries no id and no invalid flag
+(spec 2.3). Ordering is derived and total: last_used_at desc nulls last,
+created_at desc, then id ascending BYTEWISE (localeCompare is forbidden; it
+would order differently on a Danish and an English device). A missing or
+unparseable created_at sorts last via a sentinel and is never rewritten —
+read-side repair never writes.
 
-Using a gear moves last_used_at and never updated_at."
+updated_at moves on content edits including archive/restore; touch() moves
+last_used_at alone.
+
+Closes S1-S4 from the parked build."
 ```
 
 ---
 
-## Task 5: `gear-validate.js` — states, coercion, and apply
+## Task 5: `gear-validate.js` — states, coercion, apply
 
-**Files:**
-- Create: `gear-validate.js`
-- Create: `scripts/gear-validate.test.js`
-- Modify: `index.html`
+**Files:** Create `gear-validate.js`, `scripts/gear-validate.test.js`. Modify `index.html`,
+`scripts/browser-globals.test.js`.
 
-**Interfaces:**
-- Consumes: gear objects from Task 4's `list()`/`get()`.
-- Produces:
-  - `inspectGear(gear, catalogs, engineMeta) -> { state: 'ok'|'degraded'|'stale', resolved: object, notes: Array<{ key, reason }> }`
-    - `catalogs` = `{ printers: Set, materials: Set, nozzles: Set, plates: Set }`
-    - `engineMeta` = `{ multi: { useCase: true, special: true, … }, order: { useCase: ['functional', …] }, mineAvailable: boolean }`
-  - `applyGearToState(resolved, state, deps) -> void` — `deps` = `{ setActiveSlicer, setExpandedBrand, collapsePicker, printerRow }`
-  - `gearDisplayName(gear) -> string`
+**Interfaces — produced:**
 
-- [ ] **Step 1: Write the failing test**
+- `inspectGear(gear, catalogs, meta)` → `{ state: 'ok'|'degraded'|'stale', resolved, notes }`
+  - `catalogs` = `{ printers:Set, materials:Set, nozzles:Set, plates:Set }`
+  - `meta` = `{ filters: [{ key, multi, items:[{id}] }], mineAvailable(printer, material) -> boolean }`
+    — `filters` is `Engine.getFilters(state)` as-is, so **every** enum field is validated
+    against its own item list, not just the four catalog fields (gate MUST-FIX 6).
+- `applyGearToState(resolved, state, deps)` — `deps` = `{ resetFields, setActiveSlicer, getSlicerForPrinter, setExpandedBrand, collapsePicker, printerRow }`
+- `gearDisplayName(gear)`, `gearDerivedBrandIds(gears, printerRow)`, `gearDerivedPrinterIds(gears)`
 
-Create `scripts/gear-validate.test.js`:
+**Three rules the gate corrected:**
+
+1. **Unknown keys are ignored when applying.** They are preserved at rest by the store
+   (§2.4) but must **not** reach `state` — the original sketch resolved every key, which
+   pollutes app state with fields the engine has never heard of.
+2. **`mineAvailable` is a predicate over `(printer, material)`**, not a global boolean —
+   `'mine'` is valid only for the exact pair the user has tuning for — and it is evaluated
+   **after** cardinality coercion, so it reads the coerced values.
+3. **Apply resets first.** `Object.assign(state, resolved)` alone leaves the previous run's
+   answers in place for fields the gear did not pin, which silently breaks "unset fields
+   mean the wizard asks."
+
+- [ ] **Step 1: Write the failing test** — `scripts/gear-validate.test.js`
 
 ```js
-#!/usr/bin/env node
-const { loadBrowserScript } = require('./load-browser-script.js');
-const { inspectGear, applyGearToState, gearDisplayName } =
-  loadBrowserScript('gear-validate.js', ['inspectGear', 'applyGearToState', 'gearDisplayName']);
-
-let failures = 0;
-function check(n, c, d) { if (c) console.log(`  ok   ${n}`); else { console.log(`  FAIL ${n}${d?' — '+d:''}`); failures++; } }
-
 const CAT = { printers: new Set(['x1c','a1']), materials: new Set(['pla_basic']),
               nozzles: new Set(['std_0.4']), plates: new Set(['textured_pei']) };
-const META = { multi: { useCase: true, special: true }, order: { useCase: ['functional','visual'] }, mineAvailable: false };
+const FILTERS = [
+  { key: 'printer',  multi: false, items: [{ id: 'x1c' }, { id: 'a1' }] },
+  { key: 'material', multi: false, items: [{ id: 'pla_basic' }] },
+  { key: 'useCase',  multi: true,  items: [{ id: 'functional' }, { id: 'decorative' }, { id: 'large' }] },
+  { key: 'surface',  multi: false, items: [{ id: 'fine' }, { id: 'standard' }] },
+  { key: 'profileMode', multi: false, items: [{ id: 'safe' }, { id: 'tuned' }, { id: 'mine' }] },
+];
+const META = { filters: FILTERS, mineAvailable: () => false };
 function gear(fields, labels) {
-  return { id: 'g', name: 'G', fields: fields, labels: labels || {},
-           created_at: '2026-01-01T00:00:00.000Z', updated_at: '2026-01-01T00:00:00.000Z',
+  return { id: 'g', name: 'G', fields, labels: labels || {},
+           created_at: '2020-01-01T00:00:00.000Z', updated_at: '2020-01-01T00:00:00.000Z',
            last_used_at: null, archived_at: null, invalid: false };
 }
 
-console.log('# gear-validate.js tests\n');
-
 // V1 — everything resolves
 {
-  const r = inspectGear(gear({ printer: 'x1c', material: 'pla_basic', nozzle: 'std_0.4' }), CAT, META);
+  const r = inspectGear(gear({ printer: 'x1c', material: 'pla_basic' }), CAT, META);
   check('V1 state ok', r.state === 'ok');
   check('V1 resolved carries the fields', r.resolved.printer === 'x1c');
 }
 
-// V2 — an unknown catalog id makes the gear stale and is left UNSET so the wizard asks
+// V2 — an unknown CATALOG id is stale and left UNSET so the wizard asks
 {
-  const r = inspectGear(gear({ printer: 'retired_printer', material: 'pla_basic' }), CAT, META);
+  const r = inspectGear(gear({ printer: 'retired', material: 'pla_basic' }), CAT, META);
   check('V2 state stale', r.state === 'stale');
   check('V2 the unknown field is left unset', !('printer' in r.resolved));
   check('V2 the known field still resolves', r.resolved.material === 'pla_basic');
-  check('V2 a note names the key', r.notes.some(n => n.key === 'printer'));
+  check('V2 a note names the key', r.notes.some(n => n.key === 'printer' && n.reason === 'unknown-id'));
 }
 
-// V3 — profileMode 'mine' degrades to 'safe' when tuning is absent, and SAYS SO
+// V3 — an unknown ENUM value is ALSO stale (gate MUST-FIX 6)
 {
-  const r = inspectGear(gear({ printer: 'x1c', profileMode: 'mine' }), CAT, META);
-  check('V3 state degraded', r.state === 'degraded');
-  check('V3 applied value is safe', r.resolved.profileMode === 'safe');
-  check('V3 the downgrade is reported, not silent', r.notes.some(n => n.key === 'profileMode' && n.reason === 'mine-unavailable'));
-}
-{
-  const r = inspectGear(gear({ printer: 'x1c', profileMode: 'mine' }), CAT,
-                        Object.assign({}, META, { mineAvailable: true }));
-  check('V3 mine survives when tuning exists', r.state === 'ok' && r.resolved.profileMode === 'mine');
+  const r = inspectGear(gear({ printer: 'x1c', surface: 'retired_finish' }), CAT, META);
+  check('V3 a disappeared enum value is stale, not applied blindly', r.state === 'stale');
+  check('V3 and left unset', !('surface' in r.resolved));
 }
 
-// V4 — cardinality coercion, both directions
+// V4 — UNKNOWN KEYS are preserved at rest but NOT applied (gate MUST-FIX 5)
+{
+  const r = inspectGear(gear({ printer: 'x1c', some_future_key: 'v' }), CAT, META);
+  check('V4 an unknown key never reaches resolved', !('some_future_key' in r.resolved));
+  check('V4 and does not make the gear stale', r.state === 'ok');
+  check('V4 but it is noted so it can be surfaced', r.notes.some(n => n.key === 'some_future_key'));
+}
+
+// V5 — profileMode 'mine' is a per printer+material predicate, after coercion
+{
+  const g = gear({ printer: 'x1c', material: 'pla_basic', profileMode: 'mine' });
+  const r = inspectGear(g, CAT, META);
+  check('V5 state degraded', r.state === 'degraded');
+  check('V5 applied value is safe', r.resolved.profileMode === 'safe');
+  check('V5 the downgrade is reported, never silent',
+    r.notes.some(n => n.key === 'profileMode' && n.reason === 'mine-unavailable'));
+
+  let seen = null;
+  const metaYes = { filters: FILTERS, mineAvailable: (p, m) => { seen = [p, m]; return true; } };
+  const r2 = inspectGear(g, CAT, metaYes);
+  check('V5 mine survives when tuning exists for the pair', r2.resolved.profileMode === 'mine');
+  check('V5 the predicate received the gear pair, not globals',
+    seen && seen[0] === 'x1c' && seen[1] === 'pla_basic');
+}
+
+// V6 — cardinality coercion. NOT vacuous: each branch asserts the exact value.
 {
   const r = inspectGear(gear({ printer: 'x1c', useCase: 'functional' }), CAT, META);
-  check('V4 single -> array for a multi key', Array.isArray(r.resolved.useCase) && r.resolved.useCase[0] === 'functional');
-  check('V4 widening is lossless, so state stays ok', r.state === 'ok');
+  check('V6 single -> array for a multi key',
+    Array.isArray(r.resolved.useCase) && r.resolved.useCase.join(',') === 'functional');
+  check('V6 widening is lossless so state stays ok', r.state === 'ok');
 }
 {
-  const r = inspectGear(gear({ printer: 'x1c', surface: ['a','b'] }), CAT, META);
-  check('V4 array -> single for a non-multi key takes the first', r.resolved.surface === 'a');
-  check('V4 narrowing loses information, so state degrades', r.state === 'degraded');
+  const r = inspectGear(gear({ printer: 'x1c', surface: ['fine','standard'] }), CAT, META);
+  check('V6 array -> single takes the first', r.resolved.surface === 'fine');
+  check('V6 narrowing loses information so state degrades', r.state === 'degraded');
+  check('V6 and says why', r.notes.some(n => n.key === 'surface' && n.reason === 'cardinality-narrowed'));
 }
 
-// V5 — [] is pinned-as-none and must NOT be treated as absent
+// V7 — multi values are re-ordered to ENGINE item order at apply time
 {
-  const r = inspectGear(gear({ printer: 'x1c', special: [] }), CAT, META);
-  check('V5 [] survives to resolved', Array.isArray(r.resolved.special) && r.resolved.special.length === 0);
+  const r = inspectGear(gear({ printer: 'x1c', useCase: ['large','decorative','functional'] }), CAT, META);
+  check('V7 engine order, not the bytewise at-rest order',
+    r.resolved.useCase.join(',') === 'functional,decorative,large');
 }
 
-// V6 — a stale gear renders from labels
+// V8 — [] survives as pinned-as-none
 {
-  const g = gear({ printer: 'retired_printer' }, { printer: 'Retired Printer' });
-  check('V6 display name falls back to labels', gearDisplayName(g).indexOf('Retired Printer') !== -1 || g.name === 'G');
+  const r = inspectGear(gear({ printer: 'x1c', useCase: [] }), CAT, META);
+  check('V8 [] reaches resolved as an empty array',
+    Array.isArray(r.resolved.useCase) && r.resolved.useCase.length === 0);
 }
 
-// V7 — apply performs the four bookkeeping steps in order (the parked branch's Critical finding)
+// V9 — display name. NOT vacuous: no `|| g.name` escape hatch.
+{
+  check('V9 the user name wins when set', gearDisplayName(gear({ printer: 'x1c' })) === 'G');
+  const unnamed = gear({ printer: 'retired' }, { printer: 'Retired Printer', nozzle: '0.4 Standard' });
+  unnamed.name = '';
+  check('V9 falls back to labels when the name is empty',
+    gearDisplayName(unnamed) === 'Retired Printer · 0.4 Standard');
+  const bare = gear({ printer: 'x1c' }); bare.name = ''; bare.labels = {};
+  check('V9 and to a constant when there is nothing at all', bare.name === '' && gearDisplayName(bare).length > 0);
+}
+
+// V10 — apply resets unpinned fields, then performs bookkeeping IN ORDER
 {
   const calls = [];
-  const state = { printer: null, material: null };
+  const state = { printer: 'old', material: 'old_mat', surface: 'fine', useCase: ['x'] };
   applyGearToState({ printer: 'x1c', material: 'pla_basic' }, state, {
+    resetFields: () => { calls.push('reset'); state.printer = null; state.material = null;
+                         state.surface = null; state.useCase = []; },
     setActiveSlicer: id => calls.push('slicer:' + id),
+    getSlicerForPrinter: p => (p === 'x1c' ? 'bambu_studio' : 'orcaslicer'),
     setExpandedBrand: b => calls.push('brand:' + b),
     collapsePicker: () => calls.push('collapse'),
-    printerRow: id => ({ id: id, manufacturer: 'bambu', brand: 'WRONG' }),
+    printerRow: id => ({ id, manufacturer: 'bambu_lab', brand: 'WRONG' }),
   });
-  check('V7 fields merged into the existing state object', state.printer === 'x1c' && state.material === 'pla_basic');
-  check('V7 slicer re-routed for the new printer', calls.indexOf('slicer:x1c') !== -1);
-  check('V7 expanded brand comes from manufacturer, NOT brand', calls.indexOf('brand:bambu') !== -1);
-  check('V7 picker collapsed last', calls[calls.length - 1] === 'collapse');
+  check('V10 reset ran FIRST', calls[0] === 'reset');
+  check('V10 an unpinned field was cleared, so the wizard will ask', state.surface === null);
+  check('V10 pinned fields applied', state.printer === 'x1c' && state.material === 'pla_basic');
+  check('V10 slicer receives a SLICER id, not a printer id', calls.indexOf('slicer:bambu_studio') !== -1);
+  check('V10 expanded brand comes from manufacturer, not brand', calls.indexOf('brand:bambu_lab') !== -1);
+  check('V10 picker collapsed last', calls[calls.length - 1] === 'collapse');
 }
 
-console.log(failures ? `\n${failures} FAILURE(S)` : '\nall green');
-process.exit(failures ? 1 : 0);
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `node scripts/gear-validate.test.js`
-Expected: FAIL — `gear-validate.js` does not exist.
-
-- [ ] **Step 3: Write the implementation**
-
-Create `gear-validate.js`. The catalog key for each field:
-
-```js
-// ─── 3D Print Assistant — Gear validation + apply ───────────────────────────
-// Content validation against INJECTED catalogs. Separate from gear-store.js so
-// the store's "never imports the engine" property stays provable.
-
-var GEAR_CATALOG_KEY = { printer: 'printers', material: 'materials',
-                         nozzle: 'nozzles', build_plate: 'plates' };
-
-function inspectGear(gear, catalogs, engineMeta) {
-  var resolved = Object.create(null);
-  var notes = [];
-  var stale = false, degraded = false;
-  var fields = (gear && gear.fields) || {};
-  var meta = engineMeta || {};
-  var multi = meta.multi || {};
-
-  Object.keys(fields).forEach(function (key) {
-    var value = fields[key];
-
-    // 1. Catalog membership, for the four keys that have one.
-    var cat = GEAR_CATALOG_KEY[key];
-    if (cat && catalogs && catalogs[cat]) {
-      var ids = Array.isArray(value) ? value : [value];
-      var missing = ids.filter(function (id) { return !catalogs[cat].has(id); });
-      if (missing.length) { stale = true; notes.push({ key: key, reason: 'unknown-id' }); return; }
-    }
-
-    // 2. The one conditional value in the vocabulary today (spec §3.2).
-    if (key === 'profileMode' && value === 'mine' && !meta.mineAvailable) {
-      resolved[key] = 'safe';
-      degraded = true;
-      notes.push({ key: 'profileMode', reason: 'mine-unavailable' });
-      return;
-    }
-
-    // 3. Cardinality, checked against the engine's CURRENT multi flag.
-    var wantsArray = multi[key] === true;
-    if (wantsArray && typeof value === 'string') {
-      resolved[key] = [value];                      // widening is lossless
-    } else if (!wantsArray && Array.isArray(value)) {
-      if (value.length > 1) { degraded = true; notes.push({ key: key, reason: 'cardinality-narrowed' }); }
-      resolved[key] = value.length ? value[0] : undefined;
-      if (resolved[key] === undefined) delete resolved[key];
-    } else if (wantsArray && Array.isArray(value)) {
-      var order = (meta.order && meta.order[key]) || null;
-      resolved[key] = order
-        ? value.slice().sort(function (a, b) { return order.indexOf(a) - order.indexOf(b); })
-        : value.slice();
-    } else {
-      resolved[key] = value;
-    }
-  });
-
-  return { state: stale ? 'stale' : (degraded ? 'degraded' : 'ok'), resolved: resolved, notes: notes };
-}
-
-function gearDisplayName(gear) {
-  if (gear && typeof gear.name === 'string' && gear.name) return gear.name;
-  var l = (gear && gear.labels) || {};
-  return [l.printer, l.nozzle, l.material].filter(Boolean).join(' · ') || 'Gear';
-}
-
-// Apply-time bookkeeping. Found the hard way on the parked branch — it was the
-// Critical finding of its final review. The order matters.
-function applyGearToState(resolved, state, deps) {
-  Object.assign(state, resolved);                       // state is a const; never reassign
-  if (resolved.printer && deps.setActiveSlicer) deps.setActiveSlicer(resolved.printer);
-  if (resolved.printer && deps.printerRow && deps.setExpandedBrand) {
-    var row = deps.printerRow(resolved.printer);
-    if (row && row.manufacturer) deps.setExpandedBrand(row.manufacturer);  // manufacturer, NOT brand
-  }
-  if (resolved.printer && deps.collapsePicker) deps.collapsePicker();
-}
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { inspectGear, applyGearToState, gearDisplayName, GEAR_CATALOG_KEY };
+// V11 — derived ownership (D10): brands AND printers, never stored
+{
+  const rows = { x1c: { manufacturer: 'bambu_lab' }, mk4: { manufacturer: 'prusa' } };
+  const gears = [gear({ printer: 'x1c' }), gear({ printer: 'mk4' }), gear({ printer: 'x1c' })];
+  const brands = gearDerivedBrandIds(gears, id => rows[id] || null);
+  check('V11 derives both brands', brands.indexOf('bambu_lab') !== -1 && brands.indexOf('prusa') !== -1);
+  check('V11 deduplicates', brands.length === 2);
+  check('V11 an unknown printer is skipped, not thrown on',
+    gearDerivedBrandIds([gear({ printer: 'ghost' })], id => rows[id] || null).length === 0);
+  const printers = gearDerivedPrinterIds(gears);
+  check('V11 derives printer ids too (D10 says printers, not only brands)',
+    printers.length === 2 && printers.indexOf('x1c') !== -1);
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 2: Run to verify it fails** — `node scripts/gear-validate.test.js` → cannot read `gear-validate.js`.
 
-Run: `node scripts/gear-validate.test.js`
-Expected: PASS.
+- [ ] **Step 3: Implement**
 
-- [ ] **Step 5: Register the script**
+Validation order per key, and the order matters: **is the key known to the engine?** →
+if not, note it and **skip** (never resolve). → **catalog or enum membership** → stale and
+unset on miss. → **cardinality coercion** against that filter's `multi`. → **conditional
+values** (`profileMode: 'mine'` via `meta.mineAvailable(resolved.printer, resolved.material)`),
+which therefore runs last and sees coerced values. → **multi re-ordering** to the filter's
+own `items` order.
 
-In `index.html`, add after `gear-store.js` and before `app.js`:
+`applyGearToState` calls `deps.resetFields()` first, then `Object.assign(state, resolved)`,
+then `setActiveSlicer(getSlicerForPrinter(printer))` — **the real API takes a slicer id**
+(`engine.js:979`) — then the expanded brand from `printerRow(p).manufacturer`, then
+`collapsePicker()`.
 
-```html
-<script src="gear-validate.js"></script>
-```
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 4: Verify green**, register the script + global, commit.
 
 ```bash
-git add gear-validate.js scripts/gear-validate.test.js index.html
 git commit -m "feat(gear): gear-validate.js — ok/degraded/stale, coercion, apply
 
 Content validation against injected catalogs, split from the store so the
-store's no-engine-import property stays provable.
+store's no-engine-import property stays provable by grep.
 
-profileMode 'mine' degrades to 'safe' with a note when the user has no
-Workshop tuning for that printer+material pair — a silent downgrade inside a
-saved shortcut is exactly the quiet wrong answer the app must not give.
+Three corrections from the plan gate: unknown keys are preserved at rest but
+IGNORED when applying, so they never pollute app state; every engine enum
+field is validated, not only the four catalog-backed ones, because enum values
+disappear too; and 'mine' is a per printer+material predicate evaluated after
+cardinality coercion rather than a global boolean.
 
-Cardinality is checked against the engine's current multi flag, not the
-schema, which is what keeps a future cardinality change out of the migration
-column. Apply carries the parked branch's four bookkeeping steps intact,
-including expanded-brand coming from manufacturer and not brand."
+Apply resets the known StateCodec fields before merging, or the previous run's
+answers survive for fields the gear did not pin and the wizard stops asking.
+setActiveSlicer receives a SLICER id via getSlicerForPrinter, not a printer id."
 ```
 
 ---
 
 ## Task 6: Save-after-run — the only way a gear is born
 
-**Files:**
-- Modify: `app.js` — the profile-generated / Output render path
-- Modify: `index.html` — save dialog markup
-- Modify: `style.css`, `locales/en.json`, `locales/da.json`
+**Files:** `app.js`, `index.html`, `style.css`, `locales/*.json`.
 
-**Interfaces:**
-- Consumes: `createGearStore`, `gearDisplayName`.
-- Produces: `window.__gearSavePrompt` is **not** created; the dialog is internal to `app.js`. Exposes nothing to later tasks except the store instance `GearStore`.
+Hook the `render()` tail after the `hasMin` guard (`app.js:1693–1707`), mirroring the
+existing `saveProfileBtn` precedent (`app.js:1687`, handler `app.js:1314`). Seven defaults
+pre-checked (D2), every other answered field tickable (D3/D5), name pre-filled from
+hardware labels and overwritable (D7). `labels` captured for the four catalog fields only.
 
-- [ ] **Step 1: Write the failing test**
+`GEAR_DEFAULT_FIELDS = ['printer','nozzle','material','build_plate','environment','profileMode','extruder_type']`
 
-`app.js` has no unit harness; this task is proven by the walkthrough in Task 9 plus a browser smoke. Write the browser smoke as an explicit checklist item instead of a unit test, and add the string-parity assertion that *is* automatable:
+Reuse `openNameModal` (`app.js:851`) for the name; the field checkboxes need a small
+dialog of their own following the `.info-modal` skeleton (`index.html:224`). "Don't offer
+this again" calls `GearStore.setSavePromptDismissed(true)`.
 
-Append to `scripts/gear-store.test.js`:
+**Names render via `escHtml`/`textContent`, never interpolated `innerHTML`** — the parked
+branch shipped a stored XSS here. A failed write surfaces via `showToast` and is never
+reported as a save.
 
-```js
-// G12 — every gear string exists in BOTH locales (catches a half-translated ship)
-{
-  const en = require('../locales/en.json'), da = require('../locales/da.json');
-  const keys = Object.keys(en).filter(k => k.indexOf('gear.') === 0);
-  check('G12 gear strings exist', keys.length > 0);
-  check('G12 every en gear key has a da counterpart', keys.every(k => typeof da[k] === 'string' && da[k].length));
-}
-```
+Automatable assertion (append to `scripts/gear-store.test.js`): every `gear*` key in
+`locales/en.json` has a non-empty counterpart in `da.json`.
 
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `node scripts/gear-store.test.js`
-Expected: FAIL on "G12 gear strings exist" — no `gear.*` keys yet.
-
-- [ ] **Step 3: Add the strings**
-
-Add to `locales/en.json` (and the Danish equivalents to `locales/da.json`):
-
-```json
-"gear.save.title": "Save this as a gear?",
-"gear.save.body": "A gear is a shortcut — next time we'll skip the questions you pin here.",
-"gear.save.namePlaceholder": "Name this gear",
-"gear.save.confirm": "Save gear",
-"gear.save.cancel": "Not now",
-"gear.save.dontAsk": "Don't offer this again",
-"gear.save.failedQuota": "Storage is full — the gear was not saved.",
-"gear.save.failedGeneric": "The gear could not be saved."
-```
-
-- [ ] **Step 4: Implement the dialog**
-
-After a completed configurator run, if `GearStore.getSettings().save_prompt_dismissed` is false, render a dialog listing every **answered** field with the seven defaults pre-checked:
-
-```js
-var GEAR_DEFAULT_FIELDS = ['printer', 'nozzle', 'material', 'build_plate',
-                           'environment', 'profileMode', 'extruder_type'];
-```
-
-Name is pre-filled from hardware labels via `gearDisplayName({ labels: … })` and is overwritable. On confirm, build `fields` from the ticked boxes only and call `GearStore.save(...)`.
-
-**Escape the name on render** — every place a gear name reaches the DOM uses `textContent` or an escaping helper, never `innerHTML` with interpolation. The parked branch shipped a stored XSS here.
-
-Handle the write result explicitly:
-
-```js
-    var r = GearStore.save({ name: name, fields: fields, labels: labels });
-    if (!r.ok) {
-      showToast(t(r.error === 'quota' ? 'gear.save.failedQuota' : 'gear.save.failedGeneric'));
-      return;                                   // a failed write is NOT reported as a save
-    }
-    GearStore.setActiveGear(r.gear.id);
-```
-
-- [ ] **Step 5: Run the suites and a browser smoke**
-
-Run: `node scripts/gear-store.test.js && npx serve -l 4200 .`
-Then in the browser: complete a configurator run → confirm the dialog appears with seven boxes ticked → save → reload → confirm the gear persists in `localStorage` under `3dpa_gear_v1`.
-Also: save a gear named `<img src=x onerror=alert(1)>` and confirm it renders as literal text.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add app.js index.html style.css locales/en.json locales/da.json scripts/gear-store.test.js
-git commit -m "feat(gear): save-after-run dialog — the only way a gear is born
-
-Seven defaults pre-checked, every other answered field tickable (D5). Name
-pre-filled from hardware labels and overwritable (D7). No build-a-gear page
-exists, per D6.
-
-Names render via textContent — the parked branch shipped a stored XSS here.
-A failed write surfaces and is never reported as a save."
-```
+- [ ] Steps: add strings → build dialog → wire save → run suites → browser smoke
+  (including saving a gear named `<img src=x onerror=alert(1)>` and confirming it renders
+  as literal text) → commit.
 
 ---
 
-## Task 7: Home — three cards and the all-gears row
+## Task 7: The gear section + My Gear management (D4, D6, D8, D9)
 
-**Files:**
-- Modify: `app.js` (Home render), `index.html`, `style.css`, both locale files
+**Files:** `app.js`, `index.html`, `style.css`, `locales/*.json`.
 
-**Interfaces:**
-- Consumes: `GearStore.list()`, `inspectGear`, `applyGearToState`.
-- Produces: nothing later tasks depend on.
+A section at the **top of the Configure view**, above `#filtersContainer`
+(`index.html:94`) — see the placement note above.
 
-- [ ] **Step 1: Add the strings**
+- **Three cards**: the active gear plus the two most recently used. `GearStore.list()` is
+  already in that order, so `.slice(0, 3)`. An **"All gears" row at four or more** (D8).
+- **Cards differentiate on nozzle + filament, not printer name** (D1) — most users own one
+  printer and keep several gears for it. Primary line `nozzle · material`; printer secondary.
+- **Card body** opens a review overlay listing every pinned field; **the card's generate
+  control** runs straight through (D4).
+- **"New setup" CTA** (D9) — always starts a fresh run at brand selection.
+- **My Gear management** (D6): list, rename, set-default, delete. A list, not a builder —
+  there is no build-a-gear page.
 
-```json
-"gear.home.heading": "My Gear",
-"gear.home.showAll": "All gears",
-"gear.home.generate": "Generate",
-"gear.home.stale": "Something in this gear is no longer available",
-"gear.home.degraded": "Adjusted: personal tuning isn't available here — using Safe",
-"gear.home.repair": "Review"
-```
-
-- [ ] **Step 2: Render three cards**
-
-Show the active gear plus the two most recently used — `GearStore.list()` is already in that order, so take `.slice(0, 3)`. At **four or more** gears, render the "All gears" row (D8).
-
-**Cards differentiate on nozzle + filament, not printer name** (D1/owner) — most users own one printer. The card's primary line is `nozzle · material`; the printer is secondary.
-
-- [ ] **Step 3: Wire the two interactions (D4)**
-
-- Tapping the **card body** opens a review overlay showing every pinned field, then continues into the wizard.
-- Tapping the **Generate control on the card** runs straight through.
-
-Both call:
+Apply path, using the existing `restoreWorkshopProfile` sequence (`app.js:1203`) as the
+template:
 
 ```js
-    var r = inspectGear(g, catalogs, engineMeta);
+    const r = inspectGear(g, catalogs, meta);
     applyGearToState(r.resolved, state, deps);
-    GearStore.touch(g.id);                 // last_used_at only
+    GearStore.touch(g.id);            // last_used_at only
     GearStore.setActiveGear(g.id);
-    if (r.state !== 'ok') showGearNotice(r);   // never a silent downgrade
+    buildFilters(); restoreChipSelections(); renderPrinterSummary(); setView('configure'); render();
+    if (r.state !== 'ok') showGearNotice(r);      // never a silent downgrade
 ```
 
-Fields left unset by `inspectGear` mean the wizard asks — that is what makes D4 work with no special cases. A gear that pinned everything leaves nothing to ask and generates; a gear that pinned seven lands on the first unanswered step.
+**`active_gear` is a hint, not a guarantee** (§4.3): if it does not resolve to a live gear,
+fall back to the most recently used non-archived gear; if there is none, show the
+first-run state. **Do not repair the pointer on read.**
 
-- [ ] **Step 4: Protect the share-link path**
+**Boot order.** Extend `restoreInitialState()` (`app.js:221`) with a third branch **after**
+the URL check and **after** `restorePersistedState()`, returning a new `'gear'`
+discriminator so the `restored === 'storage'` toast (`app.js:176`) is untouched. A share
+link must still win. **Note `render()` calls `persistState()` (`app.js:1592`), so a
+gear-applied state is written to `3dpa_state_v1` on the first render and the `'storage'`
+branch wins on the next boot** — decide deliberately whether the gear branch should run
+only when there is no persisted state, and write the choice into the commit message.
 
-On boot, **a restored session always wins** over auto-applying the active gear. Find the existing restore branch and add the gear application only in its `else`.
-
-Run: open an IMPL-042 share URL with a gear saved and active. The share link's state must win.
-
-- [ ] **Step 5: Run suites + browser smoke**
-
-Run: `for f in $(git ls-files '*.test.js'); do node "$f" >/dev/null || echo "FAIL $f"; done`
-Browser: 0 gears (no section) → 1 → 3 → 4 (all-gears row appears).
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add app.js index.html style.css locales/en.json locales/da.json
-git commit -m "feat(gear): Home shows three gear cards with an all-gears row at four
-
-Active gear plus the two most recently used (D8). Cards differentiate on
-nozzle + filament rather than printer name, because most users own one
-printer and keep several gears for it (D1).
-
-Card body opens a review overlay; the card's generate control runs straight
-through (D4). Unset fields mean the wizard asks, so both paths work with no
-special cases. A restored session still wins over auto-applying the active
-gear, protecting IMPL-042 share links."
-```
+**Stale gears**: render from `labels`, mark the state, and offer nothing further. The
+**repair interaction is out of scope** (gear spec open question 2) — so the section shows
+the state and does not promise a fix. No "Review"/repair string is added.
 
 ---
 
-## Task 8: Pickers lead with the user's own brands
+## Task 8: Pickers lead with the user's own printers and brands (D10)
 
-**Files:**
-- Modify: `app.js` (brand/printer picker render)
-- Modify: `style.css`, both locale files
+**Files:** `app.js`, `style.css`, `locales/*.json`.
 
-**Interfaces:**
-- Consumes: `GearStore.list()`.
-- Produces: `gearDerivedBrandIds(gears, printerRow) -> Array<string>`.
+Derived from gears, never stored (D1). D10 says **brands *and* printers**, so both
+`gearDerivedBrandIds` and `gearDerivedPrinterIds` are consumed: a "Yours" group leads the
+brand chips (`renderBrandChips`, `app.js:466`) and the model list
+(`buildPrinterPicker`, `app.js:378`), with the full catalog beneath.
 
-**This is derivation, not a pool.** There is no stored ownership layer (D1). Where the app needs to know what the user has, it derives it from their gears.
+**The engine's compatibility dimming must stay visually distinct from this grouping** —
+spec §2 constraint 1. A "Yours" chip and a dimmed-incompatible chip must not look alike.
 
-- [ ] **Step 1: Write the failing test**
+`pickerShowMore` must be forced `true` when a derived brand is non-primary, or the chip is
+not in the DOM at all (`app.js:457–461`).
 
-Append to `scripts/gear-validate.test.js`:
-
-```js
-// V8 — owned brands are DERIVED from gears, never stored
-{
-  const rows = { x1c: { manufacturer: 'bambu' }, a1: { manufacturer: 'bambu' }, mk4: { manufacturer: 'prusa' } };
-  const gears = [ { fields: { printer: 'x1c' } }, { fields: { printer: 'mk4' } }, { fields: { printer: 'x1c' } } ];
-  const ids = gearDerivedBrandIds(gears, id => rows[id] || null);
-  check('V8 derives both brands', ids.indexOf('bambu') !== -1 && ids.indexOf('prusa') !== -1);
-  check('V8 deduplicates', ids.length === 2);
-  check('V8 uses manufacturer, not brand', ids.every(b => b === 'bambu' || b === 'prusa'));
-  check('V8 an unknown printer is skipped, not thrown on',
-    gearDerivedBrandIds([{ fields: { printer: 'ghost' } }], id => rows[id] || null).length === 0);
-}
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `node scripts/gear-validate.test.js`
-Expected: FAIL — `gearDerivedBrandIds is not a function`.
-
-- [ ] **Step 3: Implement**
-
-In `gear-validate.js`:
-
-```js
-function gearDerivedBrandIds(gears, printerRow) {
-  var seen = Object.create(null); var out = [];
-  (gears || []).forEach(function (g) {
-    var p = g && g.fields && g.fields.printer;
-    if (typeof p !== 'string' || !p) return;
-    var row = printerRow(p);
-    if (!row || !row.manufacturer) return;         // manufacturer, NOT brand
-    if (!seen[row.manufacturer]) { seen[row.manufacturer] = 1; out.push(row.manufacturer); }
-  });
-  return out;
-}
-```
-
-Export it, and add it to the `loadBrowserScript` name list in the test.
-
-- [ ] **Step 4: Wire the picker**
-
-Render derived brands first under a "Your gear" heading, then the existing primary row, then the rest. Add:
-
-```json
-"gear.picker.yours": "Your gear"
-```
-
-- [ ] **Step 5: Run test to verify it passes**
-
-Run: `node scripts/gear-validate.test.js`
-Expected: PASS.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add gear-validate.js scripts/gear-validate.test.js app.js style.css locales/en.json locales/da.json
-git commit -m "feat(gear): pickers lead with brands derived from the user's gears
-
-Derived, never stored — there is no ownership pool (D1). Uses the printer
-row's manufacturer field, not brand."
-```
-
-> **Adjacent, and deliberately NOT in this task — needs an owner call.**
-> `app.js:1536` calls `Engine.getCompatibleNozzles(state.material)` instead of
-> `getCompatibleNozzlesForPrinter`, so **every printer on web offers all nine nozzle
-> sizes** — Creality Hi (0.4/0.6) lists 0.8 mm as mountable. iOS was fixed 2026-08-18
-> (`7c695d9`); the owner chose iOS-only at the time and a task chip was filed. It is live
-> on web right now, it is one line, and this task is the picker task — so it is the
-> cheapest it will ever be to fix. **Ask before folding it in**: it is a separate finding
-> and therefore a separate commit, and the owner's prior scoping call stands until he
-> changes it.
+> **Adjacent, deliberately NOT in this task — owner call.** `app.js:1546` (not 1536) calls
+> `Engine.getCompatibleNozzles(state.material)`, so **every printer on web offers all nine
+> nozzle sizes**; Creality Hi (0.4/0.6) lists 0.8 mm. `getCompatibleNozzlesForPrinter`
+> exists (`engine.js:3031`, exported `:7757`) and is unused by `app.js`. iOS was fixed
+> 2026-08-18 (`7c695d9`); the owner chose iOS-only and a task chip was filed. It is live on
+> web now, it is one line, and this is the picker task. **Ask before folding it in** — it is
+> a separate finding and therefore a separate commit.
+>
+> It also has a **direct bearing on gear**: `updateNozzleChips` (`app.js:1543`) silently
+> clears `state.nozzle` when the selected nozzle is incompatible (`app.js:1552`), so a gear
+> that pins printer + nozzle + material must set `material` before `render()` or the pinned
+> nozzle is wiped. Task 5's `applyGearToState` assigns the whole resolved object at once,
+> which satisfies this — **add a regression test rather than relying on assignment order.**
 
 ---
 
-## Task 9: Close-out — walkthrough, drift proof, CI, push
+## Task 9: Catalog-news line (D11) + close-out
 
-**Files:**
-- Modify: `docs/planning/ROADMAP.md`, `docs/sessions/NEXT-SESSION.md`
+**Files:** `app.js`, `locales/*.json`, `docs/planning/ROADMAP.md`, `docs/sessions/NEXT-SESSION.md`.
 
-- [ ] **Step 1: Run every tier the CI runs**
+**D11**: a short line beneath the gear cards — *"3 new printers since last time · 214 in
+the catalog"*. It exists **because** D10 puts the user's own things first, which would
+otherwise make new catalog entries invisible to anyone with gears. Uses
+`GearStore.catalogNews(current)` and `markCatalogSeen(current)`.
 
-```bash
-node scripts/walkthrough-harness.js
-for f in $(git ls-files '*.test.js'); do node "$f" >/dev/null 2>&1 || echo "FAIL $f"; done
-npx vitest run
-node scripts/engine-golden-snapshot.js --check
-```
+**Close-out gates:**
 
-Expected: walkthrough green, no `FAIL` lines, vitest green, snapshot unchanged.
-
-- [ ] **Step 2: Prove the engine did not drift**
-
-This train is **app-layer only**. `engine.js` and `data/` must be untouched.
-
-Run: `git diff --stat main -- engine.js data/`
-Expected: **empty output.** If it is not empty, something in this train reached into the engine and must be reverted or re-justified.
-
-- [ ] **Step 3: Prove the store never imported the engine**
-
-Run: `grep -n 'Engine\.\|engine\.js' gear-store.js`
-Expected: no output. This is the property that keeps the golden-snapshot proof meaningful.
-
-- [ ] **Step 4: Data/logic-change evaluation (mandatory standing rule)**
-
-Write one paragraph in the session log answering: did this train change engine logic or data? (No — app-layer only.) Does the improvement require web or iOS UI changes to be used well? (Web: delivered here. **iOS: yes — the entire iOS half is deferred and gated on the 2.0 design spec's font-bundling and light-mode prerequisites.**)
-
-- [ ] **Step 5: Browser smoke on a real page**
-
-Run: `npx serve -l 4200 .`
-Walk: fresh profile → generate → save gear → reload → gear on Home → generate from card → archive → confirm it leaves Home and the row survives in `localStorage`.
-
-- [ ] **Step 6: Push and update the planning surfaces**
-
-```bash
-git push origin main
-```
-
-Then update ROADMAP's Active Work Queue: Train 1 web **shipped**, iOS half still gated. Note in NEXT-SESSION that **the format is now frozen** — the first real browser write has happened, so `3dpa_gear_v1` is a forever commitment.
+- [ ] `node scripts/walkthrough-harness.js` → green
+- [ ] `for f in $(git ls-files '*.test.js'); do node "$f" >/dev/null || echo "FAIL $f"; done` → silent
+- [ ] `npx vitest run` → green
+- [ ] `node scripts/engine-golden-snapshot.js --check` → unchanged
+- [ ] `git diff --stat main -- engine.js data/` → **empty**; this train is app-layer only
+- [ ] `grep -n 'Engine\.\|engine\.js' gear-store.js` → **no output**; this is the property
+      that keeps the golden-snapshot proof meaningful
+- [ ] **Data/logic-change evaluation** (standing rule) written into the session log: no
+      engine or data change; web delivered here; **iOS deferred and gated on the 2.0 design
+      spec's font-bundling and light-mode prerequisites**
+- [ ] Browser smoke: fresh profile → generate → save gear → reload → gear section → generate
+      from card → rename → archive → confirm it leaves the section and the row survives in
+      `localStorage`
+- [ ] Push, then record in NEXT-SESSION that **the format is now frozen** — the first real
+      browser write has happened and `3dpa_gear_v1` is a forever commitment
 
 ---
 
-## Explicitly out of scope for this plan
+## Explicitly out of scope
 
-- **The entire iOS half.** It is gated on the 2.0 design spec's two prerequisites (font bundling; the light-mode migration across 6 `.preferredColorScheme(.dark)` locks and ~49 hardcoded colour sites). It gets its own plan.
-- **`workshop-store.js` D-2 and D-4.** The sync spec scopes only D-1/D-3/D-5 before web ships gear; D-2 (import merge direction) and D-4 (journal tombstones) land with sync itself. Not scope creep — a deliberate boundary.
-- **Inventory.** D18b answered its architecture (local-first, iCloud-synced); it ships after 2.0.
-- **The `stale` repair interaction.** The state is defined and surfaced; the repair *flow* is gear spec open question 2 and still needs a design pass.
-- **The web nozzle-picker bug** — see the note under Task 8. Owner call.
+- **The entire iOS half** — gated on the 2.0 design spec's font-bundling and light-mode
+  prerequisites. Its own plan.
+- **`workshop-store.js` D-2 and D-4** — they land with sync, per sync spec §10.4.
+- **DEF-1/DEF-2/DEF-3** from the Tasks 1–3 gate — owner calls, due before sync is planned.
+- **Inventory** — D18b settled the architecture (local-first, iCloud-synced); ships after 2.0.
+- **The `stale` repair interaction** — gear spec open question 2, still needs a design pass.
+- **The web nozzle-picker bug** — see the note in Task 8. Owner call.
 
 ---
 
 ## Self-Review
 
-Run against the two ratified specs after writing.
+**Spec coverage.** §1 model → Tasks 4/6/7. §1.1 defaults → Task 6. §1.2 lifecycle → 6
+(birth), 7 (use), 4 (death). §2.1 versioning → 4. §2.2 envelope → 4 (G2 asserts the exact
+key set). §2.3 identity/ordering/no-repair-on-read → 4 (G2, G11, G12). §2.4 field rules →
+4 (G3–G5) + 5 (V4). §2.5 hostile envelope → 4 (G6, G7). §3.1 states → 5 (V1–V3). §3.2
+`mine` → 5 (V5). §3.3 apply → 5 (V10). §4.2 merge/timestamps → 4 (G9, G10). §4.3 dangling
+`active_gear` → 7. §5 S1–S4 → 4. D4/D6/D8/D9 → 7. D10 → 8. D11 → 9.
 
-**1. Spec coverage.** Gear spec §1 model → Tasks 4/6/7. §1.1 default fields → Task 6. §1.2 lifecycle → Tasks 6 (birth), 7 (use), 4 (death/archive). §2.1 versioning → Task 4. §2.2 envelope → Task 4. §2.4 field rules → Task 4 (G1–G4). §2.5 hostile-envelope → Task 4 (G5–G8). §3.1 states → Task 5 (V1–V2). §3.2 `mine` → Task 5 (V3). §3.3 apply → Task 5 (V7) + Task 7. §4 sync-readiness → satisfied by the format; no code. §5 S1–S4 → Task 4. §6 carryover → Tasks 4/5/6. Sync spec §10.4 D-1/D-3/D-5 → Tasks 1–3. **Gap found and closed:** D10's derived "your gear" picker lead had no task; added as Task 8.
+**Placeholders.** None. Task 6 has no unit test for the dialog because `app.js` has no unit
+harness — stated explicitly, with the automatable part (locale parity) extracted into a
+real assertion.
 
-**2. Placeholder scan.** No TBD, no "add error handling", no "similar to Task N". Every code step carries real code. Task 6 has no unit test because `app.js` has no unit harness — that is stated explicitly with the automatable part (locale parity) extracted into a real assertion rather than waved at.
+**Type consistency.** `inspectGear(gear, catalogs, meta)` — same three arguments in the
+test, the implementation and the Task 7 call. `meta.mineAvailable(printer, material)` is a
+two-argument predicate everywhere. `applyGearToState(resolved, state, deps)` with `deps`
+keys `resetFields`, `setActiveSlicer`, `getSlicerForPrinter`, `setExpandedBrand`,
+`collapsePicker`, `printerRow` — identical in V10, in the implementation note, and in Task
+7. `GearStore.touch` / `setActiveGear` / `setSavePromptDismissed` / `catalogNews` /
+`markCatalogSeen` / `diagnostics` are all defined in Task 4's interface block and called
+nowhere else by another name.
 
-**3. Type consistency.** `createGearStore` returns `touch`, and Tasks 5/7 call `GearStore.touch(id)` — consistent. `inspectGear(gear, catalogs, engineMeta)` is defined in Task 5 and called with the same three arguments in Task 7. `applyGearToState(resolved, state, deps)` — `deps` keys (`setActiveSlicer`, `setExpandedBrand`, `collapsePicker`, `printerRow`) match between the Task 5 test, the Task 5 implementation, and the Task 7 call. `gearDerivedBrandIds(gears, printerRow)` is defined and tested in Task 8 and exported from `gear-validate.js`, whose `loadBrowserScript` name list must be extended in the same task — noted in Task 8 Step 3.
-
-**One inconsistency found and fixed during review:** Task 4's `_normValue` sorts arrays alphabetically for cross-device determinism, while the gear spec §2.4 says "order normalized to the engine's own item order at write time." The store cannot know engine order without importing the engine, which is forbidden. Resolved by sorting alphabetically **at rest** (deterministic, engine-free) and re-ordering to engine order **at apply time** in `inspectGear` (Task 5, `meta.order`). Both properties hold; the spec's intent — two devices pinning the same set produce the same stored value — is satisfied. Flag this to the owner as a spec-wording refinement.
+**Degenerate-assertion sweep**, since this codebase shipped two this week and the gate
+caught three more in the previous draft: G9 is seeded rather than before/after. G6's
+fixture is a **JSON string**, because an object literal never serializes a `__proto__` key
+— the previous draft's fixture proved nothing, and the gate proved *that* with a Node
+check. V9 has no `|| g.name` escape hatch. G12 asserts storage bytes are unchanged after a
+read *and* after a subsequent unrelated write. V6 asserts the exact coerced value in both
+directions rather than just the array-ness.
