@@ -767,6 +767,67 @@ function row(extra) {
   }
 }
 
+// G32 — GATE R5 follow-up: the store reads only OWN properties of a patch.
+// `k in obj` walks the prototype chain, so a patch built with Object.create()
+// could pull an INHERITED value into storage. Probe supplied by the gate.
+{
+  const st = mockStorage({ [KEY]: JSON.stringify({ v: 1, gears: { g1: {
+    name: 'G', fields: { printer: 'x1c' }, labels: {},
+    created_at: T_OLD, updated_at: T_OLD, last_used_at: null, archived_at: null,
+  } }, settings: {} }) });
+  const s = createGearStore(st);
+  const inherited = Object.create({ material: 'pla_basic' });   // NOT an own property
+  s.update('g1', { fields: inherited, labels: { material: 'PLA Basic' } });
+  const a = JSON.parse(st._map.get(KEY)).gears.g1;
+  check('G32 an inherited patch property is not pulled into storage',
+    a.fields.material === undefined,
+    'persisted fields ' + JSON.stringify(a.fields));
+  const ownPatch = { material: 'pla_basic' };
+  s.update('g1', { fields: ownPatch, labels: { material: 'PLA Basic' } });
+  check('G32 an OWN patch property still applies',
+    JSON.parse(st._map.get(KEY)).gears.g1.fields.material === 'pla_basic');
+}
+
+// G33 — GATE R5 follow-up: a settings setter that changes nothing is a no-op.
+// settings is its own sync record resolved by settings.updated_at, so a no-op
+// write would let a device that merely READ the settings beat a real change
+// made elsewhere.
+{
+  const seeded = JSON.stringify({ v: 1, gears: {}, settings: {
+    active_gear: null, catalog_seen: { printers: 80 },
+    save_prompt_dismissed: false, updated_at: T_OLD } });
+  {
+    const st = mockStorage({ [KEY]: seeded });
+    const s = createGearStore(st);
+    check('G33 setting a flag to its current value reports ok',
+      s.setSavePromptDismissed(false).ok === true);
+    check('G33 and does NOT move settings.updated_at',
+      JSON.parse(st._map.get(KEY)).settings.updated_at === T_OLD);
+    check('G33 re-marking the same catalog counts is also a no-op',
+      (s.markCatalogSeen({ printers: 80 }),
+       JSON.parse(st._map.get(KEY)).settings.updated_at === T_OLD));
+    check('G33 setting active_gear to its current null is a no-op',
+      (s.setActiveGear(null),
+       JSON.parse(st._map.get(KEY)).settings.updated_at === T_OLD));
+  }
+  {
+    const st = mockStorage({ [KEY]: seeded });
+    const s = createGearStore(st);
+    s.setSavePromptDismissed(true);
+    check('G33 a REAL settings change does move the clock',
+      JSON.parse(st._map.get(KEY)).settings.updated_at !== T_OLD);
+    check('G33 and persists the value',
+      JSON.parse(st._map.get(KEY)).settings.save_prompt_dismissed === true);
+  }
+  {
+    const st = mockStorage({ [KEY]: seeded });
+    const s = createGearStore(st);
+    s.markCatalogSeen({ printers: 83 });
+    check('G33 a real catalog-seen change moves the clock',
+      JSON.parse(st._map.get(KEY)).settings.updated_at !== T_OLD);
+  }
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');

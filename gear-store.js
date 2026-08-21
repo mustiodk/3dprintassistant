@@ -57,6 +57,12 @@ function createGearStore(storage) {
 
   function _isPlainMap(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
 
+  // `k in obj` walks the prototype chain. A caller-supplied patch object built
+  // with Object.create(proto) could therefore pull an INHERITED property into
+  // storage — the store must only ever read what the caller actually set.
+  const _hasOwn = Object.prototype.hasOwnProperty;
+  function _own(obj, k) { return _hasOwn.call(obj, k); }
+
   // A regex alone is not enough: it accepts impossible dates (9999-99-99), local
   // offsets, and a missing millisecond field — and an impossible date sorts
   // ABOVE every real row, which is the opposite of what §2.3 requires. Validity
@@ -530,8 +536,8 @@ function createGearStore(storage) {
         const beforeF = Object.create(null), beforeL = Object.create(null);
         for (let i = 0; i < touched.length; i++) {
           const k = touched[i];
-          const v = (pf && (k in pf)) ? pf[k] : rawF[k];
-          const l = (pl && (k in pl)) ? pl[k] : rawL[k];
+          const v = (pf && _own(pf, k)) ? pf[k] : rawF[k];
+          const l = (pl && _own(pl, k)) ? pl[k] : rawL[k];
 
           if (v !== undefined && !_conformingValue(v)) return { error: { ok: false, error: 'bad-value' } };
           if (l !== undefined && LABEL_KEYS.indexOf(k) !== -1) {
@@ -704,6 +710,26 @@ function createGearStore(storage) {
     next.active_gear = cur.active_gear;
     next.catalog_seen = Object.assign(Object.create(null), cur.catalog_seen);
     next.save_prompt_dismissed = cur.save_prompt_dismissed === true;
+    // A setter that changes nothing must not move settings.updated_at. Under
+    // sync, settings is its own record resolved by that timestamp (§4.2), so a
+    // no-op write would let a device that merely READ the settings win against
+    // a real change made elsewhere — the same class as every gear-level defect
+    // closed in this file.
+    const prevS = _isPlainMap(env.settings) ? env.settings : {};
+    const sameCatalog = (a, b) => {
+      if (!_isPlainMap(a) || !_isPlainMap(b)) return false;
+      const ak = Object.keys(a), bk = Object.keys(b);
+      if (ak.length !== bk.length) return false;
+      for (let i = 0; i < ak.length; i++) if (a[ak[i]] !== b[ak[i]]) return false;
+      return true;
+    };
+    const unchanged =
+      (prevS.active_gear === undefined ? null : prevS.active_gear) === next.active_gear
+      && (prevS.save_prompt_dismissed === true) === next.save_prompt_dismissed
+      && sameCatalog(prevS.catalog_seen, next.catalog_seen)
+      && typeof prevS.updated_at === 'string';
+    if (unchanged) return { ok: true };
+
     next.updated_at = _now();
     env.settings = next;
     return _writeEnv(env);
