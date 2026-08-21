@@ -1,148 +1,100 @@
-# 3dpa — Next Session Kickoff
+# Next session — 3D Print Assistant
 
-**Purpose:** ratify the sync spec, answer the inventory-architecture question, then
-re-plan Train 1's web half against the two new specs.
+This file is the cold-start entry point. It is regenerated on a `wrap up` / `handoff`
+trigger or an explicit ask — not on every session end, so a stale copy between sessions is
+expected and fine.
 
-**Last updated:** 2026-08-20, mac-mini wrap-up (gear model remodelled; spec §2 withdrawn).
-**Entry point CHANGED.** Train 1 execution is no longer the entry point — the plan is
-void, not amendable.
+**Last updated:** 2026-08-21, after My Gear shipped to production.
 
----
+## Where things stand, in one paragraph
 
-## What changed, in one paragraph
-
-The Train 1 branch was reviewed clean and recommended for merge. The owner then found it
-half-finished, and a mismatch review found why: **a gear is a shortcut, not an
-inventory.** The ratified spec §2 built two layers — a stored pool of owned hardware, plus
-setups drawn from it — and the owner's product has one. Eighteen decisions replaced the
-model. `train1-my-gear-setups` stays **parked, unmerged, unpushed** at `a6fa1f9`. Nothing
-shipped, so the permanent envelope is still free — which is the only reason this is rework
-rather than a migration.
-
-## Read these first (they are the authority now)
-
-1. [`docs/reviews/2026-08-20-gear-model-owner-decisions.md`](../reviews/2026-08-20-gear-model-owner-decisions.md) — **D1–D18.** The binding record. Read it before the specs.
-2. [`docs/superpowers/specs/2026-08-20-gear-model-v2-spec.md`](../superpowers/specs/2026-08-20-gear-model-v2-spec.md) — **RATIFIED.** Supersedes §2 of the 2026-08-17 spec.
-3. [`docs/superpowers/specs/2026-08-20-sync-v1-spec.md`](../superpowers/specs/2026-08-20-sync-v1-spec.md) — **awaiting ratification.**
-4. [`docs/reviews/2026-08-20-train1-vs-2-0-design-mismatch-review.md`](../reviews/2026-08-20-train1-vs-2-0-design-mismatch-review.md) — the 14 findings, for background only. The decisions above supersede it.
-
-**Do not** treat `docs/superpowers/plans/2026-08-17-train1-my-gear-setups-plan.md` as live.
-It is void.
-
-## The standing frame that governs everything here
-
-**The 2.0 UI design is a design document, not requirements.** It shows how the owner
-imagines a feature could look. Every build-vs-design mismatch is a **question for him**,
-never a verdict against the build. Keep provenance separable — a finding sourced from the
-owner's own words carries weight a design-sourced one does not.
-
----
-
-# THE SESSION
-
-## 1. Ratify the sync spec (or take corrections)
-
-It has been through one Codex round; six must-fix corrected, each verified in code first.
-Two things must happen before its plan is written:
-
-- **`CKSyncEngine` verified against live Apple documentation.** The doc page could not be
-  retrieved during research and the spec says so explicitly. Confirm it can express §3's
-  per-field-group merge and tombstone precedence, or the merge moves into the adapter.
-- **Owner ratification.**
-
-## 2. Answer D18b — the next real product decision
-
-**Local-first inventory vs. the existing server app.** `Projects/bambuinventory/` is
-single-user **PHP + MySQL on Simply.com** with the database as its source of truth.
-Opening it to other users needs accounts — exactly what D16 removed when the owner asked
-whether sync could work without a login. The choice gates web Inventory and cross-platform
-Pro entitlement.
-
-## 3. Then re-plan Train 1's web half
-
-Against the two new specs, from scratch. Web ships gear when complete (D14) and therefore
-**freezes the envelope**, so the sync spec must be ratified first.
-
-**Three shipped `workshop-store.js` defects land before web ships gear**, not with sync:
-
-- **D-1** `remove()` hard-deletes with no tombstone (`:176-180`) — additive fix
-- **D-3** `addOutcome` bumps the value timestamp (`:201`) — additive fix
-- **D-5** `_read()` returns `[]` on version mismatch (`:35`) and a later `_write` persists
-  that over real data — **the only non-additive fix, and the most dangerous under
-  cross-platform skew**
-
-## Also open (not this session unless the owner says so)
-
-- **`ender_3_pro` did NOT resolve.** Re-parked `needs-source-resolution` by
-  `run-20260819T100138Z`. Read the run's own account before assuming why — a run report's
-  explanation of its own failure is a claim, not evidence.
-- **`hi` has no owner-notification path** — one-line fix available, but locus-validate first.
-- **The web nozzle picker is still wrong** — `app.js:1536` calls
-  `Engine.getCompatibleNozzles(state.material)`, so every printer offers all nine sizes.
-  iOS was fixed 2026-08-18; web and iOS behave differently. The engine is correct; the call
-  site is the bug.
-- **Web light theme fails AA on production today** — green `#009a6a` measures 3.60:1, link
-  `#0b7fc4` 4.33:1.
-- **Two findings opened 2026-08-20**, both `open`:
-  [review gauntlet said merge](../../../ai-operating-model/docs/findings/2026-08-20-review-gauntlet-scoped-to-the-plan-said-merge.md) ·
-  [fixed a class then missed it next door](../../../ai-operating-model/docs/findings/2026-08-20-fixed-a-defect-class-then-missed-it-next-door.md)
-
----
-
-# Cold start
+My Gear is **live on 3dprintassistant.com** — verified against the live site, not inferred
+from a push. That closes Train 1's web half. `3dpa_gear_v1` is frozen for real now: the
+first production browser write has happened, so every future change to that envelope is a
+compatibility problem rather than an edit. Pro's shape is settled (D19/D20): a one-time
+purchase containing cloud sync, Inventory and AI Expert access, shipping with free starter
+credits. Price and credit count are deliberately open.
 
 >>> START >>>
 
-Cold start 3dpa. Today's task: ratify the sync spec, answer D18b (local-first vs.
-server-backed inventory), then re-plan Train 1's web half.
+Read these in order before doing anything:
 
-**Read in order:**
-1. `Projects/CLAUDE.md` (top-level protocol — routing + standing rules)
-2. `3dprintassistant/CLAUDE.md` (project rules)
-3. `3dprintassistant/docs/3dpa-context.md` (evergreen architecture, engine API)
-4. `3dprintassistant/docs/planning/ROADMAP.md`
-5. `3dprintassistant/docs/sessions/INDEX.md`
-6. The last 3 session logs in full
-7. This file
-8. `docs/reviews/2026-08-20-gear-model-owner-decisions.md` — **D1–D18, the binding record**
-9. `docs/superpowers/specs/2026-08-20-gear-model-v2-spec.md` (ratified) and
-   `docs/superpowers/specs/2026-08-20-sync-v1-spec.md` (awaiting ratification)
+1. `Projects/CLAUDE.md` — standing rules and the session-lifecycle triggers
+2. `3dprintassistant/CLAUDE.md` — project rules
+3. `3dprintassistant/docs/3dpa-context.md` — architecture, engine API, app state, slicer routing
+4. `3dprintassistant/roadmap.md` — the live 2.0 roadmap (this is the current surface; it
+   renders at https://3dprintassistant.com/roadmap)
+5. `3dprintassistant/docs/planning/2-0-PROGRAM-PLAN.md` — what 2.0 is, readiness per feature,
+   and the open decisions table
+6. `3dprintassistant/docs/sessions/INDEX.md`
+7. The last three session logs in `3dprintassistant/docs/sessions/`, in full
+8. This file
 
-**Repo health first — check the BRANCH, not just the health line.** Run `git branch -vv`.
-`3dprintassistant` may read `no-upstream` if the checkout is parked on
-`train1-my-gear-setups`, which has never been pushed — that is expected, not a problem.
-Switch to `main` before reading tracking docs. If health says `dirty`, run
-`git ls-files -u` before trusting it.
+**Today's task — pick one. They are independent.**
 
-**Process:**
-- The 2026-08-17 Train 1 plan is **void**. Do not amend it; re-plan from the new specs.
-- The parked branch is a reference implementation, not a base to build on. Its mechanics
-  survive (soft-delete, row normalizers, the `{ok, error}` contract, apply-time
-  bookkeeping); its model does not.
-- Verify `CKSyncEngine` against live Apple docs before any plan commits to it.
+**A. Write the Pro spec.** Unblocked as of 2026-08-21. D19 settles the contents (cloud
+sync + Inventory + AI Expert access, credits sold separately); D20 settles the shape
+(one-time non-consumable purchase, ships with free starter credits). Still to define:
+purchase flow, entitlement storage, what happens on refund, and how a web user who bought
+on iOS is recognised. The price is a single named value you leave as a placeholder — the
+owner sets it before go-live.
 
-## Standing rules that bite on this project
+Two constraints the spec must carry, both already recorded:
+- **D18a still governs the launch listing.** Inventory ships *after* 2.0, so the App Store
+  description, paywall and purchase flow may sell Pro on cloud sync + AI Expert only.
+  Naming Inventory before it exists is a 2.1(a) / 2.3.1(a) rejection risk.
+- Credit packs are the app's **first consumables**, and App Store Connect blocks a
+  standalone first-consumable submission. IAPs and the app version must travel as one
+  submission; `Add for Review` is a dropdown, and joining the existing draft is what clears
+  the block.
 
-- **A UI design document is input, not requirements.** Surface mismatches as questions.
-- Keep finding provenance separable — owner-sourced beats design-sourced.
-- **A read must never bump a write timestamp.** When you fix one instance, grep every
-  adjacent store in the same session.
-- ROADMAP is truth. Read fully before reporting status — from `main`.
-- No mutation on an unverified premise; verify in the SAME turn, state inline.
-- Validate the fix LOCUS before building an enforcement site.
-- A tool's account of why it failed is a claim, not evidence.
-- An AI research answer's verbatim quote is a claim until you fetch the page.
-- Before writing instructions ADDRESSED to a named external tool, verify what it is.
-- One finding = one commit. iOS `main` stays push-gated; web pushes freely.
-- `MARKETING_VERSION` bumps per release train, never per TestFlight iteration.
-- A green engine suite says nothing about whether the SCREEN calls the right function.
-- `state` in app.js is a `const` (`app.js:66`) — merge with `Object.assign`; the printer
-  row's brand field is `manufacturer`, not `brand`.
-- Committed ≠ deployed.
+**B. Fix the iOS Workshop store.** `3dprintassistant-ios/3DPrintAssistant/.../WorkshopStore.swift`
+has no `archived_at` field and rebuilds its whole file from typed objects on every write,
+so any iOS write strips the deletion tombstones the web app started writing on 2026-08-21.
+A profile deleted on web returns after an iOS backup round-trip. **Live today**, not only
+under sync — and it gates sync. Note the iOS push gate: commit locally, do not push until
+the owner is ready for TestFlight.
+
+**C. Write the iOS storage contract**, before any iOS gear code exists. Every current iOS
+store decodes to a typed DTO and rebuilds the file from it, dropping keys it does not know.
+The gear format requires the opposite — §2.4 "unknown keys are preserved, never dropped" —
+and `gear-store.js` closes this deliberately in `_mutate` and `touch`. Written down first,
+or the house pattern gets copied and the rule is broken by default.
+
+**Scope**
+- Web is free to push; Cloudflare deploys `main` automatically. **iOS is push-gated.**
+- `engine.js` and `data/` are out of scope for all three tasks. Verify with
+  `git diff --stat -- engine.js data/` before finishing.
+
+**Process**
+- Multi-step work: show the progress bar every time.
+- Resolve technical trade-offs yourself with a subagent plus a cross-model gate. Escalate
+  only product, pricing, scope and risk appetite.
+- Delegate self-contained work to subagents and stay in the directing seat; plan the
+  remaining tracks ahead rather than deciding one task at a time.
+- A review of a draft is not a review of the applied fixes. Re-review after fixing.
+- Before trusting a green, confirm the environment can produce a red — the in-app browser
+  pane cannot scroll and cannot run animations, and both produced false passes on
+  2026-08-21.
 
 <<< END <<<
 
-Maintenance note: regenerated on Trigger A / Trigger B / explicit owner ask only. This
-revision was the 2026-08-20 Trigger A wrap-up (mac-mini): entry point **CHANGED** from
-Train 1 execution to sync-spec ratification + the inventory decision, after the gear model
-was replaced by owner decisions D1–D18.
+## Open decisions
+
+| | | Whose |
+|---|---|---|
+| **O2b** | What Pro costs. Deferred to before go-live; gates App Store product creation, not the spec. | Owner |
+| **O6** | What one credit is worth. Needs issue #38's **D2** (privacy + business case → SKU table), which needs **D1** (provider eval on a fixed 3D-print eval set). Both scheduled in Train 2. | Mine to prepare, owner decides at D4 |
+| **O4** | Three technical items deferred from the sync gate: tombstone location, whether archived rows belong in backups, a spec-wording fix. | Mine |
+
+## Known, deliberately unfixed
+
+- `_sameFieldSet` does not deduplicate before comparing, so a value array carrying a repeat
+  skips the duplicate warning. Reachable only by hand-editing a share URL; costs one
+  un-warned duplicate gear, not data loss.
+- `buildPrinterPicker` adds a document-level click listener on every call and never removes
+  it, leaking one per `buildFilters()`.
+
+## Maintenance
+
+Regenerated on `wrap up` / `handoff` / explicit ask. Not on ordinary session end.
