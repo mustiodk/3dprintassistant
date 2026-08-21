@@ -1,3 +1,8 @@
+> **VOID — 2026-08-20.** This plan implements the two-layer "pool + named Setups" model
+> that D1–D13 withdrew. A gear is a shortcut, not an inventory. Superseded by
+> [`2026-08-21-train1-web-gear-plan.md`](2026-08-21-train1-web-gear-plan.md), which shipped
+> on 2026-08-21. Do not execute this file. Kept for the reasoning it records.
+
 # Train 1 — My Gear + Setups Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

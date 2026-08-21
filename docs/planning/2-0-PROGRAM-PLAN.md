@@ -1,3 +1,9 @@
+> **Where this sits:** the 2.0 scope, readiness and decision record. The week-to-week
+> checklist is [`roadmap.md`](../../roadmap.md) at the repo root (public, renders at
+> `/roadmap`); the older [`ROADMAP.md`](ROADMAP.md) beside this file is historical detail
+> only. **This file is not served publicly — pricing and defect specifics belong here, not
+> on the public page.**
+
 # 3D Print Assistant 2.0 — Program Plan
 
 **Purpose.** One place that answers: what is 2.0, what does it contain, what is actually
@@ -62,7 +68,7 @@ Verified against the repo on 2026-08-21. **This is the important table.**
 
 | Feature | Decided | Spec | Plan | Built | Gap |
 |---|---|---|---|---|---|
-| **My Gear** | ✅ D1–D13 | ✅ [gear model v2](../superpowers/specs/2026-08-20-gear-model-v2-spec.md) **RATIFIED** | ✅ [web plan](../superpowers/plans/2026-08-21-train1-web-gear-plan.md), gated | 🟡 **web storage + logic done**; no UI | Web UI (Tasks 6–9); **iOS: nothing** |
+| **My Gear** | ✅ D1–D13 | ✅ [gear model v2](../superpowers/specs/2026-08-20-gear-model-v2-spec.md) **RATIFIED** | ✅ [web plan](../superpowers/plans/2026-08-21-train1-web-gear-plan.md), gated | ✅ **web SHIPPED 2026-08-21** — six commits, deploy-verified | **iOS: nothing**, and gated on the storage contract (§6) |
 | **Cloud sync** | ✅ D15, D16 | ✅ [sync v1](../superpowers/specs/2026-08-20-sync-v1-spec.md) **RATIFIED** | ❌ none | ❌ | **Implementation plan.** 3 open items must be answered first (§5) |
 | **AI Expert** | ✅ shape + credit model agreed (D19, D20) | 🟡 [ai-buddy](../superpowers/specs/2026-08-17-ai-buddy-design.md) **DRAFT**, not ratified | ❌ none | ❌ | Ratify the spec, then a plan. **Needs a backend + credit accounting** — the one remaining infrastructure gap. Credit *mechanics* are specified; only the exchange rate is open, pending D2 (O6) |
 | **Pro tier** | ✅ D15, D18, **D19 (contents)** | ❌ **none** | ❌ none | 🟡 StoreKit exists from the Tip Jar | **Spec needed** — now unblocked: contents are settled, price is a named value filled in before go-live. Still to define: purchase flow, entitlement, lapse behaviour |
@@ -86,12 +92,14 @@ print outcome overwrote edits you made deliberately; a version mismatch could wi
 data; the Backup button could produce a valid-looking empty file. These were real and are
 live.
 
-**Built but invisible (My Gear, web):** `gear-store.js` (the storage format, **frozen and
-cleared** after five review rounds) and `gear-validate.js` (checking and applying a saved
-gear). **Nothing in the app looks different.** The UI — Tasks 6–9 — is not started.
+**Shipped (My Gear, web), 2026-08-21:** storage, validation, and the whole UI — cards,
+the save chooser, the add-gear strip, catalog news, rename and remove. Six commits, live
+and verified against the site rather than inferred from a push.
 
-**This is a clean stopping point.** The irreversible part (the storage format) is done and
-correct. Everything remaining is reversible.
+**`3dpa_gear_v1` is now frozen for real.** The first production browser write has happened,
+so every future change to that envelope is a compatibility problem rather than an edit.
+This is no longer a reversible stopping point, which is why the iOS storage contract (§6)
+has to be written before iOS touches the format.
 
 ---
 
@@ -131,9 +139,9 @@ D18 says 2.0 ships as one release — so a feature that turns out to need a back
 decision you have not made, stalls the whole train.
 
 ### Phase A — close the decisions
-O1, O2a and O3 are **answered**. What remains: **O2b** (price and one-time-vs-subscription,
-which you have deferred to before go-live) and **O5** (whether Pro includes any AI Expert
-credits). Neither blocks writing the Pro spec. O4 I resolve myself.
+O1, O2a, O3 and O5 are **answered**. What remains is **O2b** — the price alone, which you
+deferred to before go-live — and **O6**, what one credit is worth, which needs issue #38's
+D2 gate and is mine to prepare. Neither blocks writing the Pro spec. O4 I resolve myself.
 
 ### Phase B — write the missing specs (~3–4 sessions)
 In this order, because each constrains the next:
@@ -148,9 +156,9 @@ In this order, because each constrains the next:
 4. **Sync implementation plan** — spec is ratified; needs O4 answered first.
 
 ### Phase C — build (order deliberate)
-0. **Finish My Gear on web** (Tasks 6–9) — **IN PROGRESS, runs in parallel with Phase A/B.**
-   Standalone per D14 and the 2026-08-21 O3 answer. It is the cheapest test of whether the
-   gear model survives contact with real use, before iOS commits to it.
+0. ~~**Finish My Gear on web**~~ — **SHIPPED 2026-08-21.** Standalone per D14 and the O3
+   answer. It did its job: real use immediately surfaced three things no review round had
+   caught, before iOS committed to any of them.
 2. **iOS prerequisites** — font bundling, light-mode migration. Cheap, unblocks all iOS UI.
 3. **The 2.0 iOS release** — shell, My Gear, sync, AI Expert, Pro, as one shipment.
 
@@ -166,9 +174,11 @@ Store listing (D18a).
 and the price is a single named value you fill in before go-live rather than a
 prerequisite for specifying anything.
 
-One question does still reach into the AI Expert spec: **O5** — whether Pro includes a
-starter allowance of credits or none at all. That decides whether the AI Expert spec
-opens with "you have N questions" or "buy credits to begin", which is a different feature.
+One question still reaches into the AI Expert spec: **O6** — what one credit is worth.
+That is not a decision to make here; it is the output of issue #38's **D2** gate (privacy
+review, reproducible cost calculator, packaging scenarios, SKU table), which itself waits
+on **D1** (provider eval on a fixed 3D-print eval set). Both are scheduled in Train 2, so
+the Pro spec can be written without them.
 
 **Train 1's web UI is unblocked and is being built now** (owner, 2026-08-21). O3 is
 answered: web My Gear is a standalone deliverable that does not wait for the iOS shell
