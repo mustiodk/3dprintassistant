@@ -57,8 +57,20 @@ function createGearStore(storage) {
 
   function _isPlainMap(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
 
-  const _ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
-  function _validIso(v) { return typeof v === 'string' && _ISO.test(v); }
+  // A regex alone is not enough: it accepts impossible dates (9999-99-99), local
+  // offsets, and a missing millisecond field — and an impossible date sorts
+  // ABOVE every real row, which is the opposite of what §2.3 requires. Validity
+  // is therefore a round-trip: the string must be exactly what Date renders back
+  // as UTC-with-milliseconds. That also makes CREATED_SENTINEL unreachable as
+  // real data, since it fails the round-trip and can never be mistaken for a
+  // genuine timestamp.
+  const _ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+  function _validIso(v) {
+    if (typeof v !== 'string' || !_ISO.test(v)) return false;
+    const t = Date.parse(v);
+    if (!isFinite(t)) return false;
+    return new Date(t).toISOString() === v;
+  }
 
   // ─── Comparators ───────────────────────────────────────────────────────────
   // Spec §2.3 requires a BYTEWISE comparison of the UTF-8 key. JS `<`/`>`
@@ -76,9 +88,31 @@ function createGearStore(storage) {
     return a < b ? -1 : (a > b ? 1 : 0);
   }
 
+  // The frozen order is UTF-8 bytes. If TextEncoder is unavailable we encode by
+  // hand rather than degrading to UTF-16 code units, which would be a DIFFERENT
+  // order on exactly the inputs the strict comparator exists for.
+  function _utf8Bytes(str) {
+    const out = [];
+    for (let i = 0; i < str.length; i++) {
+      let c = str.codePointAt(i);
+      if (c > 0xFFFF) i++;                     // consumed a surrogate pair
+      if (c < 0x80) out.push(c);
+      else if (c < 0x800) out.push(0xC0 | (c >> 6), 0x80 | (c & 63));
+      else if (c < 0x10000) out.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+      else out.push(0xF0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+    }
+    return out;
+  }
+  function _cmpUtf8Manual(a, b) {
+    const x = _utf8Bytes(a), y = _utf8Bytes(b);
+    const n = Math.min(x.length, y.length);
+    for (let i = 0; i < n; i++) if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1;
+    return x.length - y.length;
+  }
+
   function _cmpKey(a, b) {                    // gear ids and array values: anything
     if (_ASCII.test(a) && _ASCII.test(b)) return _cmp(a, b);
-    if (!_enc) return _cmp(a, b);             // no TextEncoder: documented fallback
+    if (!_enc) return _cmpUtf8Manual(a, b);   // never silently fall back to UTF-16
     const x = _enc.encode(a), y = _enc.encode(b);
     const n = Math.min(x.length, y.length);
     for (let i = 0; i < n; i++) if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1;
@@ -108,7 +142,7 @@ function createGearStore(storage) {
   // posture workshop-store.js now takes for D-5. Reads degrade to empty; the
   // write chokepoint refuses, so nothing can clobber an envelope written by a
   // newer build on another device.
-  function _emptyEnv() { return { v: VERSION, gears: {}, settings: {} }; }
+  function _emptyEnv() { return { v: VERSION, gears: Object.create(null), settings: Object.create(null) }; }
 
   function _readEnv() {
     let raw = null;
@@ -314,10 +348,54 @@ function createGearStore(storage) {
   // fails must never be reported as a save, and `quota` stays distinguishable
   // from any other storage failure.
 
+  // §2.4: a value is a string, or an array of strings. READING preserves
+  // whatever is on disk (§2.5 degrade-never-throw, and unknown keys survive a
+  // round-trip between platform versions) — but our own write API must not
+  // CREATE non-conforming data. Those are different jobs and were conflated.
+  function _conformingValue(v) {
+    if (typeof v === 'string') return true;
+    if (!Array.isArray(v)) return false;
+    for (let i = 0; i < v.length; i++) if (typeof v[i] !== 'string') return false;
+    return true;
+  }
+
+  // §2.3: `labels` mirrors the SHAPE of the value it labels — a string for a
+  // single-valued field, a parallel array for a multi-valued one. A wrong shape
+  // or a wrong length cannot be permuted in lockstep, so it is rejected at the
+  // boundary rather than persisted misaligned.
+  function _conformingLabel(labelVal, fieldVal) {
+    if (typeof fieldVal === 'string') return typeof labelVal === 'string';
+    if (Array.isArray(fieldVal)) {
+      return Array.isArray(labelVal) && labelVal.length === fieldVal.length
+        && labelVal.every(x => typeof x === 'string');
+    }
+    return false;
+  }
+
+  function _validateWrite(rawFields, rawLabels) {
+    const f = _isPlainMap(rawFields) ? rawFields : {};
+    const fk = Object.keys(f);
+    for (let i = 0; i < fk.length; i++) {
+      if (_isReserved(fk[i])) continue;                 // dropped, not rejected
+      if (!_conformingValue(f[fk[i]])) return 'bad-value';
+    }
+    const l = _isPlainMap(rawLabels) ? rawLabels : {};
+    const lk = Object.keys(l);
+    for (let i = 0; i < lk.length; i++) {
+      const k = lk[i];
+      if (_isReserved(k) || LABEL_KEYS.indexOf(k) === -1) continue;   // dropped
+      if (!(k in f)) continue;                          // a label for an unpinned field
+      if (!_conformingLabel(l[k], f[k])) return 'bad-label';
+    }
+    return null;
+  }
+
   function save(input) {
     const env = _readEnv();
     if (env._skew) return { ok: false, error: 'version-skew' };
     const src = _isPlainMap(input) ? input : {};
+    const bad = _validateWrite(src.fields, src.labels);
+    if (bad) return { ok: false, error: bad };
     const nl = _normFieldsAndLabels(src.fields, src.labels);
     if (!_hasPrinter(nl.fields)) return { ok: false, error: 'required-printer' };
     const now = _now();
@@ -348,7 +426,7 @@ function createGearStore(storage) {
     if (!_isPlainMap(raw)) return { ok: false, error: 'not-found' };
     const dto = _toDto(id, raw).dto;
     const r = fn(dto);
-    if (r && r.error) return r;
+    if (r && r.error) return r.error && r.error.ok === false ? r.error : r;
     if (r && r.skipWrite) return { ok: true, gear: dto };
     env.gears[id] = _toPersist(dto);
     const w = _writeEnv(env);
@@ -388,6 +466,26 @@ function createGearStore(storage) {
   function update(id, patch) {
     return _mutate(id, dto => {
       const p = _isPlainMap(patch) ? patch : {};
+      // Same boundary rule as save(): our API must not CREATE a non-conforming
+      // value or a mis-shaped label, even though reading tolerates both.
+      if ('fields' in p || 'labels' in p) {
+        const probeFields = Object.create(null);
+        let pk = Object.keys(dto.fields);
+        for (let i = 0; i < pk.length; i++) probeFields[pk[i]] = dto.fields[pk[i]];
+        if (_isPlainMap(p.fields)) {
+          pk = Object.keys(p.fields);
+          for (let i = 0; i < pk.length; i++) probeFields[pk[i]] = p.fields[pk[i]];
+        }
+        const probeLabels = Object.create(null);
+        pk = Object.keys(dto.labels);
+        for (let i = 0; i < pk.length; i++) probeLabels[pk[i]] = dto.labels[pk[i]];
+        if (_isPlainMap(p.labels)) {
+          pk = Object.keys(p.labels);
+          for (let i = 0; i < pk.length; i++) probeLabels[pk[i]] = p.labels[pk[i]];
+        }
+        const bad = _validateWrite(probeFields, probeLabels);
+        if (bad) return { error: { ok: false, error: bad } };
+      }
 
       const nextName = ('name' in p)
         ? (typeof p.name === 'string' ? p.name.trim() : String(p.name == null ? '' : p.name).trim())
@@ -443,8 +541,22 @@ function createGearStore(storage) {
   // it. If a read bumped the value clock, opening a gear on the iPad would win
   // last-write-wins against a rename made moments earlier on the iPhone and
   // silently discard it — reading must never outrank writing.
+  // touch() is a NON-CONTENT mutation, so it must not go through the normalizing
+  // _mutate path. _mutate rebuilds the row from a normalized DTO, which means a
+  // row holding un-normalized data — from a hand edit (§2.5 blesses those), an
+  // older build, or another implementation — would be silently deduped, re-sorted
+  // and stripped of non-catalog labels simply because the user USED the gear.
+  // That is "reading must never outrank writing" (§4.2) re-entering through the
+  // write path. The raw row is written back with exactly one field changed.
   function touch(id) {
-    return _mutate(id, dto => { dto.last_used_at = _now(); return null; });
+    const env = _readEnv();
+    if (env._skew) return { ok: false, error: 'version-skew' };
+    if (_isReserved(id)) return { ok: false, error: 'not-found' };
+    const raw = env.gears[id];
+    if (!_isPlainMap(raw)) return { ok: false, error: 'not-found' };
+    raw.last_used_at = _now();          // the ONLY mutation; every other byte untouched
+    const w = _writeEnv(env);
+    return w.ok ? { ok: true, gear: _toDto(id, raw).dto } : w;
   }
 
   // archive/restore DO move `updated_at`: spec §4.2 counts `archived_at` as
@@ -498,18 +610,14 @@ function createGearStore(storage) {
     if (env._skew) return { ok: false, error: 'version-skew' };
     const cur = getSettings();
     mutator(cur);
-    // Start from what is already there so a settings key written by a build
-    // that knows more than this one survives the round-trip — the same
-    // preservation rule §2.4 states for `fields`. Reserved keys are dropped.
-    const next = {};
-    const prev = _isPlainMap(env.settings) ? env.settings : {};
-    const pk = Object.keys(prev);
-    for (let i = 0; i < pk.length; i++) {
-      if (_isReserved(pk[i])) continue;
-      next[pk[i]] = prev[pk[i]];
-    }
+    // §2.2 defines the settings shape exhaustively, so a write emits exactly
+    // those four fields. An earlier version carried unknown keys through, which
+    // silently froze an undocumented extension point into the format — the
+    // opposite of what a frozen format wants. `fields` preserves unknowns
+    // because §2.4 says so explicitly; `settings` has no such rule.
+    const next = Object.create(null);
     next.active_gear = cur.active_gear;
-    next.catalog_seen = Object.assign({}, cur.catalog_seen);
+    next.catalog_seen = Object.assign(Object.create(null), cur.catalog_seen);
     next.save_prompt_dismissed = cur.save_prompt_dismissed === true;
     next.updated_at = _now();
     env.settings = next;

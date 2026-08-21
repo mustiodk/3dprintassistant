@@ -351,6 +351,104 @@ function row(extra) {
     s4.get('g1') !== null && s4.get('g1').archived_at === null);
 }
 
+// G19 — GATE MUST-FIX: a non-content mutation must not rewrite content.
+// _mutate rebuilt every row from a NORMALIZED dto, so touch() — "using" a gear —
+// could dedupe/sort its fields and drop its labels. That is the "reading must
+// never outrank writing" class (§4.2) re-entering through the write path, and it
+// is the exact failure the array amendment exists to prevent.
+{
+  const messy = JSON.stringify({ v: 1, gears: { g1: {
+    name: 'G',
+    fields: { printer: 'x1c', useCase: ['zulu', 'alpha', 'zulu'] },  // unsorted + duplicate
+    labels: { printer: 'X1 Carbon', bogus_key: 'kept-at-rest' },     // a key we drop on WRITE
+    created_at: T_OLD, updated_at: T_OLD, last_used_at: null, archived_at: null,
+  } }, settings: {} });
+
+  const st = mockStorage({ [KEY]: messy });
+  const s = createGearStore(st);
+  const before = st._map.get(KEY);
+  check('G19 touch reports ok', s.touch('g1').ok === true);
+
+  const after = JSON.parse(st._map.get(KEY)).gears.g1;
+  check('G19 touch moved last_used_at', typeof after.last_used_at === 'string');
+  check('G19 touch left updated_at alone', after.updated_at === T_OLD);
+  check('G19 touch did NOT re-sort the stored array',
+    after.fields.useCase.join(',') === 'zulu,alpha,zulu',
+    'got ' + JSON.stringify(after.fields.useCase) + ' — using a gear rewrote its content');
+  check('G19 touch did NOT drop a stored label key',
+    after.labels.bogus_key === 'kept-at-rest');
+  check('G19 every other persisted field is byte-identical',
+    JSON.stringify(Object.assign({}, after, { last_used_at: null })) ===
+    JSON.stringify(Object.assign({}, JSON.parse(before).gears.g1, { last_used_at: null })));
+}
+
+// G20 — GATE MUST-FIX: write-path value and label shape validation.
+// Spec §2.4 says a value is a string or an array of strings. Reading preserves
+// whatever is there (§2.5 degrade-never-throw), but our OWN API must not create
+// non-conforming data.
+{
+  const s = createGearStore(mockStorage());
+  const bad = [
+    ['number',        { printer: 'x1c', surface: 42 }],
+    ['boolean',       { printer: 'x1c', surface: true }],
+    ['object',        { printer: 'x1c', surface: { a: 1 } }],
+    ['mixed array',   { printer: 'x1c', useCase: ['a', 7] }],
+    ['nested array',  { printer: 'x1c', useCase: [['a']] }],
+  ];
+  bad.forEach(([label, fields]) => {
+    check('G20 save rejects a ' + label + ' value',
+      s.save({ name: 'g', fields: fields }).error === 'bad-value');
+  });
+  check('G20 nothing was persisted by the rejected writes', s.list().length === 0);
+  check('G20 a conforming write still succeeds',
+    s.save({ name: 'g', fields: { printer: 'x1c', useCase: ['a', 'b'] } }).ok === true);
+}
+{
+  const s = createGearStore(mockStorage());
+  check('G20 a label must mirror a string value with a string',
+    s.save({ name: 'g', fields: { printer: 'x1c' }, labels: { printer: ['X1'] } }).error === 'bad-label');
+  check('G20 a label must mirror an array value with a SAME-LENGTH array',
+    s.save({ name: 'g', fields: { printer: 'x1c', material: ['a','b'] },
+             labels: { material: ['only-one'] } }).error === 'bad-label');
+  check('G20 a matching-length label array is accepted',
+    s.save({ name: 'g', fields: { printer: 'x1c', material: ['b','a'] },
+             labels: { material: ['Bee','Ay'] } }).ok === true);
+  check('G20 and it was permuted in lockstep',
+    s.list()[0].labels.material.join(',') === 'Ay,Bee');
+}
+
+// G21 — GATE MUST-FIX: settings writes drop unknown keys (§2.2 defines the shape)
+{
+  const seeded = JSON.stringify({ v: 1, gears: {}, settings: {
+    active_gear: null, catalog_seen: {}, save_prompt_dismissed: false,
+    updated_at: T_OLD, undocumented_extension: 'should not survive a write' } });
+  const st = mockStorage({ [KEY]: seeded });
+  const s = createGearStore(st);
+  s.setSavePromptDismissed(true);
+  const after = JSON.parse(st._map.get(KEY)).settings;
+  check('G21 the undocumented settings key is dropped on write',
+    !('undocumented_extension' in after));
+  check('G21 the documented fields survive',
+    after.save_prompt_dismissed === true && 'catalog_seen' in after);
+}
+
+// G22 — GATE MUST-FIX: an impossible date is not a valid timestamp.
+// A regex alone accepted 9999-99-99T99:99:99.999Z, which sorts ABOVE every real
+// row under a descending created_at comparison.
+{
+  const s = createGearStore(mockStorage({ [KEY]: JSON.stringify({ v: 1, gears: {
+    real:       row({ created_at: T_NEW, last_used_at: null }),
+    impossible: row({ created_at: '9999-99-99T99:99:99.999Z', last_used_at: null }),
+    offset:     row({ created_at: '2026-01-01T00:00:00.000+02:00', last_used_at: null }),
+    no_ms:      row({ created_at: '2026-01-01T00:00:00Z', last_used_at: null }),
+  }, settings: {} }) }));
+  const ids = s.list().map(g => g.id);
+  check('G22 the only genuinely valid created_at leads', ids[0] === 'real');
+  check('G22 an impossible date does not outrank a real one', ids.indexOf('impossible') > 0);
+  check('G22 a local offset is not a valid UTC-ms timestamp', ids.indexOf('offset') > 0);
+  check('G22 a missing millisecond field is not valid', ids.indexOf('no_ms') > 0);
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');
