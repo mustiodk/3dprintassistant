@@ -335,7 +335,12 @@ function createGearStore(storage) {
 
   // ─── Public read API ───────────────────────────────────────────────────────
 
-  function list() { return _scan().gears.filter(g => _isLive(g) && !g.invalid); }
+  // Invalid rows ARE listed. §2.5 says such a gear is "retained, not deleted, and
+  // reported as `stale`" — retaining it while hiding it is indistinguishable from
+  // deletion for the person who owns it. Consumers read the `invalid` flag (and
+  // `inspectGear` turns it into the stale state) rather than being handed a
+  // silently shortened list.
+  function list() { return _scan().gears.filter(_isLive); }
 
   function listArchived() { return _scan().gears.filter(g => !_isLive(g)); }
 

@@ -154,7 +154,12 @@ function row(extra) {
     envelope({ z: row({ name: 'Z', fields: { material: 'pla_basic' } }) }) }));
   check('G8 the row is retained', s.get('z') !== null);
   check('G8 and flagged rather than dropped', s.get('z').invalid === true);
-  check('G8 and kept out of list()', s.list().every(g => g.id !== 'z'));
+  // Changed 2026-08-21 (QA F-2): it used to be kept OUT of list(), which made it
+  // unreachable from every UI surface — retained in storage but invisible and
+  // unrepairable. §2.5 requires it to be reported, not merely not-deleted.
+  check('G8 and REPORTED in list() so the user can see and repair it',
+    s.list().some(g => g.id === 'z'));
+  check('G8 and still flagged there', s.list().filter(g => g.id === 'z')[0].invalid === true);
 }
 
 // G9 — touch moves last_used_at and NOT updated_at.
