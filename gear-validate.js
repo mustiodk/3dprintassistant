@@ -110,19 +110,26 @@ var inspectGear, applyGearToState, gearDisplayName, gearDerivedBrandIds, gearDer
     const index = new Map();
     const list = (meta && Array.isArray(meta.filters)) ? meta.filters : [];
     for (let i = 0; i < list.length; i++) {
-      const f = list[i];
-      if (!_isMap(f) || !_isNonEmptyString(f.key)) continue;
+      const f = _ownIdx(list, i);
+      if (!_isMap(f)) continue;
+      // Own-property reads: this is caller-supplied metadata, and an inherited
+      // `key` or `id` must not be mistaken for a real filter declaration.
+      const fKey = _ownGet(f, 'key');
+      if (!_isNonEmptyString(fKey)) continue;
       const ids = new Set();
       const order = new Map();
-      const items = Array.isArray(f.items) ? f.items : [];
+      const rawItems = _ownGet(f, 'items');
+      const items = Array.isArray(rawItems) ? rawItems : [];
       for (let j = 0; j < items.length; j++) {
-        const it = items[j];
-        if (!_isMap(it) || !_isNonEmptyString(it.id)) continue;
-        if (!ids.has(it.id)) { ids.add(it.id); order.set(it.id, order.size); }
+        const it = _ownIdx(items, j);
+        if (!_isMap(it)) continue;
+        const itId = _ownGet(it, 'id');
+        if (!_isNonEmptyString(itId)) continue;
+        if (!ids.has(itId)) { ids.add(itId); order.set(itId, order.size); }
       }
       // First declaration wins on a duplicated key, so a malformed filter list
       // cannot make validation depend on iteration luck.
-      if (!index.has(f.key)) index.set(f.key, { multi: f.multi === true, ids: ids, order: order });
+      if (!index.has(fKey)) index.set(fKey, { multi: _ownGet(f, 'multi') === true, ids: ids, order: order });
     }
     return index;
   }
@@ -150,6 +157,25 @@ var inspectGear, applyGearToState, gearDisplayName, gearDerivedBrandIds, gearDer
   CONDITIONAL_VALUES.profileMode.mine = true;
 
   var _hasOwnCV = Object.prototype.hasOwnProperty;
+
+  // Everything below reads CALLER-PROVIDED data — engine metadata, catalog
+  // objects, gear values. All of it uses own-property reads.
+  //
+  // This class of defect has now recurred five times across gear-store.js and
+  // this file in a single day, each time wearing different syntax: `k in obj`,
+  // a plain object literal used as a lookup table, an inherited catalog Set, an
+  // inherited array index. Naming the invariant did not stop it, because the
+  // next occurrence never looked like the last one. So it is applied
+  // mechanically to every caller-boundary read here rather than case by case.
+  var RESERVED_KEYS = ['__proto__', 'constructor', 'prototype'];
+  function _isReservedKey(k) { return RESERVED_KEYS.indexOf(k) !== -1; }
+  function _ownGet(obj, k) {
+    if (!obj || typeof obj !== 'object') return undefined;
+    return _hasOwnCV.call(obj, k) ? obj[k] : undefined;
+  }
+  function _ownIdx(arr, i) {
+    return _hasOwnCV.call(arr, String(i)) ? arr[i] : undefined;
+  }
   function _isConditionalValue(key, value) {
     if (typeof key !== 'string' || typeof value !== 'string') return false;
     if (!_hasOwnCV.call(CONDITIONAL_VALUES, key)) return false;
@@ -158,9 +184,11 @@ var inspectGear, applyGearToState, gearDisplayName, gearDerivedBrandIds, gearDer
 
   function _isMember(key, value, filter, catalogs) {
     const name = _own(CATALOG_OF, key) ? CATALOG_OF[key] : null;
-    if (name && _isMap(catalogs) && catalogs[name] && typeof catalogs[name].has === 'function') {
-      return catalogs[name].has(value);
-    }
+    // Own-property read: an INHERITED catalog would otherwise validate ids the
+    // caller never actually offered — probed as
+    // Object.create({ printers: new Set(['proto_printer']) }).
+    const cat = name ? _ownGet(catalogs, name) : undefined;
+    if (cat && typeof cat.has === 'function') return cat.has(value);
     return filter.ids.has(value);
   }
 
@@ -173,8 +201,17 @@ var inspectGear, applyGearToState, gearDisplayName, gearDerivedBrandIds, gearDer
   function _shapeOf(raw) {
     if (typeof raw === 'string') return { multi: false, values: [raw] };
     if (!Array.isArray(raw)) return null;
-    for (let i = 0; i < raw.length; i++) if (typeof raw[i] !== 'string') return null;
-    return { multi: true, values: raw.slice() };
+    // A sparse array reads its holes off the prototype, so an array with no own
+    // index 0 but a prototype carrying `0` would resolve a value the gear never
+    // stored. Every element must be an OWN string, and `slice()` would preserve
+    // the holes, so the values are built explicitly.
+    const values = [];
+    for (let i = 0; i < raw.length; i++) {
+      const v = _ownIdx(raw, i);
+      if (typeof v !== 'string') return null;
+      values.push(v);
+    }
+    return { multi: true, values: values };
   }
 
   // ─── inspectGear ───────────────────────────────────────────────────────────
@@ -446,7 +483,18 @@ var inspectGear, applyGearToState, gearDisplayName, gearDerivedBrandIds, gearDer
     // live failure — but the helper's contract is what future callers rely on.
     const _try = (fn, arg) => { try { if (typeof fn === 'function') fn(arg); } catch (_) {} };
 
-    _try(d.resetFields);
+    // resetFields is NOT in that category and must NOT be wrapped. It is the
+    // step that clears the previous run's unpinned answers, and "unset fields
+    // mean the wizard asks" (spec §3.3) depends on it. Swallowing a throw here
+    // would merge the gear on top of stale answers and then route the slicer and
+    // collapse the picker as if everything were fine — the user gets a gear that
+    // silently carries someone else's surface and useCase.
+    //
+    // Letting it propagate aborts before the merge, so state is left as the
+    // reset found it rather than half-applied with foreign answers. An earlier
+    // revision of this function wrapped it; that was a regression and the gate
+    // was right that swallowing is worse here.
+    if (typeof d.resetFields === 'function') d.resetFields();
 
     // Copy arrays rather than aliasing them into app state. `state.useCase` is
     // mutated in place on every chip click (app.js:1565); aliasing would let a
@@ -455,6 +503,11 @@ var inspectGear, applyGearToState, gearDisplayName, gearDerivedBrandIds, gearDer
     if (_isMap(resolved)) {
       const k = Object.keys(resolved);
       for (let i = 0; i < k.length; i++) {
+        // `state` is an ordinary object (app.js:66), so assigning a key named
+        // `__proto__` would replace its prototype rather than set a field.
+        // `resolved` from inspectGear can never contain one, but this function
+        // is public and its caller is not required to have come through there.
+        if (_isReservedKey(k[i])) continue;
         const v = resolved[k[i]];
         state[k[i]] = Array.isArray(v) ? v.slice() : v;
       }

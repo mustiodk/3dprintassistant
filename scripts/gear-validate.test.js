@@ -385,6 +385,80 @@ function gear(fields, labels) {
     'calls=' + calls.join(','));
 }
 
+// V19 — GATE R3 MUST-FIX: resetFields is NOT optional bookkeeping.
+// A previous revision wrapped every dep in a try/catch. That was a REGRESSION
+// for this one: resetFields clears the previous run's unpinned answers, and
+// "unset fields mean the wizard asks" (spec §3.3) depends on it. Swallowing a
+// throw merged the gear on top of stale answers and then routed the slicer and
+// collapsed the picker as if nothing were wrong.
+{
+  const state = { printer: 'old', material: 'old_mat', surface: 'fine', useCase: ['old'] };
+  const calls = [];
+  let threw = false;
+  try {
+    applyGearToState({ printer: 'x1c', material: 'pla_basic' }, state, {
+      resetFields: () => { throw new Error('reset unavailable'); },
+      getSlicerForPrinter: () => 'bambu_studio',
+      setActiveSlicer: () => calls.push('slicer'),
+      printerRow: () => ({ manufacturer: 'bambu_lab' }),
+      setExpandedBrand: () => calls.push('brand'),
+      collapsePicker: () => calls.push('collapse'),
+    });
+  } catch (_) { threw = true; }
+  check('V19 a throwing resetFields propagates rather than being swallowed', threw === true);
+  check('V19 and the gear is NOT merged on top of stale answers',
+    state.surface === 'fine' && state.printer === 'old',
+    'state=' + JSON.stringify(state));
+  check('V19 and no bookkeeping ran', calls.length === 0, 'calls=' + calls.join(','));
+}
+
+// V20 — GATE R3: caller-boundary reads use own properties everywhere.
+// This defect class has now recurred five times across the two gear files in
+// one day, each time in different syntax. These probes cover every site the
+// gate identified rather than the one that happened to be found.
+{
+  // (a) inherited catalog Set must not validate an id the caller never offered
+  const protoCat = Object.create({ printers: new Set(['proto_printer']) });
+  protoCat.materials = new Set(['pla_basic']);
+  protoCat.nozzles = new Set();
+  protoCat.plates = new Set();
+  const r = inspectGear(gear({ printer: 'proto_printer' }), protoCat, META);
+  check('V20a an inherited catalog Set does not validate an id', r.state === 'stale');
+  check('V20a and the field is left unset', !('printer' in r.resolved));
+
+  // (b) inherited filter metadata must not be accepted as a real declaration
+  const protoFilter = Object.create({ key: 'surface', items: [{ id: 'ghost' }], multi: false });
+  const metaProto = { filters: [
+    { key: 'printer', multi: false, items: [{ id: 'x1c' }] },
+    protoFilter,
+  ], mineAvailable: () => false };
+  const r2 = inspectGear(gear({ printer: 'x1c', surface: 'ghost' }), CAT, metaProto);
+  check('V20b an inherited filter key is not a real filter', !('surface' in r2.resolved));
+
+  // (c) inherited array indexes must not become values
+  const sparse = [];
+  sparse.length = 1;                       // no own index 0
+  Object.setPrototypeOf(sparse, Object.assign(Object.create(Array.prototype), { 0: 'functional' }));
+  const r3 = inspectGear(gear({ printer: 'x1c', useCase: sparse }), CAT, META);
+  check('V20c an inherited array element is not resolved',
+    !('useCase' in r3.resolved) || r3.resolved.useCase.indexOf('functional') === -1,
+    'resolved=' + JSON.stringify(r3.resolved.useCase));
+
+  // (d) a reserved key in `resolved` must not replace state's prototype
+  const state = { printer: null };
+  const hostile = Object.create(null);
+  hostile.printer = 'x1c';
+  hostile.__proto__ = ['polluted'];        // own property on a null-proto object
+  applyGearToState(hostile, state, {
+    resetFields: () => {}, getSlicerForPrinter: () => 'bambu_studio',
+    setActiveSlicer: () => {}, printerRow: () => ({ manufacturer: 'bambu_lab' }),
+    setExpandedBrand: () => {}, collapsePicker: () => {},
+  });
+  check('V20d a reserved key does not replace state prototype',
+    Object.getPrototypeOf(state) === Object.prototype);
+  check('V20d and the legitimate field still applied', state.printer === 'x1c');
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');
