@@ -357,5 +357,12 @@
   "gearNewsMany":               "{n} new printers since last time · {total} in the catalog",
   "gearDupeWarn":               "You already have a gear with these answers — “{name}”",
   "gearDupeConfirm":            "Save anyway",
-  "gearRunUnavailable":         "This gear is missing its printer — open it to see what's wrong"
+  "gearRunUnavailable":         "This gear is missing its printer — open it to see what's wrong",
+  "gearArmTitle":               "New gear",
+  "gearArmCancel":              "Cancel",
+  "gearArmText":                "Pick a printer, a nozzle and a material — then I'll offer to save it.",
+  "gearArmStep_printer":        "Printer",
+  "gearArmStep_nozzle":         "Nozzle",
+  "gearArmStep_material":       "Material",
+  "gearUse":                    "Use"
 }

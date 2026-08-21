@@ -357,5 +357,12 @@
   "gearNewsMany":               "{n} nye printere siden sidst · {total} i kataloget",
   "gearDupeWarn":               "Du har allerede et gear med de samme valg — “{name}”",
   "gearDupeConfirm":            "Gem alligevel",
-  "gearRunUnavailable":         "Dette gear mangler sin printer — åbn det for at se hvad der er galt"
+  "gearRunUnavailable":         "Dette gear mangler sin printer — åbn det for at se hvad der er galt",
+  "gearArmTitle":               "Nyt gear",
+  "gearArmCancel":              "Annullér",
+  "gearArmText":                "Vælg en printer, en dyse og et materiale — så tilbyder jeg at gemme det.",
+  "gearArmStep_printer":        "Printer",
+  "gearArmStep_nozzle":         "Dyse",
+  "gearArmStep_material":       "Materiale",
+  "gearUse":                    "Brug"
 }

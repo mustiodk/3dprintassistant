@@ -1452,6 +1452,57 @@ function gearActiveId(gears) {
   return null;
 }
 
+// ── Sliding a reordered card into place ─────────────────────────────────────
+// The grid is rebuilt wholesale from innerHTML, so the cards that "move" when the
+// active gear changes are in fact destroyed and recreated — nothing a CSS
+// transition can follow. FLIP does it the other way round: measure where each
+// card was, let the rebuild happen, then put each survivor back where it started
+// with a transform and release it. The browser animates the release, so the card
+// appears to slide from its old slot to its new one.
+function gearFlipRead(grid) {
+  const map = Object.create(null);
+  if (!grid) return map;
+  grid.querySelectorAll('.gear-card').forEach(card => {
+    const body = card.querySelector('.gear-card-body');
+    if (!body || !body.dataset.id) return;
+    const r = card.getBoundingClientRect();
+    map[body.dataset.id] = { x: r.left, y: r.top };
+  });
+  return map;
+}
+
+function gearFlipPlay(grid, from) {
+  if (!grid || !from) return;
+  // Someone who has asked the OS for less motion gets the new order immediately.
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (typeof Element === 'undefined' || !Element.prototype.animate) return;
+
+  grid.querySelectorAll('.gear-card').forEach(card => {
+    const body = card.querySelector('.gear-card-body');
+    const prev = body && body.dataset.id ? from[body.dataset.id] : null;
+    if (!prev) return;                       // not here before: let it pop in instead
+    const r  = card.getBoundingClientRect();
+    const dx = prev.x - r.left, dy = prev.y - r.top;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;   // it did not actually move
+
+    // Web Animations, deliberately, rather than a transform + rAF + transitionend.
+    // That pattern makes the card's REAL position depend on a callback firing: if
+    // the frame or the transitionend is ever dropped, the card is stranded in the
+    // wrong slot. Here the element is laid out at its destination from the first
+    // moment and the animation only paints it on the way there — so the worst case
+    // of an animation that never runs is no animation, not a broken grid.
+    // Nothing to undo afterwards. The entry pop is already suppressed by the
+    // `is-settled` class the renderer put on this card, decided from the previous
+    // frame — so no completion callback has to take anything off again. Chrome was
+    // observed firing neither `finished` nor `onfinish` under automation, and a
+    // cleanup that can be skipped will be.
+    card.animate(
+      [{ transform: 'translate(' + dx + 'px, ' + dy + 'px)' }, { transform: 'none' }],
+      { duration: 420, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+    );
+  });
+}
+
 // D8 — the active gear leads, then the two most recently used. An unusable row
 // never takes a slot from a working gear: it is shown so it can be dealt with,
 // which is not the same as being one of the three shortcuts on offer.
@@ -1503,6 +1554,22 @@ function gearHeadline(gear, idx) {
   return parts.length ? parts.join(' · ') : gearDisplayName(gear);
 }
 
+// Everything else the gear pinned, for the card's quiet third line. Printer,
+// nozzle and material already have their own lines; this is what used to be
+// visible only by opening the gear — a build plate, an environment, anything the
+// user chose to pin. Owner's call 2026-08-21: show it small rather than hide it.
+function gearExtras(gear, idx) {
+  const fields = (gear && gear.fields) || {};
+  const shown  = { printer: 1, nozzle: 1, material: 1 };
+  const parts  = [];
+  Object.keys(fields).forEach(k => {
+    if (shown[k]) return;
+    const d = gearFieldDisplay(gear, k, idx);
+    if (d && d.text) parts.push(d.text);
+  });
+  return parts.join(' · ');
+}
+
 // The hardware name D7 pre-fills with. Used to decide whether a card should
 // show the gear's name at all — repeating "X1 Carbon · 0.4 mm · PLA Basic"
 // under a line that already says it is noise.
@@ -1547,10 +1614,14 @@ function renderGearSection() {
 
   // First run. One quiet dashed row — a sentence saying what a gear is, and the
   // button that starts one. The configurator below keeps full weight.
+  renderGearArm();
+
   if (!gears.length) {
     grid.style.display  = 'none';
     grid.innerHTML      = '';
-    empty.style.display = '';
+    // While the strip is up it IS the invitation — two competing invites in the
+    // same box would be one too many.
+    empty.style.display = _addGearArmed ? 'none' : '';
     count.textContent   = '';
     addBtn.style.display = 'none';      // the empty row carries its own
     // Shown here only because something IS archived, so the count must include
@@ -1563,7 +1634,7 @@ function renderGearSection() {
 
   grid.style.display  = '';
   empty.style.display = 'none';
-  addBtn.style.display = '';
+  addBtn.style.display = _addGearArmed ? 'none' : '';
   // Usable gears only: an unusable row is shown so it can be seen and dealt with,
   // but it is not one of the user's shortcuts and must not be counted as one.
   const usable = gears.filter(g => !g.invalid).length;
@@ -1579,6 +1650,10 @@ function renderGearSection() {
   const meta     = gearMeta();
   const activeId = gearActiveId(gears);
 
+  // Where every card is standing right now, so the ones that survive this
+  // rebuild can be slid from there to wherever they end up. See gearFlip().
+  const flipFrom = gearFlipRead(grid);
+
   grid.innerHTML = gearCardOrder(gears, activeId).map((g, i) => {
     const r        = inspectGear(g, cats, meta);
     const headline = gearHeadline(g, idx);
@@ -1591,8 +1666,14 @@ function renderGearSection() {
     const auto     = gearAutoName(g, idx);
     const showName = !!name && name !== auto && name !== headline;
     const badge    = gearStateBadge(r.state);
+    const extras   = gearExtras(g, idx);
     return `
-      <div class="gear-card${g.id === activeId ? ' is-default' : ''}" style="animation-delay:${i * 0.05}s">
+      <div class="gear-card${g.id === activeId ? ' is-default' : ''}${
+             flipFrom[g.id] ? ' is-settled' : ''}" style="animation-delay:${i * 0.05}s">
+        <button class="gear-card-rename" data-id="${escHtml(g.id)}" title="${escHtml(T('gearRename'))}"
+                aria-label="${escHtml(T('gearRename'))}">&#x270E;</button>
+        <button class="gear-card-remove" data-id="${escHtml(g.id)}" title="${escHtml(T('gearArchive'))}"
+                aria-label="${escHtml(T('gearArchive'))}">&#x2715;</button>
         <button class="gear-card-body" data-id="${escHtml(g.id)}">
           <span class="gear-card-top">
             <span class="gear-card-printer">${escHtml(printer || '—')}</span>
@@ -1600,6 +1681,7 @@ function renderGearSection() {
             ${badge ? `<span class="gear-dot is-warn"><i></i>${escHtml(badge)}</span>` : ''}
           </span>
           <span class="gear-card-headline">${escHtml(headline)}</span>
+          ${extras ? `<span class="gear-card-extras">${escHtml(extras)}</span>` : ''}
           ${showName ? `<span class="gear-card-nick">${escHtml(name)}</span>` : ''}
         </button>
         ${g.invalid
@@ -1608,21 +1690,41 @@ function renderGearSection() {
              </span>`
           : `<button class="gear-run" data-id="${escHtml(g.id)}" title="${escHtml(T('gearGenerate'))}">
                <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M3 1.5 L12 7 L3 12.5 Z" fill="currentColor"/></svg>
-               <span class="gear-run-label">${T('gearRun')}</span>
+               <span class="gear-run-label">${T('gearUse')}</span>
              </button>`}
       </div>`;
   }).join('');
 
-  // D4 — two tap targets. The body opens the review overlay; the generate
-  // control runs straight through.
+  gearFlipPlay(grid, flipFrom);
+
+  // Body and rail do the same thing: use the gear. The rail is the affordance
+  // that says "this is a button"; the body is the rest of the target.
   grid.querySelectorAll('.gear-card-body').forEach(b =>
-    b.addEventListener('click', () => openGearReview(b.dataset.id)));
+    b.addEventListener('click', () => applyGear(b.dataset.id, true)));
   // `button.gear-run`, not `.gear-run` — the dead rail on an invalid gear carries
   // the same class for styling, and wiring it made a click fall through to
   // applyGear(undefined) and toast "That gear is no longer available", which is
   // both wrong (the gear is there) and confusing.
   grid.querySelectorAll('button.gear-run').forEach(b =>
     b.addEventListener('click', () => applyGear(b.dataset.id, true)));
+  grid.querySelectorAll('.gear-card-rename').forEach(b =>
+    b.addEventListener('click', e => {
+      e.stopPropagation();                       // or the card also uses the gear
+      const g = GearStore.get(b.dataset.id);
+      if (!g) return;
+      openNameModal(T('gearRenameTitle'), gearDisplayName(g), name => {
+        const res = GearStore.update(g.id, { name: name });
+        showToast(res.ok ? T('gearRenamed')
+          : res.error === 'version-skew' ? T('gearSkew') : T('gearSaveFailed'));
+        renderGearSection();
+      });
+    }));
+  grid.querySelectorAll('.gear-card-remove').forEach(b => {
+    // stopPropagation, or the click also reaches the card body behind it and
+    // opens the very overlay this control exists to save the user from.
+    b.addEventListener('click', e => e.stopPropagation());
+    gearArmArchive(b, b.dataset.id, () => renderGearSection());
+  });
 
   const n = gearCatalogNews();
   if (n.fresh > 0) {
@@ -1689,16 +1791,13 @@ function applyGear(id, scroll) {
   renderGearSection();
 
   showToast(gearApplyMessage(g, r));
-  if (scroll) gearScrollToWork();
-}
-
-function gearScrollToWork() {
-  const results = document.getElementById('resultsLayout');
-  const target = (results && results.style.display !== 'none')
-    ? results : document.getElementById('filtersContainer');
-  if (target && target.scrollIntoView) {
-    requestAnimationFrame(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-  }
+  // No scrolling. Measured at a 700px viewport with the page at the top: the gear
+  // cards sit at 131px and the first five questions at 259-644 — all already on
+  // screen, so the scroll moved the user somewhere they could already see. And
+  // because the destination was "the first unanswered question", it landed in a
+  // different place for every gear and every partly-filled state. Owner's call
+  // 2026-08-21: same behaviour every time, and that behaviour is to stay put.
+  // The feedback is local anyway — the chips fill in directly under the card.
 }
 
 // D9 — the CTA always begins a fresh run at brand selection. The gear cards
@@ -1709,14 +1808,39 @@ let _addGearArmed = false;
 
 function armAddGear() {
   _addGearArmed = true;
-  resetAll();
+  renderGearSection();          // the strip is the feedback; it must appear at once
+  render();                     // and if all three are already answered, this saves
+
+  if (!_addGearArmed) return;   // render() already opened the dialog — nothing to guide
+
   const section = document.getElementById('printerPickerSection');
   if (section) section.classList.remove('collapsed');
   expandPrinterPicker();
-  if (section && section.scrollIntoView) {
-    requestAnimationFrame(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-  }
-  showToast(Engine.t('gearAddHint'));
+  // No scrolling here either — the strip is raised under the button the user just
+  // pressed, which is feedback that needs no travel. See applyGear.
+}
+
+function cancelAddGear() {
+  _addGearArmed = false;
+  renderGearSection();
+}
+
+// The three answers the strip tracks — the same minimum a gear needs to exist.
+const GEAR_ARM_STEPS = ['printer', 'nozzle', 'material'];
+
+function renderGearArm() {
+  const arm = document.getElementById('gearArm');
+  if (!arm) return;
+  if (!_addGearArmed) { arm.style.display = 'none'; return; }
+  const T = Engine.t;
+  arm.style.display = '';
+  document.getElementById('gearArmTitle').textContent  = T('gearArmTitle');
+  document.getElementById('gearArmCancel').textContent = T('gearArmCancel');
+  document.getElementById('gearArmText').textContent   = T('gearArmText');
+  document.getElementById('gearArmSteps').innerHTML = GEAR_ARM_STEPS.map(key => {
+    const done = !!state[key];
+    return `<span class="gear-arm-step${done ? ' is-done' : ''}"><i></i>${escHtml(T('gearArmStep_' + key))}</span>`;
+  }).join('');
 }
 
 // Called from render() once the three required answers are in. Disarms first so a
@@ -1724,6 +1848,7 @@ function armAddGear() {
 function maybeOfferArmedGearSave() {
   if (!_addGearArmed || !saveReady() || !gearAvailable()) return;
   _addGearArmed = false;
+  renderGearSection();        // the dialog is the guidance now; the strip stands down
   openGearSaveDialog();
 }
 
@@ -2160,6 +2285,7 @@ function bindGearControls() {
 
   document.getElementById('gearAllBtn').addEventListener('click', openGearAll);
   document.getElementById('gearAddBtn').addEventListener('click', armAddGear);
+  document.getElementById('gearArmCancel').addEventListener('click', cancelAddGear);
   document.getElementById('gearEmptyAddBtn').addEventListener('click', armAddGear);
 }
 

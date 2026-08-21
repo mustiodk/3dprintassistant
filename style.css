@@ -2090,10 +2090,127 @@ dialog.feedback-modal {
   margin: 10px 0 0;
 }
 
+/* ── Add-gear strip ──────────────────────────────────────────────────────────
+   Clicking "+ Add gear" used to do nothing visible but scroll a little, so the
+   only feedback was a toast that had gone by the time the user did the thing it
+   asked for. The strip appears where the click happened, stays for the whole
+   task, and shows which of the three answers are still missing. */
+.gear-arm {
+  border: 1px solid var(--green-border);
+  background: var(--green-dim);
+  border-radius: var(--r);
+  padding: 14px 18px;
+  margin-bottom: 10px;
+  animation: chipPop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.gear-arm-top { display: flex; align-items: baseline; gap: 12px; }
+.gear-arm-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--green);
+}
+.gear-arm-cancel {
+  margin-left: auto;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text2);
+  transition: color 0.15s;
+}
+.gear-arm-cancel:hover { color: var(--orange); }
+.gear-arm-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text3);
+  margin: 6px 0 0;
+}
+.gear-arm-steps { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+.gear-arm-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text2);
+}
+.gear-arm-step i {
+  width: 7px; height: 7px; border-radius: 50%;
+  border: 1.5px solid var(--text2);
+  flex: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+.gear-arm-step.is-done { color: var(--green); }
+.gear-arm-step.is-done i { background: var(--green); border-color: var(--green); }
+
+/* Remove a gear from the card itself — archiving used to require opening the
+   detail overlay first. Two taps: the first arms it, the second acts. */
+.gear-card-remove {
+  position: absolute;
+  /* Anchored to the inside edge of the run rail, not the card's — the rail IS
+     the card's right edge, so `right: 6px` put this on top of it. */
+  top: 6px; right: calc(var(--gear-rail-w) + 6px);
+  z-index: 2;
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: var(--text2);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+.gear-card-rename {
+  position: absolute;
+  top: 6px; right: calc(var(--gear-rail-w) + 36px);
+  z-index: 2;
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: var(--text2);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+.gear-card:hover .gear-card-rename,
+.gear-card:hover .gear-card-remove,
+.gear-card-rename:focus-visible,
+.gear-card-remove:focus-visible { opacity: 1; }
+.gear-card-rename:hover { color: var(--green); background: var(--green-dim); }
+.gear-card-remove:hover { color: var(--orange); background: var(--orange-dim); }
+.gear-card-remove.is-armed {
+  opacity: 1;
+  width: auto;
+  height: 22px;
+  padding: 0 9px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--orange);
+  background: var(--orange-dim);
+  border: 1px solid var(--orange-border);
+}
+/* Touch has no hover, so the control must not be invisible there. */
+@media (hover: none) { .gear-card-remove, .gear-card-rename { opacity: 1; } }
+
 /* ── Card (design 1c) ────────────────────────────────────────────────────────
    Body left, RUN rail right. One material change — tinted vs solid fill —
    separates "look at this" from "run this", instead of two stacked buttons. */
 .gear-card {
+  --gear-rail-w: 76px;
   position: relative;
   display: flex;
   min-height: 64px;
@@ -2105,7 +2222,29 @@ dialog.feedback-modal {
   transition: border-color 0.2s;
 }
 .gear-card:hover { border-color: var(--border2); }
-.gear-card.is-default { border-color: var(--green-border); }
+
+/* A card that was already on screen before this render does not play the entry
+   pop: it is either sitting still or sliding to a new slot, and neither is
+   arriving. Decided by the renderer from the previous frame's cards, so it needs
+   no cleanup — the next render works it out again from scratch.
+   The slide itself is a Web Animation applied in JS; see gearFlipPlay. */
+.gear-card.is-settled { animation: none; }
+
+/* The active gear. It was separated from the others by a border at 28% alpha,
+   which is not enough to find at a glance in a row of cards that are otherwise
+   identical. Full-strength border, a ring just inside it, and a soft outward
+   glow — three cues that all read as "this one" without changing its shape or
+   size, so the row stays even. */
+.gear-card.is-default {
+  border-color: var(--green);
+  box-shadow:
+    inset 0 0 0 1px var(--green-dim),
+    0 0 0 1px var(--green-glow),
+    0 6px 20px var(--green-glow);
+}
+.gear-card.is-default .gear-card-body { background: linear-gradient(180deg, var(--green-dim), transparent 70%); }
+.gear-card.is-default .gear-card-body:hover { background: var(--surface2); }
+.gear-card.is-default .gear-run { border-left-color: var(--green-border); }
 
 .gear-card-body {
   flex: 1;
@@ -2126,6 +2265,7 @@ dialog.feedback-modal {
   transition: background 0.15s;
 }
 .gear-card-body:hover { background: var(--surface2); }
+.gear-card-body:hover .gear-card-headline { color: var(--green); }
 .gear-card-top {
   display: flex;
   align-items: center;
@@ -2152,6 +2292,20 @@ dialog.feedback-modal {
   color: var(--text);
   word-break: break-word;
 }
+/* Everything else the gear pinned — a build plate, an environment. Quiet, because
+   it is reference rather than identity: the line above is what tells two gears
+   apart. Capped at two lines so a heavily-pinned gear cannot grow the card. */
+.gear-card-extras {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--text2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
 .gear-card-nick {
   font-family: 'DM Mono', monospace;
   font-size: 11px;
@@ -2163,7 +2317,7 @@ dialog.feedback-modal {
 /* The run rail. Tinted at rest so it reads as available without shouting;
    fills solid on hover. */
 .gear-run {
-  width: 76px;
+  width: var(--gear-rail-w);
   flex: none;
   display: flex;
   flex-direction: column;
@@ -2244,7 +2398,7 @@ dialog.feedback-modal {
 @media (max-width: 560px) {
   .gear-grid { grid-template-columns: 1fr; gap: 8px; }
   .gear-card { min-height: 60px; }
-  .gear-run  { width: 64px; }
+  .gear-card { --gear-rail-w: 64px; }
   .gear-section-head { flex-wrap: wrap; gap: 10px; }
   .gear-empty { flex-direction: column; align-items: stretch; gap: 12px; }
   .gear-empty-add { width: 100%; }
