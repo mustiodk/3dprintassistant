@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roadmap — 3D Print Assistant</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0d14; --surface:#15151f; --surface2:#1d1d2b; --border:#2a2a3e;
+  --text:#e0e0f0; --dim:#9a9ab0; --accent:#7c6ee6;
+  --green:#4caf7d; --amber:#f0b429; --blue:#4a9eff; --red:#ff6b6b; --grey:#7a7a92;
+  --r:8px; --r-lg:12px;
+}
+body{background:var(--bg);color:var(--text);
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  padding:24px 16px 64px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:0 auto}
+
+header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+h1{font-size:24px;font-weight:650;letter-spacing:-.3px}
+.updated{color:var(--dim);font-size:13px}
+
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:26px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:10px 14px;min-width:86px}
+.stat .n{font-size:20px;font-weight:650;line-height:1.2}
+.stat .l{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-top:2px}
+
+.phase{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--grey);
+  border-radius:var(--r-lg);margin-bottom:14px;overflow:hidden}
+.phase.active{border-left-color:var(--green)}
+.phase.next{border-left-color:var(--blue)}
+.phase.blocked{border-left-color:var(--amber)}
+.phase.done{border-left-color:var(--green);opacity:.72}
+.phase.planned{border-left-color:var(--accent)}
+
+summary{list-style:none;cursor:pointer;padding:15px 18px;display:block}
+summary::-webkit-details-marker{display:none}
+summary:hover{background:var(--surface2)}
+.ptop{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pnum{color:var(--dim);font-variant-numeric:tabular-nums;font-size:14px}
+.ptitle{font-size:17px;font-weight:600;flex:1;min-width:150px}
+.chev{color:var(--dim);font-size:12px;transition:transform .15s}
+details[open] .chev{transform:rotate(90deg)}
+.badge{font-size:11px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;
+  padding:3px 9px;border-radius:20px;white-space:nowrap;
+  background:var(--surface2);border:1px solid var(--border);color:var(--dim)}
+.badge.active{color:var(--green);border-color:var(--green)}
+.badge.next{color:var(--blue);border-color:var(--blue)}
+.badge.blocked{color:var(--amber);border-color:var(--amber)}
+.badge.done{color:var(--green);border-color:var(--green)}
+.badge.planned{color:var(--accent);border-color:var(--accent)}
+.why{color:var(--dim);font-size:14px;margin-top:7px}
+
+.prog{display:flex;align-items:center;gap:10px;margin-top:11px}
+.bar{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.bar span{display:block;height:100%;background:var(--accent);transition:width .3s}
+.phase.active .bar span{background:var(--green)}
+.count{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.body{padding:2px 18px 18px}
+.grp{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);
+  font-weight:650;margin:14px 0 7px}
+ul{list-style:none}
+li{display:flex;gap:9px;padding:5px 0;align-items:flex-start;font-size:14.5px}
+li .box{flex-shrink:0;width:15px;height:15px;border:1.5px solid var(--border);border-radius:4px;
+  margin-top:4px;position:relative}
+li.on .box{background:var(--green);border-color:var(--green)}
+li.on .box::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;
+  border:solid #0d0d14;border-width:0 2px 2px 0;transform:rotate(45deg)}
+li.on{color:var(--dim)}
+li.on .t{text-decoration:line-through;text-decoration-color:var(--border)}
+li b{color:var(--text);font-weight:600}
+li.on b{color:var(--dim)}
+
+.err{background:var(--surface);border:1px solid var(--red);border-radius:var(--r-lg);padding:16px 18px}
+.err b{color:var(--red)}
+footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--border);color:var(--dim);font-size:13px}
+footer a{color:var(--accent)}
+@media(max-width:560px){body{padding:18px 12px 48px}h1{font-size:21px}summary{padding:13px 14px}.body{padding:2px 14px 15px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Roadmap</h1>
+    <div class="updated" id="updated"></div>
+  </header>
+  <div class="stats" id="stats"></div>
+  <div id="out"></div>
+  <footer>
+    Rendered live from <code>roadmap.md</code> — edit the markdown, not this page.
+    Day-to-day work lives in <a href="https://github.com/mustiodk/3dprintassistant/issues">GitHub Issues</a>.
+    The older feature list is at <a href="/backlog">/backlog</a> and is no longer maintained.
+  </footer>
+</div>
+
+<script>
+const STATUSES = ['active','next','blocked','done','planned'];
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// Minimal inline markdown: **bold** only. Everything else stays literal.
+const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+
+function parse(md) {
+  // Strip HTML comments so the parse contract itself is never rendered.
+  md = md.replace(/<!--[\s\S]*?-->/g, '');
+  const lines = md.split('\n');
+  const out = { updated: '', phases: [] };
+  let phase = null, group = null;
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+
+    const upd = line.match(/^\*\*Last updated:\*\*\s*(.+)$/i);
+    if (upd && !phase) { out.updated = upd[1].trim(); continue; }
+
+    // ## N. Title   — or —   ## Title  (for the Decisions block)
+    const h2 = line.match(/^##\s+(?:(\d+)\.\s+)?(.+)$/);
+    if (h2) {
+      phase = { num: h2[1] || '', title: h2[2].trim(), status: 'planned', why: '', groups: [] };
+      group = null;
+      out.phases.push(phase);
+      continue;
+    }
+    if (!phase) continue;
+
+    const st = line.match(/^\*\*Status:\*\*\s*(\w+)/i);
+    if (st) {
+      const v = st[1].toLowerCase();
+      phase.status = STATUSES.includes(v) ? v : 'planned';
+      continue;
+    }
+    const why = line.match(/^\*\*Why:\*\*\s*(.+)$/i);
+    if (why) { phase.why = why[1].trim(); continue; }
+
+    const h3 = line.match(/^###\s+(.+)$/);
+    if (h3) { group = { name: h3[1].trim(), items: [] }; phase.groups.push(group); continue; }
+
+    const box = line.match(/^\s*-\s+\[([ xX])\]\s+(.+)$/);
+    if (box) {
+      if (!group) { group = { name: '', items: [] }; phase.groups.push(group); }
+      group.items.push({ done: box[1].toLowerCase() === 'x', text: box[2].trim() });
+    }
+  }
+  return out;
+}
+
+function counts(phase) {
+  let done = 0, total = 0;
+  for (const g of phase.groups) for (const i of g.items) { total++; if (i.done) done++; }
+  return { done, total };
+}
+
+function render(data) {
+  document.getElementById('updated').textContent =
+    data.updated ? 'Updated ' + data.updated : '';
+
+  let done = 0, total = 0, open = 0;
+  const active = data.phases.filter(p => p.status === 'active').length;
+  const blocked = data.phases.reduce((n, p) =>
+    n + (p.status === 'blocked' ? counts(p).total - counts(p).done : 0), 0);
+  for (const p of data.phases) { const c = counts(p); done += c.done; total += c.total; }
+  open = total - done;
+
+  document.getElementById('stats').innerHTML = [
+    ['Phases', data.phases.length], ['Active', active],
+    ['Done', done], ['Open', open], ['Blocked on me', blocked],
+  ].map(([l, n]) => `<div class="stat"><div class="n">${n}</div><div class="l">${esc(l)}</div></div>`).join('');
+
+  document.getElementById('out').innerHTML = data.phases.map(p => {
+    const c = counts(p);
+    const pct = c.total ? Math.round(c.done / c.total * 100) : 0;
+    const openByDefault = p.status === 'active' || p.status === 'blocked';
+    const bar = c.total
+      ? `<div class="prog"><div class="bar"><span style="width:${pct}%"></span></div>
+           <div class="count">${c.done} of ${c.total}</div></div>` : '';
+    const body = p.groups.map(g => `
+      ${g.name ? `<div class="grp">${esc(g.name)}</div>` : ''}
+      <ul>${g.items.map(i =>
+        `<li class="${i.done ? 'on' : ''}"><span class="box"></span><span class="t">${inline(i.text)}</span></li>`
+      ).join('')}</ul>`).join('');
+
+    return `<details class="phase ${p.status}" ${openByDefault ? 'open' : ''}>
+      <summary>
+        <div class="ptop">
+          <span class="chev">▶</span>
+          ${p.num ? `<span class="pnum">${esc(p.num)}</span>` : ''}
+          <span class="ptitle">${esc(p.title)}</span>
+          <span class="badge ${p.status}">${esc(p.status)}</span>
+        </div>
+        ${p.why ? `<div class="why">${inline(p.why)}</div>` : ''}
+        ${bar}
+      </summary>
+      <div class="body">${body}</div>
+    </details>`;
+  }).join('');
+}
+
+fetch('./roadmap.md?t=' + Date.now())
+  .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+  .then(t => render(parse(t)))
+  .catch(e => {
+    document.getElementById('out').innerHTML =
+      `<div class="err"><b>Could not load roadmap.md</b><br>${esc(e.message)}
+       <br><br>The page reads that file at load time; if it is missing or unreadable
+       nothing is rendered — deliberately, rather than showing stale content.</div>`;
+  });
+</script>
+</body>
+</html>
