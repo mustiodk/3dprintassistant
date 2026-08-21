@@ -110,6 +110,14 @@ const expectations = [
   ['WorkshopStore', 'object', 'app.js:888 — the INSTANCE, not the factory'],
   ['createWorkshopTuning', 'function', 'app.js:888 typeof createWorkshopTuning'],
   ['GearStore', 'object', 'gear-store.js — the INSTANCE bound to localStorage, not the factory'],
+  // gear-validate.js assigns these inside an IIFE so its helpers stay private.
+  // `var` at classic-script top level still becomes a global — this suite is
+  // what proves that, because module.exports would stay green either way.
+  ['inspectGear', 'function', 'gear-validate.js — content validation before a gear is applied'],
+  ['applyGearToState', 'function', 'gear-validate.js — reset + merge + configurator bookkeeping'],
+  ['gearDisplayName', 'function', 'gear-validate.js — title, with the labels fallback'],
+  ['gearDerivedBrandIds', 'function', 'gear-validate.js — derived ownership (D10), never stored'],
+  ['gearDerivedPrinterIds', 'function', 'gear-validate.js — derived ownership (D10), never stored'],
 ];
 
 for (const [name, kind, why] of expectations) {
