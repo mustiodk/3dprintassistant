@@ -76,280 +76,40 @@ Also swept, and clean for now: `state-codec.js:70` returns `null` on version mis
 
 ---
 
-## Task 1: `workshop-store.js` — a version-mismatched read must never be destructive (D-5)
-
-Do this first. It is the only non-additive fix in the set, and it protects data that already exists in users' browsers.
-
-**Files:**
-- Modify: `workshop-store.js:28-38` (`_read`), `workshop-store.js:43-56` (`_readEnv`)
-- Test: `scripts/workshop-store.test.js`
-
-**Interfaces:**
-- Consumes: nothing.
-- Produces: `_readEnv()` gains a `_skew` boolean on the returned envelope when the stored `v` is unrecognized. `createWorkshopStore(storage)` gains `hasVersionSkew() -> boolean` for the UI to surface.
-
-- [ ] **Step 1: Write the failing test**
-
-Append to `scripts/workshop-store.test.js`:
-
-```js
-// D-5 — a version-mismatched envelope is preserved, never overwritten
-{
-  const future = JSON.stringify({
-    v: 999,
-    profiles: [{ id: 'p1', name: 'Real', state: { printer: 'x1c' } }],
-    tuning: { accepted: [{ k: 'x1c|pla_basic' }], dismissed: [] },
-  });
-  const st = mockStorage({ '3dpa_workshop_v1': future });
-  const s = createWorkshopStore(st);
-
-  check('D-5 skew is reported', s.hasVersionSkew() === true);
-  check('D-5 list() is empty under skew', s.list().length === 0);
-
-  // The dangerous part: a write must not persist the empty read over real data.
-  s.save('New profile', { printer: 'a1' });
-  const after = JSON.parse(st._map.get('3dpa_workshop_v1'));
-  check('D-5 original envelope survives a subsequent write', after.v === 999);
-  check('D-5 original profile survives', Array.isArray(after.profiles) && after.profiles.length === 1
-    && after.profiles[0].id === 'p1');
-  check('D-5 tuning ledger survives too (the _readEnv site)',
-    after.tuning && after.tuning.accepted.length === 1);
-}
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `node scripts/workshop-store.test.js`
-Expected: FAIL — `s.hasVersionSkew is not a function`, and after that is stubbed, FAIL on "original envelope survives" because the current `_write` overwrites with `{v:1, profiles:[…]}`.
-
-- [ ] **Step 3: Write minimal implementation**
-
-In `workshop-store.js`, replace the two destructive gates. `_read`:
-
-```js
-  function _read() {
-    let raw = null;
-    try { raw = storage.getItem(KEY); } catch (_) { return []; }
-    if (!raw) return [];
-    let env;
-    try { env = JSON.parse(raw); } catch (_) { return []; }
-    if (!env || typeof env !== 'object') return [];
-    if (env.v !== VERSION) return [];          // read-empty is fine; _write must refuse
-    if (!Array.isArray(env.profiles)) return [];
-    return env.profiles.filter(p => p && typeof p === 'object' && p.id && p.state && typeof p.state === 'object');
-  }
-```
-
-`_read` is unchanged — returning `[]` for an unreadable envelope is correct. **The bug is that writes proceeded anyway.** Fix it where writes happen:
-
-```js
-  function _readEnv() {
-    let raw = null;
-    try { raw = storage.getItem(KEY); } catch (_) { return { v: VERSION, profiles: [] }; }
-    if (!raw) return { v: VERSION, profiles: [] };
-    let env;
-    try { env = JSON.parse(raw); } catch (_) { return { v: VERSION, profiles: [], _unreadable: true }; }
-    if (!env || typeof env !== 'object') return { v: VERSION, profiles: [], _unreadable: true };
-    if (env.v !== VERSION) {
-      // A newer (or foreign) envelope. Preserve it verbatim and refuse to write.
-      return { v: env.v, profiles: [], _skew: true };
-    }
-    if (!Array.isArray(env.profiles)) env.profiles = [];
-    return env;
-  }
-
-  function _writeEnv(env) {
-    if (env && env._skew) return { ok: false, error: 'version-skew' };
-    try {
-      const out = Object.assign({}, env);
-      delete out._skew; delete out._unreadable;
-      storage.setItem(KEY, JSON.stringify(out));
-      return { ok: true };
-    } catch (e) {
-      return { ok: false, error: (e && e.name === 'QuotaExceededError') ? 'quota' : 'storage' };
-    }
-  }
-
-  function hasVersionSkew() { return _readEnv()._skew === true; }
-```
-
-Add `hasVersionSkew` to the returned object at the store's export site.
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `node scripts/workshop-store.test.js`
-Expected: PASS, all green, exit 0.
-
-- [ ] **Step 5: Verify no other suite regressed**
-
-Run: `for f in $(git ls-files '*.test.js'); do node "$f" >/dev/null 2>&1 || echo "FAIL $f"; done`
-Expected: no output.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add workshop-store.js scripts/workshop-store.test.js
-git commit -m "fix(workshop): D-5 — a version-mismatched envelope is preserved, never overwritten
-
-Two destructive sites, not the one the sync spec named. _read() returning []
-was benign on its own; the damage was that _write proceeded anyway. And
-_readEnv() dropped the tuning ledger as well as profiles, because _write
-routes through it.
-
-Writes now refuse with {ok:false, error:'version-skew'} rather than
-persisting an empty envelope over a newer one. importJSON's gate at :231
-already refused correctly and is untouched."
-```
-
----
-
-## Task 2: `workshop-store.js` — deletes leave a tombstone (D-1)
-
-**Files:**
-- Modify: `workshop-store.js:176-180` (`remove`), `workshop-store.js:149` (`list`)
-- Test: `scripts/workshop-store.test.js`
-
-**Interfaces:**
-- Consumes: Task 1's `_readEnv`/`_writeEnv`.
-- Produces: profile rows gain `archived_at: string | null`. `list()` continues to return only live rows. New `listArchived() -> Array<profile>`.
-
-- [ ] **Step 1: Write the failing test**
-
-```js
-// D-1 — remove() soft-deletes so the deletion can travel
-{
-  const s = createWorkshopStore(mockStorage());
-  const a = s.save('Keeper', { printer: 'x1c' });
-  const b = s.save('Doomed', { printer: 'a1' });
-  s.remove(b.profile.id);
-  check('D-1 list() hides the removed profile', s.list().length === 1 && s.list()[0].id === a.profile.id);
-  check('D-1 the row survives with a tombstone',
-    s.listArchived().some(p => p.id === b.profile.id && typeof p.archived_at === 'string'));
-  check('D-1 an absent archived_at reads as live (old envelopes import unchanged)',
-    s.list()[0].archived_at === null || s.list()[0].archived_at === undefined);
-}
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `node scripts/workshop-store.test.js`
-Expected: FAIL — `s.listArchived is not a function`.
-
-- [ ] **Step 3: Write minimal implementation**
-
-```js
-  function _isLive(p) { return !p.archived_at; }   // absent === live, so old backups import unchanged
-
-  function list() { return _read().filter(_isLive); }
-  function listArchived() { return _read().filter(p => !_isLive(p)); }
-
-  function remove(id) {
-    const profiles = _read();
-    const p = profiles.find(x => x.id === id);
-    if (!p || !_isLive(p)) return { ok: false, error: 'not-found' };
-    p.archived_at = _now();
-    return _write(profiles);
-  }
-```
-
-Add `listArchived` to the export object.
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `node scripts/workshop-store.test.js`
-Expected: PASS.
-
-- [ ] **Step 5: Check the Workshop UI still hides removed rows**
-
-Run: `grep -n 'WorkshopStore.list()\|\.list()' app.js`
-Read every call site. Any that renders the shelf must use `list()`, not `_read()`. Fix any that would now show archived rows.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add workshop-store.js scripts/workshop-store.test.js app.js
-git commit -m "fix(workshop): D-1 — deletes leave a tombstone so they can travel
-
-remove() sets archived_at instead of dropping the row. list() filters live
-rows so the shelf is unchanged. Absent archived_at reads as live, so existing
-envelopes and existing user backup files import without migration."
-```
-
----
-
-## Task 3: `workshop-store.js` — journal writes must not bump the value timestamp (D-3)
-
-**Files:**
-- Modify: `workshop-store.js:195-215` (`addOutcome`, `removeOutcome`)
-- Test: `scripts/workshop-store.test.js`
-
-**Interfaces:**
-- Produces: profile rows gain `journal_updated: string`. `updated` keeps its meaning: *the last time a value field changed*.
-
-- [ ] **Step 1: Write the failing test**
-
-```js
-// D-3 — logging an outcome must not make this device's stale name win
-{
-  const s = createWorkshopStore(mockStorage());
-  const r = s.save('Original', { printer: 'x1c' });
-  const id = r.profile.id;
-  const valueStampBefore = s.get(id).updated;
-  s.addOutcome(id, { note: 'first print' });
-  check('D-3 addOutcome leaves the value timestamp alone', s.get(id).updated === valueStampBefore);
-  check('D-3 addOutcome moves the journal timestamp', typeof s.get(id).journal_updated === 'string'
-    && s.get(id).journal_updated >= valueStampBefore);
-  const journalStamp = s.get(id).journal_updated;
-  s.rename(id, 'Renamed');
-  check('D-3 rename DOES move the value timestamp', s.get(id).updated !== valueStampBefore);
-  check('D-3 rename leaves the journal timestamp alone', s.get(id).journal_updated === journalStamp);
-}
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `node scripts/workshop-store.test.js`
-Expected: FAIL on "addOutcome leaves the value timestamp alone" — `addOutcome` currently sets `p.updated = _now()`.
-
-- [ ] **Step 3: Write minimal implementation**
-
-In `addOutcome`, replace `p.updated = _now();` with:
-
-```js
-    p.journal_updated = _now();
-```
-
-In `removeOutcome`, replace `p.updated = _now();` with:
-
-```js
-    p.journal_updated = _now();
-```
-
-Leave `rename` and `save` setting `p.updated` exactly as they are.
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `node scripts/workshop-store.test.js`
-Expected: PASS.
-
-- [ ] **Step 5: Confirm no UI sorted the shelf by `updated` expecting outcomes to bump it**
-
-Run: `grep -n 'updated' app.js | grep -i 'sort\|order'`
-If a sort exists and the intent was recency-of-use, it should read `journal_updated || updated`. Change it if so; leave it if the sort is genuinely about edits.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add workshop-store.js scripts/workshop-store.test.js app.js
-git commit -m "fix(workshop): D-3 — journal writes touch a journal timestamp, not the value one
-
-addOutcome/removeOutcome set journal_updated. updated keeps its meaning: the
-last time a value field changed. Without this, logging a print outcome makes
-that device's stale name, notes and state win the next value conflict — the
-user loses the edit they made deliberately and keeps the incidental one.
-
-Additive: records without journal_updated fall back to updated."
-```
+## Tasks 1-3 — `workshop-store.js` defects — ✅ DONE 2026-08-21
+
+All three landed on web `main`, cross-model gated, and pushed. The full task text is
+preserved in this file's history at `d70547d`; it is collapsed here because the plan's
+live purpose is now Tasks 4-9.
+
+| Task | Defect | Commit |
+|---|---|---|
+| 1 | **D-5** — a version-mismatched envelope is preserved, never overwritten | `a442f1f` |
+| 2 | **D-1** — deletes leave a tombstone so they can travel | `1354bf9` |
+| 3 | **D-3** — journal writes touch a journal clock, not the value clock | `fa305f4` |
+
+**The Codex gate on those three found five more defects, all fixed:** `exportJSON`
+fabricated an empty backup under skew (`c434d77`); archived rows were mutable and a
+non-string `archived_at` resurrected a deleted row (`d3b9488`); `revertTuning` reported
+the wrong error under skew (`d3b9488`); four assertions passed under the reverted
+implementation and were replaced with a discriminating one (`d3b9488`); and the Workshop
+card date silently stopped moving when an outcome was logged (`d559bee`).
+
+**Two findings were deferred to an owner call** — both argue against a ratified spec
+decision. Disposition: [`../../reviews/2026-08-21-workshop-defect-fixes-review.md`](../../reviews/2026-08-21-workshop-defect-fixes-review.md)
+DEF-1 (tombstone location), DEF-2 (backups carrying archived rows), DEF-3 (spec wording).
+**None blocks web shipping gear; all three block planning sync.**
+
+**Two lessons that carry into Tasks 4-9:**
+
+1. **`_now()` is millisecond-resolution.** A stamp taken immediately before a call equals
+   the one taken after, so before/after comparisons are degenerate. Anchor timestamp
+   assertions to a seeded past value. Task 4's `G9` (`touch` moves `last_used_at`, not
+   `updated_at`) has exactly this shape — **seed it, do not compare before/after.**
+2. **Fail closed on shapes you do not understand.** Mapping an unrecognized `archived_at`
+   to `null` resurrected deleted rows. Task 4's `_normValue` returns `null` for
+   unrepresentable values, which DROPS them — re-check that against spec §2.4's
+   "unknown keys are preserved, never dropped."
 
 ---
 
