@@ -430,6 +430,25 @@ console.log('# workshop-store.js tests\n');
   }
 }
 
+// ── TC-R1 — exportJSON must not manufacture an empty backup under skew ──
+// Codex gate MUST-FIX. Under skew _read() is [] and getTuning() is empty, so
+// export produced a well-formed {v:1, profiles:[]}. It never touched
+// localStorage — but the user hits "Backup", gets a valid-looking file, and
+// now holds a destructive artifact built from data we could not read.
+{
+  console.log('TC-R1 — export refuses under version skew');
+  const future = JSON.stringify({ v: 999, profiles: [{ id: 'p1', name: 'Real', state: { printer: 'x1c' } }] });
+  const ws = createWorkshopStore(mockStorage({ '3dpa_workshop_v1': future }));
+  const dump = ws.exportJSON();
+  check('export does not return a fabricated v1 envelope', dump !== JSON.stringify({ v: 1, profiles: [] }, null, 2));
+  check('export signals the skew instead', dump === null);
+  // And a healthy store still exports normally.
+  const ok = createWorkshopStore(mockStorage());
+  ok.save('Fine', STATE_A);
+  check('a healthy store still exports', typeof ok.exportJSON() === 'string'
+    && JSON.parse(ok.exportJSON()).profiles.length === 1);
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');

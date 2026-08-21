@@ -114,6 +114,7 @@
   "workshopSub":               "Gemte profiler bor her — kun gemt på denne enhed. Eksportér en backup for at flytte eller bevare dem.",
   "workshopEmpty":             "Ingen gemte profiler endnu",
   "workshopEmptySub":          "Konfigurer en profil, og tryk ★ Gem ved resultaterne.",
+  "wsExportSkew":          "Denne backup kan ikke oprettes — dine gemte data er fra en nyere version af appen. Opdatér, og prøv igen.",
   "saveProfileBtn":            "★ Gem",
   "saveProfileTitle":          "Gem profil i værkstedet",
   "profileSaved":              "Gemt i dit værksted",

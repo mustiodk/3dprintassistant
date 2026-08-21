@@ -258,6 +258,11 @@ function createWorkshopStore(storage) {
   }
 
   function exportJSON() {
+    // Under skew _read() is [] and getTuning() is empty, so this would emit a
+    // well-formed { v: 1, profiles: [] }. It never touches localStorage, but
+    // the user hits Backup, gets a valid-looking file, and is now holding a
+    // destructive artifact built from data we could not read. Refuse instead.
+    if (_readEnv()._skew) return null;
     const out = { v: VERSION, profiles: _read() };
     const t = getTuning();
     if (t.accepted.length || t.dismissed.length) out.tuning = t;

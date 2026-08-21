@@ -114,6 +114,7 @@
   "workshopSub":               "Saved profiles live here — stored on this device only. Export a backup to move or keep them.",
   "workshopEmpty":             "No saved profiles yet",
   "workshopEmptySub":          "Configure a profile, then hit ★ Save next to the results.",
+  "wsExportSkew":          "This backup can't be created — your saved data is from a newer version of the app. Update, then try again.",
   "saveProfileBtn":            "★ Save",
   "saveProfileTitle":          "Save profile to Workshop",
   "profileSaved":              "Saved to your Workshop",

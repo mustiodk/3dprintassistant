@@ -1339,7 +1339,12 @@ function bindControls() {
 
   document.getElementById('wsExportBtn').addEventListener('click', () => {
     if (!WorkshopStore) return;
-    _downloadJSONText(WorkshopStore.exportJSON(), '3dpa-workshop-backup.json');
+    const dump = WorkshopStore.exportJSON();
+    // null === version skew: the stored envelope is from a newer build and we
+    // could not read it. Exporting anyway would hand the user a valid-looking
+    // but empty backup.
+    if (dump === null) { showToast(Engine.t('wsExportSkew')); return; }
+    _downloadJSONText(dump, '3dpa-workshop-backup.json');
   });
   document.getElementById('wsImportBtn').addEventListener('click', () =>
     document.getElementById('wsImportFile').click());
