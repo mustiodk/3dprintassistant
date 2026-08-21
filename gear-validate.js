@@ -135,9 +135,25 @@ var inspectGear, applyGearToState, gearDisplayName, gearDerivedBrandIds, gearDer
   // state rather than on the value being valid. Today there is exactly one
   // (`profileMode: 'mine'`, engine.js:568-572); it is enumerated rather than
   // inferred so a future conditional value is a deliberate addition here.
-  var CONDITIONAL_VALUES = { profileMode: { mine: true } };
+  // NULL-PROTOTYPE, and looked up with own-property checks. As a plain object
+  // literal this table inherits from Object.prototype, so
+  // CONDITIONAL_VALUES.profileMode['toString'] is truthy — and since this table
+  // EXEMPTS a value from the membership check, that made `toString`,
+  // `constructor`, `hasOwnProperty` and `__proto__` all bypass validation and
+  // apply as `ok`.
+  //
+  // This is the same prototype-chain defect closed in gear-store.js earlier the
+  // same day, reintroduced in the sibling file. Any map keyed by untrusted
+  // strings gets both treatments here: null prototype AND hasOwnProperty.
+  var CONDITIONAL_VALUES = Object.create(null);
+  CONDITIONAL_VALUES.profileMode = Object.create(null);
+  CONDITIONAL_VALUES.profileMode.mine = true;
+
+  var _hasOwnCV = Object.prototype.hasOwnProperty;
   function _isConditionalValue(key, value) {
-    return !!(CONDITIONAL_VALUES[key] && CONDITIONAL_VALUES[key][value]);
+    if (typeof key !== 'string' || typeof value !== 'string') return false;
+    if (!_hasOwnCV.call(CONDITIONAL_VALUES, key)) return false;
+    return _hasOwnCV.call(CONDITIONAL_VALUES[key], value);
   }
 
   function _isMember(key, value, filter, catalogs) {
@@ -423,7 +439,14 @@ var inspectGear, applyGearToState, gearDisplayName, gearDerivedBrandIds, gearDer
       }
     }
 
-    if (typeof d.resetFields === 'function') d.resetFields();
+    // Every dep call is optional bookkeeping around a mutation that has to
+    // happen. A throw from one must not abort the others or leave the picker in
+    // a state that contradicts app state. The engine's real setters do not
+    // throw today (engine.js:979), so this is contract hardening rather than a
+    // live failure — but the helper's contract is what future callers rely on.
+    const _try = (fn, arg) => { try { if (typeof fn === 'function') fn(arg); } catch (_) {} };
+
+    _try(d.resetFields);
 
     // Copy arrays rather than aliasing them into app state. `state.useCase` is
     // mutated in place on every chip click (app.js:1565); aliasing would let a
@@ -438,11 +461,11 @@ var inspectGear, applyGearToState, gearDisplayName, gearDerivedBrandIds, gearDer
     }
 
     if (!printer) return;
-    if (slicer) d.setActiveSlicer(slicer);
-    if (brand) d.setExpandedBrand(brand);
+    if (slicer) _try(d.setActiveSlicer, slicer);
+    if (brand) _try(d.setExpandedBrand, brand);
 
     // Last: a printer is set, so the picker has nothing left to ask.
-    if (typeof d.collapsePicker === 'function') d.collapsePicker();
+    _try(d.collapsePicker);
   };
 
   // ─── gearDisplayName ───────────────────────────────────────────────────────

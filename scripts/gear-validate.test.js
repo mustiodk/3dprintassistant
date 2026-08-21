@@ -334,6 +334,57 @@ function gear(fields, labels) {
     'state=' + JSON.stringify(state) + ' snapshot=' + snapshot);
 }
 
+// V17 — GATE R2 MUST-FIX: the conditional-value exemption must not be a
+// prototype-chain hole. CONDITIONAL_VALUES was a plain object literal, so
+// CONDITIONAL_VALUES.profileMode['toString'] was truthy via Object.prototype —
+// and because this table EXEMPTS a value from membership, every inherited
+// property name bypassed validation and applied as `ok`.
+//
+// Same defect class closed in gear-store.js earlier the same day and
+// reintroduced here.
+{
+  const REAL = { filters: [
+    { key: 'printer',  multi: false, items: [{ id: 'x1c' }] },
+    { key: 'material', multi: false, items: [{ id: 'pla_basic' }] },
+    { key: 'profileMode', multi: false, items: [{ id: 'safe' }, { id: 'tuned' }] },
+  ], mineAvailable: () => false };
+
+  ['toString', 'constructor', 'hasOwnProperty', '__proto__', 'valueOf'].forEach(name => {
+    const r = inspectGear(gear({ printer: 'x1c', material: 'pla_basic', profileMode: name }), CAT, REAL);
+    check('V17 "' + name + '" does not bypass membership', r.state === 'stale',
+      'got ' + r.state + ' resolved=' + JSON.stringify(r.resolved.profileMode));
+    check('V17 "' + name + '" is left unset', !('profileMode' in r.resolved));
+  });
+
+  // and the genuine conditional value still works
+  const ok = inspectGear(gear({ printer: 'x1c', material: 'pla_basic', profileMode: 'mine' }), CAT, REAL);
+  check('V17 the real conditional value still degrades to safe',
+    ok.state === 'degraded' && ok.resolved.profileMode === 'safe');
+}
+
+// V18 — GATE R2 SHOULD-FIX: a throwing dep must not abort the remaining
+// bookkeeping or leave the picker contradicting app state.
+{
+  const calls = [];
+  const state = { printer: 'old' };
+  let threw = false;
+  try {
+    applyGearToState({ printer: 'x1c' }, state, {
+      resetFields: () => { calls.push('reset'); state.printer = null; },
+      getSlicerForPrinter: () => 'bambu_studio',
+      setActiveSlicer: () => { calls.push('slicer'); throw new Error('boom'); },
+      printerRow: () => ({ manufacturer: 'bambu_lab' }),
+      setExpandedBrand: () => calls.push('brand'),
+      collapsePicker: () => calls.push('collapse'),
+    });
+  } catch (_) { threw = true; }
+  check('V18 a throwing setter does not propagate', threw === false);
+  check('V18 state is still fully applied', state.printer === 'x1c');
+  check('V18 and the remaining bookkeeping still ran',
+    calls.indexOf('brand') !== -1 && calls[calls.length - 1] === 'collapse',
+    'calls=' + calls.join(','));
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');
