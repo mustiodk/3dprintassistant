@@ -290,6 +290,21 @@ function row(extra) {
   check('G6 fields map is null-prototype', Object.getPrototypeOf(s.list()[0].fields) === null);
 }
 
+// G6b — labels and settings are hostile surfaces too (spec §2.5 names all three)
+{
+  const hostile = '{"v":1,"gears":{"g1":{"name":"G","fields":{"printer":"x1c"},'
+    + '"labels":{"__proto__":"evil","printer":"X1 Carbon"},"created_at":"' + T_OLD + '",'
+    + '"updated_at":"' + T_OLD + '","last_used_at":null,"archived_at":null}},'
+    + '"settings":{"__proto__":"evil","active_gear":"g1"}}';
+  const s = createGearStore(mockStorage({ [KEY]: hostile }));
+  check('G6b labels map is null-prototype', Object.getPrototypeOf(s.get('g1').labels) === null);
+  check('G6b reserved key dropped from labels', Object.keys(s.get('g1').labels).indexOf('__proto__') === -1);
+  check('G6b the legitimate label survived', s.get('g1').labels.printer === 'X1 Carbon');
+  check('G6b settings map is null-prototype', Object.getPrototypeOf(s.raw ? s.getSettings().catalog_seen : s.getSettings().catalog_seen) === null);
+  check('G6b settings survived the reserved key', s.getSettings().active_gear === 'g1');
+  check('G6b no prototype pollution from any of it', ({}).evil === undefined);
+}
+
 // G7 — type mismatches degrade, never throw; siblings survive
 {
   const messy = '{"v":1,"gears":{"a":"not-an-object","b":{"name":"B","fields":"not-a-map"},'
@@ -357,6 +372,20 @@ function row(extra) {
     aa: row({ last_used_at: T_MID, created_at: T_MID }),
   }) }));
   check('G11 id tie-break is bytewise ascending', s.list().map(g => g.id).join(',') === 'aa,z');
+}
+{
+  // The case where JS `<` and UTF-8 bytes DISAGREE. U+E000 encodes to EE 80 80;
+  // U+10000 encodes to F0 90 80 80. Bytewise, U+E000 sorts FIRST. In UTF-16
+  // code-unit order it does not, because U+10000 is a surrogate pair (D800 DC00)
+  // and D800 < E000. A naive `<` comparator gets this backwards.
+  const hi = '\u{10000}', pua = '\uE000';
+  check('G11 the counterexample is real (JS < disagrees with bytes)', hi < pua);
+  const s = createGearStore(mockStorage({ [KEY]: envelope({
+    [hi]:  row({ last_used_at: T_MID, created_at: T_MID }),
+    [pua]: row({ last_used_at: T_MID, created_at: T_MID }),
+  }) }));
+  check('G11 tie-break uses UTF-8 bytes, not UTF-16 code units',
+    s.list().map(g => g.id).join('') === pua + hi);
 }
 
 // G12 — a missing/unparseable created_at sorts LAST and is NEVER rewritten
@@ -437,7 +466,25 @@ Non-negotiables, each traceable to a spec line:
   // devices and manufactures a spurious sync write).
   const CREATED_SENTINEL = '0000-00-00T00:00:00.000Z';
 
-  function _cmp(a, b) { return a < b ? -1 : (a > b ? 1 : 0); }   // bytewise; localeCompare is forbidden
+  // Spec §2.3 requires a BYTEWISE comparison of the UTF-8 key. JS `<`/`>`
+  // compares UTF-16 code units, which is NOT the same thing: the gate verified
+  // a counterexample where the two disagree (U+10000 vs U+E000). Gear ids we
+  // generate are ASCII UUIDs, but a hand-edited or foreign envelope can carry
+  // any key, and the total order is load-bearing for sync — so compare real
+  // bytes, with an ASCII fast path.
+  const _enc = (typeof TextEncoder !== 'undefined') ? new TextEncoder() : null;
+  const _ASCII = /^[\x00-\x7F]*$/;
+  function _cmp(a, b) {                       // timestamps: always ASCII
+    return a < b ? -1 : (a > b ? 1 : 0);
+  }
+  function _cmpKey(a, b) {                    // gear ids: may be anything
+    if (_ASCII.test(a) && _ASCII.test(b)) return _cmp(a, b);
+    if (!_enc) return _cmp(a, b);             // no TextEncoder: documented fallback
+    const x = _enc.encode(a), y = _enc.encode(b);
+    const n = Math.min(x.length, y.length);
+    for (let i = 0; i < n; i++) if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1;
+    return x.length - y.length;
+  }
 
   function _order(a, b) {
     const au = a.last_used_at, bu = b.last_used_at;
@@ -449,7 +496,7 @@ Non-negotiables, each traceable to a spec line:
     const ac = _validIso(a.created_at) ? a.created_at : CREATED_SENTINEL;
     const bc = _validIso(b.created_at) ? b.created_at : CREATED_SENTINEL;
     if (ac !== bc) return -_cmp(ac, bc);
-    return _cmp(a.id, b.id);        // ascending, bytewise
+    return _cmpKey(a.id, b.id);     // ascending, real UTF-8 bytes
   }
 ```
 
@@ -617,6 +664,25 @@ function gear(fields, labels) {
     r.resolved.useCase.join(',') === 'functional,decorative,large');
 }
 
+// V7b — the validation ORDER is discriminating, not just the prose.
+// Membership must run BEFORE cardinality, and the conditional AFTER it.
+{
+  const r = inspectGear(gear({ printer: 'x1c', surface: ['fine','retired_finish'] }), CAT, META);
+  check('V7b membership runs before cardinality — a bad member makes it stale',
+    r.state === 'stale', 'if cardinality ran first it would narrow to "fine" and report ok');
+  check('V7b and the field is left unset', !('surface' in r.resolved));
+}
+{
+  // 'mine' arrives as a single-element ARRAY. If the conditional ran before
+  // coercion it would compare against ['mine'] and never match, silently
+  // leaving an array in a single-valued field.
+  let seen = null;
+  const meta = { filters: FILTERS, mineAvailable: (p, m) => { seen = [p, m]; return false; } };
+  const r = inspectGear(gear({ printer: 'x1c', material: 'pla_basic', profileMode: ['mine'] }), CAT, meta);
+  check('V7b conditional runs AFTER coercion — it saw the coerced pair', seen !== null);
+  check('V7b and produced the scalar fallback, not an array', r.resolved.profileMode === 'safe');
+}
+
 // V8 — [] survives as pinned-as-none
 {
   const r = inspectGear(gear({ printer: 'x1c', useCase: [] }), CAT, META);
@@ -665,9 +731,10 @@ function gear(fields, labels) {
   check('V11 deduplicates', brands.length === 2);
   check('V11 an unknown printer is skipped, not thrown on',
     gearDerivedBrandIds([gear({ printer: 'ghost' })], id => rows[id] || null).length === 0);
+  check('V11 brands are exactly the two, in first-seen order', brands.join(',') === 'bambu_lab,prusa');
   const printers = gearDerivedPrinterIds(gears);
   check('V11 derives printer ids too (D10 says printers, not only brands)',
-    printers.length === 2 && printers.indexOf('x1c') !== -1);
+    printers.join(',') === 'x1c,mk4');
 }
 ```
 
@@ -850,7 +917,10 @@ otherwise make new catalog entries invisible to anyone with gears. Uses
 - **`workshop-store.js` D-2 and D-4** — they land with sync, per sync spec §10.4.
 - **DEF-1/DEF-2/DEF-3** from the Tasks 1–3 gate — owner calls, due before sync is planned.
 - **Inventory** — D18b settled the architecture (local-first, iCloud-synced); ships after 2.0.
-- **The `stale` repair interaction** — gear spec open question 2, still needs a design pass.
+- **The `stale` repair interaction.** Spec §3.1 says a stale gear "is offered repair", but
+  §7 open question 2 leaves the interaction undesigned. **The state is surfaced; no repair
+  is promised and no repair string is added** — offering a fix we have not designed is
+  worse than showing the state plainly. Deliberately deferred, not overlooked.
 - **The web nozzle-picker bug** — see the note in Task 8. Owner call.
 
 ---
