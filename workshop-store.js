@@ -34,8 +34,14 @@ function createWorkshopStore(storage) {
     if (!env || typeof env !== 'object') return [];
     if (env.v !== VERSION) return [];
     if (!Array.isArray(env.profiles)) return [];
-    return env.profiles.filter(p => p && typeof p === 'object' && p.id && p.state && typeof p.state === 'object');
+    return env.profiles
+      .filter(p => p && typeof p === 'object' && p.id && p.state && typeof p.state === 'object')
+      // D-1: absent archived_at reads as LIVE, so existing envelopes and
+      // existing user backup files keep working with no migration.
+      .map(p => (typeof p.archived_at === 'string' ? p : Object.assign(p, { archived_at: null })));
   }
+
+  function _isLive(p) { return !p.archived_at; }
 
   // Envelope-level read/write (IMPL-044 W3 gate B3). _readEnv returns the whole
   // envelope so additive sections (tuning) survive profile writes; W1-era
@@ -168,9 +174,11 @@ function createWorkshopStore(storage) {
     return getTuning().dismissed.find(d => d.key === key) || null;
   }
 
-  function list() { return _read(); }
+  function list() { return _read().filter(_isLive); }
 
-  function get(id) { return _read().find(p => p.id === id) || null; }
+  function listArchived() { return _read().filter(p => !_isLive(p)); }
+
+  function get(id) { return _read().find(p => p.id === id && _isLive(p)) || null; }
 
   function save(name, state, notes) {
     const profiles = _read();
@@ -181,6 +189,7 @@ function createWorkshopStore(storage) {
       notes: typeof notes === 'string' ? notes : '',
       created: _now(),
       updated: _now(),
+      archived_at: null,
     };
     const w = _write([...profiles, profile]);
     return w.ok ? { ok: true, profile } : w;
@@ -196,12 +205,16 @@ function createWorkshopStore(storage) {
     return _write(profiles);
   }
 
+  // D-1 (sync spec §5): a hard delete cannot travel. Under sync, any device
+  // still holding the row re-uploads it and the deletion undoes itself. The
+  // shelf's behaviour is unchanged — only the storage is.
   function remove(id) {
     const _sk = _skewed(); if (_sk) return _sk;
     const profiles = _read();
-    const next = profiles.filter(x => x.id !== id);
-    if (next.length === profiles.length) return { ok: false, error: 'not-found' };
-    return _write(next);
+    const p = profiles.find(x => x.id === id);
+    if (!p || !_isLive(p)) return { ok: false, error: 'not-found' };
+    p.archived_at = _now();
+    return _write(profiles);
   }
 
   // ── Print journal (IMPL-044 W2) — per-profile outcome records ─────────────
@@ -295,7 +308,7 @@ function createWorkshopStore(storage) {
 
   return { list, get, save, rename, remove, addOutcome, removeOutcome, exportJSON, importJSON,
            getTuning, addTuningOp, revertTuning, dismissSuggestion, getDismissal,
-           hasVersionSkew };
+           hasVersionSkew, listArchived };
 }
 
 const WorkshopStore = (typeof localStorage !== 'undefined')

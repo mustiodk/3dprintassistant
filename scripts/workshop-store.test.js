@@ -315,6 +315,51 @@ console.log('# workshop-store.js tests\n');
   check('normal save still works', ok.save('fine', STATE_A).ok === true);
 }
 
+// ── TC-D1 — remove() leaves a tombstone so the deletion can travel ──
+// Sync spec D-1. Under plain hard-delete, any device still holding the
+// profile re-uploads it and the deletion undoes itself.
+{
+  console.log('TC-D1 — deletes are soft');
+  const ws = createWorkshopStore(mockStorage());
+  const a = ws.save('Keeper', STATE_A).profile;
+  const b = ws.save('Doomed', STATE_B).profile;
+
+  check('remove reports ok', ws.remove(b.id).ok === true);
+  check('list() hides the removed profile', ws.list().length === 1 && ws.list()[0].id === a.id);
+  check('get() also hides it', ws.get(b.id) === null);
+  check('the row survives with a tombstone',
+    ws.listArchived().some(p => p.id === b.id && typeof p.archived_at === 'string'));
+  check('removing twice is not-found, not a second tombstone',
+    ws.remove(b.id).error === 'not-found');
+  check('live profiles carry an explicit null tombstone', ws.list()[0].archived_at === null);
+
+  // Old envelopes and old user backup files have no archived_at at all.
+  // Absent MUST read as live, or a restore would hide everything.
+  const legacy = JSON.stringify({
+    v: 1, profiles: [{ id: 'old', name: 'Legacy', state: { printer: 'x1c' }, created: '2026-01-01T00:00:00.000Z', updated: '2026-01-01T00:00:00.000Z' }],
+  });
+  const ws2 = createWorkshopStore(mockStorage({ '3dpa_workshop_v1': legacy }));
+  check('a legacy row with no archived_at reads as live', ws2.list().length === 1);
+  check('and is not reported as archived', ws2.listArchived().length === 0);
+
+  // Round-trip fidelity: the tombstone is part of the record, so it must
+  // survive export -> import. NOT asserted here: whether an incoming LIVE row
+  // should beat a local tombstone. That is D-2 (import-merge direction) and
+  // sync spec §9.2, both explicitly still open — deciding it with a test here
+  // would pre-empt an owner call. D-2 lands with sync.
+  const ws3 = createWorkshopStore(mockStorage());
+  const gone = ws3.save('Gone', STATE_A).profile;
+  ws3.save('Live', STATE_B);
+  ws3.remove(gone.id);
+  const dump = ws3.exportJSON();
+  check('export carries the tombstone',
+    JSON.parse(dump).profiles.some(p => p.id === gone.id && typeof p.archived_at === 'string'));
+  const ws4 = createWorkshopStore(mockStorage());
+  check('import of that dump reports ok', ws4.importJSON(dump).ok === true);
+  check('the tombstone survives the round-trip', ws4.list().every(p => p.id !== gone.id));
+  check('and the live sibling came back', ws4.list().length === 1 && ws4.list()[0].name === 'Live');
+}
+
 console.log('');
 if (failures === 0) {
   console.log('ALL TESTS PASS');
