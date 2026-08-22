@@ -494,6 +494,35 @@ markdown file and is the commit both jobs went green on — and then green again
 on the `main` push. No code went untested; the cancelled run is bookkeeping,
 not a gap.
 
+### The build
+
+`gh workflow run testflight.yml --ref main` → run `32601181979`, headSha
+**`703bd6f`** — the reviewed HEAD exactly, which is what the gate asks for.
+
+**1.5.0 build `202608222201`**: uploaded, finished processing, and distributed
+to testers. **One** build for this version, as the gate requires — the earlier
+release trains burned three in an evening, which is what the per-train version
+rule exists to prevent.
+
+### Gate status
+
+| Gate item | State |
+|---|---|
+| `git log origin/main..HEAD` empty after the push | ✅ empty; `origin/main` = `703bd6f` |
+| both CI jobs green on that commit | ✅ engine-mirror + XCTest, on the `main` push |
+| exactly one TestFlight build for 1.5.0, headSha matching reviewed HEAD | ✅ `202608222201` on `703bd6f` |
+| all three tip products APPROVED in ASC | ⬜ **owner** — no ASC access from here |
+| submission queued with Manual Release | ⬜ **owner** — same |
+| `verify-parents` current, hold released | ✅ hold released; both product repos current |
+
+One caveat recorded rather than smoothed over: `verify-parents` reports the
+`~/.claude` parent as **dirty** — `plugins/installed_plugins.json` modified,
+`policy-limits.json` and `remote-settings.json` **deleted**, and an untracked
+`uploads/` directory. None of it is from this session and none of it belongs to
+1.5.0. Two of the four are deletions of harness-managed files, so committing
+them blind would be a mutation on a premise I have not verified. Surfaced for
+the owner, not touched.
+
 ### What I could not do, and why
 
 ASC needs credentials that live only in GitHub secrets, and `fastlane/metadata/`
