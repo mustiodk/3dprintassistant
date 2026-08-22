@@ -432,9 +432,39 @@ a silent one.
 **464 tests, 0 failures, green in both languages.** Each fix's test was confirmed
 to go red when the fix is reverted.
 
+## The screenshot pass — done, and it earned its keep
+
+Captured from a locally-installed build in both languages, committed at
+`3dprintassistant-ios/docs/screenshots/1.5.0/` with a README explaining each
+frame. Two things came out of it that 464 tests could not see.
+
+**A layout defect, fixed (`5de572b`).** `.frame(minHeight:)` defaults to
+`alignment: .center`. In the hero state the two `Spacer()`s absorb the slack so
+centering is a no-op; the compact header removes those Spacers, so the whole
+returning-launch Home floated in the middle of the viewport with a void above
+the wordmark — the exact opposite of what freeing 272pt was for. The Phase 4
+height assertions pin the section's HEIGHT, and the height was always right.
+Where it sits is a layout property resolved at render, and no assertion in the
+suite reaches it. Worth saying plainly rather than papering over with a test
+that would not have caught it either.
+
+**A mixed-language screen, NOT fixed, and deliberately so.** Print Details
+renders Danish group labels and use-case chips beside English option values
+("Overfladekvalitet" / "Draft" / "Very Fine" / "Quality above all"). Measured
+before it was reported: the labels and chips have locale keys (`filterSurface`,
+`ucDecorative`, …); the option names do not — `engine.js:519-525` builds them
+as `name: s.name` straight from `data/rules/objective_profiles.json`, no `t()`
+call, and grepping the tables for "Draft" or "Strong" returns nothing.
+
+`engine.js` and `data/` are byte-gated identical between platforms, so **the
+Danish web app renders this screen the same way.** This release did not create
+the gap — wiring `setLang` made an existing one visible for the first time.
+Closing it is ~15 locale keys in the shared data layer, web-first, on both
+platforms. Left as an owner decision rather than taken unilaterally inside a
+release whose locale scope was explicitly Home + Gear.
+
 ## What Phase 6 still needs, and it is not mine to do
 
-- A **manual screenshot pass** of all six Home states in both languages.
 - **Owner sign-off on a locally-installed build in both languages**, recorded
   here. The plan's gate is explicit: *no dispatch before that line exists.*
 
