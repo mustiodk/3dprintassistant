@@ -317,3 +317,127 @@ engine and compares all 61 gear keys against `Engine.t` to keep it that way.
 
 Both jobs, all 367 tests at the time of the Phase 3 push, plus the engine mirror
 and the new locale gate.
+
+---
+
+## Phase 5 — creation and navigation
+
+Delegated to a subagent, then verified independently: I re-ran both language
+modes against my own build and reproduced two of its thirteen negative controls
+rather than accepting the counts on its word.
+
+**460 tests, 0 failures, green in both `-testLanguage en -testRegion US` and
+`-testLanguage da -testRegion DK` from ONE build** — so the two languages are
+genuinely being compared and not two separately-compiled things.
+
+Negative controls I re-ran myself: back label back to a compile-time constant →
+**10 red**; wizard order swapped → **1 red**, in
+`test_withBothHardwareGapsOpenMaterialIsAskedBeforeNozzle`. Both matched what the
+agent reported.
+
+### The defect the phase exposed
+
+`NavigationPath` is type-erased. It reports a count and nothing else, so it
+cannot answer "what is behind me" — which is the only question a labelled back
+button has. Every screen answered at compile time with a hardcoded string, and
+every one is wrong off the walked path: `WorkshopView.load` resets the stack and
+pushes Output, whose back button then reads "‹ Print Details" while going Home.
+**That is live in 1.1.4.** Deep entry makes it reachable from the feature this
+release is named after.
+
+Every route in this app is one `AppRoute` case, so the erasure bought nothing and
+cost the answer. The stack is now `[AppRoute]`.
+
+Navigation had **zero** test coverage before this phase — no test file referenced
+`AppRouter` at all — which is the whole explanation for how a mislabeled back
+button shipped and stayed.
+
+### The test that passed vacuously
+
+The agent's first wizard-ordering test opened only one hardware gap at a time, so
+either branch order gave the same answer and the negative control stayed green.
+A printer-only gear arrives with both material and nozzle open, which is the live
+case. Rewritten until it discriminates. The order is **printer → material →
+nozzle**, which is not the obvious one.
+
+### Recorded, not hidden
+
+`EngineService` binds neither `setActiveSlicer` nor `getActiveSlicer` — iOS
+derives the slicer per render from the printer — so **spec V10 is unmirrorable on
+iOS**. A test asserts those two deps are nil and says why, so wiring one later
+turns a passing assertion red rather than sliding in.
+
+### Web companion change (committed to web `main`, deployed)
+
+iOS emits `gear_created` / `gear_applied` / `gear_archived`. **None of the three
+was in the Worker's `EVENT_KEYS` map**, so every one would have been rejected as
+`invalid_event` before a property was examined — and the client swallows that
+rejection. Shipping the app without this loses the data silently on both sides.
+
+`gear_applied` carries `type` = `ok` / `degraded` / `stale`: a gear is a pin
+taken against a catalog that keeps moving, so "are saved gears still resolving
+cleanly a month later" is the question the feature has to answer, and a bare
+count of applies cannot tell a healthy install base from one quietly degrading.
+The pinned hardware is deliberately NOT carried — on a per-gear event it would
+turn an aggregate counter into a per-user hardware fingerprint.
+
+Note for the record: the agent named the constant `EVENT_PROPERTY_ALLOWLIST`.
+There is no such symbol; it is `EVENT_KEYS`. The substance was right, the
+pointer was not, and a comment pointing at a grep that returns nothing is worse
+than no comment.
+
+## Phase 6 — adversarial review
+
+`bridge --mode codex-only`, full-feature hostile review. Transcript:
+`3dprintassistant-ios/codex/gear-1-5-0-review/bridge-2026-08-22-214407-867173.md`.
+
+Three findings. **Every one verified empirically before anything was edited** —
+the reviewer's account of a defect is a claim like any other.
+
+**HIGH — `GearContext.itemNames` was a canonically-collapsing dictionary.**
+Confirmed against real Swift: two inserts whose keys differ only by Unicode
+normalization leave `count == 1`, and the *composed* id reads back the
+*decomposed* entry's value. Worse than a lookup miss, because it answers
+confidently and wrongly, and `GearSaveModel` feeds those names into the gear's
+`labels` — a field of the frozen shared envelope. iOS would have persisted a
+label web never wrote. `GearCatalogs`, built from the same snapshot and sitting
+in the same struct, already used `Set<[UInt8]>` for exactly this reason. Fixed
+with `ByteKeyedMap` at both levels. Commit `b371aba`.
+
+While verifying it I measured something adjacent and worth writing down:
+**`JSONSerialization` also collapses canonically-equivalent object keys where JS
+keeps both** (1 key vs 2, checked against node). That does not reach the store,
+because `RawShape` flags exactly this case as `ambiguousKeyPaths` and refuses the
+write — and it works *because* Swift collapses. The existing design was already
+correct here; now it is measured rather than assumed.
+
+**MEDIUM — three Gear screens rendered half Danish.** The release that made
+"whole screens, or nothing" the rule shipped a save sheet reading "Gem som gear"
+with an English "Cancel". All three borrowed from `Strings.Workshop`, whose
+members are English-only constants — correct for Workshop, wrong the instant a
+fully-Danish screen borrows one. Both replacements (`gearArmCancel`,
+`nameModalSaveBtn`) are ratified keys already on web. Commit `b5486d2`.
+
+No value assertion could have caught this: every string was correct for the
+namespace it came from. The defect was in the wiring, so the new test reads the
+wiring — nothing under `Views/Gear/` may reference `Strings.Workshop` or
+`Strings.Nav`.
+
+**LOW — declined, with the reason.** A same-byte duplicate key scans clean and a
+write drops the shadowed value. This matches JS last-wins parsing exactly, so
+"fixing" it would *create* the divergence it appears to remove. The gap is
+already documented in `GearStoreTests`. Recorded as a written decline rather than
+a silent one.
+
+**464 tests, 0 failures, green in both languages.** Each fix's test was confirmed
+to go red when the fix is reverted.
+
+## What Phase 6 still needs, and it is not mine to do
+
+- A **manual screenshot pass** of all six Home states in both languages.
+- **Owner sign-off on a locally-installed build in both languages**, recorded
+  here. The plan's gate is explicit: *no dispatch before that line exists.*
+
+Phase 7 (version bump, push to `main`, one TestFlight build, ASC submission) is
+blocked on that signature, and the sync hold stays ACTIVE until the Phase 7
+commit lands.
