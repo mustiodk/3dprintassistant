@@ -137,6 +137,35 @@ Profile names, profile ids, file URLs, file contents, and generated settings
 are forbidden. `workshop_exported.type` uses the existing shared event-detail
 column (`blob19`); the 20-blob order is unchanged.
 
+### Gear events (added for iOS 1.5.0)
+
+Same contract as the Workshop trio, emitted only after the operation succeeds.
+
+| Event | Meaning | Extra allowed property |
+|---|---|---|
+| `gear_created` | A gear was saved successfully. | None. |
+| `gear_applied` | A gear was loaded into the configurator. | `type`: `ok`, `degraded` or `stale`. |
+| `gear_archived` | A gear was archived. | None. |
+
+`gear_applied.type` is the gear's **resolution state at the moment it was
+applied**, and it is the one property here worth collecting. A gear is a pin
+taken against a catalog that keeps moving, so "are saved gears still resolving
+cleanly a month later" is the question the feature has to be able to answer,
+and a bare count of applies cannot tell a healthy install base from one quietly
+degrading under everyone. It rides the shared `type` key into `blob19` exactly
+as `workshop_exported` does; the 20-blob order is unchanged.
+
+Gear names, gear ids, and the hardware a gear pins are forbidden. The pinned
+hardware in particular: it is available and it looks harmless, but carrying it
+on a per-gear event would turn an aggregate counter into a per-user hardware
+fingerprint. `profile_generated` is the event that reports hardware, in
+aggregate, and it stays the only one.
+
+**These three did not exist server-side until 1.5.0.** iOS emitted them and the
+Worker rejected every one as `invalid_event` before looking at a property, and
+the client swallows that rejection — so the data was lost silently on both
+sides. Shipping a native gear event without its entry here repeats that.
+
 ## Worker Storage Mapping
 
 Workers Analytics Engine stores ordered arrays, so the field order is fixed:

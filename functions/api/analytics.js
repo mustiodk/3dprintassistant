@@ -80,6 +80,27 @@ const EVENT_KEYS = {
   workshop_imported: new Set([
     ...COMMON_KEYS,
   ]),
+  gear_created: new Set([
+    ...COMMON_KEYS,
+  ]),
+  // `type` carries the RESOLUTION STATE of the gear that was applied — one of
+  // `ok` / `degraded` / `stale`. It rides the shared `type` key rather than a
+  // new one, exactly as `workshop_exported` does, because `toDataPoint` maps
+  // that name into the single shared `eventDetail` blob (blob19) and every
+  // query filters on the event first.
+  //
+  // It is the one property worth collecting here, and it answers the feature's
+  // central risk: a gear is a pin taken against a catalog that keeps moving, so
+  // "are saved gears still resolving cleanly a month later" is the question
+  // 1.5.0 has to be able to answer. A bare count of applies cannot tell a
+  // healthy install base from one quietly degrading under everyone.
+  gear_applied: new Set([
+    ...COMMON_KEYS,
+    "type",
+  ]),
+  gear_archived: new Set([
+    ...COMMON_KEYS,
+  ]),
 };
 
 const BLOB_FIELDS = [

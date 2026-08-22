@@ -217,7 +217,7 @@ SELECT
   SUM(_sample_interval * double1) AS uses
 FROM ${DATASET_TABLE}
 WHERE timestamp > ${interval(days)}
-  AND blob2 IN ('export_clicked', 'workshop_saved', 'workshop_loaded', 'workshop_exported', 'workshop_imported', 'troubleshoot_used', 'review_prompt_requested')
+  AND blob2 IN ('export_clicked', 'workshop_saved', 'workshop_loaded', 'workshop_exported', 'workshop_imported', 'troubleshoot_used', 'review_prompt_requested', 'gear_created', 'gear_applied', 'gear_archived')
 GROUP BY event, platform, app_version, detail
 ORDER BY uses DESC
 LIMIT ${limit}

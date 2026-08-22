@@ -95,6 +95,9 @@ test("buildQuery features combines export, Workshop, and troubleshooter events",
   assert.match(sql, /'workshop_imported'/);
   assert.match(sql, /'troubleshoot_used'/);
   assert.match(sql, /'review_prompt_requested'/);
+  assert.match(sql, /'gear_created'/);
+  assert.match(sql, /'gear_applied'/);
+  assert.match(sql, /'gear_archived'/);
   assert.match(sql, /SUM\(_sample_interval \* double1\) AS uses/);
 });
 
@@ -113,6 +116,9 @@ test("owner dashboard registers and renders combined feature usage", () => {
   assert.match(html, /workshop_saved: "Profile saved"/);
   assert.match(html, /workshop_imported: "Backup imported"/);
   assert.match(html, /review_prompt_requested: "Review prompt requested"/);
+  assert.match(html, /gear_created: "Gear saved"/);
+  assert.match(html, /gear_applied: "Gear loaded"/);
+  assert.match(html, /gear_archived: "Gear archived"/);
   assert.match(html, /id: "review_requests"/);
   assert.match(html, /Review requests/);
   assert.match(html, /reviewRequestMetric/);

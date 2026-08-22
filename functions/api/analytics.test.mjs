@@ -248,6 +248,11 @@ for (const [event, properties, detail] of [
   ["workshop_loaded", { platform: "ios" }, ""],
   ["workshop_exported", { platform: "ios", type: "single" }, "single"],
   ["workshop_imported", { platform: "ios" }, ""],
+  ["gear_created", { platform: "ios" }, ""],
+  ["gear_applied", { platform: "ios", type: "ok" }, "ok"],
+  ["gear_applied", { platform: "ios", type: "degraded" }, "degraded"],
+  ["gear_applied", { platform: "ios", type: "stale" }, "stale"],
+  ["gear_archived", { platform: "ios" }, ""],
 ]) {
   test(`validatePayload accepts ${event}`, () => {
     const result = __test.validatePayload({ event, properties });
@@ -267,6 +272,32 @@ test("Workshop events reject unrelated detail and identity keys", () => {
     event: "workshop_exported",
     properties: { platform: "ios", type: "all", sessionId: "nope" },
   }).error, "invalid_property_sessionId");
+});
+
+// Until 1.5.0 these three names were not in EVENT_KEYS at all, so every gear
+// event iOS sent was rejected as `invalid_event` before a single property was
+// examined — and `submit` swallows that, so the loss was silent on both sides.
+// These tests are what makes the omission loud instead.
+test("gear events carry no identity and no borrowed profile keys", () => {
+  assert.equal(__test.validatePayload({
+    event: "gear_created",
+    properties: { platform: "ios", gearName: "Musti's PETG" },
+  }).error, "invalid_property_gearName");
+
+  assert.equal(__test.validatePayload({
+    event: "gear_created",
+    properties: { platform: "ios", printerModel: "x1c" },
+  }).error, "invalid_property_printerModel",
+  "a gear pins hardware, but the EVENT must not carry it — that is the "
+  + "profile_generated contract, and widening gear_created to it would turn an "
+  + "aggregate counter into a per-user hardware fingerprint");
+
+  // `type` belongs to gear_applied ALONE among the three. gear_created and
+  // gear_archived have nothing to say beyond the common keys.
+  assert.equal(__test.validatePayload({
+    event: "gear_archived",
+    properties: { platform: "ios", type: "stale" },
+  }).error, "invalid_property_type");
 });
 
 test("export_clicked accepts the iOS action payload on the existing contract", () => {
