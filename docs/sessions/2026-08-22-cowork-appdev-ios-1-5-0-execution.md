@@ -463,11 +463,44 @@ Closing it is ~15 locale keys in the shared data layer, web-first, on both
 platforms. Left as an owner decision rather than taken unilaterally inside a
 release whose locale scope was explicitly Home + Gear.
 
-## What Phase 6 still needs, and it is not mine to do
+## Phase 6 — owner authorization
 
-- **Owner sign-off on a locally-installed build in both languages**, recorded
-  here. The plan's gate is explicit: *no dispatch before that line exists.*
+**2026-08-22, owner: "kør fase 7."** Given after being shown the screenshot
+pass in both languages, the two review findings and their fixes, the declined
+LOW, and the mixed-language Print Details finding with its evidence.
 
-Phase 7 (version bump, push to `main`, one TestFlight build, ASC submission) is
-blocked on that signature, and the sync hold stays ACTIVE until the Phase 7
-commit lands.
+Recorded precisely rather than generously: this is the owner **authorizing the
+release**, and it is what the plan's gate asks for. It is not a report that he
+personally walked the build — he did not say that, and writing it down as
+though he had would put a false line in the record the gate exists to keep
+honest.
+
+## Phase 7 — version, push, build, submit
+
+`MARKETING_VERSION` 1.1.4 → **1.5.0** (`6a771ed`). A new release train, so the
+version moves; the build number stays Fastlane's `%Y%m%d%H%M` stamp, which is
+what makes every upload unique without touching the version string again.
+
+**`main` is a fast-forward to the reviewed HEAD, not a merge commit.** The
+gate asks for "one TestFlight build whose headSha matches the reviewed HEAD",
+and a merge commit would have produced a SHA that was never the thing that was
+reviewed. `origin/main` is `703bd6f`, `origin/main..HEAD` is empty, PR #4
+closed itself as MERGED. Both CI jobs green on that commit.
+
+The commit CI actually ran on is worth stating exactly: the version bump
+`6a771ed` was superseded by the docs-only `703bd6f` before its run finished, so
+concurrency cancelled it. `703bd6f` carries the identical code plus one
+markdown file and is the commit both jobs went green on — and then green again
+on the `main` push. No code went untested; the cancelled run is bookkeeping,
+not a gap.
+
+### What I could not do, and why
+
+ASC needs credentials that live only in GitHub secrets, and `fastlane/metadata/`
+does not exist in this repo — there is no `deliver` metadata to push. So the
+submission itself, the three tip products reading APPROVED, and Manual Release
+are all owner actions. Written out with the release notes in both languages at
+`3dprintassistant-ios/docs/release/1.5.0/asc-submission.md`, including the two
+things that will bite if skipped: the App Store screenshot set is 1.1.4-era and
+Home has changed, and the capture harness is known-broken on 4 of 6 devices so
+that recapture is manual.
