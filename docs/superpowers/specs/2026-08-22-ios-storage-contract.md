@@ -220,6 +220,14 @@ A store claiming compliance must carry tests that:
 4. **Assert the version-skew refusal**, including that an absent or corrupt file
    is *not* treated as skew — an empty shelf must still be recoverable.
 
-Local runs need `-testLanguage en -testRegion US`. Without it a Danish
+~~Local runs need `-testLanguage en -testRegion US`. Without it a Danish
 simulator fails localized assertions that are green on CI, which reads as a
-code defect and is not one.
+code defect and is not one.~~
+
+**Superseded 2026-08-22.** That was a workaround for tests that hardcoded
+English strings, and the workaround had a cost: pinning en/US means the suite
+structurally cannot see a missing Danish key. The three offenders now assert
+against the constants production resolves, or branch on the language
+explicitly, so the suite is language-independent — **green under `en/US`,
+under `da/DK`, and unpinned.** The pin is still fine to use; it is no longer
+required, and a Danish run is now a usable gate rather than a known-red one.
