@@ -550,3 +550,67 @@ actually cost at the ~5–8K input budget in §5, priced with the provider's dat
 does a photo cost 3?) → the starter allowance → the pack prices. The owner's instinct to
 define the unit before the limit is right; D2 is the piece that defines it, and it is
 research, not a decision.
+
+---
+
+## D21 — ANSWERED 2026-08-22: My Gear ships on iOS as a standalone 1.5.0, ahead of 2.0
+
+**Owner ruling.** *"vi har jo shipped my gear på web.. synes vi skal udnytte vores momentum
+nu"* — and, on being shown the analysis: *"gør my gear scope/plan klar til 1.5.0 og de ikke
+committed ændringer vil også komme med den version."*
+
+**This reverses D12 and narrows D18. That is deliberate, and it is recorded here so a later
+reader does not mistake it for an oversight** — the same reason D19 recorded its reversal of
+`SYN-01`.
+
+### What changes
+
+| | Before (D12 / D18) | Now (D21) |
+|---|---|---|
+| iOS gear | inside 2.0, after the tab shell | **standalone 1.5.0, before the shell** |
+| iOS releases before 2.0 | "only small bug fixes" | **one feature release** |
+| 2.0 contents | My Gear + shell + light mode + Settings + sync + AI Expert | the same, **minus My Gear** |
+
+### Why the earlier ruling did not survive
+
+D18's reasoning is commercial and remains correct: *"Pro must feel worth its price on launch
+day."* **It does not cover My Gear, because My Gear is free.** D19 defines Pro as cloud sync
++ Inventory + AI Expert access. Shipping a free feature early cannot dilute what Pro sells —
+it can only shrink the 2.0 *moment*, which is a weaker claim than the one D18 protects.
+
+D12's reasoning was the "wow oplevelse" of a single big release, plus an assumption that
+gear could not live in today's `NavigationStack`. Two findings undercut the second half:
+
+1. **Gear is architecturally independent of the tab bar.** Every gear surface the canvas
+   draws — the Home gear section (`1a`–`1c`), the overlay (`1g`), the builder (`2a`), the
+   picker's "your gear first" state (`1j`), step-5 pre-fill (`1k`) and the save-gear moment
+   (`1l`) — works in today's navigation. The tab bar is genuinely 2.0: two of its four tabs
+   (Expert, Inventory) are 2.0 features, so a 1.5.0 tab bar would have two tabs.
+2. **The Home space already exists**, and the canvas's own brief supplies it — decision 4:
+   *"The two-line Syne title survives only on the first-run hero … returning Home gets the
+   compact wordmark + a live engine-status readout."* Today's Home opens with a 144×144 logo
+   tile, a 40pt two-line title, a tagline and a `Spacer()` — roughly 300pt that the same swap
+   frees on iOS. Three gear cards need about 200pt.
+
+An earlier controller assessment called the Home-crowding objection near-decisive. It was
+based on the 2026-08-19 count of twelve stacked elements, which **included the hero** that
+this swap removes. The assessment was corrected once the canvas was readable.
+
+### What 1.5.0 contains
+
+My Gear, plus six commits already on local `main` and held by the push gate: the
+saved-profile tombstone fix, the version-skew guard, and four CI workflow commits.
+
+### What it explicitly does NOT contain
+
+Tab bar · Settings · light mode · cloud sync · AI Expert · Inventory · Pro. All 2.0.
+
+### The cost, stated plainly
+
+2.0's reveal gets smaller by one feature, and the four unwritten specs (Pro, AI Expert,
+Settings/shell/light, sync plan) are delayed by whatever 1.5.0 consumes. The owner accepted
+both. The gear *component* is built once — only Home's composition differs between 1.5.0 and
+2.0, and that difference is removing two tiles and adding a tab bar.
+
+**Supersedes:** D12 in full; D18's inclusion of My Gear in 2.0. D18's release-as-one-unit
+ruling stands for everything Pro sells.
