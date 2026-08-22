@@ -61,41 +61,48 @@ RULES THAT KEEP THE NUMBERS HONEST:
 - [x] One Save button with two explained options, replacing two adjacent "Save" buttons
 - [x] Final checks and ship — live on 3dprintassistant.com, verified against the site
 
-## 2. Groundwork for 2.0
+## 2. iOS 1.5 — My Gear
 
 **Status:** active
-**Why:** Small, cheap, and everything on iOS is stuck behind them.
+**Why:** My Gear works on the web, so it does not have to wait for 2.0. It is free, so shipping it early takes nothing away from Pro — and iOS users get the feature months sooner.
 
-- [x] **Align the iOS saved-profiles store with the web one** — a profile deleted on web no longer comes back after an iOS round-trip, and iOS no longer overwrites a file written by a newer version
-- [x] **Write the iOS storage contract before any iOS gear code**, so the two platforms cannot drift apart on the shared format
+- [x] Saved profiles on iOS now keep deletions made on the web, and refuse to overwrite data written by a newer version
+- [x] Storage contract written, so both platforms agree on the shared format
+- [ ] My Gear on iOS — gear cards on Home, a gear builder, and pre-filled steps 1–4
+- [ ] Ship 1.5
+
+## 3. Groundwork for 2.0
+
+**Status:** next
+**Why:** Small, cheap, and everything else on iOS is stuck behind them.
+
 - [ ] Bundle the app's real fonts on iOS — about an hour, fixes 17 places rendering the wrong font since launch
 - [ ] Light mode — design is done; iOS needs 6 dark locks unpicked and ~49 hardcoded colours replaced
 - [ ] Improve two accent colours in the light theme for better contrast
 - [ ] Nozzle picker: only offer sizes that fit the chosen printer
 
-## 3. Write the missing specs
+## 4. Write the missing specs
 
 **Status:** planned
-**Why:** 2.0 ships as one release, so an unwritten spec on any one feature stalls all of it. Four of the seven pieces have nothing written.
+**Why:** 2.0 ships as one release, so an unwritten spec on any one feature stalls all of it. Four of the six remaining pieces have nothing written.
 
 - [ ] **Pro tier** — what's bought, price, entitlement, what happens if it lapses. Everything commercial depends on it.
 - [ ] **AI Expert** — draft exists, needs sign-off. The long pole: the only part that needs a backend.
 - [ ] **Tab bar, Settings and light mode** — one spec, they're the same surface
 - [ ] **Cloud sync implementation plan** — spec is ratified; three technical questions to answer first
 
-## 4. Build 2.0
+## 5. Build 2.0
 
 **Status:** planned
 **Why:** Ships as one release. Pro has to feel worth its price on launch day, so nothing is drip-fed.
 
 - [ ] Tab bar and Settings screen
-- [ ] My Gear on iOS — its own design, informed by the web build
 - [ ] Cloud sync — follows you across your Apple devices, no login, rides your own iCloud
 - [ ] AI Expert — knows your printers and saved profiles, answers in the app's voice
 - [ ] Pro — cloud sync and AI Expert are what you buy
 - [ ] Ship
 
-## 5. After 2.0
+## 6. After 2.0
 
 **Status:** planned
 **Why:** Free additions for people who already bought Pro. Deliberately not announced at the point of purchase.
@@ -103,7 +110,7 @@ RULES THAT KEEP THE NUMBERS HONEST:
 - [ ] **Filament Inventory** — track your spools, what's left, what needs drying. Stores on device, syncs via iCloud, no accounts.
 - [ ] **Printer Link** — read your printer's live state over your home network. iPhone only; a browser can't reach a printer on the LAN.
 
-## 6. Ideas, not committed
+## 7. Ideas, not committed
 
 **Status:** planned
 **Why:** Carried over from the old backlog. Still open, still wanted, no date.
