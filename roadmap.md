@@ -68,7 +68,7 @@ RULES THAT KEEP THE NUMBERS HONEST:
 
 - [x] Saved profiles on iOS now keep deletions made on the web, and refuse to overwrite data written by a newer version
 - [x] Storage contract written, so both platforms agree on the shared format
-- [ ] My Gear on iOS — gear cards on Home, a gear builder, and pre-filled steps 1–4
+- [x] My Gear on iOS — gear cards on Home, saving a gear from a finished profile, and pre-filled steps
 - [ ] Ship 1.5
 
 ## 3. Groundwork for 2.0
