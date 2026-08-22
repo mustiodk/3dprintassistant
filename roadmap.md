@@ -1,6 +1,6 @@
 # 3D Print Assistant — 2.0 Roadmap
 
-**Last updated:** 2026-08-21
+**Last updated:** 2026-08-22
 
 <!--
 PARSE CONTRACT — read before editing.
@@ -45,7 +45,7 @@ RULES THAT KEEP THE NUMBERS HONEST:
 
 ## 1. Web — My Gear
 
-**Status:** active
+**Status:** done
 **Why:** Ships on its own, ahead of iOS. The cheapest way to find out whether the gear idea actually works before iOS commits to a design around it.
 
 ### Done
@@ -59,18 +59,15 @@ RULES THAT KEEP THE NUMBERS HONEST:
 - [x] Pickers lead with your own brands and printers
 - [x] Catalog-news line — "3 new printers since last time" — so new printers stay visible once your own are on top
 - [x] One Save button with two explained options, replacing two adjacent "Save" buttons
-
-### Remaining
-
-- [ ] Final checks and ship
+- [x] Final checks and ship — live on 3dprintassistant.com, verified against the site
 
 ## 2. Groundwork for 2.0
 
-**Status:** next
+**Status:** active
 **Why:** Small, cheap, and everything on iOS is stuck behind them.
 
-- [ ] **Align the iOS saved-profiles store with the web one** before cloud sync. The two disagree about how a record is written, and sync needs them to agree.
-- [ ] **Write the iOS storage contract before any iOS gear code**, so the two platforms cannot drift apart on the shared format.
+- [x] **Align the iOS saved-profiles store with the web one** — a profile deleted on web no longer comes back after an iOS round-trip, and iOS no longer overwrites a file written by a newer version
+- [x] **Write the iOS storage contract before any iOS gear code**, so the two platforms cannot drift apart on the shared format
 - [ ] Bundle the app's real fonts on iOS — about an hour, fixes 17 places rendering the wrong font since launch
 - [ ] Light mode — design is done; iOS needs 6 dark locks unpicked and ~49 hardcoded colours replaced
 - [ ] Improve two accent colours in the light theme for better contrast
