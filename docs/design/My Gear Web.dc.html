@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#141416; font-family:'Syne',sans-serif; }
+  a { color:#00e5a0; text-decoration:none; } a:hover { color:#4ed6ff; }
+</style>
+</helmet>
+
+<section style="display:flex; flex-wrap:wrap; gap:48px; padding:48px; align-items:flex-start">
+
+  <!-- ══ 2a · Ledger variant ══ -->
+  <div id="2a" style="position:relative; width:960px; flex:none">
+    <div style="position:absolute; top:-30px; left:0; font-family:'DM Mono',monospace; font-size:12px; color:#00e5a0; background:rgba(0,229,160,0.09); border:1px solid rgba(0,229,160,0.28); border-radius:6px; padding:2px 8px">2a · LEDGER — ONE PANEL, ROWS</div>
+    <div style="background:#0a0a0b; border:1px solid rgba(255,255,255,0.12); border-radius:12px; overflow:hidden">
+      <div style="display:flex; align-items:center; gap:12px; padding:12px 24px; border-bottom:1px solid rgba(255,255,255,0.07)">
+        <img src="logo-64.png" alt="" width="24" height="24" style="border-radius:6px">
+        <span style="font-weight:700; font-size:14px; color:#eeeef3">3D Print Assistant</span>
+        <div style="flex:1"></div>
+        <span style="font-size:13px; font-weight:700; color:#00e5a0; box-shadow:inset 0 -2px 0 #00e5a0; padding:6px 2px">Configure</span>
+        <span style="font-size:13px; font-weight:600; color:#888898; padding:6px 8px">Workshop</span>
+      </div>
+      <div style="padding:24px 24px 0">
+        <div style="display:flex; align-items:baseline; gap:16px; margin-bottom:10px">
+          <span style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.14em; color:#888898">MY GEAR</span>
+          <div style="flex:1"></div>
+          <span style="font-family:'DM Mono',monospace; font-size:12px; color:#00e5a0; cursor:pointer">+ Add gear</span>
+          <span style="font-family:'DM Mono',monospace; font-size:12px; color:#888898; cursor:pointer">All gears (5)</span>
+        </div>
+        <div style="background:#111114; border:1px solid rgba(255,255,255,0.07); border-radius:10px; overflow:hidden">
+          <div style="display:flex; align-items:center; min-height:52px; cursor:pointer" style-hover="background:#1a1a1f">
+            <div style="width:150px; flex:none; padding:0 16px; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em; color:#888898">X1 CARBON</div>
+            <div style="flex:1; font-size:14px; font-weight:600; color:#eeeef3">Standard 0.4 mm · PLA Basic</div>
+            <div style="width:130px; flex:none; font-family:'DM Mono',monospace; font-size:11px; font-style:italic; color:#b8b8cc">"daily driver"</div>
+            <div style="width:120px; flex:none; display:flex; align-items:center; gap:4px; font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em; color:#00e5a0"><span style="width:5px; height:5px; border-radius:50%; background:#00e5a0"></span>DEFAULT</div>
+            <div style="width:110px; flex:none; align-self:stretch; border-left:1px solid rgba(255,255,255,0.07); display:flex; align-items:center; justify-content:center; gap:6px; color:#00e5a0; background:rgba(0,229,160,0.09)" style-hover="background:#00e5a0; color:#0a0a0b">
+              <svg width="11" height="11" viewBox="0 0 14 14"><path d="M3 1.5 L12 7 L3 12.5 Z" fill="currentColor"/></svg>
+              <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em">RUN</span>
+            </div>
+          </div>
+          <div style="border-top:1px solid rgba(255,255,255,0.07); display:flex; align-items:center; min-height:52px; cursor:pointer" style-hover="background:#1a1a1f">
+            <div style="width:150px; flex:none; padding:0 16px; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em; color:#888898">X1 CARBON</div>
+            <div style="flex:1; font-size:14px; font-weight:600; color:#eeeef3">Hardened 0.6 mm · PETG Basic</div>
+            <div style="width:130px; flex:none"></div>
+            <div style="width:120px; flex:none"></div>
+            <div style="width:110px; flex:none; align-self:stretch; border-left:1px solid rgba(255,255,255,0.07); display:flex; align-items:center; justify-content:center; gap:6px; color:#00e5a0; background:rgba(0,229,160,0.09)" style-hover="background:#00e5a0; color:#0a0a0b">
+              <svg width="11" height="11" viewBox="0 0 14 14"><path d="M3 1.5 L12 7 L3 12.5 Z" fill="currentColor"/></svg>
+              <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em">RUN</span>
+            </div>
+          </div>
+          <div style="border-top:1px solid rgba(255,255,255,0.07); display:flex; align-items:center; min-height:52px; cursor:pointer" style-hover="background:#1a1a1f">
+            <div style="width:150px; flex:none; padding:0 16px; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em; color:#888898">ENDER 3 V3</div>
+            <div style="flex:1; font-size:14px; font-weight:600; color:#eeeef3">Standard 0.4 mm · TPU 95A</div>
+            <div style="width:130px; flex:none"></div>
+            <div style="width:120px; flex:none; display:flex; align-items:center; gap:4px; font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em; color:#ff6b35"><span style="width:5px; height:5px; border-radius:50%; background:#ff6b35"></span>1 MISSING</div>
+            <div style="width:110px; flex:none; align-self:stretch; border-left:1px solid rgba(255,255,255,0.07); display:flex; align-items:center; justify-content:center; gap:6px; color:#00e5a0; background:rgba(0,229,160,0.09)" style-hover="background:#00e5a0; color:#0a0a0b">
+              <svg width="11" height="11" viewBox="0 0 14 14"><path d="M3 1.5 L12 7 L3 12.5 Z" fill="currentColor"/></svg>
+              <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em">RUN</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:20px 24px 0">
+        <div style="background:#111114; border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:16px 20px; box-shadow:0 8px 24px rgba(0,0,0,0.35)">
+          <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.12em; color:#eeeef3">PRINTER</div>
+          <div style="margin-top:10px; background:#1a1a1f; border:1px solid rgba(255,255,255,0.12); border-radius:7px; padding:10px 14px; font-family:'DM Mono',monospace; font-size:13px; color:#888898">⌕ Search printers...</div>
+        </div>
+        <div style="height:48px; background:linear-gradient(#0a0a0b, transparent)"></div>
+      </div>
+      <div style="padding:0 24px 20px; font-family:'DM Mono',monospace; font-size:11px; color:#888898; line-height:1.6">One panel, table-aligned rows — reads as an instrument readout, closest to iOS 2.0's quiet-panel language. Densest option: 5 gears ≈ height of two 1a cards. Columns collapse to stacked on narrow viewports.</div>
+    </div>
+  </div>
+
+  <!-- ══ 2b · Active-gear focus ══ -->
+  <div id="2b" style="position:relative; width:640px; flex:none">
+    <div style="position:absolute; top:-30px; left:0; font-family:'DM Mono',monospace; font-size:12px; color:#00e5a0; background:rgba(0,229,160,0.09); border:1px solid rgba(0,229,160,0.28); border-radius:6px; padding:2px 8px">2b · ONE HERO + SWITCHER</div>
+    <div style="background:#0a0a0b; border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:24px">
+      <div style="display:flex; align-items:baseline; gap:16px; margin-bottom:10px">
+        <span style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.14em; color:#888898">MY GEAR</span>
+        <div style="flex:1"></div>
+        <span style="font-family:'DM Mono',monospace; font-size:12px; color:#00e5a0; cursor:pointer">+ Add gear</span>
+      </div>
+      <div style="display:flex; background:#111114; border:1px solid rgba(0,229,160,0.28); border-radius:10px; overflow:hidden">
+        <div style="width:3px; flex:none; background:#00e5a0"></div>
+        <div style="flex:1; padding:14px 16px; cursor:pointer; display:flex; flex-direction:column; gap:4px" style-hover="background:#1a1a1f">
+          <div style="display:flex; align-items:center; gap:8px">
+            <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em; color:#888898">X1 CARBON</span>
+            <span style="display:inline-flex; align-items:center; gap:4px; font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em; color:#00e5a0"><span style="width:5px; height:5px; border-radius:50%; background:#00e5a0"></span>ACTIVE</span>
+          </div>
+          <div style="font-size:16px; font-weight:700; color:#eeeef3">Standard 0.4 mm · PLA Basic</div>
+          <div style="font-family:'DM Mono',monospace; font-size:11px; font-style:italic; color:#b8b8cc">"daily driver"</div>
+        </div>
+        <div style="width:130px; flex:none; border-left:1px solid rgba(255,255,255,0.07); background:#00e5a0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; color:#0a0a0b; cursor:pointer" style-hover="background:#4ed6ff">
+          <svg width="16" height="16" viewBox="0 0 14 14"><path d="M3 1.5 L12 7 L3 12.5 Z" fill="currentColor"/></svg>
+          <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.14em; font-weight:500">GENERATE</span>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center">
+        <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em; color:#888898">SWITCH:</span>
+        <span style="font-family:'DM Mono',monospace; font-size:11px; color:#b8b8cc; border:1px solid rgba(255,255,255,0.12); border-radius:99px; padding:5px 12px; cursor:pointer" style-hover="border-color:rgba(0,229,160,0.28); color:#00e5a0">Hardened 0.6 · PETG</span>
+        <span style="display:inline-flex; align-items:center; gap:5px; font-family:'DM Mono',monospace; font-size:11px; color:#b8b8cc; border:1px solid rgba(255,255,255,0.12); border-radius:99px; padding:5px 12px; cursor:pointer" style-hover="border-color:rgba(0,229,160,0.28); color:#00e5a0"><span style="width:5px; height:5px; border-radius:50%; background:#ff6b35"></span>Ender 3 · TPU</span>
+        <span style="font-family:'DM Mono',monospace; font-size:11px; color:#888898; padding:5px 4px; cursor:pointer">all (5) →</span>
+      </div>
+      <div style="margin-top:16px; background:#111114; border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:14px 18px; box-shadow:0 8px 24px rgba(0,0,0,0.35)">
+        <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.12em; color:#eeeef3">PRINTER</div>
+      </div>
+      <div style="margin-top:14px; font-family:'DM Mono',monospace; font-size:11px; color:#888898; line-height:1.6">Optimized for the majority who own ONE gear: it earns a full strip and the only solid-green fill on the page. Other gears demote to pill chips — tapping a chip promotes it to the hero (body tap = overlay still applies on the hero). Weakness: chips hide the second gear's run action behind one extra tap.</div>
+    </div>
+  </div>
+
+  <!-- ══ 2c · Toolbar strip ══ -->
+  <div id="2c" style="position:relative; width:960px; flex:none">
+    <div style="position:absolute; top:-30px; left:0; font-family:'DM Mono',monospace; font-size:12px; color:#00e5a0; background:rgba(0,229,160,0.09); border:1px solid rgba(0,229,160,0.28); border-radius:6px; padding:2px 8px">2c · TOOLBAR STRIP — ZERO CARDS</div>
+    <div style="background:#0a0a0b; border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:24px">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+        <span style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.14em; color:#888898; margin-right:6px">MY GEAR</span>
+        <div style="display:inline-flex; align-items:stretch; border:1px solid rgba(0,229,160,0.28); border-radius:99px; overflow:hidden; background:#111114">
+          <span style="display:inline-flex; align-items:center; gap:8px; padding:8px 14px; cursor:pointer" style-hover="background:#1a1a1f">
+            <span style="width:5px; height:5px; border-radius:50%; background:#00e5a0"></span>
+            <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; color:#888898">X1C</span>
+            <span style="font-size:13px; font-weight:600; color:#eeeef3">0.4 · PLA Basic</span>
+          </span>
+          <span style="display:inline-flex; align-items:center; padding:0 13px; border-left:1px solid rgba(255,255,255,0.07); background:rgba(0,229,160,0.09); color:#00e5a0; cursor:pointer" style-hover="background:#00e5a0; color:#0a0a0b"><svg width="11" height="11" viewBox="0 0 14 14"><path d="M3 1.5 L12 7 L3 12.5 Z" fill="currentColor"/></svg></span>
+        </div>
+        <div style="display:inline-flex; align-items:stretch; border:1px solid rgba(255,255,255,0.12); border-radius:99px; overflow:hidden; background:#111114">
+          <span style="display:inline-flex; align-items:center; gap:8px; padding:8px 14px; cursor:pointer" style-hover="background:#1a1a1f">
+            <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; color:#888898">X1C</span>
+            <span style="font-size:13px; font-weight:600; color:#eeeef3">0.6 · PETG Basic</span>
+          </span>
+          <span style="display:inline-flex; align-items:center; padding:0 13px; border-left:1px solid rgba(255,255,255,0.07); background:rgba(0,229,160,0.09); color:#00e5a0; cursor:pointer" style-hover="background:#00e5a0; color:#0a0a0b"><svg width="11" height="11" viewBox="0 0 14 14"><path d="M3 1.5 L12 7 L3 12.5 Z" fill="currentColor"/></svg></span>
+        </div>
+        <div style="display:inline-flex; align-items:stretch; border:1px solid rgba(255,255,255,0.12); border-radius:99px; overflow:hidden; background:#111114">
+          <span style="display:inline-flex; align-items:center; gap:8px; padding:8px 14px; cursor:pointer" style-hover="background:#1a1a1f">
+            <span style="width:5px; height:5px; border-radius:50%; background:#ff6b35"></span>
+            <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; color:#888898">E3V3</span>
+            <span style="font-size:13px; font-weight:600; color:#eeeef3">0.4 · TPU 95A</span>
+          </span>
+          <span style="display:inline-flex; align-items:center; padding:0 13px; border-left:1px solid rgba(255,255,255,0.07); background:rgba(0,229,160,0.09); color:#00e5a0; cursor:pointer" style-hover="background:#00e5a0; color:#0a0a0b"><svg width="11" height="11" viewBox="0 0 14 14"><path d="M3 1.5 L12 7 L3 12.5 Z" fill="currentColor"/></svg></span>
+        </div>
+        <span style="font-family:'DM Mono',monospace; font-size:12px; color:#00e5a0; padding:8px 6px; cursor:pointer">+ Add</span>
+        <div style="flex:1"></div>
+        <span style="font-family:'DM Mono',monospace; font-size:12px; color:#888898; cursor:pointer">All gears (5)</span>
+      </div>
+      <div style="margin-top:16px; background:#111114; border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:16px 20px; box-shadow:0 8px 24px rgba(0,0,0,0.35)">
+        <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.12em; color:#eeeef3">PRINTER</div>
+        <div style="margin-top:10px; background:#1a1a1f; border:1px solid rgba(255,255,255,0.12); border-radius:7px; padding:10px 14px; font-family:'DM Mono',monospace; font-size:13px; color:#888898">⌕ Search printers...</div>
+      </div>
+      <div style="margin-top:14px; font-family:'DM Mono',monospace; font-size:11px; color:#888898; line-height:1.6">Lightest possible: gears as split pills in a single toolbar row — no printer names spelled out (abbreviated mono codes), no nicknames visible. Body segment = overlay, ▶ segment = run. Minimum section height; disappears into the page. Weakness: abbreviations need learning; pills wrap to 2 rows on narrow screens.</div>
+    </div>
+  </div>
+
+
+
+  <!-- ══ 1a · Populated, full page context ══ -->
+  <div id="1a" style="position:relative; width:1000px; flex:none">
+    <div style="position:absolute; top:-30px; left:0; font-family:'DM Mono',monospace; font-size:12px; color:#00e5a0; background:rgba(0,229,160,0.09); border:1px solid rgba(0,229,160,0.28); border-radius:6px; padding:2px 8px">1a · POPULATED — IN PAGE</div>
+    <div style="background:#0a0a0b; border:1px solid rgba(255,255,255,0.12); border-radius:12px; overflow:hidden">
+      <!-- header -->
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid rgba(255,255,255,0.07)">
+        <div style="display:flex; align-items:center; gap:12px">
+          <img src="logo-64.png" srcset="logo-64.png 1x, logo-128.png 2x" alt="3D Print Assistant" width="32" height="32" style="border-radius:8px">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px">
+              <span style="font-weight:700; font-size:15px; color:#eeeef3">3D Print Assistant</span>
+              <span style="font-family:'DM Mono',monospace; font-size:9px; color:#888898; border:1px solid rgba(255,255,255,0.12); border-radius:4px; padding:1px 5px">BETA</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px">
+          <div style="display:flex; background:#1a1a1f; border-radius:7px; padding:2px">
+            <span style="font-size:12px; font-weight:600; color:#0a0a0b; background:#00e5a0; border-radius:5px; padding:4px 12px">Simple</span>
+            <span style="font-size:12px; font-weight:600; color:#888898; padding:4px 12px">Advanced</span>
+          </div>
+          <span style="font-family:'DM Mono',monospace; font-size:11px; color:#888898; border:1px solid rgba(255,255,255,0.12); border-radius:7px; padding:5px 10px">EN · DA</span>
+          <span style="font-size:12px; color:#888898; border:1px solid rgba(255,255,255,0.12); border-radius:7px; padding:5px 12px">Reset</span>
+        </div>
+      </div>
+      <!-- nav -->
+      <div style="display:flex; gap:4px; padding:0 24px; border-bottom:1px solid rgba(255,255,255,0.07)">
+        <span style="font-size:13px; font-weight:600; color:#888898; padding:12px 14px">Home</span>
+        <span style="font-size:13px; font-weight:700; color:#00e5a0; padding:12px 14px; box-shadow:inset 0 -2px 0 #00e5a0">Configure</span>
+        <span style="font-size:13px; font-weight:600; color:#888898; padding:12px 14px">Troubleshoot</span>
+        <span style="font-size:13px; font-weight:600; color:#888898; padding:12px 14px">Workshop</span>
+        <span style="font-size:13px; font-weight:600; color:#888898; padding:12px 14px">Feedback</span>
+      </div>
+      <!-- gear section -->
+      <div style="padding:24px 24px 0">
+        <div style="display:flex; align-items:baseline; gap:16px; margin-bottom:12px">
+          <span style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.14em; color:#888898">MY GEAR</span>
+          <span style="font-family:'DM Mono',monospace; font-size:11px; color:#888898; opacity:0.6">3 SAVED</span>
+          <div style="flex:1"></div>
+          <span style="font-family:'DM Mono',monospace; font-size:12px; color:#00e5a0; cursor:pointer" style-hover="color:#4ed6ff">+ Add gear</span>
+          <span style="font-family:'DM Mono',monospace; font-size:12px; color:#888898; cursor:pointer" style-hover="color:#b8b8cc">All gears (5)</span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:10px">
+          <!-- card: default -->
+          <div style="display:flex; background:#111114; border:1px solid rgba(255,255,255,0.07); border-radius:10px; overflow:hidden; min-height:64px" style-hover="border-color:rgba(255,255,255,0.12)">
+            <div style="flex:1; padding:12px 14px; cursor:pointer; display:flex; flex-direction:column; justify-content:center; gap:3px" style-hover="background:#1a1a1f">
+              <div style="display:flex; align-items:center; gap:8px">
+                <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em; color:#888898">X1 CARBON</span>
+                <span style="display:inline-flex; align-items:center; gap:4px; font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em; color:#00e5a0"><span style="width:5px; height:5px; border-radius:50%; background:#00e5a0"></span>DEFAULT</span>
+              </div>
+              <div style="font-size:14px; font-weight:600; color:#eeeef3">Standard 0.4 mm · PLA Basic</div>
+              <div style="font-family:'DM Mono',monospace; font-size:11px; font-style:italic; color:#b8b8cc">"daily driver"</div>
+            </div>
+            <div style="width:76px; border-left:1px solid rgba(255,255,255,0.07); background:rgba(0,229,160,0.09); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer; color:#00e5a0" style-hover="background:#00e5a0; color:#0a0a0b">
+              <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 1.5 L12 7 L3 12.5 Z" fill="currentColor"/></svg>
+              <span style="font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.14em">RUN</span>
+            </div>
+          </div>
+          <!-- card: plain -->
+          <div style="display:flex; background:#111114; border:1px solid rgba(255,255,255,0.07); border-radius:10px; overflow:hidden; min-height:64px" style-hover="border-color:rgba(255,255,255,0.12)">
+            <div style="flex:1; padding:12px 14px; cursor:pointer; display:flex; flex-direction:column; justify-content:center; gap:3px" style-hover="background:#1a1a1f">
+              <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em; color:#888898">X1 CARBON</span>
+              <div style="font-size:14px; font-weight:600; color:#eeeef3">Hardened 0.6 mm · PETG Basic</div>
+            </div>
+            <div style="width:76px; border-left:1px solid rgba(255,255,255,0.07); background:rgba(0,229,160,0.09); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer; color:#00e5a0" style-hover="background:#00e5a0; color:#0a0a0b">
+              <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 1.5 L12 7 L3 12.5 Z" fill="currentColor"/></svg>
+              <span style="font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.14em">RUN</span>
+            </div>
+          </div>
+          <!-- card: warning -->
+          <div style="display:flex; background:#111114; border:1px solid rgba(255,255,255,0.07); border-radius:10px; overflow:hidden; min-height:64px" style-hover="border-color:rgba(255,255,255,0.12)">
+            <div style="flex:1; padding:12px 14px; cursor:pointer; display:flex; flex-direction:column; justify-content:center; gap:3px" style-hover="background:#1a1a1f">
+              <div style="display:flex; align-items:center; gap:8px">
+                <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em; color:#888898">ENDER 3 V3</span>
+                <span style="display:inline-flex; align-items:center; gap:4px; font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em; color:#ff6b35"><span style="width:5px; height:5px; border-radius:50%; background:#ff6b35"></span>1 ITEM MISSING</span>
+              </div>
+              <div style="font-size:14px; font-weight:600; color:#eeeef3">Standard 0.4 mm · TPU 95A</div>
+            </div>
+            <div style="width:76px; border-left:1px solid rgba(255,255,255,0.07); background:rgba(0,229,160,0.09); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer; color:#00e5a0" style-hover="background:#00e5a0; color:#0a0a0b">
+              <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 1.5 L12 7 L3 12.5 Z" fill="currentColor"/></svg>
+              <span style="font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.14em">RUN</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- configurator below (weight reference) -->
+      <div style="padding:20px 24px 0">
+        <div style="background:#111114; border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:18px 20px; box-shadow:0 8px 24px rgba(0,0,0,0.35)">
+          <div style="display:flex; gap:24px; align-items:flex-start">
+            <div style="width:110px; flex:none">
+              <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.12em; color:#eeeef3">PRINTER</div>
+              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#888898; margin-top:2px">required</div>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; gap:12px">
+              <div style="background:#1a1a1f; border:1px solid rgba(255,255,255,0.12); border-radius:7px; padding:11px 14px; font-family:'DM Mono',monospace; font-size:13px; color:#888898">⌕ Search printers...</div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap">
+                <div style="background:#1a1a1f; border:1px solid rgba(255,255,255,0.12); border-radius:7px; padding:8px 14px"><div style="font-size:13px; font-weight:600; color:#eeeef3">Bambu Lab</div><div style="font-family:'DM Mono',monospace; font-size:10px; color:#888898">12 models</div></div>
+                <div style="background:#1a1a1f; border:1px solid rgba(255,255,255,0.12); border-radius:7px; padding:8px 14px"><div style="font-size:13px; font-weight:600; color:#eeeef3">Creality</div><div style="font-family:'DM Mono',monospace; font-size:10px; color:#888898">17 models</div></div>
+                <div style="background:#1a1a1f; border:1px solid rgba(255,255,255,0.12); border-radius:7px; padding:8px 14px"><div style="font-size:13px; font-weight:600; color:#eeeef3">Prusa</div><div style="font-family:'DM Mono',monospace; font-size:10px; color:#888898">6 models</div></div>
+                <div style="background:#1a1a1f; border:1px solid rgba(255,255,255,0.12); border-radius:7px; padding:8px 14px"><div style="font-size:13px; font-weight:600; color:#eeeef3">Anycubic</div><div style="font-family:'DM Mono',monospace; font-size:10px; color:#888898">9 models</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="height:60px; background:linear-gradient(#0a0a0b, transparent)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 1b · Empty state ══ -->
+  <div id="1b" style="position:relative; width:640px; flex:none">
+    <div style="position:absolute; top:-30px; left:0; font-family:'DM Mono',monospace; font-size:12px; color:#00e5a0; background:rgba(0,229,160,0.09); border:1px solid rgba(0,229,160,0.28); border-radius:6px; padding:2px 8px">1b · EMPTY STATE</div>
+    <div style="background:#0a0a0b; border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:24px">
+      <div style="display:flex; align-items:baseline; gap:16px; margin-bottom:12px">
+        <span style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.14em; color:#888898">MY GEAR</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px; border:1px dashed rgba(255,255,255,0.12); border-radius:10px; padding:14px 18px">
+        <div style="flex:1; font-size:13px; color:#888898; line-height:1.5">A gear is a saved shortcut — the answers that don't change between prints. Save one and it fills them in one tap.</div>
+        <div style="flex:none; display:inline-flex; align-items:center; gap:7px; font-family:'DM Mono',monospace; font-size:12px; color:#00e5a0; border:1px solid rgba(0,229,160,0.28); background:rgba(0,229,160,0.09); border-radius:7px; padding:8px 14px; cursor:pointer" style-hover="background:#00e5a0; color:#0a0a0b">+ Add your gear</div>
+      </div>
+      <div style="margin-top:20px; background:#111114; border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:16px 20px; box-shadow:0 8px 24px rgba(0,0,0,0.35)">
+        <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.12em; color:#eeeef3">PRINTER</div>
+        <div style="margin-top:10px; background:#1a1a1f; border:1px solid rgba(255,255,255,0.12); border-radius:7px; padding:11px 14px; font-family:'DM Mono',monospace; font-size:13px; color:#888898">⌕ Search printers...</div>
+      </div>
+      <div style="margin-top:14px; font-family:'DM Mono',monospace; font-size:11px; color:#888898; line-height:1.6">Empty state stays one quiet row: dashed border = "empty slot", not a panel. The configurator below keeps full weight — first-run users go straight to it. "Add your gear" scrolls to the configurator and arms a save-on-complete banner (constraint 1: no separate builder).</div>
+    </div>
+  </div>
+
+  <!-- ══ 1c · Card anatomy + badge states ══ -->
+  <div id="1c" style="position:relative; width:520px; flex:none">
+    <div style="position:absolute; top:-30px; left:0; font-family:'DM Mono',monospace; font-size:12px; color:#00e5a0; background:rgba(0,229,160,0.09); border:1px solid rgba(0,229,160,0.28); border-radius:6px; padding:2px 8px">1c · CARD ANATOMY</div>
+    <div style="background:#0a0a0b; border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:24px; display:flex; flex-direction:column; gap:14px">
+      <div style="display:flex; background:#111114; border:1px solid rgba(255,255,255,0.07); border-radius:10px; overflow:hidden">
+        <div style="flex:1; padding:14px 16px; display:flex; flex-direction:column; gap:4px">
+          <div style="display:flex; align-items:center; gap:8px">
+            <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em; color:#888898">X1 CARBON</span>
+            <span style="display:inline-flex; align-items:center; gap:4px; font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em; color:#00e5a0"><span style="width:5px; height:5px; border-radius:50%; background:#00e5a0"></span>DEFAULT</span>
+          </div>
+          <div style="font-size:15px; font-weight:600; color:#eeeef3">Standard 0.4 mm · PLA Basic</div>
+          <div style="font-family:'DM Mono',monospace; font-size:11px; font-style:italic; color:#b8b8cc">"daily driver"</div>
+        </div>
+        <div style="width:84px; border-left:1px solid rgba(255,255,255,0.07); background:rgba(0,229,160,0.09); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; color:#00e5a0">
+          <svg width="15" height="15" viewBox="0 0 14 14"><path d="M3 1.5 L12 7 L3 12.5 Z" fill="currentColor"/></svg>
+          <span style="font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.14em">RUN</span>
+        </div>
+      </div>
+      <div style="font-family:'DM Mono',monospace; font-size:11px; color:#888898; line-height:1.7">
+        BODY (left) → detail overlay. Hover: bg raises to --surface2.<br>
+        RUN RAIL (right, 76–84px) → generates immediately. Tinted --green-dim at rest, fills solid --green on hover. One material change (fill vs none) separates the two intents — no stacked buttons.<br>
+        Row 1 mono: printer + status. Row 2 Syne 600: nozzle · material (the gear's identity). Row 3 optional italic nickname.
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,0.07); padding-top:14px; display:flex; flex-direction:column; gap:8px">
+        <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.14em; color:#888898">BADGE VOCABULARY — DOT + MICROTEXT, NEVER BOXES</span>
+        <div style="display:flex; gap:18px; flex-wrap:wrap">
+          <span style="display:inline-flex; align-items:center; gap:5px; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; color:#00e5a0"><span style="width:5px; height:5px; border-radius:50%; background:#00e5a0"></span>DEFAULT</span>
+          <span style="display:inline-flex; align-items:center; gap:5px; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; color:#ff6b35"><span style="width:5px; height:5px; border-radius:50%; background:#ff6b35"></span>1 ITEM MISSING</span>
+          <span style="display:inline-flex; align-items:center; gap:5px; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; color:#ff6b35"><span style="width:5px; height:5px; border-radius:50%; background:#ff6b35; opacity:0.6"></span>ADJUSTED</span>
+        </div>
+        <div style="font-family:'DM Mono',monospace; font-size:11px; color:#888898; line-height:1.6">Orange dot is enough alarm — details live in the overlay. Warning never blocks the RUN rail (gear-validate substitutes; the overlay explains what changed).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 1d · 360px mobile ══ -->
+  <div id="1d" style="position:relative; width:360px; flex:none">
+    <div style="position:absolute; top:-30px; left:0; font-family:'DM Mono',monospace; font-size:12px; color:#00e5a0; background:rgba(0,229,160,0.09); border:1px solid rgba(0,229,160,0.28); border-radius:6px; padding:2px 8px">1d · 360PX</div>
+    <div style="background:#0a0a0b; border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:16px">
+      <div style="display:flex; align-items:baseline; gap:12px; margin-bottom:10px">
+        <span style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.14em; color:#888898">MY GEAR</span>
+        <div style="flex:1"></div>
+        <span style="font-family:'DM Mono',monospace; font-size:12px; color:#00e5a0">+ Add gear</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px">
+        <div style="display:flex; background:#111114; border:1px solid rgba(255,255,255,0.07); border-radius:10px; overflow:hidden; min-height:60px">
+          <div style="flex:1; padding:10px 12px; display:flex; flex-direction:column; justify-content:center; gap:2px">
+            <div style="display:flex; align-items:center; gap:8px">
+              <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em; color:#888898">X1 CARBON</span>
+              <span style="display:inline-flex; align-items:center; gap:4px; font-family:'DM Mono',monospace; font-size:9px; color:#00e5a0"><span style="width:5px; height:5px; border-radius:50%; background:#00e5a0"></span>DEFAULT</span>
+            </div>
+            <div style="font-size:13px; font-weight:600; color:#eeeef3">Standard 0.4 mm · PLA Basic</div>
+          </div>
+          <div style="width:64px; border-left:1px solid rgba(255,255,255,0.07); background:rgba(0,229,160,0.09); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:#00e5a0">
+            <svg width="13" height="13" viewBox="0 0 14 14"><path d="M3 1.5 L12 7 L3 12.5 Z" fill="currentColor"/></svg>
+            <span style="font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.14em">RUN</span>
+          </div>
+        </div>
+        <div style="display:flex; background:#111114; border:1px solid rgba(255,255,255,0.07); border-radius:10px; overflow:hidden; min-height:60px">
+          <div style="flex:1; padding:10px 12px; display:flex; flex-direction:column; justify-content:center; gap:2px">
+            <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em; color:#888898">X1 CARBON</span>
+            <div style="font-size:13px; font-weight:600; color:#eeeef3">Hardened 0.6 mm · PETG Basic</div>
+          </div>
+          <div style="width:64px; border-left:1px solid rgba(255,255,255,0.07); background:rgba(0,229,160,0.09); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:#00e5a0">
+            <svg width="13" height="13" viewBox="0 0 14 14"><path d="M3 1.5 L12 7 L3 12.5 Z" fill="currentColor"/></svg>
+            <span style="font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.14em">RUN</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px; font-family:'DM Mono',monospace; font-size:11px; color:#888898; line-height:1.6">Single column. RUN rail narrows to 64px — still ≥44px tall tap target. Header collapses to label + Add gear; "All gears" moves into the overflow of the last card row at 4+.</div>
+    </div>
+  </div>
+
+  <!-- ══ 1e · Light theme ══ -->
+  <div id="1e" style="position:relative; width:520px; flex:none">
+    <div style="position:absolute; top:-30px; left:0; font-family:'DM Mono',monospace; font-size:12px; color:#00e5a0; background:rgba(0,229,160,0.09); border:1px solid rgba(0,229,160,0.28); border-radius:6px; padding:2px 8px">1e · LIGHT (SECONDARY)</div>
+    <div style="background:#f4f4f7; border:1px solid rgba(0,0,0,0.1); border-radius:12px; padding:24px">
+      <div style="display:flex; align-items:baseline; gap:16px; margin-bottom:12px">
+        <span style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.14em; color:#5a5a68">MY GEAR</span>
+        <div style="flex:1"></div>
+        <span style="font-family:'DM Mono',monospace; font-size:12px; color:#009468">+ Add gear</span>
+        <span style="font-family:'DM Mono',monospace; font-size:12px; color:#5a5a68">All gears (5)</span>
+      </div>
+      <div style="display:flex; background:#ffffff; border:1px solid rgba(0,0,0,0.1); border-radius:10px; overflow:hidden">
+        <div style="flex:1; padding:14px 16px; display:flex; flex-direction:column; gap:4px">
+          <div style="display:flex; align-items:center; gap:8px">
+            <span style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em; color:#5a5a68">X1 CARBON</span>
+            <span style="display:inline-flex; align-items:center; gap:4px; font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em; color:#009468"><span style="width:5px; height:5px; border-radius:50%; background:#009468"></span>DEFAULT</span>
+          </div>
+          <div style="font-size:15px; font-weight:600; color:#17171c">Standard 0.4 mm · PLA Basic</div>
+        </div>
+        <div style="width:84px; border-left:1px solid rgba(0,0,0,0.08); background:rgba(0,229,160,0.14); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; color:#009468">
+          <svg width="15" height="15" viewBox="0 0 14 14"><path d="M3 1.5 L12 7 L3 12.5 Z" fill="currentColor"/></svg>
+          <span style="font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.14em">RUN</span>
+        </div>
+      </div>
+      <div style="margin-top:12px; font-family:'DM Mono',monospace; font-size:11px; color:#5a5a68; line-height:1.6">Same rule as iOS 4c: re-ink, don't invert. #00e5a0 is fill-only in light; text/dots use the signal-mark token #009468 (AA on white). Everything else maps 1:1 to the light theme's existing surface/border tokens.</div>
+    </div>
+  </div>
+
+</section>
+</x-dc>
+</body>
+</html>
