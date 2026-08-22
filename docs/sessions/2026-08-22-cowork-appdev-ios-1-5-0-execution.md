@@ -253,3 +253,67 @@ accepted on the reviewer's word:
   It is `"Epoxyharpiks"`. The test caught it.
 - My first `JSCompat` draft had three number-formatting errors that node
   contradicted, and an `Int64` conversion that would have trapped.
+
+## Phase 4 — Home leads with My Gear · GATE MET
+
+**407 tests, green in both languages.** Height is the gate and it fires: each
+figure is asserted twice — from the constants the view lays out with, and from
+the rendered view through `UIHostingController.sizeThatFits` — because either
+alone drifts from the other. Inflating the row height to 72 turns five gate
+tests red.
+
+| | budget |
+|---|---|
+| hero (computed; the ~336pt screenshot agrees within 5%, smaller used) | 321.6 |
+| compact header on returning launches | −50 |
+| **freed** | **271.6** |
+| 1 gear / 3 gears / 8 gears + door | 84 / 212 / 262 |
+
+A fourth row is asserted **not** to fit, so the three-row cap has a reason in CI
+rather than in a comment.
+
+### Seven states, not the canvas's six
+
+The extra one is the **bridge**: a returning user with saved Workshop profiles
+and no gears. Every existing 1.1.4 user lands there on upgrade. The canvas does
+not draw it because the canvas assumes 2.0, and showing those users the
+first-run hero would teach the app to someone who has been using it for months.
+
+### The plan's §4 interaction cut was wrong, and measuring said so
+
+It called for swipe + context menus on the gear card. `.swipeActions`,
+`.contextMenu`, `.onDelete`, `EditButton` and `List` have **zero** usages
+tree-wide; every list here is a hand-rolled `VStack` of `Button`s. The app's
+universal destructive idiom is two-tap arm-then-confirm
+(`WorkshopView.deleteTapped:234-246` plus all five pickers), and that is what a
+gear row got.
+
+### What a screenshot caught that 407 tests could not
+
+After the locale work landed, Home rendered fully in Danish **except one English
+button** — "My Workshop" — between "Støt 3DPA" and "Produktopdateringer".
+
+The plan scoped Home's localization **by namespace** and excluded Workshop. That
+boundary is wrong for a goal stated as "one screen, one language":
+`Strings.Workshop.homeButton` is rendered by `HomeView`. It is now
+`Strings.Home.workshopButton` / **"Mit værksted"**, which pairs with "Mit grej"
+rather than reading as two unrelated decisions. One string — the other 113
+excluded strings stay excluded.
+
+**This is the argument for looking at the thing you built.** No test could have
+seen it, because every test was correct.
+
+### One judgement call, checked rather than asserted
+
+The gear section must render during engine loading and after engine failure,
+where `Engine.t` is by definition unreachable — an engine-only path would print
+raw key names in exactly the two states where a user is already confused. So
+`Localization.engineText` reads the **same** `{lang}.lproj/{lang}.json` the
+engine is handed, through the same selector `setLang` receives, reproducing
+`engine.js:25`'s fallback chain. One table, two readers — and a test boots the
+engine and compares all 61 gear keys against `Engine.t` to keep it that way.
+
+### CI is green on the real runner
+
+Both jobs, all 367 tests at the time of the Phase 3 push, plus the engine mirror
+and the new locale gate.
