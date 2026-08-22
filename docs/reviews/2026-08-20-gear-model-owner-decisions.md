@@ -609,8 +609,18 @@ Tab bar · Settings · light mode · cloud sync · AI Expert · Inventory · Pro
 
 2.0's reveal gets smaller by one feature, and the four unwritten specs (Pro, AI Expert,
 Settings/shell/light, sync plan) are delayed by whatever 1.5.0 consumes. The owner accepted
-both. The gear *component* is built once — only Home's composition differs between 1.5.0 and
-2.0, and that difference is removing two tiles and adding a tab bar.
+both.
+
+**Amended 2026-08-22 after a plan-gate review.** This decision originally claimed the gear
+component is "built once — only Home's composition differs." That was too optimistic and is
+corrected here rather than left standing. What genuinely carries over is the **store, the
+validator, and the gear card row** — the large, correctness-critical part. What gets
+reworked is **Home integration and navigation**: 1.5.0 has no tab bar, so gear entry, the
+back-stack behaviour and the Home composition are all built against today's
+`NavigationStack`, and 2.0 rebuilds them around a four-tab shell hosting Expert and
+Inventory tiles the 1.5.0 Home does not have. The rework cost is real, not zero. It remains
+smaller than building gear twice — which is the comparison that mattered for this
+decision — but the softer claim is the accurate one.
 
 **Supersedes:** D12 in full; D18's inclusion of My Gear in 2.0. D18's release-as-one-unit
 ruling stands for everything Pro sells.
