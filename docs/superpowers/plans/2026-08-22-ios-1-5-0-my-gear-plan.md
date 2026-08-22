@@ -9,8 +9,9 @@
 **Created:** 2026-08-22. **Owner:** Musti. **Status:** revised after a
 plan-gate NO-GO (`bridge --mode codex-only`, 2026-08-22). Four must-fix and five
 should-fix findings applied; the review transcript is in
-[`../../reviews/`](../../reviews/). **Eleven owner decisions in §5 remain open,
-and three change the shape of the release.**
+[`../../reviews/`](../../reviews/). **The three shape-changing decisions were
+taken by the owner on 2026-08-22** (§5.1–5.3); eight smaller ones remain open and
+none of them blocks Phase 0.5 from starting.
 
 ---
 
@@ -291,16 +292,25 @@ final.
 
 Three of these change the shape of the release. Each carries a recommendation.
 
-1. **`AppState`: optionalize the eight defaulted fields, or add a companion
-   `answered: Set<String>`?** → **Optionalize.** A returned Set dies at the call
-   site, does not survive the router push or the backgrounding snapshot, and does
-   not give the save sheet the per-field test web uses. Without it, iOS- and
-   web-created gears for the same hardware never compare equal.
-2. **Ship the standalone gear builder?** → **No, save-path only.** The shipped
-   web design names "no separate builder" as its constraint 1; the ratified
-   canvas draws a full one. Both are authoritative about the same feature. **This
-   is the two-day swing in the release.**
-3. **Bundle Syne and DM Mono?** → **No, defer to 2.0.** See §4.
+1. ~~**`AppState`: optionalize, or add an `answered: Set<String>` companion?**~~
+   **DEFERRED TO EVIDENCE — owner, 2026-08-22:** Phase 0.5's spike decides it.
+   The recommendation going in is *optionalize* (a returned Set dies at the call
+   site, survives neither the router push nor the backgrounding snapshot, and
+   denies the save sheet the per-field test web uses — so iOS- and web-created
+   gears for the same hardware would never compare equal). But the owner declined
+   to pre-commit, which is the right call for the one decision whose failure mode
+   is silent: **the spike reports, then the choice is made.** If it comes back
+   blocked, the `answered` companion is the fallback and forking the state shape
+   from web is the accepted price.
+2. ~~**Ship the standalone gear builder?**~~ **DECIDED — owner, 2026-08-22:
+   no. Save-path only.** The shipped web design names "no separate builder" as
+   its constraint 1; the ratified canvas draws a full one. Both were authoritative
+   about the same feature, and this was the two-day swing in the release. Now
+   closed, and listed in §4 so it cannot return mid-execution.
+3. ~~**Bundle Syne and DM Mono?**~~ **DECIDED — owner, 2026-08-22: no, defer to
+   2.0.** See §4 for the reasoning that made this more than a taste question:
+   the type system is inert app-wide today, so bundling re-typesets every screen
+   on a train whose screenshot harness already fails 4/6.
 4. **Locale route: mirror web's JSONs, or generate `Localizable.strings`?** →
    **Mirror.** The iOS copies are already 92 lines behind with nothing guarding
    them, so re-mirroring is required work regardless.
