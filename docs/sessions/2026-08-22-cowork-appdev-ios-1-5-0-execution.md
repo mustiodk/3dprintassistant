@@ -187,3 +187,69 @@ paid down rather than discovered.
 **Recast of the Phase 3 locale work:** the headline is not "add nine Home
 translations". It is "the app already has the translations and cannot reach
 them." The nine `Strings.Home` constants are the small half.
+
+## Phases 1-3 · what landed and what it cost
+
+| Phase | Gate | Result |
+|---|---|---|
+| **1** | `JSCompat` + `GearStore`, fixtures from the real module, negative control live | **met** — 297 green |
+| **2** | Full suite green with no test deleted, live JSCore proof, backgrounding round-trip | **met** — 309 green |
+| **3** (locale half) | Locale parity in three directions, `diff` empty, `Strings.Home` bilingual | **met** — 316 green in **all three** modes |
+
+### The `en/US` test pin is retired
+
+The storage contract said local runs need `-testLanguage en -testRegion US` or a
+Danish simulator gives false reds. That was true, and the workaround had a cost
+the plan named: a suite pinned to `en/US` **structurally cannot see a missing
+Danish key**.
+
+Three tests were the whole problem. They now assert against the constants
+production resolves, or branch on language explicitly. The suite is green under
+`en/US`, under `da/DK`, and unpinned — **the first green Danish run this repo
+has had** — so the Phase 5 Danish gate is a real gate rather than "green except
+the two we know about".
+
+### Two UNVERIFIED questions settled by experiment
+
+**`-testLanguage da` does reach an app-hosted unit-test bundle's
+`Bundle.main.preferredLocalizations`.** The plan flagged this as needing a
+runtime probe, and the whole Danish gate rested on it. Proved by removing the
+`setLang` call and re-running under Danish: it fails with `("en") is not equal
+to ("da")`. A green run alone would have proved nothing.
+
+**The engine-language test cannot fail under `en/US`** — bundle English and
+engine default English agree whether or not anything calls `setLang`, which is
+exactly how the defect survived. That limitation is now written into the test
+rather than left as a trap for the next reader.
+
+### `ci.yml` has now run
+
+[PR #4](https://github.com/mustiodk/3dprintassistant-ios/pull/4) triggered the
+workflow's **first execution in its existence** — both jobs green, including the
+new locale gate. The risk that its debut would be the release push is closed.
+
+### Cross-model review of the port found three real defects
+
+All three were verified against the real runtime before being fixed, none
+accepted on the reviewer's word:
+
+1. **The key-collapse guard covered only gear ids.** Nested keys collapse the
+   same way — verified: two `fields` keys differing only by normalization parse
+   into ONE key holding the SECOND value, so the first is gone before any Swift
+   runs. Any write then drops data it never touched. Now write-locked anywhere
+   in the tree, with non-ASCII still allowed where it is unambiguous.
+2. **Numeric re-serialization laundered untouched bytes.** Swift and JS agree on
+   the digits and disagree on presentation in four ways (`1e-6`, `1e-7`,
+   large integrals, `-0`). Replaced with the spec's own `s`/`k`/`n`
+   decomposition, differentially tested against `JSON.stringify` on 29 values.
+   That also removed an `Int64(d)` conversion that would have **trapped** past
+   9e18 — a laundering fix took a crash out with it.
+3. **Objects inside an array shared one key-order path**, so the second was
+   re-emitted in the first's order.
+
+### Corrections I made to my own work
+
+- I claimed `"Epoxy Resin"` was a proper noun identical in both locale tables.
+  It is `"Epoxyharpiks"`. The test caught it.
+- My first `JSCompat` draft had three number-formatting errors that node
+  contradicted, and an `Int64` conversion that would have trapped.
