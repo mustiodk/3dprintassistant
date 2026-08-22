@@ -405,3 +405,76 @@ each was counting one of them. Roughly **225** mirror as real checks, **~16**
 cannot be mirrored at all, and **~10** mirror but become vacuous in Swift. Those
 last two groups get listed where they occur rather than quietly dropped — a test
 that cannot fail is not a test.
+
+---
+
+# 8. Execution addendum — 2026-08-22
+
+Appended during autonomous execution rather than edited into the text above, so
+the plan-gate-reviewed version stays legible. Each entry either closes an open
+decision from §5 or corrects something §3/§6 got wrong.
+
+## 8.1 Decisions closed on evidence
+
+| § | Decision | Closed as | On what |
+|---|---|---|---|
+| 5.1 | `AppState`: optionalize? | **Optionalize the TYPE, keep the INIT defaults** | Phase 0.5 spike + cross-model refutation. See the session log. |
+| 5.4 | Locale route | **Mirror** — done | The iOS tables were 92 lines behind, internally inconsistent by 2 keys, and carried 29 dead keys. Now byte-identical with web and gated in CI. |
+| 5.9 | Confirm the filename | **`gear.json`** | `Application Support/3DPrintAssistant/` already holds `workshop.json` and `app-state.json`, both with an injectable `fileURL`. The spec says "beside `app-state.json`" and never names it. |
+
+## 8.2 Corrections to this plan
+
+**§3 Phase 2 / §6 — "unanswered" is not a cliff.** The engine returns 4 params
+with nothing answered, 12 with `surface`, 20 with `+strength`, 28 with
+`+speed` — and web renders exactly that today, gating output on hardware alone
+(`app.js:2691`). Progressive disclosure, not a broken screen. Route-level
+enforcement remains right, as UX rather than as a correctness backstop.
+
+**§3 Phase 3 — the locale work was mis-scoped, and not in the direction
+expected.** The nine `Strings.Home` constants are the small half. The dominant
+fact is that iOS ships **250 genuinely-translated Danish strings that no user
+can reach**: `_lang` is hardcoded to `'en'` (`engine.js:18`), Swift calls
+`setLang` at zero sites, and the `localStorage` stub that would restore the
+preference is a per-`JSContext` dictionary (`EngineService.swift:272-283`) that
+always returns null. Wiring `setLang` is a prerequisite for shipping the
+ratified Danish feature name, not a nicety.
+
+**§3 Phase 4 / §4 — the swipe + context-menu cut is wrong for this app.**
+`.swipeActions`, `.contextMenu`, `.onDelete`, `EditButton` and `List` have
+**zero** occurrences in the entire tree; every list is a hand-rolled
+`VStack`/`LazyVStack` of `Button`s. The app's universal destructive idiom is
+two-tap arm-then-confirm — `WorkshopView.deleteTapped:234-246` plus the
+identical shape in all five pickers. A gear row should use that, not introduce
+an interaction idiom that exists nowhere else.
+
+**§6 — add: the export paths deliberately answer for the user.**
+`exportBambuStudioJSON`, the Bambu/Orca shared path and the Prusa path each
+build an `exportState` filling `surface`/`strength`/`speed`/`environment` with
+defaults before resolving (`engine.js:3333`, `:3545`, `:7314`). So a
+partially-answered state exports a **complete default profile**, not a partial
+one. iOS inherits this automatically — the engine is byte-identical — so the
+platforms agree, but nothing surfaces it to the user.
+
+**§6 — add: analytics would report unanswered fields as explicit choices.**
+`AnalyticsService.profileProperties` sends `environment`/`support`/`colors`
+straight through (`AnalyticsService.swift:136-138`). This release exists to find
+out whether the gear model works; reporting a default the user never chose
+answers that question with fiction. The type change makes it a compile error
+rather than a silent one, but the semantic call still has to be made.
+
+## 8.3 Terminology — no conflict after all
+
+The Danish tables use **"gear"** as a loanword in 23 of the 61 gear strings
+("Alle gear", "dit gear", "Aktivt gear"), and "grej" in exactly one:
+`gearSectionTitle` = **"Mit grej"**. So the *section* is named in Danish and the
+*object* keeps its English name. That is deliberate and idiomatic; iOS inherits
+it from the mirror with nothing to decide.
+
+## 8.4 PR strategy — three, not eight
+
+The iOS repo is **private**, so `macos-26` minutes bill at 10x against quota;
+the web repo is public and free. Pushing a branch does not trigger `ci.yml`
+(`push:` is `branches: [main]`) — only a PR does. Eight phase-PRs would spend
+roughly 560 billed minutes before a single build, so: PRs after Phase 1,
+Phase 3 and Phase 5, plus the release push. Four CI runs, and the workflow still
+reaches the real runner early.
