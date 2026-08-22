@@ -61,3 +61,88 @@ early, which is the point (`feedback_push_ci_to_the_real_runner_early`).
 `app-state.json`, both with an injectable `fileURL` for tests. The spec says
 "beside `app-state.json`" and never names it. `gear.json` is the only name
 consistent with the two files already there.
+
+## Phase 0.5 — the `AppState` spike · GATE MET
+
+**Answer: optionalize the TYPE, keep the INIT defaults.** The spike separated two
+changes the plan had treated as one, and only the first is needed.
+
+### What was measured, not reasoned
+
+Driven against the real `engine.js` (node, `vm`, the repo's own snapshot
+harness), 10 hardware states x 7 engine surfaces + per-field isolation, 140
+comparisons:
+
+| Question | Measured answer |
+|---|---|
+| absent vs explicit `null` vs `undefined`, per field | **identical, 7/7**, on `resolveProfile` |
+| which of the seven change `resolveProfile` when absent | **`surface`, `strength`, `speed` only** — measured against the current iOS defaults, which is a narrower claim than "these three are the only ones that matter" |
+| `getFilters` / `getWarnings` / `getChecklist` / `getAdvancedFilamentSettings` with all seven absent | **byte-identical** — the wizard renders fine with nothing answered |
+| params returned as answers arrive | **4 → 12 → 20 → 28** |
+
+So an iOS dictionary that OMITS a key is exactly what web sends as `null`. No new
+engine behaviour is introduced by the change.
+
+### The two facts that settled it
+
+**Web's state is null for all seven** (`app.js:66-78`) and its codec's
+`defaultState()` sets every single-valued field to `null`
+(`state-codec.js`). iOS's concrete defaults are the anomaly.
+
+**A 4-param profile is shipped web behaviour, not a broken screen.** Web gates
+output on `hasMin = printer && nozzle && material` (`app.js:2691`) — hardware
+only. A live web user who picks only hardware already sees exactly that profile,
+with 1 warning and a 5-item checklist. Unanswered is progressive disclosure.
+
+I had initially written that a partially-pinned gear reaching Output would be a
+**correctness failure**. It is not, and measuring web is what corrected it.
+
+### Why the type changes but the default does not
+
+- **the TYPE** (`String?`) makes the compiler enumerate the 31 sites that must
+  consider unanswered. `ProfileKeyHasher.swift:28-33` is the one that would
+  otherwise corrupt silently — `"surface=\(state.surface)"` compiles against an
+  optional and yields `Optional("fine")`, with no test covering it.
+- **the INIT default** stays concrete, so `AppState()` behaves exactly as today.
+  **120 test constructions keep working**, and a fresh wizard run is unchanged
+  for every existing user. Nilling the defaults would quietly change the default
+  experience of a release that is supposed to be about gear — scope the plan's
+  §1 rule cuts.
+- `pick` → `pickOptional` for the seven is **still required**, or a user who
+  backgrounds the app with surface unanswered gets "standard" re-materialized on
+  restore. That is the §6 risk whose failure mode is silent.
+
+A `""` sentinel would need no type change at all and the wire format would be
+identical — rejected because the type system is the mitigation here, not the
+cost, and `""` is already overloaded (on `nozzle` it means "cleared as
+incompatible").
+
+### Cross-model challenge — `bridge --mode codex-only`
+
+It returned **Refuted**, and four of its findings were correct on verification.
+Two were things I had missed outright:
+
+1. **Export paths deliberately fill defaults before resolving** — three sites,
+   `state.surface || 'standard'` (`engine.js:3333`, `:3545`, `:7314`, Bambu
+   legacy / Bambu-Orca / Prusa). So a partially-answered state does **not**
+   export a 4-param file; it exports a **complete default profile**. Verified.
+   iOS inherits this automatically — its `engine.js` is byte-identical and
+   carries the same three sites — so the platforms agree, but the behaviour is
+   silent and is now recorded rather than discovered later.
+2. **Analytics would report unanswered fields as explicit choices**
+   (`AnalyticsService.swift:136-138`). For a release whose entire purpose is to
+   find out whether the gear model works, that corrupts the answer. The type
+   change turns it into a compile error rather than a silent one — but the
+   semantic call still has to be made deliberately: report unanswered as
+   unanswered, never as the default.
+3. **"D4 is implemented by null" overreached.** Null makes fields unanswered; it
+   does not make anything ask. On iOS the five-step wizard structure does the
+   asking, and route-level enforcement is the mechanism — not a nicety.
+4. **`engine.js:2301` already separates unanswered from invalid**: empty or
+   undefined passes through untouched, truthy-but-unknown coerces to the
+   documented default. Combined with the codec degrading unknown ids to `null`,
+   the composition is coherent and it is what iOS should mirror.
+
+Its proposed cheaper option — an `answeredKeys` set carried by gear apply —
+addresses the pre-amendment draft it was given; keeping the init defaults is
+cheaper still and touches no test.
