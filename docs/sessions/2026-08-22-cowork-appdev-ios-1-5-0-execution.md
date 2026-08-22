@@ -146,3 +146,44 @@ Two were things I had missed outright:
 Its proposed cheaper option — an `answeredKeys` set carried by gear apply —
 addresses the pre-amendment draft it was given; keeping the init defaults is
 cheaper still and touches no test.
+
+## A finding that reframes Phase 3: iOS ships a complete Danish locale nobody can see
+
+Measured, not inferred:
+
+| | keys | of which genuinely translated |
+|---|---|---|
+| iOS `da.lproj/da.json` | 272 | **250** (only 22 match English, and those are words like "Printer" that are the same in Danish) |
+| web `locales/da.json` | 365 | 345 |
+| web gear keys | 61 | 60 translated |
+
+**`_lang` never becomes `'da'`.** Verified in the source rather than inferred:
+
+- `engine.js:18` hardcodes `let _lang = 'en'`.
+- `setLang` is exported (`engine.js:7769`) and called from **zero** Swift call
+  sites — grep across the whole tree.
+- `engine.js:158` restores the preference from
+  `localStorage.getItem('3dpa_lang')`, but iOS's `localStorage` is a stub whose
+  backing is `var store = {}` recreated per `JSContext`
+  (`EngineService.swift:272-283`), so that read returns `null` on every launch.
+
+So `da.json` is loaded, hard-fail-validated as `_critical`, held in memory as
+`_T.da` — and never read. Every engine-derived label in the app is English on a
+Danish device: the filter group titles, the chip labels, the use-case names.
+
+This is not a Phase 3 nicety, it is a prerequisite. The Danish feature name
+**"Mit grej"** is already ratified, and gear's strings arrive through the same
+`t()` that is pinned to English. Wiring `setLang` after `init()` — it guards on
+`_T[lang]` being populated, so ordering matters — is roughly three lines and
+lights up 250 strings that are already written, reviewed and shipped in the
+bundle.
+
+It is also the single largest user-visible change in the release, on a train
+that is not about localization, and those 250 strings have never been seen in a
+running app. The plan's Phase 5 gate already requires an explicit Danish
+walkthrough (`-testLanguage da -testRegion DK`), which is where that risk gets
+paid down rather than discovered.
+
+**Recast of the Phase 3 locale work:** the headline is not "add nine Home
+translations". It is "the app already has the translations and cannot reach
+them." The nine `Strings.Home` constants are the small half.
