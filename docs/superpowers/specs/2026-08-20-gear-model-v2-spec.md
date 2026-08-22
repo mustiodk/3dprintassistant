@@ -88,10 +88,23 @@ Everything else is asked per print by default: `useCase`, `surface`, `strength`,
 
 ### 2.1 Key and versioning
 
-Web: `localStorage` under **`3dpa_gear_v1`**. iOS: a Codable JSON file beside
+Web: `localStorage` under **`3dpa_gear_v1`**. iOS: a JSON file beside
 `app-state.json`. The two decode to identical values; **byte-identical serialization is
-not claimed** — neither `Codable` nor `JSON.stringify` guarantees key order or escaping,
-so any parity test must compare decoded structures, not bytes.
+not claimed** — neither Swift's encoders nor `JSON.stringify` guarantees key order or
+escaping, so any parity test must compare decoded structures, not bytes.
+
+> **Amended 2026-08-22, before the first line of iOS gear code.** This paragraph
+> originally read "a Codable JSON file," which was written as shorthand for "a JSON file
+> on disk" but reads as a licence for `JSONDecoder → mutate → JSONEncoder`. That pattern
+> is **forbidden** for this envelope by
+> [the iOS storage contract](2026-08-22-ios-storage-contract.md) §1: it can only ever
+> write back keys the current build models, so an older iOS binary silently strips a
+> newer writer's data. It has already cost this codebase twice, once at IMPL-044 W3 and
+> once on 2026-08-22, both in `WorkshopStore`. The contract supersedes the word here.
+> `Codable` remains fine for a purely device-local file that no other writer touches;
+> `3dpa_gear_v1` is not one, because sync is what the envelope exists to enable.
+> **Decoded-structure parity (this section) and lossless retention (the contract) are
+> different claims, and gear must satisfy both.**
 
 The key is unchanged from the 2026-08-17 spec because **nothing was ever written to a real
 user** — the branch that would have written it is parked and unmerged. `v1` therefore
